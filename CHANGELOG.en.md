@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.15 — automatic nasopharynx cephalometry
+- **Cephalometry** button (face, nasopharynx and neck CT): TotalSegmentator (open tasks) finds the
+  palate, pharynx, hyoid, mandible, tongue and cervical vertebrae, and Ipê measures the minimal
+  airway cross-sectional area perpendicular to the airway axis, soft palate length and thickness,
+  posterior airway space, hyoid to mandibular plane, tongue size and the hyoid spine level.
+- Review window with the source of each number (automatic or edited), manual measurement, editable
+  references and report text; a review image with the lines goes into the study.
+
 ## 0.99.11 — DicomViewer becomes Ipê
 - New name and icon (the yellow ipê flower); source code published on GitHub under GPL-3.0.
 - The data folder, the factory AE title `DICOMVIEWER`, `dicomviewer://` links and

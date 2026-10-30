@@ -3,6 +3,20 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.15 — cefalometria do cavum automática
+- Botão **Cefalometria** (TC de face, cavum e pescoço): o TotalSegmentator separa palato, faringe,
+  hioide, mandíbula, língua e vértebras cervicais (tarefas abertas, só TC), e o Ipê faz as medidas
+  dos laudos de apneia: área de secção transversal mínima **perpendicular ao eixo** da via aérea,
+  com o local e a faixa; comprimento e espessura do palato mole; espaço aéreo posterior retropalatal
+  e retrolingual; hioide ao plano mandibular (Go–Me); largura e comprimento da língua; nível do
+  hioide na coluna.
+- Janela de conferência: cada número com a referência e de quem é (automático ou editado); trocar
+  digitando ou medindo à mão; referências editáveis; texto no formato do laudo. Sem a IA, a mesma
+  janela é o roteiro manual.
+- No exame: as estruturas (SEG) e uma imagem de conferência com o sagital mediano, as linhas de cada
+  medida e o perfil da área ao longo do eixo.
+- O instalar_segmentacao baixa também os modelos de cabeça e pescoço.
+
 ## 0.99.14 — medidas guiadas: MRPI, MRPI 2.0, Evans e ângulo calosal
 - Botão **Índices** (RM e TC de crânio): um roteiro pede as medidas uma de cada vez, com a ferramenta
   e o plano certos, captura o que foi medido no quadro e faz a conta. MRPI e MRPI 2.0, índice de

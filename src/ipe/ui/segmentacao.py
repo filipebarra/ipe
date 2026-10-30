@@ -93,7 +93,14 @@ class Segmentacao(QObject):
             from ipe.ai import coluna as COL
             self.trabalho.tarefas_proprias = COL.tarefas
             self.trabalho.min_cortes = COL.MIN_CORTES
-        self.titulo = "Identificar vértebras e discos" if tipo == "coluna" else "Segmentar órgãos"
+        if tipo == "cefalometria":
+            from ipe.ai import cefalometria as CF
+            self.trabalho.tarefas_proprias = CF.tarefas
+            self.trabalho.min_cortes = CF.MIN_CORTES
+            self.trabalho.modalidades = ("CT",)
+            self.trabalho.motivo_modalidade = "A cefalometria automática é só para TC."
+        self.titulo = {"coluna": "Identificar vértebras e discos",
+                       "cefalometria": "Cefalometria automática"}.get(tipo, "Segmentar órgãos")
         self.proc: QProcess | None = None
         self.dlg: QProgressDialog | None = None
         self.etapa = "preparando"
@@ -220,6 +227,9 @@ class Segmentacao(QObject):
             if self.tipo == "coluna":
                 self._fim_coluna()
                 return
+            if self.tipo == "cefalometria":
+                self._fim_cefalometria()
+                return
             from ipe.ai import totalseg_saida as SAIDA
             res = self.trabalho.ler()
             saida = SAIDA.gravar(self.trabalho, res, self.repo.db, self.storage)
@@ -233,6 +243,23 @@ class Segmentacao(QObject):
         except Exception as e:  # noqa: BLE001
             log.exception("ler/gravar a segmentação")
             self._fim(None, f"A segmentação terminou, mas não deu para gravar: {e}")
+
+    def _fim_cefalometria(self) -> None:
+        from ipe.ai import cefalometria as CF
+        from ipe.ai import cefalometria_saida as CS
+        rotulos, versao, _s = self.trabalho.ler_rotulos()
+        res = CF.calcular(self.trabalho.vol, rotulos, self.trabalho.settings)
+        saida = CS.gravar(self.trabalho, res, versao, self.repo.db, self.storage, repo=self.repo,
+                          settings=self.trabalho.settings)
+        saida["cefalometria"] = res
+        saida["series_uid"] = self.trabalho.series_uid
+        minutos = (time.monotonic() - self.inicio) / 60
+        msg = (f"Cefalometria pronta em {minutos:.1f} min: {CF.resumo(res)}. As estruturas e a imagem de "
+               f"conferência estão no exame (séries “{CF.DESC_SEG}” e “{CF.DESC_IMAGEM}”). Confira cada "
+               "número na janela da cefalometria antes de mandar para o laudo.")
+        if res.avisos:
+            msg += "\n\nConfira: " + "; ".join(res.avisos) + "."
+        self._fim(saida, msg)
 
     def _fim_coluna(self) -> None:
         from ipe.ai import coluna as COL

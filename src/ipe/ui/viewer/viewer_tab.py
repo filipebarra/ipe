@@ -1108,6 +1108,19 @@ class ViewerTab(OncoMixin, QWidget):
         idx.setIcon(icon("measure"))
         idx.setIconText("Índices")
         self._button(tb, idx, menu_idx, app="indices")
+        # cefalometria do cavum (0.99.15): automática (TotalSegmentator) ou à mão — TC de face/pescoço
+        menu_cef = self._menu()
+        a_auto = QAction("Cefalometria automática (IA) desta série…", self)
+        a_auto.triggered.connect(lambda: self.cefalometria_automatica(self.active))
+        menu_cef.addAction(a_auto)
+        a_mao = QAction("Cefalometria à mão (roteiro)…", self)
+        a_mao.triggered.connect(lambda: self.abrir_cefalometria())
+        menu_cef.addAction(a_mao)
+        cef = self._act("cefalometria.auto", "Cefalometria do cavum (automática)",
+                        lambda: self.cefalometria_automatica(self.active))
+        cef.setIcon(icon("measure"))
+        cef.setIconText("Cefalometria")
+        self._button(tb, cef, menu_cef, app="cefalometria")
         self._montar_bloco_de_aplicacoes(tb)
         self._button(tb, self._plain("Mais", "more", "Mais opções"), more, instant=True)
 
@@ -2678,6 +2691,31 @@ class ViewerTab(OncoMixin, QWidget):
                                      "nível e clique em “Ligar quadros” (L) para rolarem juntos.")
 
     # ================================================================ layout
+    def abrir_cefalometria(self, res=None, automatica: bool = False):
+        """Janela da cefalometria (0.99.15), uma por aba: conferência da automática ou roteiro à mão."""
+        from ipe.ui.viewer.cefalometria_painel import CefalometriaPainel
+        p = getattr(self, "cefalometria_painel", None)
+        if p is None:
+            p = CefalometriaPainel(self, res, self.window(), automatica=automatica)
+            self.cefalometria_painel = p
+        elif res is not None or not p.automatica:
+            p.carregar(res, automatica)
+        p.ligar_quadros()
+        p.show()
+        p.raise_()
+        return p
+
+    def cefalometria_automatica(self, vp=None, simular: bool = False):
+        """A série do quadro vai para o TotalSegmentator (palato, faringe, hioide, mandíbula, língua,
+        vértebras); no fim abre a janela de conferência com os números."""
+        vp = vp or self.active
+        if vp is None or (vp.modality or "").upper() != "CT":
+            QMessageBox.information(self, "Cefalometria automática",
+                                    "A cefalometria automática é feita na TC: abra a série de TC (axial fina) "
+                                    "num quadro. Para medir à mão, use Cefalometria ▸ à mão.")
+            return None
+        return self.segmentar_orgaos(vp, simular=simular, tipo="cefalometria")
+
     def abrir_roteiro(self, roteiro_id: str = "mrpi"):
         """Janela do roteiro de medida guiada (0.99.14), uma por aba."""
         from ipe.ui.viewer.roteiro_painel import RoteiroPainel
@@ -2699,6 +2737,10 @@ class ViewerTab(OncoMixin, QWidget):
         if painel is not None:
             painel._ligados.append(vp)
             vp.sig.annotations_changed.connect(painel.medida_feita)
+        cef = getattr(self, "cefalometria_painel", None)
+        if cef is not None:
+            vp.sig.annotations_changed.connect(cef.medida_feita)
+            cef._ligados.append(vp)
         vp.left_tool = self.left_tool
         vp.anonymize = self.anonymize
         vp.case_label = self.case_label
@@ -4723,6 +4765,12 @@ class ViewerTab(OncoMixin, QWidget):
                           f.series_uid, cache=self.cache, simular=simular, tipo=tipo)
 
         def pronto(saida, msg):
+            if saida is not None and tipo == "cefalometria":
+                carregar_na_aba(self, saida)
+                self.status_message.emit(msg)
+                self.abrir_cefalometria(saida.get("cefalometria"), automatica=True)
+                QMessageBox.information(self, seg.titulo, msg)
+                return
             if saida is not None:
                 carregar_na_aba(self, saida)
                 from ipe.ai import coluna as COL

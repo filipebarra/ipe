@@ -76,7 +76,9 @@ CREDITOS: tuple[Credito, ...] = (
     Credito("ReportLab", "o guia do usuário em PDF", "BSD", "https://www.reportlab.com/opensource/",
             onde="desenvolvimento", modulos=("reportlab",)),
     # ------------------------------------------------------------------ inteligência artificial
-    Credito("TotalSegmentator", "segmentação de órgãos abdominais, vértebras e discos (TC e RM)",
+    Credito("TotalSegmentator", "segmentação de órgãos abdominais, vértebras e discos (TC e RM) e das "
+            "estruturas da cefalometria — palato, faringe, hioide, mandíbula e língua (TC; tarefas abertas "
+            "head_glands_cavities, headneck_bones_vessels, craniofacial_structures e head_muscles)",
             "Apache-2.0 (algumas tarefas pedem licença, gratuita para uso não comercial)",
             "https://github.com/wasserth/TotalSegmentator", onde="segmentação",
             citacao="Wasserthal J, et al. TotalSegmentator: robust segmentation of 104 anatomic "

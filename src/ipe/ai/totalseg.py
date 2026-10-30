@@ -283,6 +283,9 @@ class Trabalho:
     #: outra lista de tarefas (a coluna, 0.99.2) e o mínimo de cortes dela — vazio = órgãos abdominais
     tarefas_proprias: list | None = None
     min_cortes: int = 20
+    #: modalidades aceitas (a cefalometria, 0.99.15, é só TC) e o texto da recusa
+    modalidades: tuple = ("CT", "MR")
+    motivo_modalidade: str = "A segmentação de órgãos é só para TC e RM."
 
     def preparar(self, progresso=None) -> None:
         from ipe.imaging.series import build_frames
@@ -292,8 +295,8 @@ class Trabalho:
         if serie is None:
             raise Falhou("Série não encontrada no banco.")
         self.modalidade = (serie.modality or "").upper()
-        if not serve(self.modalidade):
-            raise Falhou("A segmentação de órgãos é só para TC e RM.")
+        if self.modalidade not in self.modalidades:
+            raise Falhou(self.motivo_modalidade)
         self.descricao_serie = serie.description or ""
         self.frames = build_frames(self.repo.instances_for_series(self.series_uid), self.series_uid)
         try:

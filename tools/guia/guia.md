@@ -1010,6 +1010,27 @@ Roteiros de fábrica:
 
 O plano e a espessura do corte são conferidos e viram **observação** ao lado do número, não recusa: medida num plano diferente do pedido, ou em corte acima de 3 mm, aparece com ⚠. Em exames com série 3D, use o MPR para chegar ao plano certo. Os valores de referência aparecem como texto ao lado do número, com a fonte — o programa não classifica. **Copiar o texto** e **Mandar para o laudo** levam o resultado no formato de lista, com as referências entre parênteses.
 
+## Cefalometria do cavum
+
+Botão **Cefalometria** (aparece em TC de face, cavum ou pescoço; em outros exames, pelo botão **Aplicações**). Dois caminhos:
+
+- **Automática (IA)**: a série de TC do quadro ativo (de preferência axial fina) vai para o TotalSegmentator, que separa palato mole e duro, naso, oro e hipofaringe, hioide, mandíbula, língua e as vértebras cervicais. As contas são feitas pelo Ipê sobre essas estruturas. Leva alguns minutos em CPU, e dá para continuar trabalhando. Usa a mesma instalação da segmentação abdominal; na primeira vez, baixa os modelos de cabeça e pescoço (ou rode de novo o instalar_segmentacao).
+- **À mão (roteiro)**: a mesma janela, vazia; escolha a linha, clique em **Medir à mão** e faça a medida num quadro (régua; contorno para a área).
+
+| Medida | Como sai |
+|---|---|
+| Área de secção transversal mínima | luz da via aérea (abaixo de −400 HU) dentro da faringe; área no plano **perpendicular ao eixo** da via aérea, onde ela é menor, com o local (terço do palato mole ou retrolingual) e a faixa (> 100 mm² normal; 50–100 moderadamente reduzida; < 50 acentuadamente reduzida). Um gráfico mostra a área ao longo do eixo |
+| 1. Comprimento do palato mole | sagital mediano, da espinha nasal posterior à ponta da úvula |
+| 2. Espessura do palato mole | a maior, perpendicular ao comprimento |
+| 3. Espaço aéreo posterior | menor distância ântero-posterior da luz no sagital mediano: retropalatal (na altura do palato mole) e retrolingual (abaixo da úvula) |
+| 4. Hioide ao plano mandibular | linha gônio–mento (Go–Me) traçada na mandíbula projetada no sagital; distância perpendicular até a borda superior do hioide |
+| 5 e 6. Língua | maior largura laterolateral e comprimento ântero-posterior no sagital mediano |
+| 7. Nível do hioide na coluna | linha horizontal pelo corpo do hioide contra os corpos de C1–C7 (ex.: platô inferior de C3) |
+
+A janela mostra cada número com a referência e **de quem é** (automático ou editado). Para corrigir, digite na célula ou use **Medir à mão**; **Voltar ao automático** desfaz. **Referências…** troca os valores entre parênteses (ficam guardados). O texto sai no formato do laudo: a área mínima com o local e a faixa, e a lista numerada com as referências.
+
+No exame ficam duas séries, só neste computador: **Cefalometria · TotalSegmentator** (as estruturas, que podem ser ligadas e desligadas como as outras segmentações) e **Cefalometria: conferência · TotalSegmentator**, uma imagem com o sagital mediano, as linhas de cada medida, a lista dos números e o perfil da área. Olhe essa imagem antes de usar os números: se uma linha caiu fora do lugar, aquele número não vale. As distâncias são medidas na posição em que o paciente está na mesa; cabeça muito fletida ou estendida muda o "horizontal" do nível do hioide.
+
 # Configurações, usuários e exportação
 
 ## O menu Configurações

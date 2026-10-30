@@ -37,7 +37,7 @@ REGIOES_FABRICA: dict[str, tuple[str, str]] = {
                 "PHARYN|TSA|SUPRA AORT|SUPRAAORT|TRONCOS SUPRA|PAROTID|SUBMANDIB|CERVICAL"),
     "face": ("Face e seios da face",
              "FACE|FACIAL|SEIOS|SINUS|PARANASAL|MANDIB|MAXIL|ATM|TMJ|DENTAL|ODONTO|CBCT|"
-             "MASTOID|OUVIDO|TEMPORAL BONE|ROCHED"),
+             "MASTOID|OUVIDO|TEMPORAL BONE|ROCHED|CAVUM|RINOFARING|NASOFARING|ADENOIDE|APNEIA|CEFALOMETR"),
     "mama": ("Mama", "BREAST|MAMA|MAMAS|MAMARIA|MAMOGRAF|MAMMO"),
     "torax": ("Tórax", "CHEST|THORAX|TORAX|TORACIC|LUNG|PULMAO|PULMON"),
     "coracao": ("Coração", "HEART|CARDIAC|CARDIACA|CORONAR|CORACAO|CARDIO"),
@@ -177,6 +177,9 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
     Aplicacao("mn", "MN", frozenset({"NM"}), modulo="mn", descricao="Medicina nuclear"),
     Aplicacao("indices", "Índices", frozenset({"MR", "CT"}), ((frozenset({"cranio"}), frozenset()),),
               descricao="Medidas guiadas: MRPI e MRPI 2.0, índice de Evans, ângulo calosal"),
+    Aplicacao("cefalometria", "Cefalometria", frozenset({"CT"}),
+              ((frozenset({"face", "pescoco"}), frozenset()),),
+              descricao="Cefalometria do cavum: via aérea, palato mole, língua e hioide (automática ou à mão)"),
 )}
 
 MODOS = ("auto", "sempre", "nunca")

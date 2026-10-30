@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.15 — cefalometría del cavum automática
+- Botón **Cefalometría** (TC de cara, cavum y cuello): TotalSegmentator (tareas abiertas) separa
+  paladar, faringe, hioides, mandíbula, lengua y vértebras cervicales, e Ipê mide el área de sección
+  transversal mínima perpendicular al eje de la vía aérea, longitud y espesor del paladar blando,
+  espacio aéreo posterior, hioides al plano mandibular, tamaño de la lengua y nivel del hioides.
+- Ventana de revisión con el origen de cada número (automático o editado), medida a mano,
+  referencias editables y texto para el informe; una imagen de revisión con las líneas queda en el
+  estudio.
+
 ## 0.99.11 — DicomViewer pasa a llamarse Ipê
 - Nombre e icono nuevos (la flor del ipê amarillo); código publicado en GitHub bajo GPL-3.0.
 - La carpeta de datos, el AE de fábrica `DICOMVIEWER`, los enlaces `dicomviewer://` y

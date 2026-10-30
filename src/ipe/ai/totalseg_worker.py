@@ -37,6 +37,21 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
     for t in tarefas:
         nome = t["nome"]
         lab = np.zeros(vol.shape, np.uint8)
+        if t.get("cefalo"):
+            # fantoma da cefalometria (0.99.15): cada estrutura tem um HU próprio
+            codigos = {
+                "head_glands_cavities": {12: (-1100, -900), 18: (61, 61), 19: (1101, 1101)},
+                "headneck_bones_vessels": {3: (1201, 1201)},
+                "craniofacial_structures": {1: (1301, 1301)},
+                "head_muscles": {9: (62, 62)},
+                "total": {26: (402, 402), 27: (403, 403), 28: (404, 404)},
+            }.get(nome, {})
+            nomes = {12: "oropharynx", 18: "soft_palate", 19: "hard_palate", 3: "hyoid", 1: "mandible",
+                     9: "tongue", 26: "vertebrae_C2", 27: "vertebrae_C3", 28: "vertebrae_C4"}
+            for cid, (a, b) in codigos.items():
+                lab[(vol >= a) & (vol <= b)] = cid
+            saida[nome] = (lab, {c: nomes[c] for c in codigos})
+            continue
         coluna = nome in ("vertebrae_mr", "vertebrae_body") or any("vertebrae" in r or "discs" in r
                                                                      for r in (t.get("roi") or []))
         if coluna:

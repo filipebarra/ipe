@@ -62,6 +62,8 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 - Segmentação 3D por crescimento de região, com volume e três eixos perpendiculares.
 - Medidas guiadas (Índices): MRPI e MRPI 2.0, índice de Evans e ângulo calosal, com conferência
   do plano e da espessura do corte.
+- Cefalometria do cavum na TC, automática (TotalSegmentator) ou à mão: área mínima da via aérea
+  perpendicular ao eixo, palato mole, espaço aéreo posterior, hioide e língua, no formato do laudo.
 
 ### Mama
 - Mamografia e tomossíntese: protocolo por etapas, distribuição entre monitores, enquadramento da
