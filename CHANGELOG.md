@@ -26,8 +26,170 @@
   verdade.
 - RM de mama dinâmica: parâmetros pré-configurados e layouts próprios (séries e cor por quadro).
 
-## 0.67 a 0.99.8
-Ainda sem resumo neste arquivo.
+## 0.99.8 — servidor Linux sem janela
+- Pacote para servidor Linux (Ubuntu 24.04): o instalador deixa o programa rodando como serviço do sistema, recebendo exames e impressões mesmo sem ninguém conectado.
+- Configurações e nós DICOM ajustáveis pela linha de comando (listar, acrescentar e remover nós; mudar uma configuração), sem abrir a interface.
+- O serviço fecha de forma limpa quando o sistema o desliga e liga a impressora DICOM se ela estiver ativada.
+- Regras de automação, gestão automática e identidades continuam sendo configuradas pela janela.
+
+## 0.99.7 — ajustes depois do uso real
+- Coluna: a IA só dá nome às vértebras; as medidas de altura do disco e da vértebra foram desligadas.
+- As janelas abrem no centro da tela, com cerca de 80% da área útil do monitor de cada computador.
+- Rolar com Ctrl segurado não pula mais vários cortes no primeiro movimento.
+- A lista do banco se atualiza quando chegam exames sem perder o exame que estava selecionado.
+
+## 0.99.6 — gestão automática, impressão e janelas
+- Gestão DICOM: "Enviar o que falta para…" e "Enviar o exame inteiro para…" outro destino, com uma fila que mostra cada exame do lote com destino, andamento e resultado, e opção de parar.
+- Gestão automática: regras com horário que conferem e reenviam o que está incompleto ou ausente, repetem a tentativa quando há erro e mostram o resultado na aba "Automático".
+- Impressões DICOM que chegam folha a folha (mesma origem, mesmo paciente, em até 90 s) viram páginas de um trabalho só; há também o botão "Juntar como páginas".
+- Novo menu Impressão, com "Acrescentar impressora DICOM…"; a Gestão DICOM também entrou no menu.
+- Filme: botões Novo, Abrir, Salvar… e Imprimir…, com as opções reunidas nas janelas de salvar e imprimir; em monitor pequeno, os botões passam para a linha de baixo.
+- Nó DICOM ou servidor de impressão novo vale na hora, sem reabrir a janela. Fechar o programa pede confirmação.
+
+## 0.99.5 — coluna: medida mais robusta e duas sagitais
+- As medidas da coluna ignoram pedaços soltos que a IA marcou com o nome de uma vértebra e não se encurtam por falhas dentro do corpo vertebral.
+- Na RM, a medida pode usar duas sagitais; valores que discordam aparecem em vermelho para conferir.
+- Aviso quando as duas sequências contaram os níveis de forma diferente.
+
+## 0.99.4 — altura das vértebras e tira de séries ao vivo
+- Altura dos corpos vertebrais (anterior, média e posterior) com graduação de fratura de T4 a L5, em tabela gravada no exame.
+- A tira de séries do exame aberto se atualiza sozinha quando chega série nova, já com a miniatura.
+
+## 0.99.3 — medida dos discos
+- Altura e volume dos discos intervertebrais em tabela gravada no exame, destacando o disco bem menor que o de cima.
+- Ao renumerar os níveis, a tabela é refeita com os nomes novos.
+
+## 0.99.2 — níveis da coluna
+- Identificação automática de vértebras e discos (TotalSegmentator) em TC e RM; o nome aparece em qualquer série e plano do exame.
+- "Renumerar ±1" no botão direito do quadro, para corrigir a contagem.
+- Pode ser pedida pelo banco, pelo quadro ou no automático (aba CAD/IA).
+
+## 0.99.1 — CAD/IA também na importação
+- O implante e a segmentação automáticos passam a rodar também em exames importados de pasta, arquivo ou ZIP, não só nos que chegam pela rede.
+- A aba CAD/IA e o editor de protocolos de exibição ganharam o layout da aba Mamografia (lista à esquerda, configurações à direita).
+
+## 0.99 — Preferências ▸ CAD/IA
+- Aba nova com a segmentação abdominal e o implante de silicone, cada um com suas opções: automático na chegada, quais exames e séries, e para onde enviar o resultado.
+- A segmentação pode rodar sozinha quando chega uma TC ou RM de abdome, escolhendo a série pela ordem de preferência.
+- Implante: opção de só procurar quando o aparelho marca que há prótese.
+
+## 0.98 — órgãos abdominais com o TotalSegmentator
+- Segmentação de fígado, baço, rins, pâncreas, adrenais e vesícula (e outras estruturas opcionais) em TC e RM, pelo banco ou pelo botão direito do quadro.
+- O resultado fica no exame: segmentação com um item por órgão e tabela de volumetria (mL, HU médio na TC, segmentos de Couinaud).
+- A segmentação se instala à parte, uma vez; o pacote do programa não ficou mais pesado.
+
+## 0.97 a 0.97.1 — implante corrigido na chegada
+- Mamografia com prótese que chega ganha uma cópia sem o silicone como série nova do exame. A original não muda, e a cópia não vai ao PACS.
+- "Apagar implante" no botão direito do banco, para exames já guardados.
+- Na mamografia, zoom e pan só andam juntos com a sincronia ligada, como nos outros exames.
+
+## 0.96 a 0.96.1 — implante: só corrigir; parede torácica
+- O botão Implante (Alt+I) só corrige; a janela continua a de antes de tirar o silicone.
+- Correção do lado da parede torácica numa linha de quatro incidências: a CCE e a MLOD saíam espelhadas.
+
+## 0.95 — detecção do implante na mamografia
+- Busca da prótese pela borda e pela forma, bem mais precisa que a anterior.
+- Respeita as marcações do aparelho: não procura implante quando a tag diz que não há, nem em incidência com deslocamento (Eklund), compressão localizada ou magnificação.
+- "Achar o implante a partir daqui" no botão direito.
+
+## 0.94 — etapa com a avaliação dinâmica
+- Uma etapa do protocolo de exibição pode abrir a avaliação dinâmica da mama (mapas e curvas) com o layout escolhido; ao sair da etapa, a dinâmica fecha.
+- A etapa "Avaliação dinâmica" entrou no protocolo de fábrica da RM de mama.
+
+## 0.91 a 0.93 — reconstruções 3D nos protocolos
+- O quadro de uma etapa pode ser MIP 3D ou VR, com as vistas do 3D (anterior, direita, esquerda…).
+- Os MIPs de meia mama de fábrica passaram a ser 3D, com o mamilo de cada mama virado para fora.
+- Toda reconstrução de etapa (MPR, MIP, MinIP, média) vira 3D ao usar a barra do 3D; "Voltar à série" desfaz.
+
+## 0.90 — MIPs de meia mama por fase
+- Na etapa, o quadro escolhe a fase da dinâmica (pré, 1ª a 9ª pós ou última) e só metade da mama.
+- Etapa de fábrica em 2×2 com MIPs da 1ª e da 3ª fase pós-contraste, mama direita e esquerda.
+
+## 0.89 — OCR no filme montado com as imagens da porta
+- O filme montado com imagens mandadas à porta da impressora também é identificado por OCR; sem identificação, fica "Esperando paciente".
+
+## 0.88 — protocolos de exibição com etapas
+- Protocolos de exibição com etapas para TC, RM e outros, como na mamografia: layout, séries preferidas, plano, MIP/MPR, janela, cor e sincronia por quadro; ← → passam de etapa.
+- Barra com a lista de etapas, "Gravar a tela como etapa…", "Editar protocolos…" e "Sair do protocolo".
+- Protocolos de fábrica: TC de tórax, RM de mama e RM de crânio.
+
+## 0.87 — OCR na chegada mais completo
+- O OCR lê o nome também no rodapé, na folha inteira e nas caixas de anotação.
+- A coluna Situação diz por que o filme está parado: aparelho sem cadastro, origem desligada, nenhuma regra ou esperando paciente.
+
+## 0.86 — filme automático por regras
+- A aba Automático (exames mandados pela modalidade) usa regras por origem, AE que recebeu e modalidade, cada uma com grade, destino e modelo.
+
+## 0.85 — regras de impressão por listas
+- Regras de impressão montadas marcando listas de origem, servidor que recebeu e modalidade; a aba Regras virou tabela.
+
+## 0.84 — impressão em lote e módulos
+- Modalidade em cada impressão recebida e regras por modalidade.
+- Histórico de envios por impressão e "Reimprimir…" em lote.
+- Limpeza automática da lista de impressões por idade, modalidade e origem.
+- Preferências ▸ Módulos: desliga MN, mamografia, 3D, dinâmica ou impressão — a ferramenta some, os dados ficam.
+
+## 0.83 — duplicar configurações
+- "Duplicar…" em servidores, destinos, regras, modelos de folha e impressoras DICOM.
+- O painel de filmes conta também as impressões que chegaram prontas por DICOM Print.
+- Correção: editar um servidor ou destino não apaga mais configurações dele.
+
+## 0.82 — lista de impressões como o banco
+- Colunas que se filtram, ordenam, arrastam e escondem; pré-visualização também do filme feito no compositor.
+
+## 0.81 — OCR na chegada da impressão
+- A impressão DICOM recebida é identificada por OCR ao chegar e segue a regra; sem paciente identificado, fica "Esperando paciente".
+- A porta da impressora aceita também imagens comuns e monta um filme por exame.
+
+## 0.80 — OCR embutido
+- OCR dentro do programa, sem internet e sem instalar nada à parte.
+- A janela Identificar paciente mostra o texto lido e os pacientes do banco que combinam, com porcentagem.
+
+## 0.79 — correção de queda
+- Correção da queda ocasional ao refazer a tira de séries. Guia do usuário em PDF reescrito.
+
+## 0.78 — compositor do filme
+- Botão esquerdo no filme como Janela, Mover ou Zoom; trocar imagens de lugar pela alça ⠿.
+- Anotações do filme que se movem, editam, mostram e escondem; caixa "também no exame" ao lado de Salvar.
+
+## 0.77 — painel de filmes e impressões
+- Filmes, % impressos e tempos (exame → filme → impressão), com filtros, gráficos e exportação para CSV.
+
+## 0.76 — F1/F2 no visualizador
+- No visualizador, F1 manda a imagem do quadro ao filme e F2 manda a série.
+
+## 0.75 — guia em PDF
+- Ajuda ▸ Guia do usuário (F1) abre o guia em PDF.
+
+## 0.74 — mamilo marcado primeiro
+- Na lesão de mama (RM), o mamilo pode ser marcado antes; a distância sai na hora e vale para as outras lesões da mesma mama.
+
+## 0.72 a 0.73 — envio de exames e séries
+- "Enviar para… como" no botão direito da tela do PACS; se o exame ainda não estiver aqui, é baixado e enviado sozinho.
+- Envio só das séries selecionadas, pelo botão direito no banco.
+- Correção: as setas ← → trocavam de aba em vez de passar a etapa.
+
+## 0.71 — filme gravado no exame no formato da AW
+- O filme pode ser gravado no exame como na AW: o arranjo, as imagens soltas e as folhas prontas.
+
+## 0.70 — cópia anonimizada no banco
+- Ao anonimizar, escolher entre exportar ou criar uma cópia anonimizada no próprio banco, como outro exame. O original não muda.
+
+## 0.69 a 0.69.1 — dinâmica e "Baixar para"
+- A série que faz parte de uma dinâmica sempre abre como dinâmica.
+- "Baixar para" na tela do PACS: o exame vai do nó direto ao destino escolhido, sem passar por este computador.
+- A captura da lesão e outras séries geradas pelo programa aparecem com miniatura.
+
+## 0.68 — a lesão em todas as séries
+- A segmentação da lesão de mama aparece em qualquer série e plano do exame e não some ao salvar.
+- A captura mostra o plano inteiro, sem zoom, com a 2ª fase da dinâmica.
+- Mapa, subtração e fase da dinâmica em axial, coronal, sagital ou oblíquo.
+
+## 0.67 — lesão de mama: limiar, captura e edição
+- Na lesão de mama, fica só a distância ao mamilo (pele e peitoral saíram).
+- Barra do limiar para incluir mais ou menos na segmentação, com atualização na hora.
+- "Salvar captura (SC)…" em 2×2 (sagital, coronal, axial e curva de realce), com as medidas no rodapé.
+- A lesão pode ser editada pelo painel de medidas.
 
 ## Novidades da 0.66 — Gestão DICOM: os exames das modalidades estão no PACS?
 
