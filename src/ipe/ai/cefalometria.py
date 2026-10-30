@@ -63,6 +63,53 @@ ESTRUTURAS = {
 VERTEBRAS = [f"C{i}" for i in range(1, 8)]
 FARINGE = ("nasopharynx", "oropharynx", "hypopharynx")
 
+# Preferências ▸ CAD/IA ▸ Cefalometria do cavum (0.99.16): automático na chegada, como na coluna
+CHAVE_AUTO = "cefalo.auto"
+CHAVE_EXAME_CONTEM = "cefalo.exame_contem"
+CHAVE_MODALIDADES = "cefalo.modalidades"          # só TC; a chave existe para o perfil comum
+CHAVE_PRIOR_CT = "cefalo.prioridade_ct"
+CHAVE_ESPESSURA = "cefalo.espessura_max"
+CHAVE_MIN_CORTES = "cefalo.min_cortes"
+CHAVE_DESTINOS = "cefalo.destinos"
+PADROES = {
+    CHAVE_AUTO: False,
+    CHAVE_EXAME_CONTEM: "CAVUM|RINOFARINGE|NASOFARINGE|ADENOIDE|APNEIA|RONCO|CEFALOMETRIA|VIAS AEREAS|VIA AEREA",
+    CHAVE_MODALIDADES: ["CT"],
+    CHAVE_PRIOR_CT: "PARTES MOLES|PARTES|SOFT|STD|STANDARD|AX|AXIAL",
+    CHAVE_ESPESSURA: 1.5,
+    CHAVE_MIN_CORTES: MIN_CORTES,
+    CHAVE_DESTINOS: [],
+}
+PERFIL = {"modalidades": CHAVE_MODALIDADES, "exame_contem": CHAVE_EXAME_CONTEM, "prior_ct": CHAVE_PRIOR_CT,
+          "prior_mr": CHAVE_PRIOR_CT, "espessura": CHAVE_ESPESSURA, "min_cortes": CHAVE_MIN_CORTES}
+
+
+def config(settings, chave):
+    if chave == CHAVE_MODALIDADES:
+        return ["CT"]
+    if settings is None:
+        return PADROES.get(chave)
+    try:
+        v = settings.get(chave, PADROES.get(chave))
+    except Exception:  # noqa: BLE001
+        v = PADROES.get(chave)
+    return PADROES.get(chave) if v is None else v
+
+
+def exame_serve(info: dict, settings=None) -> bool:
+    from ipe.ai import totalseg as TS
+    return TS.exame_serve(info, settings, PERFIL, config)
+
+
+def escolher_serie(repo, study_uid: str, settings=None):
+    from ipe.ai import totalseg as TS
+    return TS.escolher_serie(repo, study_uid, settings, PERFIL, config, min_absoluto=MIN_CORTES)
+
+
+def ja_feita(repo, study_uid: str) -> bool:
+    from ipe.ai import totalseg as TS
+    return TS.ja_segmentado(repo, study_uid, DESC_IMAGEM)
+
 
 def tarefas(modalidade: str = "CT", settings=None) -> list[dict]:
     """As tarefas do TotalSegmentator, todas abertas e de TC. `cefalo` marca para o modo simulado."""
@@ -682,3 +729,105 @@ def resumo(res: Cefalometria) -> str:
     if a.valor is not None:
         txt += f"; área mínima {a.texto_valor()} ({classe_da_area(a.valor)})"
     return txt
+
+
+# ------------------------------------------------------------------ o resultado guardado no exame
+#: bloco privado da imagem de conferência onde vão os números (para reabrir sem refazer)
+GRUPO_PRIVADO, CRIADOR = 0x0071, "IPE CEFALOMETRIA"
+
+
+def para_json(res: Cefalometria) -> str:
+    import json
+    return json.dumps({"versao": 1, "x_meio": res.x_meio, "avisos": list(res.avisos),
+                       "medidas": [{"id": m.id, "valor": m.valor, "texto": m.texto, "motivo": m.motivo,
+                                    "origem": m.origem,
+                                    "linhas": [[[round(float(c), 2) for c in a], [round(float(c), 2) for c in b]]
+                                               for a, b in m.linhas]}
+                                   for m in res.medidas.values()]}, ensure_ascii=True)
+
+
+def de_json(texto: str) -> Cefalometria:
+    import json
+    d = json.loads(texto)
+    res = Cefalometria(x_meio=d.get("x_meio"), avisos=list(d.get("avisos") or []))
+    for k in ORDEM:
+        res.medidas[k] = Medida(k, NOMES[k], unidade="mm²" if k == "area" else ("" if k == "hioide_nivel" else "mm"),
+                                casas=0 if k == "area" else 1)
+    for m in d.get("medidas") or []:
+        if m.get("id") in res.medidas:
+            alvo = res.medidas[m["id"]]
+            alvo.valor = None if m.get("valor") is None else float(m["valor"])
+            alvo.texto, alvo.motivo = m.get("texto") or "", m.get("motivo") or ""
+            alvo.origem = m.get("origem") or "automático"
+            alvo.linhas = [(np.asarray(a, float), np.asarray(b, float)) for a, b in (m.get("linhas") or [])]
+    return res
+
+
+def ler_do_exame(repo, study_uid: str) -> Cefalometria | None:
+    """A cefalometria automática já feita neste exame (a mais recente), ou None."""
+    import pydicom
+    try:
+        series = [s for s in repo.series_for_study(study_uid) if (s.description or "") == DESC_IMAGEM]
+    except Exception:  # noqa: BLE001
+        return None
+    for s in reversed(series):
+        for inst in repo.instances_for_series(s.series_uid):
+            try:
+                ds = pydicom.dcmread(inst["path"], stop_before_pixels=True, force=True)
+                bloco = ds.private_block(GRUPO_PRIVADO, CRIADOR)
+                return de_json(str(bloco[0x01].value))
+            except Exception:  # noqa: BLE001
+                continue
+    return None
+
+
+# ------------------------------------------------------------------ as linhas na tela, em qualquer plano (0.99.16)
+CORES = {
+    "area": (80, 220, 255), "palato_comprimento": (255, 120, 170), "palato_espessura": (255, 170, 210),
+    "pas_retropalatal": (120, 255, 140), "pas_retrolingual": (60, 200, 90), "hioide_mp": (255, 220, 70),
+    "lingua_transversal": (255, 140, 90), "lingua_ap": (255, 110, 70), "hioide_nivel": (200, 160, 255),
+}
+FONTE_OVERLAY = "Cefalometria"
+
+
+def rotulo_da_linha(m: Medida) -> str:
+    n = NUMERO.get(m.id) or "A"
+    return f"{n}: {m.texto_valor()}" if m.valor is not None else f"{n}: {m.texto}"
+
+
+def objeto_de_linhas(res: Cefalometria, study_uid: str = ""):
+    """OverlayObject com as linhas de cada medida, em mm do paciente: aparecem em qualquer quadro
+    cujo plano contenha a linha — o sagital mediano reformatado, o axial da altura, o oblíquo da área."""
+    from ipe.imaging import overlays as O
+    obj = O.OverlayObject(f"cefalometria:{study_uid}", FONTE_OVERLAY, "linhas das medidas", (255, 220, 70),
+                          study_uid=study_uid)
+    for k in ORDEM:
+        m = res.medidas.get(k)
+        if m is None or not m.linhas:
+            continue
+        for n, (a, b) in enumerate(m.linhas):
+            if k == "hioide_mp" and n == 0 and len(m.linhas) > 1:
+                texto = "Go–Me"
+            elif n == len(m.linhas) - 1:
+                texto = rotulo_da_linha(m)
+            else:
+                texto = ""
+            obj.planar.append(O.Graphic("polyline", [], texto, np.array([a, b], float), CORES.get(k)))
+        obj.findings.append(f"{m.nome}: {m.texto_valor()}")
+    return obj
+
+
+def plano_da_medida(m: Medida) -> tuple[str, np.ndarray] | None:
+    """Em que plano (Sagital/Axial/Coronal) a linha principal da medida fica inteira, e um ponto dela."""
+    if not m.linhas:
+        return None
+    a, b = (np.asarray(x, float) for x in m.linhas[-1])
+    d = np.abs(b - a)
+    meio = (a + b) / 2
+    if d[0] < 0.5:
+        return "Sagital", meio
+    if d[2] < 0.5:
+        return "Axial", meio
+    if d[1] < 0.5:
+        return "Coronal", meio
+    return "Sagital", meio

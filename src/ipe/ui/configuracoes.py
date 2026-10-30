@@ -41,6 +41,10 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
     ]),
     ("CAD/IA", [
         ("Análises automáticas (CAD/IA)…", "p:cad_ia", ""),
+        ("Segmentação abdominal…", lambda w: w.abrir_cad_ia("Segmentação abdominal"), ""),
+        ("Níveis da coluna…", lambda w: w.abrir_cad_ia("Níveis da coluna"), ""),
+        ("Implante de silicone (mamografia)…", lambda w: w.abrir_cad_ia("Implante de silicone"), ""),
+        ("Cefalometria do cavum…", lambda w: w.abrir_cad_ia("Cefalometria do cavum"), ""),
         ("Instalar a segmentação de órgãos (TotalSegmentator)…", "f:instalar_segmentacao", "configure"),
     ]),
     ("Monitores", [

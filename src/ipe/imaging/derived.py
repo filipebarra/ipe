@@ -132,10 +132,11 @@ def save_plane_series(plane: MPRPlane, db, storage_root: Path, indices: list[int
 
 def save_secondary_capture(rgb: np.ndarray, source_path: str, db, storage_root: Path,
                            description: str = "Gráfico", series_number: int = 950,
-                           extra: dict | None = None) -> tuple[str, list[str]]:
+                           extra: dict | None = None, privado: dict | None = None) -> tuple[str, list[str]]:
     """Grava uma imagem RGB (H×W×3, uint8) como Secondary Capture no estudo do arquivo de origem
     e importa no banco. Devolve (SeriesInstanceUID, [SOPInstanceUID]).
-    `extra`: atributos a mais (ex.: BurnedInAnnotation = "YES" quando a imagem traz o nome escrito)."""
+    `extra`: atributos a mais (ex.: BurnedInAnnotation = "YES" quando a imagem traz o nome escrito).
+    `privado`: {(grupo, criador): {elemento: (VR, valor)}} — dados do programa num bloco privado."""
     from ipe.importer.scanner import Importer
     src = pydicom.dcmread(source_path, stop_before_pixels=True, force=True)
     ds = pydicom.Dataset()
@@ -164,6 +165,10 @@ def save_secondary_capture(rgb: np.ndarray, source_path: str, db, storage_root: 
     ds.PixelData = rgb.tobytes()
     for k, v in (extra or {}).items():
         setattr(ds, k, v)
+    for (grupo, criador), elementos in (privado or {}).items():
+        bloco = ds.private_block(grupo, criador, create=True)
+        for elem, (vr, valor) in elementos.items():
+            bloco.add_new(elem, vr, valor)
     tmp = Path(tempfile.mkdtemp(prefix="dv_sc_"))
     ds.save_as(tmp / "sc.dcm", enforce_file_format=True)
     r = Importer(db, Path(storage_root)).import_paths([tmp])

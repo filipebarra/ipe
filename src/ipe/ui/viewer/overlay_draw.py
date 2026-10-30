@@ -72,7 +72,11 @@ def draw_masks(vp, p: QPainter) -> None:
     p.save()
     p.setRenderHint(QPainter.SmoothPixmapTransform, False)
     for o in objs:
+        outro_plano = False
         for mf in o.masks:
+            if pos is not None and not O.paralela(mf, n):
+                outro_plano = True              # 0.99.16: este corte vem do volume derivado, abaixo
+                continue
             try:
                 rect = O.mask_rect(mf, pos, row, col, n, sp, tol, f.sop_uid, f.frame_index)
             except Exception:  # noqa: BLE001
@@ -83,7 +87,10 @@ def draw_masks(vp, p: QPainter) -> None:
             p.drawImage(QRectF(r.x() + x0 * sx, r.y() + y0 * sy, ww * sx, hh * sy), _mask_image(mf))
         if pos is None:
             continue
-        for mv in getattr(o, "volumes", []) or []:
+        extras = []
+        if outro_plano or (o.planar and _contornos_fora_do_plano(o, n)):
+            extras = O.volumes_derivados(o)
+        for mv in (getattr(o, "volumes", []) or []) + extras:
             if getattr(mv, "so_rotulo", False):
                 continue                # níveis da coluna: só o rótulo (draw_rotulos), sem pintar o disco
             try:
@@ -97,6 +104,16 @@ def draw_masks(vp, p: QPainter) -> None:
             hh, ww = mf.mask.shape
             p.drawImage(QRectF(r.x() + x0 * sx, r.y() + y0 * sy, ww * sx, hh * sy), _mask_image(mf))
     p.restore()
+
+
+def _contornos_fora_do_plano(o, normal) -> bool:
+    """Há contorno fechado (RTSTRUCT) num plano que não é o do quadro? Aí ele entra cortado, pelo volume."""
+    for g in o.planar:
+        if g.kind == "polygon" and g.points3d is not None and len(g.points3d) >= 3:
+            c = np.asarray(g.points3d, float)
+            if np.abs((c - c.mean(axis=0)) @ np.asarray(normal, float)).max() > 0.5:
+                return True
+    return False
 
 
 def draw_graphics(vp, p: QPainter) -> None:

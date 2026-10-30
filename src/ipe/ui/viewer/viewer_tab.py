@@ -1110,14 +1110,17 @@ class ViewerTab(OncoMixin, QWidget):
         self._button(tb, idx, menu_idx, app="indices")
         # cefalometria do cavum (0.99.15): automática (TotalSegmentator) ou à mão — TC de face/pescoço
         menu_cef = self._menu()
+        a_res = QAction("Resultado da cefalometria automática deste exame…", self)
+        a_res.triggered.connect(lambda: self.abrir_cefalometria(do_exame=True))
+        menu_cef.addAction(a_res)
         a_auto = QAction("Cefalometria automática (IA) desta série…", self)
         a_auto.triggered.connect(lambda: self.cefalometria_automatica(self.active))
         menu_cef.addAction(a_auto)
         a_mao = QAction("Cefalometria à mão (roteiro)…", self)
-        a_mao.triggered.connect(lambda: self.abrir_cefalometria())
+        a_mao.triggered.connect(lambda: self.abrir_cefalometria(do_exame=False))
         menu_cef.addAction(a_mao)
-        cef = self._act("cefalometria.auto", "Cefalometria do cavum (automática)",
-                        lambda: self.cefalometria_automatica(self.active))
+        menu_cef.aboutToShow.connect(lambda: a_res.setEnabled(self.cefalometria_do_exame() is not None))
+        cef = self._act("cefalometria.auto", "Cefalometria do cavum (automática)", self.cefalometria_botao)
         cef.setIcon(icon("measure"))
         cef.setIconText("Cefalometria")
         self._button(tb, cef, menu_cef, app="cefalometria")
@@ -2691,14 +2694,65 @@ class ViewerTab(OncoMixin, QWidget):
                                      "nível e clique em “Ligar quadros” (L) para rolarem juntos.")
 
     # ================================================================ layout
-    def abrir_cefalometria(self, res=None, automatica: bool = False):
-        """Janela da cefalometria (0.99.15), uma por aba: conferência da automática ou roteiro à mão."""
+    def cefalometria_do_exame(self):
+        """A cefalometria automática já gravada num exame desta aba (a da chegada, 0.99.16), ou None."""
+        from ipe.ai import cefalometria as CF
+        if self.repo is None:
+            return None
+        for uid in (getattr(self, "study_order", None) or [self.study_uid]):
+            res = CF.ler_do_exame(self.repo, uid)
+            if res is not None:
+                return res
+        return None
+
+    def mostrar_cefalometria_na_tela(self, res, study_uid: str = "") -> None:
+        """As linhas das medidas da cefalometria como sobreposição 3D (0.99.16): aparecem em qualquer
+        quadro cujo plano contenha a linha — o sagital reformatado, o axial da altura."""
+        from ipe.ai import cefalometria as CF
+        objs = getattr(self, "overlay_objects", None)
+        if objs is None:
+            return
+        objs[:] = [o for o in objs if o.source != CF.FONTE_OVERLAY]
+        if res is not None and any(m.linhas for m in res.medidas.values()):
+            objs.append(CF.objeto_de_linhas(res, study_uid or self.study_uid))
+        if hasattr(self, "_apply_overlays"):
+            self._apply_overlays()
+
+    def ver_medida_da_cefalometria(self, m, vp=None) -> bool:
+        """Leva o quadro ao plano e ao corte onde a linha da medida está inteira (reformata se precisar)."""
+        from ipe.ai import cefalometria as CF
+        alvo = CF.plano_da_medida(m)
+        vp = vp or self.active or next((v for v in self.viewports if v.frames), None)
+        if alvo is None or vp is None:
+            return False
+        plano, ponto = alvo
+        atual = vp.plano_nome() if hasattr(vp, "plano_nome") else ""
+        if atual != plano and not self.reformatar(vp, plano):
+            return False
+        ok = vp.go_to_point(np.asarray(ponto, float))
+        self.active = vp
+        vp.update()
+        return ok
+
+    def cefalometria_botao(self):
+        """O clique no botão: com o resultado já no exame (automático na chegada), abre a conferência;
+        sem ele, roda a automática na série do quadro."""
+        if self.cefalometria_do_exame() is not None:
+            return self.abrir_cefalometria(do_exame=True)
+        return self.cefalometria_automatica(self.active)
+
+    def abrir_cefalometria(self, res=None, automatica: bool = False, do_exame: bool = False):
+        """Janela da cefalometria (0.99.15), uma por aba: conferência da automática ou roteiro à mão.
+        `do_exame`: sem `res`, usa a cefalometria automática gravada no exame (0.99.16)."""
         from ipe.ui.viewer.cefalometria_painel import CefalometriaPainel
+        if res is None and do_exame:
+            res = self.cefalometria_do_exame()
+            automatica = res is not None
         p = getattr(self, "cefalometria_painel", None)
         if p is None:
             p = CefalometriaPainel(self, res, self.window(), automatica=automatica)
             self.cefalometria_painel = p
-        elif res is not None or not p.automatica:
+        else:
             p.carregar(res, automatica)
         p.ligar_quadros()
         p.show()

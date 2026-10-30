@@ -20,11 +20,7 @@ from ipe.ai import cefalometria as CF
 log = logging.getLogger(__name__)
 
 PASSO = 0.5                  # mm por pixel do sagital
-CORES = {
-    "area": (80, 220, 255), "palato_comprimento": (255, 120, 170), "palato_espessura": (255, 170, 210),
-    "pas_retropalatal": (120, 255, 140), "pas_retrolingual": (60, 200, 90), "hioide_mp": (255, 220, 70),
-    "lingua_transversal": (255, 140, 90), "lingua_ap": (255, 110, 70), "hioide_nivel": (200, 160, 255),
-}
+CORES = CF.CORES
 
 
 def sagital_mediano(vol, x: float, meia: float = 1.0) -> tuple[np.ndarray, tuple]:
@@ -201,6 +197,7 @@ def gravar(trabalho, res: CF.Cefalometria, versao: str, db, storage_root, repo=N
     uid, _s = save_secondary_capture(rgb, vol.source_path, db, storage_root, description=CF.DESC_IMAGEM,
                                      series_number=CF.SERIE_IMAGEM,
                                      extra={"BurnedInAnnotation": "YES",
-                                            "ImageComments": "Cefalometria automática — conferência"})
+                                            "ImageComments": "Cefalometria automática — conferência"},
+                                     privado={(CF.GRUPO_PRIVADO, CF.CRIADOR): {0x01: ("UT", CF.para_json(res))}})
     out["series"].append(uid)
     return out

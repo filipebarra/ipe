@@ -351,3 +351,166 @@ def test_instalador_baixa_os_modelos_da_cefalometria():
         texto = (raiz / arq).read_text(encoding="utf-8")
         for t in ("head_glands_cavities", "headneck_bones_vessels", "craniofacial_structures", "head_muscles"):
             assert t in texto, (arq, t)
+
+
+# ------------------------------------------------------------------ 0.99.16: no CAD/IA, automática na chegada
+class _Sinal:
+    def connect(self, *_a):
+        pass
+
+
+class _Rede:
+    received = _Sinal()
+    job_finished = _Sinal()
+
+    def __init__(self):
+        self.envios = []
+
+    def run_async(self, trabalho, pronto, *_a):
+        try:
+            pronto(trabalho(), None)
+        except Exception as e:  # noqa: BLE001
+            pronto(None, e)
+
+    def send(self, node, identity, study_uids, label, series_uids=None):
+        self.envios.append((node["name"], list(series_uids or [])))
+
+
+def test_cad_ia_tem_a_cefalometria_e_o_menu_abre_nela(env):
+    from PySide6.QtWidgets import QApplication, QWidget
+
+    from ipe.core.config import Settings
+    from ipe.ui import configuracoes as CFG
+    from ipe.ui.preferences import PreferencesDialog
+    QApplication.instance() or QApplication([])
+    paths, db, repo = env
+    pai = QWidget()
+    pai.repo = repo
+    st = Settings(paths.settings_file)
+    d = PreferencesDialog(st, pai)
+    c = d.cad_ia
+    nomes = [c.l_ferramentas.item(k).text().split("\n")[0] for k in range(c.l_ferramentas.count())]
+    assert "Cefalometria do cavum" in nomes
+    k = nomes.index("Cefalometria do cavum")
+    assert "só à mão" in c.l_ferramentas.item(k).text()            # desligada de fábrica
+    c.c_cef_auto.setChecked(True)
+    assert "automático" in c.l_ferramentas.item(k).text()
+    c.e_cef_exame.setText("CAVUM|APNEIA")
+    c.s_cef_esp.setValue(1.25)
+    c.save()
+    assert st.get(CF.CHAVE_AUTO) is True and st.get(CF.CHAVE_EXAME_CONTEM) == "CAVUM|APNEIA"
+    assert st.get(CF.CHAVE_ESPESSURA) == 1.25
+    # Configurações ▸ CAD/IA ▸ Cefalometria do cavum…
+    itens = [(sub, t) for sub, t, _a in CFG.itens()]
+    assert ("CAD/IA", "Cefalometria do cavum…") in itens
+    d2 = PreferencesDialog(st, pai, pagina="cad_ia")
+    d2.cad_ia.mostrar("Cefalometria do cavum")
+    assert d2.cad_ia.painel.currentIndex() == k
+
+
+def test_automatica_na_chegada_e_o_botao_abre_o_resultado(env, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QApplication, QMessageBox
+
+    from ipe.ai import totalseg as TS
+    from ipe.automation.engine import AutomationEngine
+    from ipe.core.config import Settings
+    from ipe.ui.main_window import MainWindow
+    app = QApplication.instance() or QApplication([])
+    paths, db, repo = env
+    uid, _serie = _exame(env, tmp_path)
+    st = Settings(paths.settings_file)
+    rede = _Rede()
+    eng = AutomationEngine(repo, db, rede, st, paths)
+    eng._seg_simular = True
+    assert not eng.cefalometria(uid)                        # desligada (padrão)
+    st.set(CF.CHAVE_AUTO, True)
+    st.set(CF.CHAVE_EXAME_CONTEM, "ABDOME")
+    assert not eng.cefalometria(uid)                        # a descrição não bate
+    st.set(CF.CHAVE_EXAME_CONTEM, "CAVUM")
+    no = repo.save_node({"name": "PACS-CEF", "kind": "dimse", "ae_title": "P", "host": "127.0.0.1",
+                         "port": 104, "active": True, "use_in_send": True})
+    st.set(CF.CHAVE_DESTINOS, [no])
+    prontos = []
+    eng.segmentacao_pronta.connect(lambda u, s: prontos.append(s))
+    eng.study_arrived(uid, "received")
+    assert CF.ja_feita(repo, uid) and not TS.ja_segmentado(repo, uid)
+    assert prontos and prontos[0]["cefalometria"]["hioide_nivel"].texto == "platô inferior de C3"
+    assert len(rede.envios) == 1 and rede.envios[0][0] == "PACS-CEF"
+    assert any(r["kind"] == "segmentacao" and r["name"] == "Cefalometria do cavum" and r["status"] == "ok"
+               for r in repo.job_runs())
+    assert not eng.cefalometria(uid)                        # já feita: não refaz
+    # os números ficam guardados na imagem de conferência
+    lido = CF.ler_do_exame(repo, uid)
+    assert lido is not None and lido["palato_comprimento"].valor == pytest.approx(
+        prontos[0]["cefalometria"]["palato_comprimento"].valor)
+    assert CF.texto_do_laudo(lido) == CF.texto_do_laudo(prontos[0]["cefalometria"])
+    # no visualizador, o botão abre a conferência sem refazer
+    monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: None)
+    w = MainWindow(paths, st, repo=repo, db=db)
+    w.show()
+    try:
+        assert w.handle_external({"accession": "CAV01"}) == "aberto"
+        tab = w.tabs.currentWidget()
+        app.processEvents()
+        assert tab.cefalometria_botao() is tab.cefalometria_painel
+        p = tab.cefalometria_painel
+        assert p.automatica and "7. Nível do hioide em relação à coluna: platô inferior de C3." in p.texto()
+        assert TS.EM_CURSO == set() or uid not in TS.EM_CURSO
+        # as linhas viram sobreposição 3D: aparecem no sagital reformatado (0.99.16)
+        from ipe.imaging import overlays as O
+        from ipe.ui.viewer.overlay_draw import slice_tolerance
+        linhas = [o for o in tab.overlay_objects if o.source == CF.FONTE_OVERLAY]
+        assert len(linhas) == 1 and any(g.text.startswith("1: 36,") for g in linhas[0].planar)
+        p.tabela.setCurrentCell(1, 2)                                    # comprimento do palato
+        assert p.ver_no_quadro()
+        vp = tab.active
+        assert vp.plano_nome() == "Sagital"
+        pos, row, col, n = vp.plane()
+        g = next(g for g in linhas[0].planar if g.text.startswith("1: "))
+        assert O.project(g.points3d, pos, row, col, n, vp._spacing(), slice_tolerance(vp)) is not None
+        # no axial da língua, a linha transversal
+        p.tabela.setCurrentCell(6, 2)
+        assert p.ver_no_quadro() and tab.active.plano_nome() == "Axial"
+        # medida editada à mão: a linha automática dela sai da tela
+        p.tabela.item(1, 2).setText("30")
+        linhas = [o for o in tab.overlay_objects if o.source == CF.FONTE_OVERLAY]
+        assert not any(g.text.startswith("1: ") for g in linhas[0].planar)
+        assert any(g.text.startswith("2: ") for g in linhas[0].planar)
+    finally:
+        w.close()
+
+
+def test_reabrir_o_exame_traz_as_linhas(env, tmp_path):
+    """As linhas voltam da imagem de conferência guardada, sem abrir a janela da cefalometria."""
+    from PySide6.QtWidgets import QApplication
+
+    from ipe.ai import cefalometria_saida as CS
+    from ipe.ai import totalseg as TS
+    from ipe.core.config import Settings
+    from ipe.imaging.series import FrameCache
+    from ipe.ui.main_window import MainWindow
+    app = QApplication.instance() or QApplication([])
+    paths, db, repo = env
+    uid, serie = _exame(env, tmp_path)
+    t = TS.Trabalho(repo, FrameCache(256), None, uid, serie, simular=True)
+    t.tarefas_proprias, t.min_cortes, t.modalidades = CF.tarefas, CF.MIN_CORTES, ("CT",)
+    t.preparar()
+    try:
+        t.rodar_aqui()
+        rot, versao, _s = t.ler_rotulos()
+        CS.gravar(t, CF.calcular(t.vol, rot), versao, db, paths.storage, repo=repo)
+    finally:
+        t.limpar()
+    lido = CF.ler_do_exame(repo, uid)
+    assert lido["hioide_mp"].linhas and len(lido["hioide_mp"].linhas) == 2
+    w = MainWindow(paths, Settings(paths.settings_file), repo=repo, db=db)
+    w.show()
+    try:
+        assert w.handle_external({"accession": "CAV01"}) == "aberto"
+        tab = w.tabs.currentWidget()
+        for _ in range(20):
+            app.processEvents()
+        objs = [o for o in tab.overlay_objects if o.source == CF.FONTE_OVERLAY]
+        assert len(objs) == 1 and any(g.text == "Go–Me" for g in objs[0].planar)
+    finally:
+        w.close()

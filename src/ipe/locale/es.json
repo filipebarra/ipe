@@ -5311,5 +5311,22 @@
  "retropalatal {}{}": "retropalatino {}{}",
  "medidas feitas: {} de {}": "medidas hechas: {} de {}",
  "Área de secção transversal mínima da via aérea: {}{} — {}{}.": "Área de sección transversal mínima de la vía aérea: {}{} — {}{}.",
- "Série: {} · TotalSegmentator (tarefas abertas) · Ipê — não destinado a uso diagnóstico": "Serie: {} · TotalSegmentator (tareas abiertas) · Ipê — no destinado a uso diagnóstico"
+ "Série: {} · TotalSegmentator (tarefas abertas) · Ipê — não destinado a uso diagnóstico": "Serie: {} · TotalSegmentator (tareas abiertas) · Ipê — no destinado a uso diagnóstico",
+ "Cefalometria do cavum": "Cefalometría del cavum",
+ "Cefalometria do cavum — via aérea, palato, língua e hioide (TotalSegmentator)": "Cefalometría del cavum — vía aérea, paladar, lengua e hioides (TotalSegmentator)",
+ "Cefalometria do cavum…": "Cefalometría del cavum…",
+ "Fazer automaticamente quando o exame chegar (só TC)": "Hacer automáticamente cuando llegue el estudio (solo TC)",
+ "Implante de silicone (mamografia)…": "Implante de silicona (mamografía)…",
+ "Níveis da coluna…": "Niveles de la columna…",
+ "Segmentação abdominal…": "Segmentación abdominal…",
+ "Resultado da cefalometria automática deste exame…": "Resultado de la cefalometría automática de este estudio…",
+ "vazio = qualquer TC; ex.: CAVUM|RINOFARINGE|APNEIA": "vacío = cualquier TC; ej.: CAVUM|RINOFARINGE|APNEIA",
+ "As séries “Cefalometria” (estruturas e imagem de conferência) vão para os nós marcados depois de feitas.": "Las series “Cefalometria” (estructuras e imagen de revisión) van a los nodos marcados una vez hechas.",
+ "Na TC: área de secção transversal mínima perpendicular ao eixo da via aérea, palato mole, espaço aéreo posterior, hioide ao plano mandibular, língua e nível do hioide. No exame ficam as estruturas e uma imagem de conferência com as linhas; o botão Cefalometria abre os números para conferir e mandar para o laudo. Usa a mesma instalação da segmentação abdominal; leva alguns minutos em CPU.": "En la TC: área de sección transversal mínima perpendicular al eje de la vía aérea, paladar blando, espacio aéreo posterior, hioides al plano mandibular, lengua y nivel del hioides. En el estudio quedan las estructuras y una imagen de revisión con las líneas; el botón Cefalometría abre los números para revisar y enviar al informe. Usa la misma instalación que la segmentación abdominal; tarda algunos minutos en CPU.",
+ "Pedaços da descrição do exame, separados por |, sem diferença de acento ou maiúscula. Vale para o automático.": "Partes de la descripción del estudio, separadas por |, sin diferencia de acentos o mayúsculas. Vale para lo automático.",
+ "Séries em ordem de preferência, separadas por |: vale a primeira que aparecer na descrição da série; entre iguais, a de mais cortes. A axial fina de partes moles costuma ser a melhor.": "Series en orden de preferencia, separadas por |: vale la primera que aparezca en la descripción de la serie; entre iguales, la de más cortes. La axial fina de partes blandas suele ser la mejor.",
+ "Ver no quadro": "Ver en el cuadro",
+ "Leva o quadro ativo ao plano da medida (reformata no sagital, axial ou coronal) e ao corte onde a linha está. As linhas aparecem em qualquer plano que as contenha.": "Lleva el cuadro activo al plano de la medida (reformatea en sagital, axial o coronal) y al corte donde está la línea. Las líneas aparecen en cualquier plano que las contenga.",
+ "Esta medida não tem linha para mostrar (medida à mão ou não medida).": "Esta medida no tiene línea para mostrar (medida a mano o no medida).",
+ "linhas das medidas": "líneas de las medidas"
 }

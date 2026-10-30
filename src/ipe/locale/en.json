@@ -5311,5 +5311,22 @@
  "retropalatal {}{}": "retropalatal {}{}",
  "medidas feitas: {} de {}": "measurements made: {} of {}",
  "Área de secção transversal mínima da via aérea: {}{} — {}{}.": "Minimal airway cross-sectional area: {}{} — {}{}.",
- "Série: {} · TotalSegmentator (tarefas abertas) · Ipê — não destinado a uso diagnóstico": "Series: {} · TotalSegmentator (open tasks) · Ipê — not intended for diagnostic use"
+ "Série: {} · TotalSegmentator (tarefas abertas) · Ipê — não destinado a uso diagnóstico": "Series: {} · TotalSegmentator (open tasks) · Ipê — not intended for diagnostic use",
+ "Cefalometria do cavum": "Nasopharynx cephalometry",
+ "Cefalometria do cavum — via aérea, palato, língua e hioide (TotalSegmentator)": "Nasopharynx cephalometry — airway, palate, tongue and hyoid (TotalSegmentator)",
+ "Cefalometria do cavum…": "Nasopharynx cephalometry…",
+ "Fazer automaticamente quando o exame chegar (só TC)": "Run automatically when the study arrives (CT only)",
+ "Implante de silicone (mamografia)…": "Silicone implant (mammography)…",
+ "Níveis da coluna…": "Spine levels…",
+ "Segmentação abdominal…": "Abdominal segmentation…",
+ "Resultado da cefalometria automática deste exame…": "Result of the automatic cephalometry of this study…",
+ "vazio = qualquer TC; ex.: CAVUM|RINOFARINGE|APNEIA": "empty = any CT; e.g. CAVUM|RINOFARINGE|APNEIA",
+ "As séries “Cefalometria” (estruturas e imagem de conferência) vão para os nós marcados depois de feitas.": "The “Cefalometria” series (structures and review image) go to the checked nodes once done.",
+ "Na TC: área de secção transversal mínima perpendicular ao eixo da via aérea, palato mole, espaço aéreo posterior, hioide ao plano mandibular, língua e nível do hioide. No exame ficam as estruturas e uma imagem de conferência com as linhas; o botão Cefalometria abre os números para conferir e mandar para o laudo. Usa a mesma instalação da segmentação abdominal; leva alguns minutos em CPU.": "On CT: minimal airway cross-sectional area perpendicular to the airway axis, soft palate, posterior airway space, hyoid to mandibular plane, tongue and hyoid level. The structures and a review image with the lines stay in the study; the Cephalometry button opens the numbers to review and send to the report. Uses the same installation as the abdominal segmentation; takes a few minutes on CPU.",
+ "Pedaços da descrição do exame, separados por |, sem diferença de acento ou maiúscula. Vale para o automático.": "Parts of the study description, separated by |, ignoring accents and case. Applies to the automatic run.",
+ "Séries em ordem de preferência, separadas por |: vale a primeira que aparecer na descrição da série; entre iguais, a de mais cortes. A axial fina de partes moles costuma ser a melhor.": "Series in order of preference, separated by |: the first that appears in the series description wins; among equals, the one with more slices. The thin soft-tissue axial is usually the best.",
+ "Ver no quadro": "Show in viewport",
+ "Leva o quadro ativo ao plano da medida (reformata no sagital, axial ou coronal) e ao corte onde a linha está. As linhas aparecem em qualquer plano que as contenha.": "Takes the active viewport to the measurement plane (reformats to sagittal, axial or coronal) and to the slice where the line is. The lines show in any plane that contains them.",
+ "Esta medida não tem linha para mostrar (medida à mão ou não medida).": "This measurement has no line to show (measured by hand or not measured).",
+ "linhas das medidas": "measurement lines"
 }

@@ -94,7 +94,12 @@ class CefalometriaPainel(QDialog):
         self.b_refs = QPushButton("Referências…")
         self.b_refs.clicked.connect(self.editar_referencias)
         linha = QHBoxLayout()
-        for b in (self.b_medir, self.b_auto, self.b_refs):
+        self.b_ver = QPushButton("Ver no quadro")
+        self.b_ver.setToolTip("Leva o quadro ativo ao plano da medida (reformata no sagital, axial ou coronal) e ao "
+                              "corte onde a linha está. As linhas aparecem em qualquer plano que as contenha.")
+        self.b_ver.clicked.connect(self.ver_no_quadro)
+        self.tabela.cellDoubleClicked.connect(lambda r, c: self.ver_no_quadro() if c != 2 else None)
+        for b in (self.b_ver, self.b_medir, self.b_auto, self.b_refs):
             linha.addWidget(b)
         linha.addStretch(1)
         self.texto_laudo = QTextEdit()
@@ -166,6 +171,8 @@ class CefalometriaPainel(QDialog):
                 it.setToolTip("\n".join(dica))
         self.tabela.blockSignals(False)
         self._atualizar_texto()
+        if hasattr(self.tab, "mostrar_cefalometria_na_tela"):
+            self.tab.mostrar_cefalometria_na_tela(self.res)
 
     def chave_atual(self) -> str | None:
         r = self.tabela.currentRow()
@@ -179,6 +186,7 @@ class CefalometriaPainel(QDialog):
         extra = f"<br>⚠ não medido pela IA: {m.motivo}" if m.motivo and m.valor is None else ""
         self.instrucao.setText(f"<b>{m.nome}</b><br>{INSTRUCAO.get(k, '')}{extra}")
         self.b_medir.setEnabled(k in FERRAMENTA)
+        self.b_ver.setEnabled(bool(m.linhas))
         o = self.original.medidas[k]
         self.b_auto.setEnabled(self.automatica and m.origem == "editado" and (o.valor is not None or bool(o.texto)))
 
@@ -213,6 +221,13 @@ class CefalometriaPainel(QDialog):
             self._encher()
             return
         self.definir(k, valor=v)
+
+    def ver_no_quadro(self) -> bool:
+        k = self.chave_atual()
+        if k is None or not self.res.medidas[k].linhas or not hasattr(self.tab, "ver_medida_da_cefalometria"):
+            self.tab.status_message.emit("Esta medida não tem linha para mostrar (medida à mão ou não medida).")
+            return False
+        return self.tab.ver_medida_da_cefalometria(self.res.medidas[k])
 
     def _voltar_ao_automatico(self) -> None:
         k = self.chave_atual()

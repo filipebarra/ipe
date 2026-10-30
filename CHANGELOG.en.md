@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.16 — automatic cephalometry on arrival
+- **Settings ▸ CAD/AI ▸ Nasopharynx cephalometry**: runs automatically when a CT arrives, filtered by
+  the study description, with the preferred series, maximum thickness, minimum slices and
+  destinations. The numbers are stored in the review image, so the Cephalometry button reopens them
+  without running again. The measurement lines show in any plane that contains them
+  (reformatted sagittal, axial, oblique); “Show in viewport” jumps to each one.
+- Every segmentation and AI overlay (SEG, RTSTRUCT) now also shows in reformatted planes.
+
 ## 0.99.15 — automatic nasopharynx cephalometry
 - **Cephalometry** button (face, nasopharynx and neck CT): TotalSegmentator (open tasks) finds the
   palate, pharynx, hyoid, mandible, tongue and cervical vertebrae, and Ipê measures the minimal

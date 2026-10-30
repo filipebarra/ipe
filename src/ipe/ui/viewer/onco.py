@@ -188,6 +188,15 @@ class OncoMixin:
             except Exception:  # noqa: BLE001
                 continue
             for s in rows:
+                if s.description == "Cefalometria: conferência · TotalSegmentator":
+                    # 0.99.16: as linhas das medidas, guardadas na imagem de conferência, em qualquer plano
+                    from ipe.ai import cefalometria as CF
+                    res = CF.ler_do_exame(self.repo, study)
+                    if res is not None and any(m.linhas for m in res.medidas.values()):
+                        self.overlay_objects[:] = [o for o in self.overlay_objects if o.source != CF.FONTE_OVERLAY]
+                        self.overlay_objects.append(CF.objeto_de_linhas(res, study))
+                        added += 1
+                    continue
                 if (s.modality or "").upper() not in O.OVERLAY_MODALITIES:
                     continue
                 if s.description == "Níveis da coluna (conferência) · TotalSegmentator":

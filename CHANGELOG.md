@@ -3,6 +3,22 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.16 — cefalometria automática na chegada e linhas em qualquer plano
+- **Configurações ▸ CAD/IA** ganhou a **Cefalometria do cavum**: automática quando a TC chega (pela
+  rede ou importada), filtrada pela descrição do exame (CAVUM, RINOFARINGE, APNEIA…), com a série
+  preferida, a espessura máxima, o mínimo de cortes e os destinos para mandar o resultado.
+- Os números ficam guardados na imagem de conferência: ao abrir o exame, o botão **Cefalometria**
+  abre a conferência direto, sem rodar de novo.
+- As linhas das medidas aparecem em qualquer plano que as contenha — no sagital reformatado, no
+  axial, no oblíquo — como sobreposição 3D, inclusive ao reabrir o exame. **Ver no quadro** (ou duplo
+  clique) leva o quadro ativo ao plano e ao corte de cada medida.
+- **Toda segmentação e IA em qualquer plano**: SEG (órgãos, cefalometria, CAD de fora) e RTSTRUCT,
+  guardados corte a corte, viram um volume em mm na hora de desenhar num plano que não é o da
+  aquisição — aparecem no sagital ou coronal reformatado e nas outras séries do exame. Vale para
+  o que vier depois, sem fazer nada a mais.
+- O submenu CAD/IA ganhou um item por ferramenta (segmentação abdominal, níveis da coluna, implante,
+  cefalometria), cada um abrindo a página já na ferramenta.
+
 ## 0.99.15 — cefalometria do cavum automática
 - Botão **Cefalometria** (TC de face, cavum e pescoço): o TotalSegmentator separa palato, faringe,
   hioide, mandíbula, língua e vértebras cervicais (tarefas abertas, só TC), e o Ipê faz as medidas

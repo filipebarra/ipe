@@ -512,6 +512,138 @@ def por_segmento(obj: "OverlayObject") -> list:
     return out
 
 
+# ------------------------------------------------------------------ qualquer plano (0.99.16)
+#: teto de um volume derivado (voxels): acima disso o objeto fica só nos cortes paralelos
+MAX_VOXELS_DERIVADO = 250_000_000
+
+
+def _normal(ori) -> np.ndarray:
+    n = np.cross(np.asarray(ori[:3], float), np.asarray(ori[3:], float))
+    return n / max(float(np.linalg.norm(n)), 1e-9)
+
+
+def paralela(mf: MaskFrame, normal) -> bool:
+    """A máscara de um corte está no mesmo plano (paralelo) do quadro? Sem posição: trata como sim
+    (é desenhada pela referência à imagem, como sempre foi)."""
+    if mf.position is None or mf.orientation is None or normal is None:
+        return True
+    return abs(float(_normal(mf.orientation) @ np.asarray(normal, float))) >= 0.99
+
+
+def volumes_das_mascaras(masks: list) -> list:
+    """Máscaras de corte (SEG) empilhadas numa `MaskVolume` por rótulo, para aparecerem em **qualquer**
+    plano — o sagital reformatado de uma SEG axial, por exemplo. Pedido dele (30/10/2026): *"aplique a
+    opção de ver as marcações quando reformatar para todas as IAs e segmentações que já temos e que
+    teremos"*. Os cortes que faltam (sem nada daquele rótulo) ficam vazios no volume."""
+    grupos: dict = {}
+    for mf in masks:
+        if mf.position is None or mf.orientation is None or mf.spacing is None or mf.alvo:
+            continue
+        grupos.setdefault(mf.label, []).append(mf)
+    out = []
+    for lab, mfs in grupos.items():
+        ori = np.asarray(mfs[0].orientation, float)
+        row, col, n = ori[:3], ori[3:], _normal(ori)
+        mfs = [m for m in mfs if abs(float(_normal(m.orientation) @ n)) >= 0.99]
+        rs, cs = (float(x) for x in mfs[0].spacing)
+        ds = np.array([float(np.asarray(m.position, float) @ n) for m in mfs])
+        uniq = np.unique(np.round(ds, 2))
+        dz = float(np.median(np.diff(uniq))) if len(uniq) > 1 else max(rs, cs)
+        if dz <= 1e-3:
+            continue
+        us = np.array([float(np.asarray(m.position, float) @ row) / cs for m in mfs])
+        vs = np.array([float(np.asarray(m.position, float) @ col) / rs for m in mfs])
+        u0, v0, d0 = float(us.min()), float(vs.min()), float(ds.min())
+        W = int(round(max(u + m.mask.shape[1] for u, m in zip(us, mfs)) - u0))
+        H = int(round(max(v + m.mask.shape[0] for v, m in zip(vs, mfs)) - v0))
+        K = int(round((float(ds.max()) - d0) / dz)) + 1
+        if W <= 0 or H <= 0 or K * H * W > MAX_VOXELS_DERIVADO:
+            continue
+        vol = np.zeros((K, H, W), bool)
+        for m, u, v, d in zip(mfs, us, vs, ds):
+            k, x, y = int(round((d - d0) / dz)), int(round(u - u0)), int(round(v - v0))
+            h, w = m.mask.shape
+            vol[k, y:y + h, x:x + w] |= m.mask[: H - y, : W - x]
+        origem = u0 * cs * row + v0 * rs * col + d0 * n
+        out.append(MaskVolume(vol, origem, np.column_stack([row * cs, col * rs, n * dz]),
+                              tuple(mfs[0].color), lab))
+    return out
+
+
+def _dentro_do_poligono(px: np.ndarray, py: np.ndarray, poly: np.ndarray) -> np.ndarray:
+    """Par-ímpar (raio horizontal), vetorizado: px, py da grade; poly (N, 2)."""
+    dentro = np.zeros(px.shape, bool)
+    x, y = poly[:, 0], poly[:, 1]
+    xj, yj = np.roll(x, 1), np.roll(y, 1)
+    for a, b, c, d in zip(x, y, xj, yj):
+        cruza = ((b > py) != (d > py)) & (px < (c - a) * (py - b) / ((d - b) if d != b else 1e-12) + a)
+        dentro ^= cruza
+    return dentro
+
+
+def volumes_dos_contornos(planar: list, passo: float = 1.0) -> list:
+    """Contornos fechados (RTSTRUCT, SR 3D) de um mesmo nome, empilhados e preenchidos numa `MaskVolume`,
+    para aparecerem cortados em qualquer plano. Contornos de planos diferentes entre si ficam de fora."""
+    grupos: dict = {}
+    for g in planar:
+        if g.kind != "polygon" or g.points3d is None or len(g.points3d) < 3:
+            continue
+        grupos.setdefault((g.text, g.color), []).append(np.asarray(g.points3d, float))
+    out = []
+    for (nome, cor), conts in grupos.items():
+        c0 = conts[0] - conts[0].mean(axis=0)
+        try:
+            n = np.linalg.svd(c0, full_matrices=False)[2][2]
+        except np.linalg.LinAlgError:
+            continue
+        n = n / np.linalg.norm(n)
+        a = np.array([1.0, 0, 0]) if abs(n[0]) < 0.9 else np.array([0, 1.0, 0])
+        row = a - (a @ n) * n
+        row /= np.linalg.norm(row)
+        col = np.cross(n, row)
+        planos = [c for c in conts if np.abs((c - c.mean(axis=0)) @ n).max() < 0.5]
+        if not planos:
+            continue
+        ds = np.array([float(c.mean(axis=0) @ n) for c in planos])
+        uniq = np.unique(np.round(ds, 2))
+        dz = float(np.median(np.diff(uniq))) if len(uniq) > 1 else passo
+        todos = np.concatenate(planos)
+        us, vs = todos @ row, todos @ col
+        u0, v0, d0 = float(us.min()) - passo, float(vs.min()) - passo, float(ds.min())
+        W = int(np.ceil((float(us.max()) - u0) / passo)) + 2
+        H = int(np.ceil((float(vs.max()) - v0) / passo)) + 2
+        K = int(round((float(ds.max()) - d0) / dz)) + 1
+        if K * H * W > MAX_VOXELS_DERIVADO:
+            continue
+        vol = np.zeros((K, H, W), bool)
+        for c, d in zip(planos, ds):
+            k = int(round((d - d0) / dz))
+            pu, pv = (c @ row - u0) / passo, (c @ col - v0) / passo
+            x0, x1 = max(0, int(pu.min())), min(W, int(np.ceil(pu.max())) + 1)
+            y0, y1 = max(0, int(pv.min())), min(H, int(np.ceil(pv.max())) + 1)
+            gx, gy = np.meshgrid(np.arange(x0, x1, dtype=float), np.arange(y0, y1, dtype=float))
+            vol[k, y0:y1, x0:x1] ^= _dentro_do_poligono(gx, gy, np.column_stack([pu, pv]))   # buracos: par-ímpar
+        origem = u0 * row + v0 * col + d0 * n
+        out.append(MaskVolume(vol, origem, np.column_stack([row * passo, col * passo, n * dz]),
+                              tuple(cor) if cor else (80, 220, 120), nome))
+    return out
+
+
+def volumes_derivados(obj: "OverlayObject") -> list:
+    """As `MaskVolume` que o objeto ganha para os planos que não são o da aquisição (com cache)."""
+    chave = (len(obj.masks), len(obj.planar), obj.version)
+    cache = getattr(obj, "_derivados", None)
+    if cache is not None and cache[0] == chave:
+        return cache[1]
+    try:
+        vols = volumes_das_mascaras(obj.masks) + volumes_dos_contornos(obj.planar)
+    except Exception:  # noqa: BLE001
+        log.exception("volume derivado de %s", obj.label)
+        vols = []
+    obj._derivados = (chave, vols)
+    return vols
+
+
 # ------------------------------------------------------------------ leitura
 def load_object(path: str) -> OverlayObject | None:
     try:

@@ -711,6 +711,15 @@ class MainWindow(QMainWindow):
         if dlg.exec():
             self._preferencias_salvas()
 
+    def abrir_cad_ia(self, ferramenta: str = "") -> None:
+        """Configurações ▸ CAD/IA ▸ uma ferramenta: a página do CAD/IA já com ela escolhida (0.99.16)."""
+        from ipe.ui.preferences import PreferencesDialog
+        dlg = PreferencesDialog(self.settings, self, pagina="cad_ia")
+        if ferramenta and hasattr(dlg, "cad_ia"):
+            dlg.cad_ia.mostrar(ferramenta)
+        if dlg.exec():
+            self._preferencias_salvas()
+
     def abrir_config_barra(self) -> None:
         from ipe.ui.viewer.barra_config import BarraDialog
         if BarraDialog(self.settings, self).exec():

@@ -1,7 +1,8 @@
 """Preferências ▸ CAD/IA (0.99): cada ferramenta de CAD/IA com as suas configurações —
 se roda sozinha na chegada, como roda, e para onde vai o resultado depois de feito.
 
-Hoje: **Segmentação abdominal** (TotalSegmentator) e **Implante de silicone** (mamografia).
+Hoje: **Segmentação abdominal**, **Níveis da coluna** e **Cefalometria do cavum** (TotalSegmentator) e
+**Implante de silicone** (mamografia).
 O que roda sozinho fica registrado em Tarefas automáticas, como o resto da automação.
 """
 from __future__ import annotations
@@ -13,6 +14,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
+from ipe.ai import cefalometria as CF
 from ipe.ai import coluna as COL
 from ipe.ai import totalseg as TS
 from ipe.automation import implante as IMP
@@ -54,7 +56,8 @@ class CadIaTab(QWidget):
     #: (nome na lista, construtor do painel, chave do "automático")
     FERRAMENTAS = (("Segmentação abdominal", "_grupo_segmentacao", TS.CHAVE_AUTO),
                    ("Níveis da coluna", "_grupo_coluna", COL.CHAVE_AUTO),
-                   ("Implante de silicone", "_grupo_implante", IMP.CHAVE))
+                   ("Implante de silicone", "_grupo_implante", IMP.CHAVE),
+                   ("Cefalometria do cavum", "_grupo_cefalometria", CF.CHAVE_AUTO))
 
     def __init__(self, settings, repo=None, parent=None):
         """Como a aba Mamografia (0.99.1): as ferramentas à esquerda, as configurações à direita."""
@@ -105,7 +108,7 @@ class CadIaTab(QWidget):
             self.l_ferramentas.item(k).setText(f"{nome}\n   {'automático na chegada' if auto else 'só à mão'}")
 
     def _caixas_auto(self) -> list:
-        return [self.c_seg_auto, self.c_col_auto, self.c_imp_auto]
+        return [self.c_seg_auto, self.c_col_auto, self.c_imp_auto, self.c_cef_auto]
 
     def mostrar(self, nome: str) -> None:
         for k, (n, _c, _ch) in enumerate(self.FERRAMENTAS):
@@ -273,6 +276,55 @@ class CadIaTab(QWidget):
         f.addRow("Depois de fazer, enviar para:", self.l_col_dest)
         return g
 
+    # ------------------------------------------------------------ cefalometria do cavum (0.99.16)
+    def _grupo_cefalometria(self) -> QGroupBox:
+        g = QGroupBox("Cefalometria do cavum — via aérea, palato, língua e hioide (TotalSegmentator)")
+        f = QFormLayout(g)
+        cfg = lambda k: CF.config(self.settings, k)      # noqa: E731
+        expl = QLabel("Na TC: área de secção transversal mínima perpendicular ao eixo da via aérea, palato mole, "
+                      "espaço aéreo posterior, hioide ao plano mandibular, língua e nível do hioide. No exame "
+                      "ficam as estruturas e uma imagem de conferência com as linhas; o botão Cefalometria abre "
+                      "os números para conferir e mandar para o laudo. Usa a mesma instalação da segmentação "
+                      "abdominal; leva alguns minutos em CPU.")
+        expl.setWordWrap(True)
+        expl.setStyleSheet("color: gray")
+        f.addRow(expl)
+        self.c_cef_auto = QCheckBox("Fazer automaticamente quando o exame chegar (só TC)")
+        self.c_cef_auto.setChecked(bool(cfg(CF.CHAVE_AUTO)))
+        f.addRow(self.c_cef_auto)
+        self.e_cef_exame = QLineEdit(str(cfg(CF.CHAVE_EXAME_CONTEM) or ""))
+        self.e_cef_exame.setPlaceholderText("vazio = qualquer TC; ex.: CAVUM|RINOFARINGE|APNEIA")
+        self.e_cef_exame.setToolTip("Pedaços da descrição do exame, separados por |, sem diferença de acento ou "
+                                    "maiúscula. Vale para o automático.")
+        f.addRow("Descrição do exame contém:", self.e_cef_exame)
+        self.e_cef_ct = QLineEdit(str(cfg(CF.CHAVE_PRIOR_CT) or ""))
+        self.e_cef_ct.setToolTip("Séries em ordem de preferência, separadas por |: vale a primeira que aparecer na "
+                                 "descrição da série; entre iguais, a de mais cortes. A axial fina de partes moles "
+                                 "costuma ser a melhor.")
+        f.addRow("Série preferida na TC:", self.e_cef_ct)
+        lf = QHBoxLayout()
+        self.s_cef_esp = QDoubleSpinBox()
+        self.s_cef_esp.setRange(0, 20)
+        self.s_cef_esp.setDecimals(2)
+        self.s_cef_esp.setSuffix(" mm")
+        self.s_cef_esp.setSpecialValueText("sem limite")
+        self.s_cef_esp.setValue(float(cfg(CF.CHAVE_ESPESSURA) or 0))
+        self.s_cef_min = QSpinBox()
+        self.s_cef_min.setRange(CF.MIN_CORTES, 2000)
+        self.s_cef_min.setValue(int(cfg(CF.CHAVE_MIN_CORTES) or CF.MIN_CORTES))
+        lf.addWidget(QLabel("espessura até"))
+        lf.addWidget(self.s_cef_esp)
+        lf.addWidget(QLabel("  mínimo de"))
+        lf.addWidget(self.s_cef_min)
+        lf.addWidget(QLabel("cortes"))
+        lf.addStretch(1)
+        f.addRow("Filtros da série:", lf)
+        self.l_cef_dest = _lista_de_nos(self.repo, cfg(CF.CHAVE_DESTINOS))
+        self.l_cef_dest.setToolTip("As séries “Cefalometria” (estruturas e imagem de conferência) vão para os nós "
+                                   "marcados depois de feitas.")
+        f.addRow("Depois de fazer, enviar para:", self.l_cef_dest)
+        return g
+
     # ------------------------------------------------------------ implante
     def _grupo_implante(self) -> QGroupBox:
         g = QGroupBox("Implante de silicone (mamografia)")
@@ -337,6 +389,12 @@ class CadIaTab(QWidget):
         if COL.MEDIR_DISPONIVEL:
             s.set(COL.CHAVE_MEDIR, self.c_col_medir.isChecked())
             s.set(COL.CHAVE_SEQUENCIAS, int(self.cb_col_seq.currentData() or 1))
+        s.set(CF.CHAVE_AUTO, self.c_cef_auto.isChecked())
+        s.set(CF.CHAVE_EXAME_CONTEM, self.e_cef_exame.text().strip())
+        s.set(CF.CHAVE_PRIOR_CT, self.e_cef_ct.text().strip())
+        s.set(CF.CHAVE_ESPESSURA, round(self.s_cef_esp.value(), 2))
+        s.set(CF.CHAVE_MIN_CORTES, self.s_cef_min.value())
+        s.set(CF.CHAVE_DESTINOS, _marcados(self.l_cef_dest))
         s.set(IMP.CHAVE, self.c_imp_auto.isChecked())
         s.set(IMP.CHAVE_ANTERIORES, self.c_imp_ant.isChecked())
         s.set(IMP.CHAVE_SO_COM_MARCA, self.r_imp_marca.isChecked())
