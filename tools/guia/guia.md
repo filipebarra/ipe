@@ -25,7 +25,7 @@ O programa tem uma aba fixa, **Banco de dados**, e uma aba por exame aberto. Tud
 
 Menu **Arquivo**: **Importar pasta…** (Ctrl+I), **Importar arquivos…** e **Importar ZIP…**. Também dá para arrastar arquivos ou pastas para cima da janela.
 
-> **Copiar ou referenciar?** Em Preferências ▸ Geral ▸ Importação, a caixa *Copiar os arquivos para o armazenamento do programa* decide se o DICOM é copiado para a pasta do programa ou apenas referenciado onde está. Desmarcada, o programa nunca escreve no arquivo original — e nunca o apaga.
+> **Copiar ou referenciar?** Em Configurações ▸ Banco de dados ▸ Importação, a caixa *Copiar os arquivos para o armazenamento do programa* decide se o DICOM é copiado para a pasta do programa ou apenas referenciado onde está. Desmarcada, o programa nunca escreve no arquivo original — e nunca o apaga.
 
 ## Onde ficam os dados
 
@@ -98,11 +98,11 @@ Botões: **+ Lista**, **+ Pasta**, **▶ Modo reunião**. Botão direito na árv
 
 # O visualizador
 
-Cada exame abre numa aba com a barra de ferramentas em cima, a tira de miniaturas das séries à esquerda e os quadros no centro. Os botões que não servem à modalidade do exame não aparecem: numa mamografia não há MPR, 3D, Fusão nem MN. Para ver todos, Preferências ▸ Geral ▸ *Mostrar também os botões que não servem à modalidade do exame*.
+Cada exame abre numa aba com a barra de ferramentas em cima, a tira de miniaturas das séries à esquerda e os quadros no centro. No fim da barra fica o bloco das **aplicações do exame** (MPR, 3D, Dinâmica, Fusão, MN): cada uma aparece só quando serve ao exame aberto — pela modalidade, pela região do corpo (do BodyPartExamined e das descrições) e pelo tipo de série (angio, T1 3D, T2 3D, dinâmica, volume). Numa mamografia não há MPR, 3D, Fusão nem MN; numa RM de mama aparece a Dinâmica. O botão **Aplicações** lista todas, inclusive as que ficaram de fora, com o motivo — e elas rodam mesmo assim. Botão direito numa aplicação: **Automático**, **Sempre** ou **Nunca**, em todos os exames ou só nos exames daquela região. A ordem, os modos e o dicionário de regiões ficam em Configurações ▸ Visualizador ▸ *Barra de ferramentas e aplicações* e Configurações ▸ Protocolos de exame ▸ *Regiões do corpo* (com uma caixa para testar descrições).
 
 ## Mouse
 
-A ferramenta do botão esquerdo é a que estiver acesa na barra. Os outros botões, a roda e os cliques se configuram em Preferências ▸ Mouse. De fábrica:
+A ferramenta do botão esquerdo é a que estiver acesa na barra. Os outros botões, a roda e os cliques se configuram em Configurações ▸ Visualizador ▸ Mouse. De fábrica:
 
 | Gesto | O que faz |
 |---|---|
@@ -115,13 +115,13 @@ A ferramenta do botão esquerdo é a que estiver acesa na barra. Os outros botõ
 | Shift segurado | o esquerdo vira cursor 3D (sem precisar clicar: mover o mouse já acha o ponto nos outros quadros) |
 | Ctrl segurado | o esquerdo vira rolar (sobe e desce os cortes) |
 
-Shift e Ctrl emprestam o botão esquerdo: a ferramenta escolhida na barra não muda, e ao soltar tudo volta ao que era. Qual tecla faz o quê se escolhe em Preferências ▸ Atalhos de teclado (Shift / Ctrl / Alt / Nenhuma).
+Shift e Ctrl emprestam o botão esquerdo: a ferramenta escolhida na barra não muda, e ao soltar tudo volta ao que era. Qual tecla faz o quê se escolhe em Configurações ▸ Visualizador ▸ Atalhos de teclado (Shift / Ctrl / Alt / Nenhuma).
 
 ## As ferramentas
 
 A ferramenta do botão esquerdo se escolhe na barra, no menu do botão direito do quadro — em **Mouse (botão esquerdo)**, o que move a imagem, e em **Medidas**, o que mede — ou clicando no canto que mostra a ferramenta atual.
 
-A coluna *tecla* abaixo é sugestão: quase toda a lista de atalhos vem de fábrica vazia, e cada tecla é escolhida em Preferências ▸ Atalhos de teclado (capítulo 14). Das ferramentas, só o zoom por quadrante tem tecla de fábrica (Q).
+A coluna *tecla* abaixo é sugestão: quase toda a lista de atalhos vem de fábrica vazia, e cada tecla é escolhida em Configurações ▸ Visualizador ▸ Atalhos de teclado (capítulo 14). Das ferramentas, só o zoom por quadrante tem tecla de fábrica (Q).
 
 | Ferramenta | Tecla | Para que serve |
 |---|---|---|
@@ -142,7 +142,7 @@ A coluna *tecla* abaixo é sugestão: quase toda a lista de atalhos vem de fábr
 
 ## Quadros, séries e layout
 
-- Layout na barra, ou menu **Exibir ▸ Layout dos quadros** (de 1×1 a 4×4). O layout inicial fica em Preferências ▸ Geral.
+- Layout na barra, ou menu **Exibir ▸ Layout dos quadros** (de 1×1 a 4×4). O layout inicial fica em Configurações ▸ Sistema ▸ Ao abrir o programa.
 - `[` e `]` (sugestão) trocam a série do quadro ativo. Trocar de sequência mantém a posição: o corte novo passa pelo ponto que estava à vista.
 - Arrastar uma miniatura da tira para um quadro põe aquela série ali.
 - O canto inferior direito do quadro diz o plano (clicável), a fase da dinâmica, a janela e o FOV.
@@ -156,7 +156,7 @@ Com o foco num quadro do exame:
 | F1 | manda a imagem do quadro ao filme, com a janela, o zoom e o giro que ela tem na tela |
 | F2 | manda a série do quadro — inteira ou um intervalo, escolhido numa janela |
 
-As duas vêm de fábrica e podem ser trocadas em Preferências ▸ Atalhos de teclado. Fora do exame (na lista do banco, por exemplo), o F1 volta a abrir este guia. O botão **Filme** da barra faz o mesmo que o F1, e o menu dele traz *todos os quadros* e *imagens-chave do exame*.
+As duas vêm de fábrica e podem ser trocadas em Configurações ▸ Visualizador ▸ Atalhos de teclado. Fora do exame (na lista do banco, por exemplo), o F1 volta a abrir este guia. O botão **Filme** da barra faz o mesmo que o F1, e o menu dele traz *todos os quadros* e *imagens-chave do exame*.
 
 ## Sincronizar quadros
 
@@ -204,7 +204,7 @@ K (sugestão) marca e desmarca a imagem do quadro como imagem-chave; Shift+K mos
 - MPR curvo (clique os pontos ao longo de um vaso) e 3D (renderização de volume, com cortes, escultura e exportação de malha STL/GLB/3MF).
 - O plano reconstruído sai sempre na convenção de leitura — axial com anterior em cima e esquerda do paciente à direita — mesmo quando a aquisição foi sagital.
 
-> **O volume é montado na memória.** Em Preferências ▸ Desempenho há um teto; acima dele o programa pergunta antes de montar. O 3D roda na CPU, e o detalhe (lado do volume) também se ajusta ali.
+> **O volume é montado na memória.** Em Configurações ▸ Sistema ▸ Desempenho há um teto; acima dele o programa pergunta antes de montar. O 3D roda na CPU, e o detalhe (lado do volume) também se ajusta ali.
 
 # Vários monitores
 
@@ -212,7 +212,7 @@ O programa trata o conjunto de telas como uma estação, não como vários visua
 
 ## Configurar
 
-Preferências ▸ Monitores. Cada tela recebe um papel:
+Configurações ▸ Monitores ▸ Papel, layout e ordem dos monitores. Cada tela recebe um papel:
 
 | Papel | O que vai para lá |
 |---|---|
@@ -227,7 +227,7 @@ Com dois ou mais monitores marcados como Viewer, o exame abre repartido entre el
 
 - **Mover estudo atual para o monitor** (menu Exibir) leva o exame aberto para outra tela.
 - **Trazer todos os estudos de volta** devolve tudo à janela principal.
-- A tira de séries pode ficar só no primeiro monitor — Preferências ▸ Monitores ▸ *Tira de séries só no primeiro monitor*, com três opções: só na mamografia, sempre que o exame abre repartido, ou nunca.
+- A tira de séries pode ficar só no primeiro monitor — Configurações ▸ Monitores ▸ *Papel, layout e ordem* ▸ *Tira de séries só no primeiro monitor*, com três opções: só na mamografia, sempre que o exame abre repartido, ou nunca.
 - A grade de cada tela é lembrada por tipo de exame (capítulo 5, *A memória do layout*).
 
 > **No Linux** o papel dos monitores depende do X11 informar a geometria das telas; em alguns ambientes Wayland a identificação pode falhar.
@@ -238,7 +238,7 @@ Mamografia não usa o protocolo de exibição genérico dos outros exames. Ela t
 
 ## Onde fica o editor
 
-- Preferências ▸ aba **Mamografia**;
+- Configurações ▸ Protocolos de exame ▸ **Mamografia**;
 - ou, com uma mamografia aberta, a última linha do combo **etapa:** na barra do exame — *Editar protocolos…*.
 
 ## Criar um protocolo do zero
@@ -336,7 +336,7 @@ Metade do campo de uma mamografia é ar. Enquadrar a imagem inteira é enquadrar
 
 ## Protocolos de exibição dos outros exames
 
-A aba **Protocolos de exibição** (Preferências) cuida de TC, RM, US e afins — do jeito da mamografia: cada protocolo tem **etapas**, e **← →** passam de uma para a outra.
+**Protocolos de exibição** (Configurações ▸ Protocolos de exame) cuida de TC, RM, US e afins — do jeito da mamografia: cada protocolo tem **etapas**, e **← →** passam de uma para a outra.
 
 **Ao abrir o exame**, o primeiro protocolo ativo que combinar (modalidade e "descrição do exame contém") abre na etapa 1. Uma barra aparece em cima dos quadros: o nome do protocolo, a lista das etapas (escolha qualquer uma), ◀ ▶, **Gravar a tela como etapa…**, **Editar protocolos…** e **Sair do protocolo** (deixa os quadros como estão). Vêm três de fábrica para você ajustar: **TC de tórax** (mediastino, pulmão e pulmão em MIP, cada um com axial e coronal), **RM de mama** (sem contraste, dinâmica, MIP da subtração) e **RM de crânio** (T2/FLAIR/difusão e pós-contraste com coronal).
 
@@ -365,11 +365,11 @@ A aba **Protocolos de exibição** (Preferências) cuida de TC, RM, US e afins �
 
 **Etapa com a avaliação dinâmica (0.94).** No editor, cada etapa tem **Abrir a avaliação dinâmica (mapas e curvas)**, com o layout dos mapas (os mesmos do botão Dinâmica) e a série da dinâmica (vazio = a dinâmica do exame, detectada sozinha). Ao chegar nessa etapa, o programa faz o que o botão Dinâmica faz, sem a janela: pega as fases, usa os **últimos parâmetros** que você usou no botão (limiares, pré, inicial, tardia, correção de movimento) e abre os mapas com o painel de curvas. Passar para outra etapa fecha a dinâmica; voltar abre de novo. A RM de mama de fábrica tem a etapa **Avaliação dinâmica** no fim — e quem já tinha a RM de mama gravada ganha essa etapa uma vez. Para mudar os parâmetros, use **Parâmetros…** no painel da dinâmica: a próxima vez que a etapa abrir, ela usa os novos.
 
-**Reconstrução da etapa é volume 3D (0.93).** Clique num quadro em que a etapa montou uma reconstrução (MPR, MIP, MinIP ou média de espessura) e a barra **3D — modo** aparece, já no modo dele. Na primeira vez que você mexer nela (trocar o modo, preset, cor, Vistas, Cortar, Esculpir, Girar…), o quadro vira um 3D: o mesmo volume (a mesma fase, na dinâmica), cortado na espessura que estava na tela e olhando do mesmo lado. Os outros quadros continuam como estão. **Voltar à série** desfaz. O 3D é montado numa grade reduzida (Preferências ▸ Desempenho), então pode sair menos nítido que o MIP de espessura. A barra do MPR também passou a mostrar a espessura do quadro (62 mm, 165 mm…) em vez de "fino".
+**Reconstrução da etapa é volume 3D (0.93).** Clique num quadro em que a etapa montou uma reconstrução (MPR, MIP, MinIP ou média de espessura) e a barra **3D — modo** aparece, já no modo dele. Na primeira vez que você mexer nela (trocar o modo, preset, cor, Vistas, Cortar, Esculpir, Girar…), o quadro vira um 3D: o mesmo volume (a mesma fase, na dinâmica), cortado na espessura que estava na tela e olhando do mesmo lado. Os outros quadros continuam como estão. **Voltar à série** desfaz. O 3D é montado numa grade reduzida (Configurações ▸ Sistema ▸ Desempenho), então pode sair menos nítido que o MIP de espessura. A barra do MPR também passou a mostrar a espessura do quadro (62 mm, 165 mm…) em vez de "fino".
 
 **MIPs de meia mama (0.90; em 3D desde a 0.92).** A RM de mama de fábrica tem a etapa **MIP das fases (meia mama)**: 2 × 2, quatro **MIPs 3D**, em cima a pós-contraste 1 e embaixo a pós-contraste 3; à esquerda a mama direita vista da **Esquerda** (mamilo para a esquerda), à direita a mama esquerda vista da **Direita** (mamilo para a direita). Cada quadro é um 3D próprio: clique nele e use a barra do 3D — girar, Vistas, cortar, trocar MIP por VR — sem mexer nos outros. A janela de cada MIP sai da própria projeção. Quem já tinha a RM de mama gravada ganha essa etapa no fim do protocolo uma vez (as outras etapas não mudam). Para outra combinação — a 2ª pós, a subtração, a mama inteira — mude a fase, a metade ou a frente de cada quadro no editor. As duas fases da etapa ficam montadas na memória, então os quatro quadros saem de dois volumes. O meio é o centro do campo de visão: num exame com o paciente fora do centro, a metade pode levar um pedaço da outra mama.
 
-Quando a série de um quadro não existe no exame, o quadro diz **Série não encontrada** com o que procurou, e a barra de estado conta quantos faltaram. A reconstrução que o protocolo pede ao abrir não faz pergunta: volume acima do limite de memória (Preferências ▸ Desempenho) fica de fora, com aviso. Com o exame em várias telas, a etapa é da estação: passar de etapa numa passa em todas. Os protocolos feitos antes da 0.88 continuam valendo e viram protocolos de uma etapa ao salvar a aba.
+Quando a série de um quadro não existe no exame, o quadro diz **Série não encontrada** com o que procurou, e a barra de estado conta quantos faltaram. A reconstrução que o protocolo pede ao abrir não faz pergunta: volume acima do limite de memória (Configurações ▸ Sistema ▸ Desempenho) fica de fora, com aviso. Com o exame em várias telas, a etapa é da estação: passar de etapa numa passa em todas. Os protocolos feitos antes da 0.88 continuam valendo e viram protocolos de uma etapa ao salvar a aba.
 
 ### A memória do layout
 
@@ -484,7 +484,7 @@ Em **Automação ▸ Dinâmica pronta** dá para mandar o programa, assim que um
 
 ## Séries dinâmicas: juntar e separar
 
-Dois problemas opostos, no mesmo lugar — Preferências ▸ **Dinâmicos**:
+Dois problemas opostos, no mesmo lugar — Configurações ▸ Protocolos de exame ▸ **Dinâmicos**:
 
 - **Juntar**: o aparelho grava uma série por fase (RM de mama). As séries que combinam viram uma dinâmica, e isso fica gravado no banco.
 - **Separar**: o aparelho grava todas as fases na mesma série (a TC trifásica). A série é repartida em fases só na tela, com uma miniatura por fase na tira, e "Desfazer o grupo" devolve a série inteira. Nada é escrito, nenhum arquivo é tocado.
@@ -660,7 +660,7 @@ O pacote traz dois executáveis: `Ipe.exe` (o de janela) e `ipe-cli.exe` (o de c
 
 ## Nós e recebimento
 
-**Rede ▸ Configurar nós DICOM…**. A aba *Este computador* define o AE title, a porta e quem pode se conectar — é assim que o aparelho ou o PACS manda exames para cá. As outras abas cadastram os nós remotos.
+**Configurações ▸ Rede ▸ Nós DICOM…**. A aba *Este computador* define o AE title, a porta e quem pode se conectar — é assim que o aparelho ou o PACS manda exames para cá. As outras abas cadastram os nós remotos.
 
 ### Dois tipos de nó: DIMSE e DICOMweb
 
@@ -688,7 +688,7 @@ O endereço do DICOMweb é a base, a que costuma terminar em `/dicom-web` (por e
 
 ### Identidades: falar "como" outro aparelho
 
-Algumas modalidades só conversam com quem elas conhecem — o OsiriX da sala, por exemplo. Em **Rede ▸ Configurar nós DICOM…**, aba **Identidades**, você cadastra esses AE (nome, AE title, destino do C-MOVE e em quais nós podem ser usados). Depois:
+Algumas modalidades só conversam com quem elas conhecem — o OsiriX da sala, por exemplo. Em **Configurações ▸ Rede ▸ Nós DICOM…**, aba **Identidades**, você cadastra esses AE (nome, AE title, destino do C-MOVE e em quais nós podem ser usados). Depois:
 
 - na busca do PACS, o campo **Como:** escolhe com qual identidade buscar e baixar;
 - no **Enviar para ▸ nó ▸ como…**, a identidade escolhida é a que envia.
@@ -736,7 +736,7 @@ A aba **Histórico** mostra o que cada regra fez e quando.
 
 ## Servidor central (intranet)
 
-**Rede ▸ Configurar servidor central…** põe uma instalação no papel de servidor, com login e banco compartilhado; as outras entram como cliente. É para um grupo pequeno na mesma rede — o banco é SQLite.
+**Configurações ▸ Rede ▸ Servidor central…** põe uma instalação no papel de servidor, com login e banco compartilhado; as outras entram como cliente. É para um grupo pequeno na mesma rede — o banco é SQLite.
 
 ## Compressão sem perda
 
@@ -748,7 +748,7 @@ A conferência que se faz à mão — abrir cada modalidade, ver os exames do di
 
 ## Preparar uma vez
 
-1. Cadastre cada modalidade como nó DIMSE (Rede ▸ Configurar nós DICOM).
+1. Cadastre cada modalidade como nó DIMSE (Configurações ▸ Rede ▸ Nós DICOM).
 2. Para a modalidade que só aceita um AE conhecido (o do OsiriX, por exemplo), cadastre esse AE como identidade (capítulo 9).
 3. Abra **Gestão**. No quadro **Modalidades**, marque as que quer conferir e, em cada uma, a identidade com que se fala com ela.
 4. No quadro **PACS**: o nó do PACS, a identidade (*Como:*), o **Destino do C-MOVE** (normalmente o AE do próprio PACS) e **Como enviar**:
@@ -872,7 +872,7 @@ Cada envio fica guardado: quando, para onde, quem estava no programa, se foi **�
 
 ### Modalidade do trabalho
 
-A impressão DICOM não diz a modalidade. O programa descobre assim: com o paciente identificado (OCR na chegada ou **Identificar paciente**), é a modalidade do **exame do paciente** feito até a hora da chegada (no mesmo dia ou no anterior); sem paciente, é a modalidade escrita no **cadastro da origem** (Configurações de impressão ▸ Origens ▸ Modalidade). A coluna **Modalidade** da lista mostra o resultado. Ela vale para as **regras por modalidade** e para a **limpeza**.
+A impressão DICOM não diz a modalidade. O programa descobre assim: com o paciente identificado (OCR na chegada ou **Identificar paciente**), é a modalidade do **exame do paciente** feito até a hora da chegada (no mesmo dia ou no anterior); sem paciente, é a modalidade escrita no **cadastro da origem** (Configurações ▸ Impressão ▸ Servidores, destinos, regras e modelos ▸ Origens ▸ Modalidade). A coluna **Modalidade** da lista mostra o resultado. Ela vale para as **regras por modalidade** e para a **limpeza**.
 
 ### Colunas e filtros da lista
 
@@ -913,7 +913,7 @@ Para soltar um filme que ficou esperando: selecione e use **Identificar paciente
 
 > **O paciente precisa estar no banco.** O OCR compara o que leu com os pacientes que já estão aqui. Filme que chega antes das imagens do exame fica esperando a sua confirmação.
 
-Para desligar: **Configurações de impressão ▸ Regras**, caixa "Identificar o paciente pelo OCR quando o filme chegar". Desligada, a regra age assim que o filme chega, como antes da 0.81.
+Para desligar: **Configurações ▸ Impressão ▸ Servidores, destinos, regras e modelos ▸ Regras**, caixa "Identificar o paciente pelo OCR quando o filme chegar". Desligada, a regra age assim que o filme chega, como antes da 0.81.
 
 ### Imagens mandadas à impressora
 
@@ -922,11 +922,11 @@ Algumas modalidades (o ultrassom, por exemplo) mandam **imagens comuns** para a 
 - elas entram no banco como qualquer exame recebido;
 - quando a modalidade termina de mandar, o programa monta **um filme por exame com todas as imagens**, na ordem em que chegaram (clipe com muitos quadros entra com até 16, espalhados). A grade e o papel vêm da **regra do Automático** que combinar (o "meu AE" é o AE daquela impressora); sem regra que combine, da grade padrão escrita embaixo da aba;
 - se a regra do Automático tem destino, o filme vai para lá; senão, segue as **regras de impressão daquele servidor**, como um filme impresso;
-- com o **OCR na chegada** ligado (Configurações de impressão ▸ Regras), o programa lê o texto que a modalidade gravou nas primeiras imagens (alto, rodapé e, por último, a imagem inteira) e procura o paciente no banco. O nome que vem no cabeçalho das imagens **não** vale como prova: aparelho que manda nome genérico teria esse mesmo nome no banco. Achando o paciente, o nome e o ID vão para o filme — inclusive no cabeçalho da folha impressa — e ele segue pela regra. Sem achar, o filme fica com a Situação **Esperando paciente**: selecione e use **Identificar paciente…**, e depois do OK ele segue pela regra sozinho. Com o OCR desligado, vale o nome das imagens, como antes da 0.89.
+- com o **OCR na chegada** ligado (Configurações ▸ Impressão ▸ … ▸ Regras), o programa lê o texto que a modalidade gravou nas primeiras imagens (alto, rodapé e, por último, a imagem inteira) e procura o paciente no banco. O nome que vem no cabeçalho das imagens **não** vale como prova: aparelho que manda nome genérico teria esse mesmo nome no banco. Achando o paciente, o nome e o ID vão para o filme — inclusive no cabeçalho da folha impressa — e ele segue pela regra. Sem achar, o filme fica com a Situação **Esperando paciente**: selecione e use **Identificar paciente…**, e depois do OK ele segue pela regra sozinho. Com o OCR desligado, vale o nome das imagens, como antes da 0.89.
 
 O filme aparece na lista de impressões como "Montado aqui" e pode ser aberto no compositor.
 
-**Configurações de impressão** (Arquivo, ou o botão da aba) tem as abas Servidores (cada um é uma impressora que as modalidades enxergam), Destinos, Origens, Regras, Modelos de folha, Automático e Limpeza.
+**Configurações ▸ Impressão ▸ Servidores, destinos, regras e modelos de folha** (ou o botão da aba) tem as abas Servidores (cada um é uma impressora que as modalidades enxergam), Destinos, Origens, Regras, Modelos de folha, Automático e Limpeza.
 
 **Automático** (filme montado sozinho, para a modalidade que manda **as imagens** e não o filme pronto, como o ultrassom): também é uma tabela de regras, uma por linha, com Origem (AE), Recebido por, Modalidade, outras condições, grade, quantas imagens, para onde vai depois e o modelo. O editor tem as mesmas três listas de marcar — **Origem (AE title de quem mandou)**, **Recebido por (meu AE chamado)** e **Modalidade** — e, em **Outras condições**, a descrição do exame (`MAMA|AXILA`). Embaixo, **Montar o filme assim**: grade, papel, quantas imagens (0 = todas), depois de montar (deixar na lista ou mandar para um destino) e o modelo de folha. A primeira regra ligada que combinar monta o filme, alguns segundos depois de o exame parar de chegar; um filme por exame.
 
@@ -996,11 +996,13 @@ Clicar no botão mostra ou oculta todos. A escolha fica guardada por tipo: se vo
 
 Botão **Fusão**: sobrepõe uma série a outra no quadro ativo (PET sobre a TC, por exemplo), com opacidade, tabela de cores e limites mínimo e máximo, e a opção de ocultar o que está abaixo do mínimo.
 
-# Preferências, usuários e exportação
+# Configurações, usuários e exportação
 
-## Preferências
+## O menu Configurações
 
-Botão **Configurações**, ou menu **Exibir ▸ Preferências…** (Ctrl+,):
+Tudo o que se configura mora no menu **Configurações** (e no botão Configurações da tela inicial), com um submenu por assunto: **Visualizador** (barra e aplicações, botões extras, mouse, atalhos, presets de janela, anotações, texto sobre a imagem, sincronização), **Protocolos de exame** (protocolos de exibição, mamografia, dinâmica da mama, dinâmicos, regiões do corpo), **CAD/IA**, **Monitores** (papel, layout, ordem e calibração GSDF), **Rede** (nós DICOM, automação, servidor central, link ipe://), **Impressão** (impressoras DICOM e configurações de impressão), **Banco de dados** (importação, pasta do banco), **Usuários** e **Sistema** (ao abrir o programa, desempenho, módulos, idioma). Cada item abre a sua própria janela, só com aquele assunto. Os menus Exibir, Rede, Impressão e Usuário ficam só com ações.
+
+A janela completa, com todas as abas, continua em **Configurações ▸ Todas as preferências** (Ctrl+,):
 
 | Aba | O que tem |
 |---|---|
@@ -1017,7 +1019,7 @@ Botão **Configurações**, ou menu **Exibir ▸ Preferências…** (Ctrl+,):
 
 **Módulos**: desligue o que não usa e os botões e serviços daquele módulo somem. **Nenhum exame é apagado**: o exame continua no banco e abre como imagem comum; religar devolve tudo. Medicina nuclear leva os botões de MN e da fusão PET/CT; Mamografia, os protocolos ao abrir (o exame abre sem hanging) e a densidade; 3D, o botão 3D (o MPR fica); RM/TC avançado, o botão da dinâmica; Impressão recebida, os servidores de impressão (as portas param de receber), a lista e as configurações de impressão, o filme automático do ultrassom e a limpeza — o compositor e o painel de filmes continuam. Só quem tem a permissão de configurar muda os módulos.
 
-Na aba Geral, *botões na barra do visualizador*: quatro botões (Inverter, Girar e espelhar, Cine, Ocultar dados do paciente) saem da barra por padrão e vivem no menu **Mais**; desmarcar e marcar ali move entre os dois lugares. A função nunca some: só muda de lugar.
+Em Configurações ▸ Visualizador ▸ *Botões extras na barra*: quatro botões (Inverter, Girar e espelhar, Cine, Ocultar dados do paciente) saem da barra por padrão e vivem no menu **Mais**; desmarcar e marcar ali move entre os dois lugares. A função nunca some: só muda de lugar.
 
 ## Usuários e permissões
 
@@ -1087,8 +1089,8 @@ Caminhos completos, do começo ao fim.
 
 ## Deixar a mamografia pronta em dois monitores
 
-1. Preferências ▸ Monitores: marque duas telas como **Viewer** e ponha a **Ordem** 1 e 2. Confira com **Identificar monitores**.
-2. Preferências ▸ Mamografia ▸ **+ Novo**. Nome "Rastreamento", Descrição do exame contém: vazio, **Ativo** marcado.
+1. Configurações ▸ Monitores ▸ Papel, layout e ordem: marque duas telas como **Viewer** e ponha a **Ordem** 1 e 2. Confira com **Identificar monitores**.
+2. Configurações ▸ Protocolos de exame ▸ Mamografia ▸ **+ Novo**. Nome "Rastreamento", Descrição do exame contém: vazio, **Ativo** marcado.
 3. **+ Etapa** "CC": layout 1 × 2, *Em texto:* `CCD x CCE`.
 4. **+ Etapa** "MLO": layout 1 × 2, `MLOD x MLOE`.
 5. **+ Etapa** "Atual × anterior": layout 2 × 2, `CCD, CCD ant x CCE, CCE ant`.
@@ -1119,7 +1121,7 @@ Caminhos completos, do começo ao fim.
 ## Ligar num Orthanc por DICOMweb
 
 1. Peça a base do DICOMweb (algo como `http://servidor:8042/dicom-web`) e um usuário só de leitura.
-2. Rede ▸ Configurar nós DICOM ▸ **+ Novo**. Em **Tipo de conexão**, escolha DICOMweb (HTTP).
+2. Configurações ▸ Rede ▸ Nós DICOM ▸ **+ Novo**. Em **Tipo de conexão**, escolha DICOMweb (HTTP).
 3. Preencha Nome, Endereço DICOMweb, Usuário e Senha. HTTPS com certificado próprio: marque *Aceitar certificado não verificado*.
 4. Marque em *Usar em* o que fizer sentido e aperte **Testar rede**.
 5. Abra o PACS e busque. O download volta pela mesma conexão: nada precisa ser cadastrado do lado do servidor.
@@ -1153,11 +1155,11 @@ Caminhos completos, do começo ao fim.
 
 1. Abra o exame, botão direito na série → **separar**.
 2. As fases aparecem como miniaturas próprias na tira. Nada foi escrito no banco.
-3. Em Preferências ▸ Dinâmicos, a regra nasceu como pendente: confirme para ela valer em todos os exames iguais, ou deixe em Ignorar.
+3. Em Configurações ▸ Protocolos de exame ▸ Dinâmicos, a regra nasceu como pendente: confirme para ela valer em todos os exames iguais, ou deixe em Ignorar.
 
 # Apêndice: os atalhos
 
-A lista de atalhos vem quase vazia. Só cinco teclas são de fábrica; todas as outras ações nascem sem tecla, para você escolher as suas em Preferências ▸ Atalhos de teclado. Nada deixa de funcionar sem tecla: toda ação está num menu ou na barra. Atalho repetido é recusado com aviso.
+A lista de atalhos vem quase vazia. Só cinco teclas são de fábrica; todas as outras ações nascem sem tecla, para você escolher as suas em Configurações ▸ Visualizador ▸ Atalhos de teclado. Nada deixa de funcionar sem tecla: toda ação está num menu ou na barra. Atalho repetido é recusado com aviso.
 
 ## De fábrica
 
@@ -1180,7 +1182,7 @@ A lista de atalhos vem quase vazia. Só cinco teclas são de fábrica; todas as 
 | Ctrl+Shift+P | Impressões |
 | Ctrl+Shift+F | Consulta PACS |
 | Ctrl+B | Voltar ao banco de dados |
-| Ctrl+, | Preferências |
+| Ctrl+, | Todas as preferências (janela completa) |
 | F1 | Guia do usuário (fora do exame; no exame é do filme) |
 | Ctrl+Q | Sair |
 

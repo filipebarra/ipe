@@ -20,8 +20,12 @@ def test_menu_impressao_e_acrescentar_impressora(env, monkeypatch):
         assert nomes.index("I&mpressão") == nomes.index("&Arquivo") + 1
         imp = [a.text() for a in menus["I&mpressão"].actions() if a.text()]
         assert imp == ["Filme / impressão (mostrar/esconder)", "Filmes salvos…",
-                       "Impressões (recebidas e montadas aqui)…", "Painel de filmes e impressões…",
-                       "Acrescentar impressora DICOM…", "Impressoras DICOM…", "Configurações de impressão…"]
+                       "Impressões (recebidas e montadas aqui)…", "Painel de filmes e impressões…"]
+        # 0.99.12: o que se configura foi para Configurações ▸ Impressão
+        conf = next(a.menu() for a in menus["&Configurações"].actions() if a.text() == "Impressão")
+        assert [a.text() for a in conf.actions()] == [
+            "Acrescentar impressora DICOM…", "Impressoras DICOM…",
+            "Servidores, destinos, regras e modelos de folha…"]
         arq = [a.text() for a in menus["&Arquivo"].actions()]
         assert not any("Impress" in t or "impress" in t or "Filme" in t for t in arq)
 

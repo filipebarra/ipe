@@ -39,7 +39,12 @@ def test_no_banco_de_dados_nao_ha_layout_nem_monitor(janela):
     assert not any("Layout" in t for t in itens), f"layout aparecendo no banco: {itens}"
     assert not any("monitor" in t for t in itens if "Calibração" not in t)
     assert "Voltar ao banco de dados" not in itens, "ele já está no banco"
-    assert "Preferências…" in itens and "Calibração GSDF do monitor…" in itens
+    # 0.99.12: as configurações moram no menu Configurações; aqui sobra o aviso, não um menu vazio
+    assert "Preferências…" not in itens and "Calibração GSDF do monitor…" not in itens
+    assert itens == ["Abra um exame para ver as opções de exibição"]
+    config = _menu(w, "Configurações")
+    monitores = next(a.menu() for a in config.actions() if a.text() == "Monitores")
+    assert "Calibração GSDF do monitor…" in [a.text() for a in monitores.actions()]
 
 
 def test_com_exame_aberto_o_layout_aparece(janela):

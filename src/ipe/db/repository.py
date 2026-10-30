@@ -85,6 +85,7 @@ class SeriesRow:
     num_images: int
     thumbnail: bytes | None
     hidden: bool = False
+    body_part: str = ""          # (0018,0015) BodyPartExamined — a região, para a barra do visualizador (0.99.12)
 
 
 class Repository:
@@ -211,7 +212,7 @@ class Repository:
             if not ocultas:
                 q = q.where(Series.hidden.is_(False))
             return [SeriesRow(se.series_uid, study_uid, se.modality, se.series_number,
-                              se.description, ni or 0, se.thumbnail, bool(se.hidden))
+                              se.description, ni or 0, se.thumbnail, bool(se.hidden), se.body_part or "")
                     for se, ni in s.execute(q)]
 
     def set_series_hidden(self, series_uids: list[str], hidden: bool) -> int:

@@ -56,10 +56,38 @@ def _rolavel(interno: QWidget) -> QWidget:
     return area
 
 
+#: As janelas do menu Configurações (0.99.12): cada item abre **uma** página, sozinha.
+#: id -> (título da janela, aba de onde ela vem, seções da aba que aparecem — None = a aba inteira)
+PAGINAS: dict[str, tuple[str, str, tuple | None]] = {
+    "mouse": ("Mouse", "Mouse", None),
+    "atalhos": ("Atalhos de teclado", "Atalhos de teclado", None),
+    "presets": ("Presets de janela", "Presets de janela", None),
+    "anotacoes": ("Anotações", "Anotações", None),
+    "aparencia": ("Texto e marcas sobre a imagem", "Geral", ("Texto e marcas sobre a imagem",)),
+    "sincronia": ("Sincronização automática", "Geral", ("Sincronização automática no mesmo estudo",)),
+    "botoes": ("Botões extras na barra", "Geral", ("Botões na barra do visualizador",)),
+    "protocolos": ("Protocolos de exibição", "Protocolos de exibição", None),
+    "mamografia": ("Mamografia", "Mamografia", None),
+    "dinamica_mama": ("Dinâmica da mama", "Dinâmica da mama", None),
+    "dinamicos": ("Dinâmicos (juntar e separar séries)", "Dinâmicos", None),
+    "cad_ia": ("CAD/IA", "CAD/IA", None),
+    "monitores": ("Monitores", "Monitores", None),
+    "desempenho": ("Desempenho", "Desempenho", None),
+    "abertura": ("Ao abrir o programa", "Geral", ("Ao abrir o programa",)),
+    "importacao": ("Importação", "Geral", ("Importação",)),
+    "idioma": ("Idioma", "Geral", ("Idioma",)),
+    "modulos": ("Módulos", "Módulos", None),
+}
+SECOES_DA_GERAL = ("Ao abrir o programa", "Texto e marcas sobre a imagem",
+                   "Sincronização automática no mesmo estudo", "Botões na barra do visualizador",
+                   "Importação", "Idioma")
+
+
 class PreferencesDialog(QDialog):
-    def __init__(self, settings, parent=None):
+    def __init__(self, settings, parent=None, pagina: str = ""):
         super().__init__(parent)
         self.settings = settings
+        self.pagina = pagina if pagina in PAGINAS else ""
         self.setWindowTitle("Preferências")
         self.resize(720, 560)
         tabs = QTabWidget()
@@ -100,6 +128,29 @@ class PreferencesDialog(QDialog):
         lay = QVBoxLayout(self)
         lay.addWidget(tabs)
         lay.addWidget(bb)
+        if self.pagina:
+            self._so_a_pagina(bb)
+
+    def _so_a_pagina(self, bb) -> None:
+        """Mostra só a página pedida pelo menu Configurações: sem as outras abas e sem as outras
+        seções da aba. O resto continua montado por baixo (e é gravado igual a como estava), para
+        que salvar uma página nunca mexa no que as outras guardam."""
+        titulo, aba, secoes = PAGINAS[self.pagina]
+        self.setWindowTitle(f"Configurações — {titulo}")
+        for i in range(self.tabs.count()):
+            if self.tabs.tabText(i) == aba:
+                self.tabs.setCurrentIndex(i)
+                break
+        self.tabs.tabBar().hide()
+        self.tabs.setDocumentMode(True)
+        if secoes:
+            pagina = self.tabs.currentWidget()
+            for g in pagina.findChildren(QGroupBox):
+                if g.title() in SECOES_DA_GERAL:
+                    g.setVisible(g.title() in secoes)
+            self.resize(620, 360)
+        # "Restaurar padrões" volta **tudo** aos de fábrica: numa janela de um assunto só, não
+        bb.button(QDialogButtonBox.RestoreDefaults).hide()
 
     # ------------------------------------------------------------ abas
     def _mouse_tab(self) -> QWidget:

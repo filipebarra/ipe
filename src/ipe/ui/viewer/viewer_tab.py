@@ -360,10 +360,13 @@ class ViewerTab(OncoMixin, QWidget):
 
     def _button(self, tb: QToolBar, action: QAction, menu: QMenu | None = None,
                 instant: bool = False, mods: set | None = None,
-                opcional: str = "", modulo: str = "") -> QToolButton:
+                opcional: str = "", modulo: str = "", app: str = "") -> QToolButton:
         """`mods`: modalidades em que o botão faz sentido (None = sempre).
 
         `opcional`: id do botão que o usuário pode tirar da barra (ele continua no menu "Mais").
+
+        `app` (0.99.12): o botão é uma **aplicação** (`aplicacoes.APLICACOES`): não entra aqui, entra
+        no bloco "do exame", no fim da barra, e aparece pela regra e pela escolha dele.
         """
         btn = QToolButton()
         btn.setDefaultAction(action)
@@ -374,6 +377,11 @@ class ViewerTab(OncoMixin, QWidget):
             btn.setPopupMode(QToolButton.InstantPopup if instant else QToolButton.MenuButtonPopup)
             menu.installEventFilter(self)
         btn.installEventFilter(self)
+        if app:
+            btn.setContextMenuPolicy(Qt.CustomContextMenu)
+            btn.customContextMenuRequested.connect(lambda pos, a=app, b=btn: self._menu_da_aplicacao(a, b, pos))
+            self.__dict__.setdefault("_apps_pendentes", []).append((app, btn))
+            return btn
         # o QToolBar embrulha o widget numa QAction; quem manda na visibilidade é ela,
         # não o botão — esconder o widget direto é desfeito no próximo layout da barra
         acao = tb.addWidget(btn)
@@ -403,6 +411,192 @@ class ViewerTab(OncoMixin, QWidget):
             mostra = mostra and modulo not in fora
             acao.setVisible(mostra)
             btn.setVisible(mostra)
+        self._atualizar_aplicacoes()
+
+    # ------------------------------------------------- aplicações do exame (0.99.12)
+    def contexto_do_exame(self):
+        from ipe.ui.viewer import aplicacoes as AP
+        infos = list(getattr(self, "study_infos", {}).values()) or [getattr(self, "study_info", {})]
+        extra = {"dinamica"} if getattr(self, "groups", None) else set()
+        return AP.contexto(getattr(self, "series", []), infos, self.settings, extra)
+
+    def _montar_bloco_de_aplicacoes(self, tb: QToolBar) -> None:
+        """O bloco "do exame": as aplicações na ordem dele, depois de um separador, e o botão
+        "Todas as aplicações", que lista todas — inclusive as que a regra tirou, com o motivo."""
+        from ipe.ui.viewer import aplicacoes as AP
+        pendentes = dict(getattr(self, "_apps_pendentes", []))
+        self._sep_apps = tb.addSeparator()
+        self._apps: dict[str, tuple] = {}
+        for aid in AP.ordem(self.settings):
+            btn = pendentes.get(aid)
+            if btn is not None:
+                self._apps[aid] = (btn, tb.addWidget(btn))
+        self.todas_menu = self._menu()
+        self.todas_menu.aboutToShow.connect(self._encher_todas_as_aplicacoes)
+        todas = self._plain("Aplicações", "apps", "Todas as aplicações: as deste exame e as outras, "
+                                                  "com o motivo de não estarem na barra")
+        self.todas_button = self._button(tb, todas, self.todas_menu, instant=True)
+        self.update_modality_buttons()
+
+    def estado_das_aplicacoes(self) -> dict[str, tuple[bool, str]]:
+        """id -> (na barra, motivo). Módulo desligado tira de tudo, até de "Todas"."""
+        from ipe import modules as MOD
+        from ipe.ui.viewer import aplicacoes as AP
+        ctx = self.contexto_do_exame()
+        fora = MOD.desligados(self.settings)
+        tudo = bool(self.settings.get("viewer.all_buttons", False))
+        out = {}
+        for aid in getattr(self, "_apps", {}):
+            app = AP.APLICACOES[aid]
+            if app.modulo and app.modulo in fora:
+                out[aid] = (False, "módulo desligado")
+                continue
+            vis, motivo = AP.mostrar(self.settings, aid, ctx)
+            m, _o = AP.modo(self.settings, aid, ctx.regioes)
+            if tudo and m != "nunca":
+                vis = True
+            out[aid] = (vis, motivo)
+        return out
+
+    def app_na_barra(self, aid: str) -> bool:
+        par = getattr(self, "_apps", {}).get(aid)
+        return bool(par and par[1].isVisible())
+
+    def _atualizar_aplicacoes(self) -> None:
+        apps = getattr(self, "_apps", None)
+        if not apps:
+            return
+        estado = self.estado_das_aplicacoes()
+        algum = False
+        for aid, (btn, acao) in apps.items():
+            vis, motivo = estado.get(aid, (False, ""))
+            acao.setVisible(vis)
+            algum = algum or vis
+        sep = getattr(self, "_sep_apps", None)
+        if sep is not None:
+            sep.setVisible(algum)
+
+    def _encher_todas_as_aplicacoes(self) -> None:
+        from ipe import modules as MOD
+        from ipe.ui.viewer import aplicacoes as AP
+        m = self.todas_menu
+        m.clear()
+        for velho in self.__dict__.pop("_submenus_de_todas", []):
+            velho.deleteLater()
+        estado = self.estado_das_aplicacoes()
+        fora = MOD.desligados(self.settings)
+        sec_barra = [a for a in AP.ordem(self.settings) if a in self._apps and estado[a][0]]
+        sec_outras = [a for a in AP.ordem(self.settings) if a in self._apps and not estado[a][0]
+                      and AP.APLICACOES[a].modulo not in fora]
+        if hasattr(m, "addSection"):
+            m.addSection("Na barra, para este exame")
+        for aid in sec_barra:
+            self._item_da_aplicacao(m, aid, "")
+        if sec_outras:
+            if hasattr(m, "addSection"):
+                m.addSection("Fora da barra (rodam mesmo assim)")
+            for aid in sec_outras:
+                self._item_da_aplicacao(m, aid, estado[aid][1])
+        m.addSeparator()
+        a = QAction("Configurar a barra e as aplicações…", m)
+        a.triggered.connect(self._configurar_barra)
+        m.addAction(a)
+
+    def _item_da_aplicacao(self, menu: QMenu, aid: str, motivo: str) -> None:
+        btn, _acao = self._apps[aid]
+        acao = btn.defaultAction()
+        nome = acao.iconText() or acao.text()
+        texto = f"{nome} — {motivo}" if motivo else nome
+        opcoes = btn.menu()
+        if opcoes is None:
+            a = QAction(acao.icon(), texto, menu)
+            a.triggered.connect(acao.trigger)
+            menu.addAction(a)
+            return
+        if btn.popupMode() == QToolButton.InstantPopup:
+            # o próprio menu do botão vira o submenu (ele se enche sozinho ao abrir)
+            opcoes.setTitle(texto)
+            opcoes.setIcon(acao.icon())
+            menu.addMenu(opcoes)
+            return
+        sub = QMenu(texto, menu)
+        sub.setIcon(acao.icon())
+        sub.setStyleSheet(self.MENU_STYLE)
+        principal = QAction(acao.text(), sub)
+        principal.triggered.connect(acao.trigger)
+        sub.addAction(principal)
+        opcoes.setTitle("Opções")
+        sub.addMenu(opcoes)
+        menu.addMenu(sub)
+        self.__dict__.setdefault("_submenus_de_todas", []).append(sub)
+
+    def _menu_da_aplicacao(self, aid: str, btn, pos) -> None:
+        self.menu_da_aplicacao(aid).exec(btn.mapToGlobal(pos))
+
+    def menu_da_aplicacao(self, aid: str) -> QMenu:
+        """Botão direito numa aplicação da barra: sempre, automático ou nunca — em todo exame ou
+        só nesta região (separado de quem exibe, para testar)."""
+        from ipe.ui.viewer import aplicacoes as AP
+        m = self._menu()
+        ctx = self.contexto_do_exame()
+        atual, origem = AP.modo(self.settings, aid, ctx.regioes)
+        nome = AP.APLICACOES[aid].nome
+        if hasattr(m, "addSection"):
+            m.addSection(f"Em todos os exames ({nome})")
+        for modo in AP.MODOS:
+            a = QAction(AP.NOME_DO_MODO[modo], m, checkable=True)
+            a.setChecked(origem in ("", "*") and modo == atual)
+            a.triggered.connect(lambda _=False, md=modo: self._definir_modo_da_aplicacao(aid, md, "*"))
+            m.addAction(a)
+        for r in sorted(ctx.regioes):
+            nr = AP.nome_da_regiao(self.settings, r)
+            if hasattr(m, "addSection"):
+                m.addSection(f"Só em exames de {nr.lower()}")
+            for modo, rotulo in (("sempre", f"Sempre em exames de {nr.lower()}"),
+                                 ("nunca", f"Nunca em exames de {nr.lower()}")):
+                a = QAction(rotulo, m, checkable=True)
+                a.setChecked(origem == r and atual == modo)
+                a.triggered.connect(lambda _=False, md=modo, rr=r: self._definir_modo_da_aplicacao(aid, md, rr))
+                m.addAction(a)
+            if origem == r:
+                a = QAction(f"Tirar a exceção de {nr.lower()}", m)
+                a.triggered.connect(lambda _=False, rr=r: self._definir_modo_da_aplicacao(aid, "auto", rr))
+                m.addAction(a)
+        m.addSeparator()
+        regra = QAction(f"Regra: {AP.descrever_regra(AP.APLICACOES[aid], self.settings)}", m)
+        regra.setEnabled(False)
+        m.addAction(regra)
+        a = QAction("Configurar a barra e as aplicações…", m)
+        a.triggered.connect(self._configurar_barra)
+        m.addAction(a)
+        return m
+
+    def _definir_modo_da_aplicacao(self, aid: str, modo: str, regiao: str) -> None:
+        from ipe.ui.viewer import aplicacoes as AP
+        AP.definir_modo(self.settings, aid, modo, regiao)
+        self.settings.save()
+        self._atualizar_todas_as_abas()
+        vis = self.estado_das_aplicacoes().get(aid, (False, ""))[0]
+        nome = AP.APLICACOES[aid].nome
+        self.status_message.emit(f"Aplicação {nome}: na barra." if vis else
+                                 f"Aplicação {nome}: fora da barra — continua no botão Aplicações.")
+
+    def _atualizar_todas_as_abas(self) -> None:
+        win = self.window()
+        abas = list(win.all_viewer_tabs()) if hasattr(win, "all_viewer_tabs") else []
+        for t in abas or [self]:
+            t.update_modality_buttons()
+        if self not in abas:
+            self.update_modality_buttons()
+
+    def _configurar_barra(self) -> None:
+        win = self.window()
+        if hasattr(win, "abrir_config_barra"):
+            win.abrir_config_barra()
+        else:
+            from ipe.ui.viewer.barra_config import BarraDialog
+            if BarraDialog(self.settings, self).exec():
+                self.update_modality_buttons()
 
     # ------------------------------------------------------------ botões do mouse
     @staticmethod
@@ -606,7 +800,7 @@ class ViewerTab(OncoMixin, QWidget):
         self.fusion_menu = self._menu()
         self.fusion_menu.aboutToShow.connect(self._fill_fusion_menu)
         fu = self._plain("Fusão", "fusion", "Fusão: sobrepor outra série ao quadro ativo (ex.: PET na TC)")
-        self._button(tb, fu, self.fusion_menu, instant=True, mods=VOLUME, modulo="mn")
+        self._button(tb, fu, self.fusion_menu, instant=True, app="fusao")
         fit = self._act("view.fit", "Ajustar à janela", lambda: self._on_active(lambda v: v.fit()))
         fit.setIcon(icon("fit"))
         reset = self._act("view.reset", "Restaurar", lambda: self._on_active(lambda v: v.reset_view()))
@@ -662,7 +856,7 @@ class ViewerTab(OncoMixin, QWidget):
         back = QAction("Voltar o quadro ativo à série original", self)
         back.triggered.connect(self._plane_back)
         mpr_menu.addAction(back)
-        self._button(tb, self.mpr_action, mpr_menu, mods=VOLUME)
+        self._button(tb, self.mpr_action, mpr_menu, app="mpr")
         menu3d = self._menu()
         for text, fn in (("Renderização de volume (VR)…", lambda: self.open_3d("vr")),
                          ("MIP 3D girável…", lambda: self.open_3d("mip")),
@@ -685,11 +879,11 @@ class ViewerTab(OncoMixin, QWidget):
         b3d = self._act("view.3d", "3D: renderização de volume", lambda: self.open_3d("vr"))
         b3d.setIcon(icon("cube"))
         b3d.setIconText("3D")
-        self._button(tb, b3d, menu3d, mods=VOLUME, modulo="3d")
+        self._button(tb, b3d, menu3d, app="3d")
         dyn = self._act("dyn.open", "Avaliação dinâmica (MSI, PEI, SER e curvas)", lambda: self.open_dynamic())
         dyn.setIcon(icon("tic"))
         dyn.setIconText("Dinâmica")
-        self._button(tb, dyn, mods={"MR"}, modulo="rm_tc")
+        self._button(tb, dyn, app="dinamica")
         menu_nm = self._menu()
         a = QAction("Curvas atividade-tempo por região…", self)
         a.triggered.connect(lambda: NMV.open_analysis(self))
@@ -719,7 +913,7 @@ class ViewerTab(OncoMixin, QWidget):
                                    lambda: NMV.open_ant_post(self))
         self.nm_action.setIcon(icon("tic"))
         self.nm_action.setIconText("MN")
-        self._button(tb, self.nm_action, menu_nm, mods={"NM"}, modulo="mn")
+        self._button(tb, self.nm_action, menu_nm, app="mn")
 
         # --- sincronização (clique: ligar quadros; seta: opções)
         sync_menu = self._menu()
@@ -902,6 +1096,7 @@ class ViewerTab(OncoMixin, QWidget):
         tags = QAction("Informações DICOM (tags)…", self)
         tags.triggered.connect(lambda: self._on_active(lambda v: v.show_tags()))
         more.addAction(tags)
+        self._montar_bloco_de_aplicacoes(tb)
         self._button(tb, self._plain("Mais", "more", "Mais opções"), more, instant=True)
 
         # barra do MPR (slab)

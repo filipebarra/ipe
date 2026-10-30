@@ -361,6 +361,13 @@ def _draw(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por ícone
         p.drawEllipse(P(32, 32), 8, 8)
         p.setPen(_pen(QColor(255, 110, 110), 5))
         p.drawLine(P(10, 54), P(54, 10))
+    elif name == "apps":
+        # aplicações (0.99.12): quatro quadrados, o de baixo à direita aceso
+        p.setBrush(Qt.NoBrush)
+        for i, (x, y) in enumerate(((10, 10), (36, 10), (10, 36), (36, 36))):
+            if i == 3:
+                p.setPen(_pen(ACCENT, 4))
+            p.drawRoundedRect(QRectF(x, y, 18, 18), 4, 4)
     elif name == "more":
         p.setBrush(FG)
         p.setPen(Qt.NoPen)

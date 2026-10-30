@@ -35,6 +35,9 @@ ultrassom e radiografia, com rede DICOM, filmes, impressão e laudo.
 - Anotações da tela em quatro níveis (completa, parcial 1, parcial 2, ausente), configuráveis.
 - Ctrl+C copia o quadro como está na tela, em alta resolução.
 - Exames anteriores na tira de miniaturas; clique num quadro vazio para escolher a série.
+- Barra que se arruma pelo exame: as aplicações (dinâmica, 3D, MN…) aparecem só quando servem ao
+  exame aberto; o botão Aplicações lista todas, e cada uma pode ficar sempre, nunca ou automática.
+- Menu Configurações com um submenu por assunto e uma janela por item.
 
 ### Reconstruções e 3D
 - MPR ortogonal, oblíquo e curvo; MIP/MinIP/média em espessura (slab); salvar reconstrução como série.

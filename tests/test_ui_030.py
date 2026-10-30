@@ -72,20 +72,19 @@ def test_barra_de_cores_em_suv(env, sample_dir):
 # ------------------------------------------------------------------ botões por modalidade
 def test_botoes_seguem_a_modalidade(env, sample_dir):
     w, tab, vp, app = _janela(env, sample_dir)          # ACC1001 é TC
-    assert tab._mod_buttons, "nenhum botão registrado por modalidade"
+    # 0.99.12: os botões que dependem do exame viraram aplicações, com regra
+    assert tab._apps, "nenhuma aplicação registrada"
     assert "CT" in tab.study_modalities()
-    mn = next(b for b, _a, m, _mod in tab._mod_buttons if m == {"NM"})
-    tres_d = next(b for b, _a, m, _mod in tab._mod_buttons if "CT" in m)
-    assert mn.isHidden()                                # TC não tem medicina nuclear
-    assert not tres_d.isHidden()                        # mas tem volume
+    assert not tab.app_na_barra("mn")                   # TC não tem medicina nuclear
+    assert tab.app_na_barra("3d")                       # mas tem volume
 
     # a preferência traz tudo de volta
     tab.settings.set("viewer.all_buttons", True)
     tab.update_modality_buttons()
-    assert not mn.isHidden()
+    assert tab.app_na_barra("mn")
     tab.settings.set("viewer.all_buttons", False)
     tab.update_modality_buttons()
-    assert mn.isHidden()
+    assert not tab.app_na_barra("mn")
     w.close()
 
 
@@ -99,9 +98,7 @@ def test_botao_de_mn_aparece_em_exame_de_mn(env, sample_dir):
     app.processEvents()
     aba = w.tabs.currentWidget()
     assert "NM" in aba.study_modalities()
-    mn = next(b for b, _a, m, _mod in aba._mod_buttons if m == {"NM"})
-    dyn = next(b for b, _a, m, _mod in aba._mod_buttons if m == {"MR"})
-    assert not mn.isHidden() and dyn.isHidden()
+    assert aba.app_na_barra("mn") and not aba.app_na_barra("dinamica")
     w.close()
 
 

@@ -248,7 +248,8 @@ def test_modulos_ligam_e_desligam(env, sample_dir):
         tab = w.all_viewer_tabs()[-1]
 
         def visivel(acao_alvo):
-            return next(a.isVisible() for b, a, _m, _mod in tab._mod_buttons if b.defaultAction() is acao_alvo)
+            return next(tab.app_na_barra(aid) for aid, (b, _a) in tab._apps.items()
+                        if b.defaultAction() is acao_alvo)
         assert visivel(tab.nm_action)
         assert w.home_bar.acoes["prints"].isVisible()
         # desligar pela tela de preferências

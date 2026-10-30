@@ -3,6 +3,22 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.12 — menu Configurações e barra que se arruma pelo exame
+- Novo menu **Configurações**, com um submenu por assunto (Visualizador, Protocolos de exame, CAD/IA,
+  Monitores, Rede, Impressão, Banco de dados, Usuários, Sistema). Cada item abre a sua própria
+  janela, só com aquele assunto. A janela completa de antes continua em "Todas as preferências"
+  (Ctrl+,).
+- Os menus Exibir, Rede, Impressão e Usuário ficaram só com ações; o que se configura mudou para o
+  menu Configurações. O botão Configurações da tela inicial abre o mesmo menu.
+- A barra do visualizador ganhou um bloco de **aplicações do exame** (MPR, 3D, Dinâmica, Fusão, MN),
+  que aparecem só quando servem ao exame aberto: pela modalidade, pela região do corpo (do
+  BodyPartExamined e das descrições) e pelo tipo de série (angio, T1 3D, T2 3D, dinâmica, volume).
+- Botão **Aplicações**: lista todas, inclusive as que ficaram fora da barra, com o motivo, e elas
+  rodam mesmo assim.
+- Botão direito numa aplicação: Automático, Sempre ou Nunca, em todo exame ou só numa região.
+- Configurações ▸ Visualizador ▸ Barra de ferramentas e aplicações: ordem e modos; Configurações ▸
+  Protocolos de exame ▸ Regiões do corpo: o dicionário de termos, com caixa de teste.
+
 ## 0.99.11 — o DicomViewer passa a se chamar Ipê
 - Nome novo, ícone novo (a flor do ipê-amarelo), código publicado no GitHub sob GPL-3.0.
 - Compatibilidade com o nome antigo: a pasta de dados, o AE de fábrica `DICOMVIEWER`, os links

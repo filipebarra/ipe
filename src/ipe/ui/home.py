@@ -107,7 +107,8 @@ class HomeBar(QToolBar):
                              spacer.sizePolicy().verticalPolicy().Preferred)
         self.addWidget(spacer)
         self._add("settings", "Configurações", "gear", win.open_preferences, "",
-                  "Preferências, nós DICOM, automação, servidor central", menu=self._settings_menu)
+                  "Configurações por assunto: visualizador, protocolos, CAD/IA, monitores, rede, impressão, "
+                  "banco de dados, usuários e sistema", menu=self._settings_menu, instant=True)
         self._add("users", "Usuários", "users", lambda: win.open_users(), "users",
                   "Usuários, perfis e permissões, registro de acesso", menu=self._users_menu)
         self._add("help", "Ajuda", "help", win.show_help, "", "Guia do usuário em PDF (F1)")
@@ -335,23 +336,9 @@ class HomeBar(QToolBar):
         a.setEnabled(S.can("configure"))
 
     def _settings_menu(self, m: QMenu) -> None:
-        w = self.win
-        can = S.can("configure")
-        for text, fn, ok in (("Preferências…", w.open_preferences, True),
-                             ("Protocolos de mamografia…", lambda: w.open_preferences("Mamografia"), True),
-                             ("Nós DICOM (PACS, estações)…", w.open_network_settings, can),
-                             ("Calibração GSDF do monitor…", w.open_gsdf, can),
-                             ("Automação (buscas agendadas, anteriores, roteamento, limpeza)…", w.open_automation, can),
-                             ("Servidor central (intranet)…", w.open_central_settings, can),
-                             (None, None, True),
-                             ("Registrar link ipe:// neste computador", w._register_url, can),
-                             ("Abrir a pasta de dados", w._open_data_folder, True),
-                             ("Mudar a pasta do banco deste computador…", w.move_default_database, can)):
-            if text is None:
-                m.addSeparator()
-                continue
-            a = m.addAction(text, fn)
-            a.setEnabled(ok)
+        """O mesmo menu Configurações da barra de menus (0.99.12): um submenu por assunto."""
+        from ipe.ui import configuracoes as CFG
+        CFG.montar(self.win, m, m)
 
     def _users_menu(self, m: QMenu) -> None:
         w = self.win

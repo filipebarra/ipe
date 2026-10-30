@@ -45,7 +45,11 @@ def decode(obj):
     if "__dc__" in obj:
         cls = _classes().get(obj["__dc__"])
         fields = {k: decode(v) for k, v in obj["f"].items()}
-        return cls(**fields) if cls else fields
+        if cls is None:
+            return fields
+        # campo que esta versão não conhece (servidor mais novo que o cliente) fica de fora
+        conhecidos = {f.name for f in dataclasses.fields(cls)}
+        return cls(**{k: v for k, v in fields.items() if k in conhecidos})
     if "__dt__" in obj:
         return datetime.fromisoformat(obj["__dt__"])
     if "__d__" in obj:

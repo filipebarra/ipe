@@ -220,7 +220,6 @@ class MainWindow(QMainWindow):
             (None, None, None),
             ("Relatório do acervo (formato e compressão)…", self.open_acervo_report, None),
             ("Densidade mamária das imagens na tela…", self.open_densidade, None),
-            ("Instalar a segmentação de órgãos (TotalSegmentator)…", self.instalar_segmentacao, None),
             (None, None, None),
             ("Sair", self.quit_app, "Ctrl+Q"),
         ):
@@ -247,10 +246,6 @@ class MainWindow(QMainWindow):
             (None, None, None),
             ("Impressões (recebidas e montadas aqui)…", self.show_prints, "Ctrl+Shift+P"),
             ("Painel de filmes e impressões…", self.show_film_dashboard, None),
-            (None, None, None),
-            ("Acrescentar impressora DICOM…", self.acrescentar_impressora_dicom, None),
-            ("Impressoras DICOM…", lambda: self.acrescentar_impressora_dicom(nova=False), None),
-            ("Configurações de impressão…", self.open_print_settings, None),
         ):
             if text is None:
                 mi.addSeparator()
@@ -284,13 +279,12 @@ class MainWindow(QMainWindow):
         voltar_todos.triggered.connect(self.reattach_all)
         v.addAction(voltar_todos)
         sep_exame = v.addSeparator()
-        a = QAction("Calibração GSDF do monitor…", j)
-        a.triggered.connect(self.open_gsdf)
-        v.addAction(a)
-        a = QAction("Preferências…", j)
-        a.setShortcut(QKeySequence("Ctrl+,"))
-        a.triggered.connect(self.open_preferences)
-        v.addAction(a)
+        # 0.99.12: as configurações saíram daqui (menu Configurações). No banco de dados, sem exame
+        # e sem monitor aberto, o menu ficaria vazio — e menu vazio parece defeito.
+        vazio = QAction("Abra um exame para ver as opções de exibição", j)
+        vazio.setEnabled(False)
+        v.addAction(vazio)
+        v._vazio = vazio
         sep_banco = v.addSeparator()
         banco = QAction("Voltar ao banco de dados", j)
         banco.setShortcut(QKeySequence("Ctrl+B"))
@@ -315,20 +309,16 @@ class MainWindow(QMainWindow):
         a = QAction("Gestão automática (regras com horário)…", j)
         a.triggered.connect(self.show_gestao_automatica)
         r.addAction(a)
-        r.addSeparator()
-        a = QAction("Configurar nós DICOM…", j)
-        a.triggered.connect(self.open_network_settings)
-        r.addAction(a)
-        a = QAction("Automação (buscas agendadas, anteriores, roteamento, limpeza)…", j)
-        a.triggered.connect(self.open_automation)
-        r.addAction(a)
-        a = QAction("Configurar servidor central (intranet)…", j)
-        a.triggered.connect(self.open_central_settings)
-        r.addAction(a)
-        r.addSeparator()
-        a = QAction("Registrar link ipe:// neste computador", j)
-        a.triggered.connect(self._register_url)
-        r.addAction(a)
+
+        # 0.99.12: o que se configura mora num menu só, um submenu por assunto e uma janela por item
+        from ipe.ui import configuracoes as CFG
+        c = j.menuBar().addMenu("&Configurações")
+        todas = CFG.acao_todas_as_preferencias(self, j)
+        j.addAction(todas)                       # o Ctrl+, vale com o menu fechado
+        CFG.montar(self, c, j, todas)
+        c.aboutToShow.connect(lambda m=c, jj=j, tt=todas: CFG.montar(self, m, jj, tt))
+        if janela is None:
+            self.config_menu = c
 
         u = j.menuBar().addMenu("&Usuário")
         u.aboutToShow.connect(lambda m=u: self._fill_user_menu(m))
@@ -487,12 +477,16 @@ class MainWindow(QMainWindow):
         if sep is not None:
             sep.setVisible(tem_exame or bool(self.detached))
         banco = getattr(menu, "_banco", None)
+        no_banco = False
         if banco is not None:
             # na janela de um monitor sempre vale; na principal, só quando ele não está no banco
             no_banco = getattr(menu, "_janela", None) is None and self.tabs.currentWidget() is self.browser
             banco.setVisible(not no_banco)
             if getattr(menu, "_sep_banco", None) is not None:
                 menu._sep_banco.setVisible(not no_banco)
+        vazio = getattr(menu, "_vazio", None)
+        if vazio is not None:
+            vazio.setVisible(not tem_exame and not self.detached and (banco is None or no_banco))
 
     def acrescentar_impressora_dicom(self, nova: bool = True):
         """Menu Impressão ▸ Acrescentar impressora DICOM… (0.99.6): o cadastro das impressoras do filme,
@@ -611,10 +605,6 @@ class MainWindow(QMainWindow):
         a.triggered.connect(self.switch_user)
         m.addAction(a)
         m.addSeparator()
-        a = QAction("Usuários e permissões…", m)
-        a.setEnabled(S.can("users"))
-        a.triggered.connect(lambda: self.open_users())
-        m.addAction(a)
         a = QAction("Registro de acesso…", m)
         a.setEnabled(S.can("users"))
         a.triggered.connect(lambda: self.open_users(tab=2))
@@ -714,29 +704,58 @@ class MainWindow(QMainWindow):
             except Exception:  # noqa: BLE001
                 log.exception("recarregar séries da aba")
 
-    def open_preferences(self, tab: str = "") -> None:
+    def open_config(self, pagina: str) -> None:
+        """Uma página das Preferências, sozinha na janela (menu Configurações, 0.99.12)."""
         from ipe.ui.preferences import PreferencesDialog
+        dlg = PreferencesDialog(self.settings, self, pagina=pagina)
+        if dlg.exec():
+            self._preferencias_salvas()
+
+    def abrir_config_barra(self) -> None:
+        from ipe.ui.viewer.barra_config import BarraDialog
+        if BarraDialog(self.settings, self).exec():
+            self._preferencias_salvas()
+
+    def abrir_config_regioes(self) -> None:
+        from ipe.ui.viewer.barra_config import BarraDialog
+        dlg = BarraDialog(self.settings, self, aba="regioes")
+        if dlg.exec():
+            self._preferencias_salvas()
+
+    def open_preferences(self, tab: str = "") -> None:
+        """Sem `tab`: a janela completa, com todas as abas. Com `tab` (os atalhos espalhados pelo
+        programa — "Escolher o que cada nível mostra…", "Configurar monitores"…): só aquela página,
+        como no menu Configurações."""
+        from ipe.ui.preferences import PAGINAS, PreferencesDialog
+        pagina = next((k for k, (_t, aba, secoes) in PAGINAS.items() if aba == tab and not secoes), "")
+        if pagina:
+            self.open_config(pagina)
+            return
         dlg = PreferencesDialog(self.settings, self)
         if tab:
             for i in range(dlg.tabs.count()):
                 if dlg.tabs.tabText(i) == tab:
                     dlg.tabs.setCurrentIndex(i)
         if dlg.exec():
-            self.cache.set_limit(self.cache_limit_mb())
-            self._update_status()
-            # Mudou o papel dos monitores? A janela principal tem que sair de cima de um viewer
-            # agora, e não só na próxima vez que o programa abrir.
-            self.recolocar_janela_principal()
-            self.sync_hub.recarregar_regras()          # sincronização automática por modalidade (0.99.9)
-            for tab in self.all_viewer_tabs():
-                tab.apply_shortcuts()
-                tab.update_modality_buttons()          # módulos ligados/desligados (0.84)
-                tab.reflect_anotacoes()                # o nível e os itens de anotação (0.99.9)
-                tab.reflect_sync_flags()
-                for vp in tab.viewports:
-                    vp.update()
-            self.aplicar_modulos()
-            self.statusBar().showMessage("Preferências salvas.", 5000)
+            self._preferencias_salvas()
+
+    def _preferencias_salvas(self) -> None:
+        """O que muda na tela depois de gravar qualquer configuração."""
+        self.cache.set_limit(self.cache_limit_mb())
+        self._update_status()
+        # Mudou o papel dos monitores? A janela principal tem que sair de cima de um viewer
+        # agora, e não só na próxima vez que o programa abrir.
+        self.recolocar_janela_principal()
+        self.sync_hub.recarregar_regras()          # sincronização automática por modalidade (0.99.9)
+        for tab in self.all_viewer_tabs():
+            tab.apply_shortcuts()
+            tab.update_modality_buttons()          # módulos ligados/desligados (0.84)
+            tab.reflect_anotacoes()                # o nível e os itens de anotação (0.99.9)
+            tab.reflect_sync_flags()
+            for vp in tab.viewports:
+                vp.update()
+        self.aplicar_modulos()
+        self.statusBar().showMessage("Preferências salvas.", 5000)
 
     def open_report(self, study_uid: str) -> None:
         """Laudo do exame: pela aba aberta, se houver; senão numa janela própria."""
