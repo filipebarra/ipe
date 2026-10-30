@@ -1,0 +1,23 @@
+# ambiente e compilação
+.venv*/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+build/
+build-pyi/
+dist/
+
+# NUNCA no repositório: exames, capturas de tela (podem ter dados de paciente) e modelos grandes
+exames_teste/
+_capturas/
+modelos/
+*.dcm
+*.DCM
+DICOMDIR
+
+# pacotes e sobras das sessões com o Claude
+Claude outputs/
+*.tgz
+_imp_*
+_dv_*

@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ipe"
+version = "0.99.11"
+description = "Ipê — visualizador DICOM para pesquisa e ensino (Windows e Linux)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "Filipe Ramos Barra" }]
+dependencies = [
+    "PySide6==6.11.2",         # a versão testada no computador dele; trocar só de propósito
+    "pydicom>=3.0",
+    "numpy>=1.26",
+    "SQLAlchemy>=2.0",
+    "platformdirs>=4.0",
+    "pylibjpeg>=2.0",
+    "pylibjpeg-libjpeg>=2.1",
+    "pylibjpeg-openjpeg>=2.3",
+    "pyjpegls>=1.3",           # JPEG-LS: o pydicom lê com os outros, mas só grava com este
+    "python-gdcm>=3.0",        # decodificador de reserva para arquivos incomuns
+    "pynetdicom>=2.1",         # rede DICOM (C-ECHO, C-FIND, C-MOVE, C-GET, C-STORE)
+    # OCR das folhas de impressão (0.80): os modelos vêm dentro do pacote — sem internet e sem
+    # instalar nada à parte. A versão 3 ("rapidocr") baixaria os modelos na primeira leitura.
+    "rapidocr_onnxruntime>=1.2.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+# A rede de densidade (ai/densidade_nyu.py) roda em CPU com o onnxruntime. É opcional de
+# propósito: sem ele, a tela diz que a rede não rodou e os outros métodos continuam valendo.
+ia = ["onnxruntime>=1.17"]
+
+[project.scripts]
+dicomviewer = "ipe.__main__:main"
+
+[project.gui-scripts]
+dicomviewer-gui = "ipe.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ipe = ["locale/*.json", "ajuda/*.pdf"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
