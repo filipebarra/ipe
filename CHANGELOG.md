@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.14 — medidas guiadas: MRPI, MRPI 2.0, Evans e ângulo calosal
+- Botão **Índices** (RM e TC de crânio): um roteiro pede as medidas uma de cada vez, com a ferramenta
+  e o plano certos, captura o que foi medido no quadro e faz a conta. MRPI e MRPI 2.0, índice de
+  Evans e ângulo calosal.
+- Plano e espessura do corte conferidos: medida fora do plano pedido ou em corte acima de 3 mm vira
+  observação ao lado do número. O coronal oblíquo é aceito para o pedúnculo cerebelar superior.
+- Referências como texto, com a fonte; o resultado vai para o laudo ou para a área de transferência.
+- O mesmo motor vai servir à cefalometria do cavum.
+
 ## 0.99.13 — a história do Ipê e os créditos
 - Ajuda ▸ Sobre o Ipê ganhou a origem do nome (os ipês de Brasília e o "ipe" de Filipe) e dois
   botões: **A história do Ipê** (em português, inglês e espanhol) e **Créditos e licenças**.

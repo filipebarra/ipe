@@ -1096,6 +1096,18 @@ class ViewerTab(OncoMixin, QWidget):
         tags = QAction("Informações DICOM (tags)…", self)
         tags.triggered.connect(lambda: self._on_active(lambda v: v.show_tags()))
         more.addAction(tags)
+        # medidas guiadas (0.99.14): MRPI, Evans, ângulo calosal — aparece em RM/TC de crânio
+        menu_idx = self._menu()
+        from ipe.imaging import roteiros as RT
+        for rid, rot in RT.ROTEIROS.items():
+            a = QAction(rot.nome + "…", self)
+            a.triggered.connect(lambda _=False, r=rid: self.abrir_roteiro(r))
+            menu_idx.addAction(a)
+        idx = self._act("roteiro.mrpi", "Medidas guiadas: MRPI e MRPI 2.0",
+                        lambda: self.abrir_roteiro("mrpi"))
+        idx.setIcon(icon("measure"))
+        idx.setIconText("Índices")
+        self._button(tb, idx, menu_idx, app="indices")
         self._montar_bloco_de_aplicacoes(tb)
         self._button(tb, self._plain("Mais", "more", "Mais opções"), more, instant=True)
 
@@ -2666,8 +2678,27 @@ class ViewerTab(OncoMixin, QWidget):
                                      "nível e clique em “Ligar quadros” (L) para rolarem juntos.")
 
     # ================================================================ layout
+    def abrir_roteiro(self, roteiro_id: str = "mrpi"):
+        """Janela do roteiro de medida guiada (0.99.14), uma por aba."""
+        from ipe.ui.viewer.roteiro_painel import RoteiroPainel
+        p = getattr(self, "roteiro_painel", None)
+        if p is None:
+            p = RoteiroPainel(self, roteiro_id, self.window())
+            self.roteiro_painel = p
+        elif p.andamento.roteiro.id != roteiro_id:
+            p.comecar(roteiro_id)
+        p.ligar_quadros()
+        p.show()
+        p.raise_()
+        p.medir_passo_atual()
+        return p
+
     def _new_viewport(self) -> Viewport:
         vp = Viewport(self.cache, self.settings)
+        painel = getattr(self, "roteiro_painel", None)
+        if painel is not None:
+            painel._ligados.append(vp)
+            vp.sig.annotations_changed.connect(painel.medida_feita)
         vp.left_tool = self.left_tool
         vp.anonymize = self.anonymize
         vp.case_label = self.case_label

@@ -36,6 +36,9 @@ EXTRA_OK = {"OK", "Cancelar", "Fechar", "Sim", "Não", "Salvar", "Abrir", "Apaga
             "Esquerdo", "Direito", "Meio", "Roda", "Ctrl+roda", "Shift+roda", "EXAMES"}
 # palavras técnicas que parecem rótulo de uma palavra só (tags DICOM, nomes de pasta)
 NOT_UI = {
+    # moldura das linhas do roteiro de medida guiada (0.99.14): só marcação, sem texto
+    "<table cellpadding='3'>", "<tr><td>{}</td><td align='right'>{}</td><td>{}</td></tr>",
+    "<b>{}</b> — {}{}{}<br>{}{}", "{}  {} — {}{}", "- {}: {}{}.", "<br>⚠ {}",
     # termos das regiões e dos tipos de série da barra (0.99.12): palavras de busca, não texto de tela
     'HEAD|BRAIN|CRANIO|CRANIUM|SKULL|ENCEFALO|CEREBR|SELA|HIPOFISE|PITUIT|ORBITA|ORBIT',
     'NECK|PESCOCO|CAROTID|CAROTIDA|CAROTIDAS|TIREOIDE|THYROID|LARING|LARYNX|FARING|PHARYN|TSA|SUPRA AORT|SUPRAAORT|TRONCOS SUPRA|PAROTID|SUBMANDIB|CERVICAL',

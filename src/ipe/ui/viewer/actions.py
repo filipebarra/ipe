@@ -109,6 +109,7 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("mg.slab", "Tomossíntese: próxima espessura (slab)", "Mamografia"),
     ("view.histogram", "Histograma da imagem (ou da ROI)", "Imagem"),
     ("annot.export", "Exportar medidas para planilha (CSV/Excel)", "Medidas"),
+    ("roteiro.mrpi", "Medidas guiadas: MRPI e MRPI 2.0", "Medidas"),
 ]
 
 # Forma histórica (id, nome, atalho padrão, grupo), que o resto do programa e os testes usam.

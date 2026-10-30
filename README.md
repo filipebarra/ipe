@@ -60,6 +60,8 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 - Ultrassom calibrado pela região do arquivo, imagem a imagem.
 - Painel com todas as medidas do exame; exportar para planilha e gravar como DICOM SR.
 - Segmentação 3D por crescimento de região, com volume e três eixos perpendiculares.
+- Medidas guiadas (Índices): MRPI e MRPI 2.0, índice de Evans e ângulo calosal, com conferência
+  do plano e da espessura do corte.
 
 ### Mama
 - Mamografia e tomossíntese: protocolo por etapas, distribuição entre monitores, enquadramento da

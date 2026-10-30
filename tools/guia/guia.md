@@ -996,6 +996,20 @@ Clicar no botão mostra ou oculta todos. A escolha fica guardada por tipo: se vo
 
 Botão **Fusão**: sobrepõe uma série a outra no quadro ativo (PET sobre a TC, por exemplo), com opacidade, tabela de cores e limites mínimo e máximo, e a opção de ocultar o que está abaixo do mínimo.
 
+# Medidas guiadas
+
+Botão **Índices** (aparece em RM e TC de crânio; em outros exames, pelo botão **Aplicações**). Abre uma janela, por cima do visualizador, com um **roteiro**: a lista de medidas, uma de cada vez, cada uma com a ferramenta certa e o plano em que deve ser feita. Ao clicar em **Medir este passo**, a ferramenta do passo vai para o botão esquerdo; a próxima medida desse tipo, em qualquer quadro, vira o valor do passo, e o roteiro anda sozinho. A medida continua sendo uma medida comum, visível no quadro e no painel de medidas.
+
+Roteiros de fábrica:
+
+| Roteiro | Medidas | Conta |
+|---|---|---|
+| MRPI e MRPI 2.0 | áreas da ponte e do mesencéfalo (sagital mediano), pedúnculo cerebelar médio (sagital) e superior (coronal oblíquo), e, para o 2.0, o 3º ventrículo (três medidas) e os cornos frontais (axial AC-PC) | MRPI = (ponte ÷ mesencéfalo) × (PCM ÷ PCS); MRPI 2.0 = MRPI × (3º ventrículo ÷ cornos frontais) |
+| Índice de Evans | cornos frontais e diâmetro interno do crânio, no mesmo axial | cornos ÷ crânio |
+| Ângulo calosal | ângulo no coronal perpendicular ao AC-PC, na comissura posterior | — |
+
+O plano e a espessura do corte são conferidos e viram **observação** ao lado do número, não recusa: medida num plano diferente do pedido, ou em corte acima de 3 mm, aparece com ⚠. Em exames com série 3D, use o MPR para chegar ao plano certo. Os valores de referência aparecem como texto ao lado do número, com a fonte — o programa não classifica. **Copiar o texto** e **Mandar para o laudo** levam o resultado no formato de lista, com as referências entre parênteses.
+
 # Configurações, usuários e exportação
 
 ## O menu Configurações
