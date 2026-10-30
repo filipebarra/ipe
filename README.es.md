@@ -10,6 +10,15 @@ ecografía y radiografía, con red DICOM, placas, impresión e informe.
 *Otros idiomas: [Português](README.md) · [English](README.en.md) · Historial de versiones:
 [CHANGELOG.es.md](CHANGELOG.es.md)*
 
+## ¿Por qué Ipê?
+
+En Brasilia, en plena estación seca, florecen los ipês y el paisaje cambia. Y hay una coincidencia:
+*ipê* está en Fil**ipe**. Ipê fue creado por un radiólogo de mama que, como muchos colegas, se pasó a
+macOS por OsiriX y Horos, y siempre quiso un programa completo para Windows y Linux. Está escrito con
+la ayuda de Claude (Anthropic), que trabaja como programador sénior a partir de los pedidos del autor,
+y existe gracias a bibliotecas abiertas de DICOM, cálculo e IA.
+[Lea la historia completa](HISTORIA.es.md) · [Créditos y licencias](CREDITOS.md)
+
 ---
 
 ## Funciones
@@ -81,4 +90,4 @@ Código en `src/ipe/`, pruebas en `tests/` (`python -m pytest`; generan estudios
 
 ## Licencia
 
-[GPL-3.0-or-later](LICENSE). © Filipe Ramos Barra.
+[GPL-3.0-or-later](LICENSE). © Filipe Ramos Barra. Bibliotecas y modelos de terceros, con licencias y enlaces: [CREDITOS.md](CREDITOS.md).

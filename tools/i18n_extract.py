@@ -19,7 +19,8 @@ SRC = ROOT / "src" / "ipe"
 OUT = SRC / "locale" / "pt-BR.json"
 
 # mesh_fmt.py é só formato de arquivo (OBJ, PLY, glTF, 3MF): nada ali aparece na tela
-SKIP_FILES = {"sample_data.py", "i18n.py", "qt_i18n.py", "mesh_fmt.py"}
+SKIP_FILES = {"sample_data.py", "i18n.py", "qt_i18n.py", "mesh_fmt.py",
+              "creditos.py"}   # créditos: nomes, licenças e links (0.99.13)
 SKIP_DIRS = {"locale"}
 ACCENTS = re.compile(r"[áàâãéêíóôõúüçÁÀÂÃÉÊÍÓÔÕÚÇ]")
 WORDS = re.compile(r"\b(de|da|do|das|dos|para|não|com|sem|em|no|na|nos|nas|os|as|um|uma|ao|à|e|ou|"

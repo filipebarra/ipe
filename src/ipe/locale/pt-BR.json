@@ -3835,7 +3835,11 @@
   "você escolheu esconder",
   "você escolheu mostrar sempre",
   "▲ Subir",
-  "▼ Descer"
+  "▼ Descer",
+  "<p>O Ipê só existe porque muita gente compartilhou seu trabalho em código aberto. Ele é distribuído sob a licença GPL-3.0-or-later.</p>",
+  "A história do Ipê",
+  "A história do Ipê não foi encontrada junto do programa.",
+  "Créditos e licenças"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -4794,6 +4798,7 @@
   "não achei no exame: {}",
   "o exame não tem {}",
   "você escolheu esconder em exames de {}",
-  "você escolheu mostrar sempre em exames de {}"
+  "você escolheu mostrar sempre em exames de {}",
+  "<h3>{} {}</h3><p>Visualizador DICOM para pesquisa e ensino.</p><p><b>{}.</b></p><p>O nome vem dos ipês que florescem em Brasília na seca — e de uma coincidência: <i>ipê</i> também está em Fil<b>ipe</b>. Criado por um radiologista de mama que queria um OsiriX para Windows e Linux. Código aberto (GPL-3.0), escrito com a ajuda do Claude e feito sobre bibliotecas abertas.</p><p>Como usar: <b>Ajuda ▸ Guia do usuário</b> (F1).</p>"
  ]
 }

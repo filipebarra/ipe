@@ -1,0 +1,178 @@
+"""Créditos: o que o Ipê usa, para quê, com qual licença e onde encontrar (0.99.13).
+
+Pedido dele: *"acrescente e continue acrescentando todas as ferramentas que usamos, com créditos,
+licenças e links"*. Esta lista é a fonte única: dela saem a janela "Créditos e licenças" (Ajuda ▸
+Sobre o Ipê) e o arquivo CREDITOS.md do repositório (`tools/gerar_creditos.py`).
+
+**Regra para as próximas versões:** dependência nova entra aqui junto com o código que a usa. O teste
+`test_creditos.py` reprova pacote do pyproject.toml ou `import` de terceiros sem crédito, e
+CREDITOS.md desatualizado.
+
+Campos: nome, para que serve no Ipê, licença, link, onde entra e, quando os autores pedem, a
+citação. "Onde entra":
+- "programa": vai junto com o Ipê;
+- "opcional": instalado à parte, só para quem usa aquela função;
+- "segmentação": o ambiente separado da segmentação (TotalSegmentator), baixado uma vez;
+- "modelo": pesos de rede neural, baixados à parte;
+- "instalador": só para gerar o instalador do Windows;
+- "desenvolvimento": só para testar e gerar documentação.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Credito:
+    nome: str
+    uso: str
+    licenca: str
+    link: str
+    onde: str = "programa"
+    citacao: str = ""
+    pacotes: tuple = ()          # nomes no pip (pyproject.toml)
+    modulos: tuple = ()          # nomes no `import`
+
+
+CREDITOS: tuple[Credito, ...] = (
+    # ------------------------------------------------------------------ o programa
+    Credito("Python", "a linguagem do programa", "PSF License", "https://www.python.org"),
+    Credito("Qt / PySide6", "a interface: janelas, quadros, menus, rede local",
+            "LGPL-3.0 (ou GPL-2.0/3.0)", "https://www.qt.io/qt-for-python",
+            pacotes=("PySide6",), modulos=("PySide6",)),
+    Credito("pydicom", "leitura e gravação dos arquivos DICOM", "MIT",
+            "https://github.com/pydicom/pydicom", pacotes=("pydicom",), modulos=("pydicom",)),
+    Credito("pynetdicom", "rede DICOM: C-ECHO, C-FIND, C-MOVE, C-GET, C-STORE, impressora DICOM", "MIT",
+            "https://github.com/pydicom/pynetdicom", pacotes=("pynetdicom",), modulos=("pynetdicom",)),
+    Credito("pylibjpeg", "decodificação de imagens comprimidas no DICOM", "MIT",
+            "https://github.com/pydicom/pylibjpeg", pacotes=("pylibjpeg",)),
+    Credito("pylibjpeg-libjpeg", "JPEG e JPEG-LS (biblioteca libjpeg de Thomas Richter)", "GPL-3.0",
+            "https://github.com/pydicom/pylibjpeg-libjpeg", pacotes=("pylibjpeg-libjpeg",)),
+    Credito("pylibjpeg-openjpeg", "JPEG 2000 (OpenJPEG)", "MIT (OpenJPEG: BSD-2-Clause)",
+            "https://github.com/pydicom/pylibjpeg-openjpeg", pacotes=("pylibjpeg-openjpeg",)),
+    Credito("pyjpegls", "gravação em JPEG-LS (CharLS) na compressão sem perda", "MIT (CharLS: BSD-3-Clause)",
+            "https://github.com/pydicom/pyjpegls", pacotes=("pyjpegls",)),
+    Credito("GDCM / python-gdcm", "decodificador de reserva para arquivos DICOM incomuns",
+            "BSD-3-Clause (GDCM); Apache-2.0 (pacote Python)", "https://github.com/tfmoraes/python-gdcm",
+            pacotes=("python-gdcm",)),
+    Credito("NumPy", "todas as contas com as imagens (janela, MPR, 3D, mapas, medidas)", "BSD-3-Clause",
+            "https://numpy.org", pacotes=("numpy",), modulos=("numpy",)),
+    Credito("SQLAlchemy", "o banco de dados dos exames (SQLite)", "MIT", "https://www.sqlalchemy.org",
+            pacotes=("SQLAlchemy",), modulos=("sqlalchemy",)),
+    Credito("SQLite", "o arquivo do banco de dados", "domínio público", "https://www.sqlite.org"),
+    Credito("platformdirs", "as pastas de dados e de configuração de cada sistema", "MIT",
+            "https://github.com/tox-dev/platformdirs", pacotes=("platformdirs",), modulos=("platformdirs",)),
+    Credito("RapidOCR", "OCR das folhas de impressão recebidas (identificar o paciente)", "Apache-2.0",
+            "https://github.com/RapidAI/RapidOCR", pacotes=("rapidocr_onnxruntime",),
+            modulos=("rapidocr_onnxruntime",)),
+    Credito("PaddleOCR (modelos)", "os modelos de leitura de texto que o RapidOCR usa", "Apache-2.0",
+            "https://github.com/PaddlePaddle/PaddleOCR", onde="modelo"),
+    Credito("ONNX Runtime", "roda as redes neurais na CPU (OCR, densidade mamária)", "MIT",
+            "https://onnxruntime.ai", pacotes=("onnxruntime",), modulos=("onnxruntime",)),
+    Credito("Pillow", "imagens comuns (PNG/JPG) no OCR de reserva", "MIT-CMU", "https://python-pillow.org",
+            onde="opcional", modulos=("PIL",)),
+    Credito("Tesseract / pytesseract", "OCR de reserva, quando instalado no computador", "Apache-2.0",
+            "https://github.com/tesseract-ocr/tesseract", onde="opcional", modulos=("pytesseract",)),
+    Credito("ReportLab", "o guia do usuário em PDF", "BSD", "https://www.reportlab.com/opensource/",
+            onde="desenvolvimento", modulos=("reportlab",)),
+    # ------------------------------------------------------------------ inteligência artificial
+    Credito("TotalSegmentator", "segmentação de órgãos abdominais, vértebras e discos (TC e RM)",
+            "Apache-2.0 (algumas tarefas pedem licença, gratuita para uso não comercial)",
+            "https://github.com/wasserth/TotalSegmentator", onde="segmentação",
+            citacao="Wasserthal J, et al. TotalSegmentator: robust segmentation of 104 anatomic "
+                    "structures in CT images. Radiology: Artificial Intelligence. 2023;5(5):e230024.",
+            modulos=("totalsegmentator",)),
+    Credito("nnU-Net", "a rede por trás do TotalSegmentator", "Apache-2.0", "https://github.com/MIC-DKFZ/nnUNet",
+            onde="segmentação",
+            citacao="Isensee F, et al. nnU-Net: a self-configuring method for deep learning-based "
+                    "biomedical image segmentation. Nature Methods. 2021;18:203–211."),
+    Credito("PyTorch", "a biblioteca de redes neurais da segmentação", "BSD-3-Clause", "https://pytorch.org",
+            onde="segmentação"),
+    Credito("NiBabel", "troca de volumes (NIfTI) com o ambiente da segmentação", "MIT", "https://nipy.org/nibabel",
+            onde="segmentação", modulos=("nibabel",)),
+    Credito("Classificador de densidade da NYU", "categoria de densidade mamária (BI-RADS a–d)", "BSD-2-Clause",
+            "https://github.com/nyukat/breast_density_classifier", onde="modelo",
+            citacao="Wu N, et al. Breast density classification with deep convolutional neural "
+                    "networks. ICASSP 2018."),
+    # ------------------------------------------------------------------ instalador e desenvolvimento
+    Credito("PyInstaller", "empacota o programa para Windows", "GPL-2.0 com exceção do bootloader",
+            "https://pyinstaller.org", onde="instalador", modulos=("PyInstaller",)),
+    Credito("Inno Setup", "o instalador do Windows", "Inno Setup License (gratuita)",
+            "https://jrsoftware.org/isinfo.php", onde="instalador"),
+    Credito("pytest", "os testes automáticos", "MIT", "https://pytest.org", onde="desenvolvimento",
+            pacotes=("pytest",)),
+    Credito("Claude (Anthropic)", "escreve o código a partir dos pedidos do autor, testa e documenta",
+            "serviço da Anthropic", "https://www.anthropic.com/claude", onde="desenvolvimento"),
+)
+
+#: Programas que inspiraram o Ipê. Nenhum código deles está aqui; os nomes são marcas dos donos.
+INSPIRACOES: tuple[tuple[str, str], ...] = (
+    ("OsiriX", "https://www.osirix-viewer.com"),
+    ("Horos", "https://horosproject.org"),
+    ("Weasis", "https://weasis.org"),
+    ("GE AW Server (manuais)", "https://www.gehealthcare.com"),
+)
+
+NOME_DO_ONDE = {
+    "programa": "vai com o programa",
+    "opcional": "opcional, instalado à parte",
+    "segmentação": "ambiente da segmentação, baixado à parte",
+    "modelo": "modelo de IA, baixado à parte",
+    "instalador": "só para gerar o instalador",
+    "desenvolvimento": "desenvolvimento",
+}
+
+
+def markdown() -> str:
+    """O CREDITOS.md do repositório (o arquivo é gerado: não editar à mão)."""
+    linhas = [
+        "# Créditos e licenças",
+        "",
+        "O Ipê só existe porque muita gente compartilhou seu trabalho em código aberto. Esta é a lista do",
+        "que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuído sob",
+        "[GPL-3.0-or-later](LICENSE).",
+        "",
+        "*Arquivo gerado por `tools/gerar_creditos.py` a partir de `src/ipe/creditos.py` — não edite à mão.*",
+        "",
+    ]
+    for onde, titulo in NOME_DO_ONDE.items():
+        itens = [c for c in CREDITOS if c.onde == onde]
+        if not itens:
+            continue
+        linhas += [f"## {titulo[0].upper() + titulo[1:]}", "", "| Ferramenta | Para que serve | Licença |",
+                   "|---|---|---|"]
+        for c in itens:
+            linhas.append(f"| [{c.nome}]({c.link}) | {c.uso} | {c.licenca} |")
+        linhas.append("")
+    citadas = [c for c in CREDITOS if c.citacao]
+    if citadas:
+        linhas += ["## Como citar", "", "Os autores destas ferramentas pedem que trabalhos que as usam citem:", ""]
+        linhas += [f"- **{c.nome}:** {c.citacao}" for c in citadas]
+        linhas.append("")
+    linhas += ["## Inspiração", "",
+               "Programas que inspiraram o Ipê. Nenhum código deles está aqui; os nomes são marcas dos donos.", ""]
+    linhas += [f"- [{n}]({u})" for n, u in INSPIRACOES]
+    linhas.append("")
+    return "\n".join(linhas)
+
+
+def html() -> str:
+    """A mesma lista, para a janela do programa."""
+    partes = []
+    for onde, titulo in NOME_DO_ONDE.items():
+        itens = [c for c in CREDITOS if c.onde == onde]
+        if not itens:
+            continue
+        partes.append(f"<h4>{titulo[0].upper() + titulo[1:]}</h4><table cellpadding='3'>")
+        for c in itens:
+            partes.append(f"<tr><td><a href='{c.link}'>{c.nome}</a></td><td>{c.uso}</td>"
+                          f"<td><i>{c.licenca}</i></td></tr>")
+        partes.append("</table>")
+    citadas = [c for c in CREDITOS if c.citacao]
+    if citadas:
+        partes.append("<h4>Como citar</h4><ul>")
+        partes += [f"<li><b>{c.nome}:</b> {c.citacao}</li>" for c in citadas]
+        partes.append("</ul>")
+    partes.append("<h4>Inspiração</h4><p>" + " · ".join(f"<a href='{u}'>{n}</a>" for n, u in INSPIRACOES)
+                  + "<br><small>Nenhum código deles está no Ipê; os nomes são marcas dos donos.</small></p>")
+    return "".join(partes)

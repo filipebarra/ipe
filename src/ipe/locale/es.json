@@ -5132,5 +5132,10 @@
  "você escolheu mostrar sempre em exames de {}": "usted eligió mostrarla siempre en estudios de {}",
  "Em todos os exames ({})": "En todos los estudios ({})",
  "Aplicação {}: na barra.": "Aplicación {}: en la barra.",
- "Aplicação {}: fora da barra — continua no botão Aplicações.": "Aplicación {}: fuera de la barra — sigue en el botón Aplicaciones."
+ "Aplicação {}: fora da barra — continua no botão Aplicações.": "Aplicación {}: fuera de la barra — sigue en el botón Aplicaciones.",
+ "<p>O Ipê só existe porque muita gente compartilhou seu trabalho em código aberto. Ele é distribuído sob a licença GPL-3.0-or-later.</p>": "<p>Ipê solo existe porque mucha gente compartió su trabajo en código abierto. Se distribuye bajo la licencia GPL-3.0-or-later.</p>",
+ "A história do Ipê": "La historia de Ipê",
+ "A história do Ipê não foi encontrada junto do programa.": "La historia de Ipê no se encontró junto al programa.",
+ "Créditos e licenças": "Créditos y licencias",
+ "<h3>{} {}</h3><p>Visualizador DICOM para pesquisa e ensino.</p><p><b>{}.</b></p><p>O nome vem dos ipês que florescem em Brasília na seca — e de uma coincidência: <i>ipê</i> também está em Fil<b>ipe</b>. Criado por um radiologista de mama que queria um OsiriX para Windows e Linux. Código aberto (GPL-3.0), escrito com a ajuda do Claude e feito sobre bibliotecas abertas.</p><p>Como usar: <b>Ajuda ▸ Guia do usuário</b> (F1).</p>": "<h3>{} {}</h3><p>Visor DICOM para investigación y docencia.</p><p><b>{}.</b></p><p>El nombre viene de los ipês que florecen en Brasilia en la estación seca — y de una coincidencia: <i>ipê</i> también está en Fil<b>ipe</b>. Creado por un radiólogo de mama que quería un OsiriX para Windows y Linux. Código abierto (GPL-3.0), escrito con la ayuda de Claude y hecho sobre bibliotecas abiertas.</p><p>Cómo usar: <b>Ayuda ▸ Guía del usuario</b> (F1).</p>"
 }

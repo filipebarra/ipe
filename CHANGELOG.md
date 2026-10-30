@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.13 — a história do Ipê e os créditos
+- Ajuda ▸ Sobre o Ipê ganhou a origem do nome (os ipês de Brasília e o "ipe" de Filipe) e dois
+  botões: **A história do Ipê** (em português, inglês e espanhol) e **Créditos e licenças**.
+- Créditos com cada biblioteca, modelo de IA e ferramenta que o Ipê usa, a licença, o link e, quando
+  os autores pedem, a citação (TotalSegmentator, nnU-Net, classificador de densidade da NYU).
+- No GitHub: HISTORIA.md e CREDITOS.md; o README ganhou a seção "Por que Ipê?". O guia do usuário
+  ganhou o capítulo "Sobre o Ipê".
+- Regra daqui em diante: ferramenta nova entra nos créditos junto com o código — um teste reprova
+  dependência ou import de terceiros sem crédito.
+
 ## 0.99.12 — menu Configurações e barra que se arruma pelo exame
 - Novo menu **Configurações**, com um submenu por assunto (Visualizador, Protocolos de exame, CAD/IA,
   Monitores, Rede, Impressão, Banco de dados, Usuários, Sistema). Cada item abre a sua própria

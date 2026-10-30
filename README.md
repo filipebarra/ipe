@@ -11,6 +11,15 @@ ultrassom e radiografia, com rede DICOM, filmes, impressão e laudo.
 *Outros idiomas: [English](README.en.md) · [Español](README.es.md) · Histórico de versões:
 [CHANGELOG.md](CHANGELOG.md)*
 
+## Por que Ipê?
+
+Em Brasília, no meio da seca, os ipês florescem e a paisagem muda. E há uma coincidência: *ipê* está
+em Fil**ipe**. O Ipê foi criado por um radiologista de mama que, como muitos colegas, migrou para o
+macOS por causa do OsiriX e do Horos, e sempre quis um programa completo para Windows e Linux. Ele é
+escrito com a ajuda do Claude (Anthropic), que trabalha como programador sênior a partir dos pedidos
+do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
+[Leia a história completa](HISTORIA.md) · [Créditos e licenças](CREDITOS.md)
+
 ---
 
 ## Funções
@@ -169,3 +178,6 @@ O instalador novo atualiza o antigo no lugar.
 
 [GPL-3.0-or-later](LICENSE). Pode usar, estudar, modificar e redistribuir; quem redistribuir uma
 versão modificada tem de publicar o código dela sob a mesma licença. © Filipe Ramos Barra.
+
+As bibliotecas e os modelos que o Ipê usa, com as licenças e os links, estão em
+[CREDITOS.md](CREDITOS.md) (e no programa, em Ajuda ▸ Sobre o Ipê ▸ Créditos e licenças).

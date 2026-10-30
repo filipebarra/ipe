@@ -10,6 +10,15 @@ ultrasound and radiography, with DICOM networking, films, printing and reporting
 *Other languages: [Português](README.md) · [Español](README.es.md) · Release history:
 [CHANGELOG.en.md](CHANGELOG.en.md)*
 
+## Why Ipê?
+
+In Brasília, in the middle of the dry season, the ipê trees bloom and the landscape changes. And
+there is a coincidence: *ipê* is in Fil**ipe**. Ipê was created by a breast radiologist who, like many
+colleagues, moved to macOS because of OsiriX and Horos, and always wanted a complete program for
+Windows and Linux. It is written with the help of Claude (Anthropic), working as a senior programmer
+on the author's requests, and it exists thanks to open-source DICOM, computing and AI libraries.
+[Read the full story](HISTORIA.en.md) · [Credits and licenses](CREDITOS.md)
+
 ---
 
 ## Features
@@ -80,4 +89,4 @@ Code in `src/ipe/`, tests in `tests/` (`python -m pytest`; they generate synthet
 
 ## License
 
-[GPL-3.0-or-later](LICENSE). © Filipe Ramos Barra.
+[GPL-3.0-or-later](LICENSE). © Filipe Ramos Barra. Third-party libraries and models, with licenses and links: [CREDITOS.md](CREDITOS.md).
