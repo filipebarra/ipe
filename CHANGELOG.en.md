@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.17 — automatic head indices (SynthSeg)
+- Evans index, 3rd ventricle width, callosal angle and hippocampal/ventricular volumes from SynthSeg
+  (DIPY's PyTorch version) on head MR of any sequence or CT, with the same review window; the MRPI 2.0,
+  Evans and callosal angle guided measurements open pre-filled. Re-run instalar_segmentacao once.
+
 ## 0.99.16 — automatic cephalometry on arrival
 - **Settings ▸ CAD/AI ▸ Nasopharynx cephalometry**: runs automatically when a CT arrives, filtered by
   the study description, with the preferred series, maximum thickness, minimum slices and

@@ -5,7 +5,7 @@ title Ipe - instalar a segmentacao (TotalSegmentator)
 echo === Ipe: segmentacao (TotalSegmentator) ===
 echo.
 echo Isto roda UMA vez. Cria um ambiente Python separado do programa, com o PyTorch
-echo (so CPU) e o TotalSegmentator, e baixa os modelos (orgaos abdominais, coluna e cabeca/pescoco).
+echo (so CPU) e o TotalSegmentator, e baixa os modelos (orgaos abdominais, coluna, cabeca/pescoco e encefalo).
 echo Precisa de internet e de uns 5 GB livres. Demora (10 a 30 minutos).
 echo.
 
@@ -82,8 +82,16 @@ for %%T in (total_fast total_fast_mr liver_segments liver_segments_mr vertebrae_
 )
 
 echo.
+echo [extra] SynthSeg (encefalo: Evans, 3o ventriculo, angulo calosal, hipocampos), pela DIPY...
+"%PY%" -m pip install "dipy>=1.12"
+if errorlevel 1 ( echo [ERRO] Falha instalando a DIPY. & goto :fim )
+set "DIPY_HOME=%BASE%\pesos\dipy"
+"%PY%" -c "from dipy.data import get_fnames; print(get_fnames(name='synthseg_torch_weights'))"
+if errorlevel 1 ( echo [ERRO] Falha baixando os pesos do SynthSeg. & goto :fim )
+
+echo.
 echo Conferindo...
-"%PY%" -c "import torch, totalsegmentator; from importlib.metadata import version; print('PyTorch', torch.__version__, '- TotalSegmentator', version('TotalSegmentator'))"
+"%PY%" -c "import torch, totalsegmentator; from importlib.metadata import version; import dipy; print('PyTorch', torch.__version__, '- TotalSegmentator', version('TotalSegmentator'), '- DIPY', dipy.__version__)"
 if errorlevel 1 ( echo [ERRO] O ambiente nao abriu. & goto :fim )
 echo.
 echo Pronto. No Ipe: botao direito numa serie de TC ou RM

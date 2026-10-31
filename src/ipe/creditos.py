@@ -90,6 +90,15 @@ CREDITOS: tuple[Credito, ...] = (
                     "biomedical image segmentation. Nature Methods. 2021;18:203–211."),
     Credito("PyTorch", "a biblioteca de redes neurais da segmentação", "BSD-3-Clause", "https://pytorch.org",
             onde="segmentação"),
+    Credito("SynthSeg", "segmentação do encéfalo em RM de qualquer contraste e resolução e em TC — índices do "
+            "crânio (Evans, 3º ventrículo, ângulo calosal) e volumes dos hipocampos", "Apache-2.0",
+            "https://github.com/BBillot/SynthSeg", onde="modelo",
+            citacao="Billot B, et al. SynthSeg: Segmentation of brain MRI scans of any contrast and resolution "
+                    "without retraining. Medical Image Analysis. 2023;86:102789."),
+    Credito("DIPY", "a versão em PyTorch do SynthSeg, no ambiente da segmentação", "BSD-3-Clause",
+            "https://dipy.org", onde="segmentação", modulos=("dipy",),
+            citacao="Garyfallidis E, et al. Dipy, a library for the analysis of diffusion MRI data. "
+                    "Frontiers in Neuroinformatics. 2014;8:8."),
     Credito("NiBabel", "troca de volumes (NIfTI) com o ambiente da segmentação", "MIT", "https://nipy.org/nibabel",
             onde="segmentação", modulos=("nibabel",)),
     Credito("Classificador de densidade da NYU", "categoria de densidade mamária (BI-RADS a–d)", "BSD-2-Clause",

@@ -120,10 +120,27 @@ class RoteiroPainel(QDialog):
         self.setWindowTitle(f"Roteiro — {r.nome}")
         self.descricao.setText(r.descricao + (f"<br><small>Fonte: {r.fonte}</small>" if r.fonte else ""))
         self.esperando = None
+        self._preencher_da_ia()
         self._encher()
         prox = self.andamento.proximo()
         if prox is not None:
             self.lista.setCurrentRow(list(r.passos).index(prox))
+
+    def _preencher_da_ia(self) -> None:
+        """0.99.17: com os índices do crânio (SynthSeg) já no exame, os passos que a IA mede (3º
+        ventrículo, cornos frontais, diâmetro do crânio, ângulo calosal) vêm preenchidos, com a marca."""
+        obter = getattr(self.tab, "neuro_do_exame", None)
+        try:
+            res = obter() if callable(obter) else None
+        except Exception:  # noqa: BLE001
+            res = None
+        if res is None:
+            return
+        from ipe.ai import neuro as N
+        valores = N.valores_para_roteiro(res)
+        for p in self.andamento.roteiro.passos:
+            for v in valores.get(p.id, []):
+                self.andamento.registrar(p, v, ["medido automaticamente (SynthSeg)"])
 
     def _encher(self) -> None:
         a = self.andamento

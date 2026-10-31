@@ -99,8 +99,15 @@ class Segmentacao(QObject):
             self.trabalho.min_cortes = CF.MIN_CORTES
             self.trabalho.modalidades = ("CT",)
             self.trabalho.motivo_modalidade = "A cefalometria automática é só para TC."
+        if tipo == "neuro":
+            from ipe.ai import neuro as N
+            self.trabalho.tarefas_proprias = N.tarefas
+            self.trabalho.min_cortes = N.MIN_CORTES
+            self.trabalho.modalidades = ("MR", "CT")
+            self.trabalho.motivo_modalidade = "Os índices do crânio são para RM ou TC."
         self.titulo = {"coluna": "Identificar vértebras e discos",
-                       "cefalometria": "Cefalometria automática"}.get(tipo, "Segmentar órgãos")
+                       "cefalometria": "Cefalometria automática",
+                       "neuro": "Índices do crânio (IA)"}.get(tipo, "Segmentar órgãos")
         self.proc: QProcess | None = None
         self.dlg: QProgressDialog | None = None
         self.etapa = "preparando"
@@ -230,6 +237,9 @@ class Segmentacao(QObject):
             if self.tipo == "cefalometria":
                 self._fim_cefalometria()
                 return
+            if self.tipo == "neuro":
+                self._fim_neuro()
+                return
             from ipe.ai import totalseg_saida as SAIDA
             res = self.trabalho.ler()
             saida = SAIDA.gravar(self.trabalho, res, self.repo.db, self.storage)
@@ -257,6 +267,23 @@ class Segmentacao(QObject):
         msg = (f"Cefalometria pronta em {minutos:.1f} min: {CF.resumo(res)}. As estruturas e a imagem de "
                f"conferência estão no exame (séries “{CF.DESC_SEG}” e “{CF.DESC_IMAGEM}”). Confira cada "
                "número na janela da cefalometria antes de mandar para o laudo.")
+        if res.avisos:
+            msg += "\n\nConfira: " + "; ".join(res.avisos) + "."
+        self._fim(saida, msg)
+
+    def _fim_neuro(self) -> None:
+        from ipe.ai import neuro as N
+        from ipe.ai import neuro_saida as NS
+        rotulos, versao, _s = self.trabalho.ler_rotulos()
+        res = N.calcular(self.trabalho.vol, rotulos, self.trabalho.settings)
+        res.modalidade = self.trabalho.modalidade
+        saida = NS.gravar(self.trabalho, res, versao, self.repo.db, self.storage, repo=self.repo,
+                          settings=self.trabalho.settings)
+        saida["neuro"] = res
+        minutos = (time.monotonic() - self.inicio) / 60
+        msg = (f"Índices do crânio prontos em {minutos:.1f} min: {N.resumo(res)}. As estruturas e a imagem de "
+               f"conferência estão no exame (séries “{N.DESC_SEG}” e “{N.DESC_IMAGEM}”). Confira cada número na "
+               "janela dos índices antes de mandar para o laudo.")
         if res.avisos:
             msg += "\n\nConfira: " + "; ".join(res.avisos) + "."
         self._fim(saida, msg)

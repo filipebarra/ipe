@@ -3,6 +3,17 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.17 — índices do crânio automáticos (SynthSeg)
+- No botão **Índices**: **Índices automáticos (IA, SynthSeg)** em RM de qualquer sequência ou TC de
+  crânio — índice de Evans, largura do 3º ventrículo (média de três), ângulo calosal e volumes dos
+  hipocampos (com assimetria), amígdalas, ventrículos e intracraniano.
+- Mesma janela de conferência da cefalometria (agora comum às IAs de medida), com as linhas em
+  qualquer plano; trocar os cornos ou o diâmetro refaz o Evans.
+- Os roteiros MRPI 2.0, Evans e ângulo calosal já abrem com o que a IA mediu.
+- CAD/IA: automático na chegada, com filtros e destinos. SEG e imagem de conferência no exame.
+- SynthSeg pela versão em PyTorch da DIPY: o instalar_segmentacao acrescenta a DIPY e os pesos
+  (rode uma vez de novo). Créditos: SynthSeg (Billot et al., 2023) e DIPY.
+
 ## 0.99.16 — cefalometria automática na chegada e linhas em qualquer plano
 - **Configurações ▸ CAD/IA** ganhou a **Cefalometria do cavum**: automática quando a TC chega (pela
   rede ou importada), filtrada pela descrição do exame (CAVUM, RINOFARINGE, APNEIA…), com a série

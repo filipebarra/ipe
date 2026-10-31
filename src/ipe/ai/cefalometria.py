@@ -151,6 +151,8 @@ class Medida:
         if self.valor is None:
             return self.texto or "—"
         v = f"{self.valor:.{self.casas}f}".replace(".", ",")
+        if self.unidade in ("°", "%"):
+            return f"{v}{self.unidade}"
         return f"{v} {self.unidade}".strip()
 
 
@@ -161,6 +163,7 @@ class Cefalometria:
     avisos: list = field(default_factory=list)
     x_meio: float | None = None                     # sagital mediano (mm, x do paciente)
     estruturas: dict = field(default_factory=dict)  # nome -> (máscara recortada, offset) para a SEG
+    modalidade: str = ""                            # "CT" | "MR" (o texto do laudo diz)
 
     def __getitem__(self, k: str) -> Medida:
         return self.medidas[k]
@@ -738,7 +741,7 @@ GRUPO_PRIVADO, CRIADOR = 0x0071, "IPE CEFALOMETRIA"
 
 def para_json(res: Cefalometria) -> str:
     import json
-    return json.dumps({"versao": 1, "x_meio": res.x_meio, "avisos": list(res.avisos),
+    return json.dumps({"versao": 1, "x_meio": res.x_meio, "avisos": list(res.avisos), "modalidade": res.modalidade,
                        "medidas": [{"id": m.id, "valor": m.valor, "texto": m.texto, "motivo": m.motivo,
                                     "origem": m.origem,
                                     "linhas": [[[round(float(c), 2) for c in a], [round(float(c), 2) for c in b]]

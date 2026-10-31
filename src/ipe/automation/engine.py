@@ -205,6 +205,7 @@ class AutomationEngine(QObject):
         self.segmentar_orgaos(study_uid, info)
         self.segmentar_coluna(study_uid, info)
         self.cefalometria(study_uid, info)
+        self.indices_cranio(study_uid, info)
         self.changed.emit()
 
     # ------------------------------------------------------------ exames importados (0.99.1)
@@ -231,6 +232,7 @@ class AutomationEngine(QObject):
             self.segmentar_orgaos(uid, info)
             self.segmentar_coluna(uid, info)
             self.cefalometria(uid, info)
+            self.indices_cranio(uid, info)
             feitos.append(uid)
         return feitos
 
@@ -323,13 +325,18 @@ class AutomationEngine(QObject):
         """Preferências ▸ CAD/IA ▸ Cefalometria do cavum ▸ automático (0.99.16)."""
         return self._enfileirar(study_uid, "cefalometria", info)
 
+    def indices_cranio(self, study_uid: str, info: dict | None = None) -> bool:
+        """Preferências ▸ CAD/IA ▸ Índices do crânio (SynthSeg) ▸ automático (0.99.17)."""
+        return self._enfileirar(study_uid, "neuro", info)
+
     def _enfileirar(self, study_uid: str, tipo: str, info: dict | None) -> bool:
         """Escolhe a série pela lista de prioridade e roda em segundo plano. **Um exame por vez** — os
         outros esperam na fila. Exame que já tem o resultado daquela ferramenta não é refeito."""
         from ipe.ai import cefalometria as CF
         from ipe.ai import coluna as COL
         from ipe.ai import totalseg as TS
-        mod = {"coluna": COL, "cefalometria": CF}.get(tipo, TS)
+        from ipe.ai import neuro as NE
+        mod = {"coluna": COL, "cefalometria": CF, "neuro": NE}.get(tipo, TS)
         if not mod.config(self.settings, mod.CHAVE_AUTO):
             return False
         if not self._seg_simular and not TS.instalado(self.settings):
@@ -337,8 +344,8 @@ class AutomationEngine(QObject):
         info = info if info is not None else self.repo.study_info(study_uid)
         if info is None or not mod.exame_serve(info, self.settings):
             return False
-        ja = {"coluna": COL.ja_identificado, "cefalometria": CF.ja_feita}.get(tipo, TS.ja_segmentado)(self.repo,
-                                                                                                    study_uid)
+        ja = {"coluna": COL.ja_identificado, "cefalometria": CF.ja_feita,
+              "neuro": NE.ja_feita}.get(tipo, TS.ja_segmentado)(self.repo, study_uid)
         if ja:
             return False
         if (study_uid, tipo) not in self._seg_fila:
@@ -361,11 +368,15 @@ class AutomationEngine(QObject):
         study_uid, tipo = self._seg_fila.pop(0)
         coluna = tipo == "coluna"
         cefalo = tipo == "cefalometria"
+        neuro = tipo == "neuro"
         from ipe.ai import cefalometria as CF
-        titulo = "Níveis da coluna" if coluna else ("Cefalometria do cavum" if cefalo else "Órgãos abdominais")
+        from ipe.ai import neuro as NE
+        titulo = {"coluna": "Níveis da coluna", "cefalometria": "Cefalometria do cavum",
+                  "neuro": "Índices do crânio"}.get(tipo, "Órgãos abdominais")
         info = self.repo.study_info(study_uid) or {}
         nome = f"{info.get('patient_name', '')} {info.get('description', '')}".strip()
-        escolher = COL.escolher_serie if coluna else (CF.escolher_serie if cefalo else TS.escolher_serie)
+        escolher = {"coluna": COL.escolher_serie, "cefalometria": CF.escolher_serie,
+                    "neuro": NE.escolher_serie}.get(tipo, TS.escolher_serie)
         serie, motivo = escolher(self.repo, study_uid, self.settings)
         if serie is None:
             self.repo.add_job_run("segmentacao", titulo, "vazio", 0, f"{nome}: {motivo}")
@@ -379,6 +390,8 @@ class AutomationEngine(QObject):
         if cefalo:
             t.tarefas_proprias, t.min_cortes, t.modalidades = CF.tarefas, CF.MIN_CORTES, ("CT",)
             t.motivo_modalidade = "A cefalometria automática é só para TC."
+        if neuro:
+            t.tarefas_proprias, t.min_cortes, t.modalidades = NE.tarefas, NE.MIN_CORTES, ("MR", "CT")
         TS.EM_CURSO.add(study_uid)
         inicio = datetime.now()
 
@@ -390,6 +403,11 @@ class AutomationEngine(QObject):
             if cefalo:
                 rotulos, versao, _s = t.ler_rotulos()
                 return CF.calcular(t.vol, rotulos, self.settings), versao
+            if neuro:
+                rotulos, versao, _s = t.ler_rotulos()
+                r = NE.calcular(t.vol, rotulos, self.settings)
+                r.modalidade = t.modalidade
+                return r, versao
             if coluna:
                 rotulos, versao, _s = t.ler_rotulos()
                 niveis = COL.nomear(t.vol, rotulos)
@@ -415,7 +433,16 @@ class AutomationEngine(QObject):
             try:
                 if err is not None:
                     raise err
-                if cefalo:
+                if neuro:
+                    from ipe.ai import neuro_saida as NS
+                    nres, versao = res
+                    saida = NS.gravar(t, nres, versao, self.db, self.paths.storage, repo=self.repo,
+                                      settings=self.settings)
+                    saida["neuro"] = nres
+                    resumo = NE.resumo(nres)
+                    n_itens = sum(1 for m in nres.medidas.values() if m.valor is not None)
+                    destinos = NE.config(self.settings, NE.CHAVE_DESTINOS)
+                elif cefalo:
                     from ipe.ai import cefalometria_saida as CS
                     cef, versao = res
                     saida = CS.gravar(t, cef, versao, self.db, self.paths.storage, repo=self.repo,

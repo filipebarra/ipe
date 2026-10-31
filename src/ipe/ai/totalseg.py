@@ -34,6 +34,8 @@ log = logging.getLogger(__name__)
 
 #: o que marca as séries desta função: ficam só neste computador (o envio ao PACS as pula)
 MARCA = "· TotalSegmentator"
+#: as marcas das séries que o CAD/IA grava (ficam só neste computador): TotalSegmentator e SynthSeg (0.99.17)
+MARCAS_IA = (MARCA, "· SynthSeg")
 DESC_SEG = f"Órgãos abdominais {MARCA}"
 DESC_TABELA = f"Volumetria abdominal {MARCA}"
 SERIE_SEG, SERIE_TABELA = 970, 971
@@ -324,6 +326,7 @@ class Trabalho:
         import os
         env = dict(os.environ)
         env["TOTALSEG_HOME_DIR"] = str(pasta_base() / "pesos")
+        env["DIPY_HOME"] = str(pasta_base() / "pesos" / "dipy")          # SynthSeg (0.99.17)
         env["PYTHONIOENCODING"] = "utf-8"
         for k in ("PYTHONPATH", "PYTHONHOME"):        # o ambiente da segmentação é outro Python
             env.pop(k, None)
@@ -353,6 +356,9 @@ class Trabalho:
         r = json.loads(arq.read_text(encoding="utf-8"))
         if not r.get("ok"):
             log.warning("TotalSegmentator: %s\n%s", r.get("erro"), r.get("detalhe", ""))
+            if "dipy" in str(r.get("erro", "")).lower() and "module" in str(r.get("erro", "")).lower():
+                raise Falhou("O SynthSeg ainda não está instalado neste computador: rode de novo o "
+                             "instalar_segmentacao (ele acrescenta a DIPY e os pesos do SynthSeg).")
             raise Falhou(f"O TotalSegmentator não terminou: {r.get('erro') or 'erro desconhecido'}")
         rotulos = {}
         for nome, info in r["tarefas"].items():
@@ -369,7 +375,8 @@ class Trabalho:
 def series_locais(repo, study_uid: str) -> set[str]:
     """As séries desta função no exame (ficam só neste computador)."""
     try:
-        return {s.series_uid for s in repo.series_for_study(study_uid) if MARCA in (s.description or "")}
+        return {s.series_uid for s in repo.series_for_study(study_uid)
+                if any(m in (s.description or "") for m in MARCAS_IA)}
     except Exception:  # noqa: BLE001
         return set()
 
@@ -440,7 +447,7 @@ def escolher_serie(repo, study_uid: str, settings=None, perfil: dict | None = No
         if mod not in mods:
             continue
         desc = _sem_acento(s.description or "")
-        if "TOTALSEGMENTATOR" in desc or any(x in desc for x in _NUNCA):
+        if "TOTALSEGMENTATOR" in desc or "SYNTHSEG" in desc or any(x in desc for x in _NUNCA):
             continue
         n = len(repo.instances_for_series(s.series_uid))
         if n < max(minimo, min_absoluto):

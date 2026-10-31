@@ -29,6 +29,61 @@ def etapa(texto: str) -> None:
     print(f"ETAPA {texto}", flush=True)
 
 
+#: rótulos do SynthSeg (FreeSurfer) — só para o modo simulado; o de verdade vem da DIPY
+NOMES_SYNTHSEG = {
+    2: "left cerebral white matter", 3: "left cerebral cortex", 4: "left lateral ventricle",
+    5: "left inferior lateral ventricle", 7: "left cerebellum white matter", 8: "left cerebellum cortex",
+    10: "left thalamus", 11: "left caudate", 12: "left putamen", 13: "left pallidum", 14: "3rd ventricle",
+    15: "4th ventricle", 16: "brain-stem", 17: "left hippocampus", 18: "left amygdala", 24: "CSF",
+    26: "left accumbens area", 28: "left ventral DC", 41: "right cerebral white matter", 42: "right cerebral cortex",
+    43: "right lateral ventricle", 44: "right inferior lateral ventricle", 46: "right cerebellum white matter",
+    47: "right cerebellum cortex", 49: "right thalamus", 50: "right caudate", 51: "right putamen",
+    52: "right pallidum", 53: "right hippocampus", 54: "right amygdala", 58: "right accumbens area",
+    60: "right ventral DC",
+}
+
+
+def _recorte_da_cabeca(dados, afim):
+    """O SynthSeg trabalha num cubo de 192 mm: com o pescoço na série, o alto da cabeça poderia ficar
+    de fora. Recorta a cabeça (o que é mais claro que o fundo) e, no eixo crânio-caudal, os 200 mm de
+    cima. Devolve (fatias, afim do recorte)."""
+    import numpy as np
+    ref = float(np.percentile(dados, 99.5))
+    cabeca = dados > 0.08 * ref if ref > 0 else dados > dados.min()
+    if not cabeca.any():
+        return tuple(slice(None) for _ in range(3)), afim
+    idx = [np.nonzero(cabeca.any(axis=tuple(a for a in range(3) if a != e)))[0] for e in range(3)]
+    lo = [max(0, int(i[0]) - 4) for i in idx]
+    hi = [min(n, int(i[-1]) + 5) for i, n in zip(idx, dados.shape)]
+    M = np.asarray(afim, float)[:3, :3]
+    eixo_z = int(np.argmax(np.abs(M[2, :])))          # o eixo dos dados mais perto do S-I
+    passo = float(np.linalg.norm(M[:, eixo_z]))
+    n_max = int(200.0 / max(passo, 1e-3))
+    if hi[eixo_z] - lo[eixo_z] > n_max:
+        if M[2, eixo_z] > 0:                          # índice crescente = mais para cima
+            lo[eixo_z] = hi[eixo_z] - n_max
+        else:
+            hi[eixo_z] = lo[eixo_z] + n_max
+    fat = tuple(slice(a, b) for a, b in zip(lo, hi))
+    novo = np.array(afim, float)
+    novo[:3, 3] = novo[:3, 3] + M @ np.array(lo, float)
+    return fat, novo
+
+
+def _synthseg(vol_kji, afim) -> tuple:
+    """SynthSeg pela DIPY (PyTorch). `vol_kji` como o programa manda; devolve (rótulos (k,j,i), classes)."""
+    import numpy as np
+    os.environ.setdefault("DIPY_NN_BACKEND", "torch")
+    from dipy.nn.torch.synthseg import SynthSeg
+    dados = np.ascontiguousarray(vol_kji.transpose(2, 1, 0)).astype(np.float32)     # (i, j, k)
+    fat, afim_r = _recorte_da_cabeca(dados, afim)
+    modelo = SynthSeg()
+    rot, nomes, _m = modelo.predict(dados[fat], afim_r)
+    lab = np.zeros(dados.shape, np.uint8)
+    lab[fat] = np.asarray(rot).astype(np.uint8)
+    return lab.transpose(2, 1, 0), {int(k): str(v) for k, v in nomes.items() if int(k)}
+
+
 def _simular(vol, tarefas: list, afim=None) -> dict:
     """Para os testes do programa (sem PyTorch e sem modelo): rótulos de geometria conhecida."""
     import numpy as np
@@ -37,6 +92,11 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
     for t in tarefas:
         nome = t["nome"]
         lab = np.zeros(vol.shape, np.uint8)
+        if t.get("neuro"):
+            # fantoma do SynthSeg (0.99.17): HU = 1000 + rótulo do FreeSurfer
+            lab = np.where(vol >= 1000, np.clip(vol - 1000, 0, 255), 0).astype(np.uint8)
+            saida[nome] = (lab, {int(k): NOMES_SYNTHSEG.get(int(k), str(k)) for k in np.unique(lab) if k})
+            continue
         if t.get("cefalo"):
             # fantoma da cefalometria (0.99.15): cada estrutura tem um HU próprio
             codigos = {
@@ -127,12 +187,24 @@ def main(pasta: str) -> int:
                 resultado["versao"] = version("TotalSegmentator")
             except Exception:  # noqa: BLE001
                 resultado["versao"] = getattr(TS, "__version__", "")
+            if all(t["nome"] == "synthseg" for t in job["tarefas"]):
+                try:
+                    from importlib.metadata import version
+                    resultado["versao"] = f"SynthSeg · DIPY {version('dipy')}"
+                except Exception:  # noqa: BLE001
+                    resultado["versao"] = "SynthSeg · DIPY"
             afim = np.asarray(job["affine"], float)
             img = nib.Nifti1Image(np.ascontiguousarray(vol.transpose(2, 1, 0)), afim)
             for t in job["tarefas"]:
                 nome = t["nome"]
                 etapa(f"{t.get('rotulo', nome)}")
                 t0 = time.time()
+                if nome == "synthseg":                  # 0.99.17: encéfalo pela DIPY (não é do TotalSegmentator)
+                    lab, classes = _synthseg(vol, afim)
+                    np.save(d / f"rotulos_{nome}.npy", lab)
+                    resultado["tarefas"][nome] = {"classes": {str(k): v for k, v in classes.items()},
+                                                  "segundos": round(time.time() - t0, 1)}
+                    continue
                 kw = dict(task=nome, ml=True, device=job.get("device", "cpu"), quiet=False,
                           nr_thr_resamp=1, nr_thr_saving=1)
                 if t.get("roi"):

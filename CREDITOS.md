@@ -40,6 +40,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [TotalSegmentator](https://github.com/wasserth/TotalSegmentator) | segmentação de órgãos abdominais, vértebras e discos (TC e RM) e das estruturas da cefalometria — palato, faringe, hioide, mandíbula e língua (TC; tarefas abertas head_glands_cavities, headneck_bones_vessels, craniofacial_structures e head_muscles) | Apache-2.0 (algumas tarefas pedem licença, gratuita para uso não comercial) |
 | [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) | a rede por trás do TotalSegmentator | Apache-2.0 |
 | [PyTorch](https://pytorch.org) | a biblioteca de redes neurais da segmentação | BSD-3-Clause |
+| [DIPY](https://dipy.org) | a versão em PyTorch do SynthSeg, no ambiente da segmentação | BSD-3-Clause |
 | [NiBabel](https://nipy.org/nibabel) | troca de volumes (NIfTI) com o ambiente da segmentação | MIT |
 
 ## Modelo de IA, baixado à parte
@@ -47,6 +48,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | Ferramenta | Para que serve | Licença |
 |---|---|---|
 | [PaddleOCR (modelos)](https://github.com/PaddlePaddle/PaddleOCR) | os modelos de leitura de texto que o RapidOCR usa | Apache-2.0 |
+| [SynthSeg](https://github.com/BBillot/SynthSeg) | segmentação do encéfalo em RM de qualquer contraste e resolução e em TC — índices do crânio (Evans, 3º ventrículo, ângulo calosal) e volumes dos hipocampos | Apache-2.0 |
 | [Classificador de densidade da NYU](https://github.com/nyukat/breast_density_classifier) | categoria de densidade mamária (BI-RADS a–d) | BSD-2-Clause |
 
 ## Só para gerar o instalador
@@ -70,6 +72,8 @@ Os autores destas ferramentas pedem que trabalhos que as usam citem:
 
 - **TotalSegmentator:** Wasserthal J, et al. TotalSegmentator: robust segmentation of 104 anatomic structures in CT images. Radiology: Artificial Intelligence. 2023;5(5):e230024.
 - **nnU-Net:** Isensee F, et al. nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation. Nature Methods. 2021;18:203–211.
+- **SynthSeg:** Billot B, et al. SynthSeg: Segmentation of brain MRI scans of any contrast and resolution without retraining. Medical Image Analysis. 2023;86:102789.
+- **DIPY:** Garyfallidis E, et al. Dipy, a library for the analysis of diffusion MRI data. Frontiers in Neuroinformatics. 2014;8:8.
 - **Classificador de densidade da NYU:** Wu N, et al. Breast density classification with deep convolutional neural networks. ICASSP 2018.
 
 ## Inspiração

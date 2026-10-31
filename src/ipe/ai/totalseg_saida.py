@@ -216,7 +216,7 @@ def _caminho_do_sop(db, study_uid: str, sop: str) -> str:
     from ipe.db.repository import Repository
     repo = Repository(db)
     for se in repo.series_for_study(study_uid):
-        if TS.MARCA not in (se.description or ""):
+        if not any(m in (se.description or "") for m in TS.MARCAS_IA):
             continue
         for inst in repo.instances_for_series(se.series_uid):
             if inst.get("sop_uid") == sop:

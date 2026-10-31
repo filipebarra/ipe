@@ -1012,6 +1012,21 @@ Roteiros de fábrica:
 
 O plano e a espessura do corte são conferidos e viram **observação** ao lado do número, não recusa: medida num plano diferente do pedido, ou em corte acima de 3 mm, aparece com ⚠. Em exames com série 3D, use o MPR para chegar ao plano certo. Os valores de referência aparecem como texto ao lado do número, com a fonte — o programa não classifica. **Copiar o texto** e **Mandar para o laudo** levam o resultado no formato de lista, com as referências entre parênteses.
 
+## Índices automáticos do crânio (SynthSeg)
+
+No botão **Índices** (RM e TC de crânio): **Índices automáticos (IA, SynthSeg) desta série…**. A série do quadro ativo (de preferência a 3D T1; serve qualquer sequência, inclusive pós-contraste e 2D, e a TC) vai para o SynthSeg, que separa ventrículos, hipocampos, amígdalas e o resto do encéfalo. As contas são feitas pelo Ipê:
+
+| Medida | Como sai |
+|---|---|
+| Índice de Evans | maior largura dos cornos frontais (ventrículos laterais à frente do 3º ventrículo, os dois lados no mesmo corte) ÷ maior diâmetro intracraniano no mesmo axial |
+| 3º ventrículo | largura transversal a 25%, 50% e 75% do comprimento dele; vale a média |
+| Ângulo calosal | no coronal da extremidade posterior do 3º ventrículo (comissura posterior): retas pelas paredes súpero-mediais dos ventrículos laterais |
+| Volumes | hipocampos (com a assimetria), amígdalas, ventrículos e volume intracraniano estimado |
+
+A janela de conferência é a mesma da cefalometria: valor, referência, de quem é o número, **Ver no quadro**, **Medir à mão** e o texto para o laudo. Trocar os cornos ou o diâmetro refaz o Evans. As medidas são feitas nos **planos da aquisição**, não reorientados ao AC-PC: com a cabeça inclinada, confira no plano certo. Ao abrir os roteiros **MRPI e MRPI 2.0**, **Índice de Evans** e **Ângulo calosal**, os passos que a IA mede já vêm preenchidos ("medido automaticamente (SynthSeg)"); **Refazer** mede à mão. Ponte, mesencéfalo e pedúnculos continuam à mão: o SynthSeg não separa a ponte do mesencéfalo.
+
+No exame ficam a SEG **Encéfalo · SynthSeg** e a imagem **Índices do crânio: conferência · SynthSeg** (axial dos cornos, coronal da comissura posterior e a lista). Automático na chegada: **Configurações ▸ CAD/IA ▸ Índices do crânio (SynthSeg)…**. Precisa rodar uma vez de novo o instalar_segmentacao, que acrescenta a DIPY e os pesos do SynthSeg.
+
 ## Cefalometria do cavum
 
 Botão **Cefalometria** (aparece em TC de face, cavum ou pescoço; em outros exames, pelo botão **Aplicações**). Dois caminhos:

@@ -1098,6 +1098,14 @@ class ViewerTab(OncoMixin, QWidget):
         more.addAction(tags)
         # medidas guiadas (0.99.14): MRPI, Evans, ângulo calosal — aparece em RM/TC de crânio
         menu_idx = self._menu()
+        a_nres = QAction("Resultado dos índices automáticos deste exame…", self)
+        a_nres.triggered.connect(lambda: self.abrir_neuro(do_exame=True))
+        menu_idx.addAction(a_nres)
+        a_nauto = QAction("Índices automáticos (IA, SynthSeg) desta série…", self)
+        a_nauto.triggered.connect(lambda: self.neuro_automatica(self.active))
+        menu_idx.addAction(a_nauto)
+        menu_idx.aboutToShow.connect(lambda: a_nres.setEnabled(self.neuro_do_exame() is not None))
+        menu_idx.addSeparator()
         from ipe.imaging import roteiros as RT
         for rid, rot in RT.ROTEIROS.items():
             a = QAction(rot.nome + "…", self)
@@ -2705,18 +2713,65 @@ class ViewerTab(OncoMixin, QWidget):
                 return res
         return None
 
-    def mostrar_cefalometria_na_tela(self, res, study_uid: str = "") -> None:
-        """As linhas das medidas da cefalometria como sobreposição 3D (0.99.16): aparecem em qualquer
-        quadro cujo plano contenha a linha — o sagital reformatado, o axial da altura."""
+    def mostrar_linhas_da_ia(self, res, modulo=None, study_uid: str = "") -> None:
+        """As linhas das medidas de uma IA (cefalometria, índices do crânio) como sobreposição 3D
+        (0.99.16): aparecem em qualquer quadro cujo plano contenha a linha."""
         from ipe.ai import cefalometria as CF
+        M = modulo or CF
         objs = getattr(self, "overlay_objects", None)
         if objs is None:
             return
-        objs[:] = [o for o in objs if o.source != CF.FONTE_OVERLAY]
+        objs[:] = [o for o in objs if o.source != M.FONTE_OVERLAY]
         if res is not None and any(m.linhas for m in res.medidas.values()):
-            objs.append(CF.objeto_de_linhas(res, study_uid or self.study_uid))
+            objs.append(M.objeto_de_linhas(res, study_uid or self.study_uid))
         if hasattr(self, "_apply_overlays"):
             self._apply_overlays()
+
+    def mostrar_cefalometria_na_tela(self, res, study_uid: str = "") -> None:
+        self.mostrar_linhas_da_ia(res, None, study_uid)
+
+    # ------------------------------------------------------------ índices do crânio (0.99.17, SynthSeg)
+    def neuro_do_exame(self):
+        from ipe.ai import neuro as N
+        if self.repo is None:
+            return None
+        for uid in (getattr(self, "study_order", None) or [self.study_uid]):
+            res = N.ler_do_exame(self.repo, uid)
+            if res is not None:
+                return res
+        return None
+
+    def abrir_neuro(self, res=None, automatica: bool = False, do_exame: bool = False):
+        """Janela de conferência dos índices do crânio, uma por aba."""
+        from ipe.ui.viewer.cefalometria_painel import CefalometriaPainel, def_neuro
+        if res is None and do_exame:
+            res = self.neuro_do_exame()
+            automatica = res is not None
+        p = getattr(self, "neuro_painel", None)
+        if p is None:
+            p = CefalometriaPainel(self, res, self.window(), automatica=automatica, D=def_neuro())
+            self.neuro_painel = p
+        else:
+            p.carregar(res, automatica)
+        p.ligar_quadros()
+        p.show()
+        p.raise_()
+        return p
+
+    def neuro_automatica(self, vp=None, simular: bool = False):
+        """A série do quadro vai para o SynthSeg; no fim abre a conferência dos índices."""
+        vp = vp or self.active
+        if vp is None or (vp.modality or "").upper() not in ("MR", "CT"):
+            QMessageBox.information(self, "Índices do crânio (IA)",
+                                    "Os índices automáticos são feitos na RM ou na TC de crânio: abra a série "
+                                    "(de preferência a 3D T1) num quadro.")
+            return None
+        return self.segmentar_orgaos(vp, simular=simular, tipo="neuro")
+
+    def neuro_botao(self):
+        if self.neuro_do_exame() is not None:
+            return self.abrir_neuro(do_exame=True)
+        return self.neuro_automatica(self.active)
 
     def ver_medida_da_cefalometria(self, m, vp=None) -> bool:
         """Leva o quadro ao plano e ao corte onde a linha da medida está inteira (reformata se precisar)."""
@@ -2791,10 +2846,11 @@ class ViewerTab(OncoMixin, QWidget):
         if painel is not None:
             painel._ligados.append(vp)
             vp.sig.annotations_changed.connect(painel.medida_feita)
-        cef = getattr(self, "cefalometria_painel", None)
-        if cef is not None:
-            vp.sig.annotations_changed.connect(cef.medida_feita)
-            cef._ligados.append(vp)
+        for nome in ("cefalometria_painel", "neuro_painel"):
+            cef = getattr(self, nome, None)
+            if cef is not None:
+                vp.sig.annotations_changed.connect(cef.medida_feita)
+                cef._ligados.append(vp)
         vp.left_tool = self.left_tool
         vp.anonymize = self.anonymize
         vp.case_label = self.case_label
@@ -4823,6 +4879,12 @@ class ViewerTab(OncoMixin, QWidget):
                 carregar_na_aba(self, saida)
                 self.status_message.emit(msg)
                 self.abrir_cefalometria(saida.get("cefalometria"), automatica=True)
+                QMessageBox.information(self, seg.titulo, msg)
+                return
+            if saida is not None and tipo == "neuro":
+                carregar_na_aba(self, saida)
+                self.status_message.emit(msg)
+                self.abrir_neuro(saida.get("neuro"), automatica=True)
                 QMessageBox.information(self, seg.titulo, msg)
                 return
             if saida is not None:

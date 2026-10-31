@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from ipe.ai import cefalometria as CF
 from ipe.ai import coluna as COL
+from ipe.ai import neuro as NE
 from ipe.ai import totalseg as TS
 from ipe.automation import implante as IMP
 
@@ -57,7 +58,8 @@ class CadIaTab(QWidget):
     FERRAMENTAS = (("Segmentação abdominal", "_grupo_segmentacao", TS.CHAVE_AUTO),
                    ("Níveis da coluna", "_grupo_coluna", COL.CHAVE_AUTO),
                    ("Implante de silicone", "_grupo_implante", IMP.CHAVE),
-                   ("Cefalometria do cavum", "_grupo_cefalometria", CF.CHAVE_AUTO))
+                   ("Cefalometria do cavum", "_grupo_cefalometria", CF.CHAVE_AUTO),
+                   ("Índices do crânio", "_grupo_neuro", NE.CHAVE_AUTO))
 
     def __init__(self, settings, repo=None, parent=None):
         """Como a aba Mamografia (0.99.1): as ferramentas à esquerda, as configurações à direita."""
@@ -108,7 +110,7 @@ class CadIaTab(QWidget):
             self.l_ferramentas.item(k).setText(f"{nome}\n   {'automático na chegada' if auto else 'só à mão'}")
 
     def _caixas_auto(self) -> list:
-        return [self.c_seg_auto, self.c_col_auto, self.c_imp_auto, self.c_cef_auto]
+        return [self.c_seg_auto, self.c_col_auto, self.c_imp_auto, self.c_cef_auto, self.c_neu_auto]
 
     def mostrar(self, nome: str) -> None:
         for k, (n, _c, _ch) in enumerate(self.FERRAMENTAS):
@@ -325,6 +327,67 @@ class CadIaTab(QWidget):
         f.addRow("Depois de fazer, enviar para:", self.l_cef_dest)
         return g
 
+    # ------------------------------------------------------------ índices do crânio (0.99.17, SynthSeg)
+    def _grupo_neuro(self) -> QGroupBox:
+        g = QGroupBox("Índices do crânio — Evans, 3º ventrículo, ângulo calosal e volumes (SynthSeg)")
+        f = QFormLayout(g)
+        cfg = lambda k: NE.config(self.settings, k)      # noqa: E731
+        expl = QLabel("Na RM (qualquer sequência; melhor a 3D T1) ou na TC de crânio: índice de Evans, largura do "
+                      "3º ventrículo, ângulo calosal e os volumes dos hipocampos, amígdalas, ventrículos e "
+                      "intracraniano. No exame ficam as estruturas e uma imagem de conferência; o botão Índices "
+                      "abre os números para conferir. O MRPI 2.0 já vem com o 3º ventrículo e os cornos frontais. "
+                      "Usa a instalação da segmentação (com a DIPY); leva alguns minutos em CPU.")
+        expl.setWordWrap(True)
+        expl.setStyleSheet("color: gray")
+        f.addRow(expl)
+        self.c_neu_auto = QCheckBox("Fazer automaticamente quando o exame chegar")
+        self.c_neu_auto.setChecked(bool(cfg(NE.CHAVE_AUTO)))
+        f.addRow(self.c_neu_auto)
+        self.e_neu_exame = QLineEdit(str(cfg(NE.CHAVE_EXAME_CONTEM) or ""))
+        self.e_neu_exame.setPlaceholderText("vazio = qualquer RM/TC; ex.: CRANIO|ENCEFALO|PARKINSON")
+        self.e_neu_exame.setToolTip("Pedaços da descrição do exame, separados por |, sem diferença de acento ou "
+                                    "maiúscula. Vale para o automático.")
+        f.addRow("Descrição do exame contém:", self.e_neu_exame)
+        mods = {m.upper() for m in (cfg(NE.CHAVE_MODALIDADES) or [])}
+        lm = QHBoxLayout()
+        self.c_neu_mr, self.c_neu_ct = QCheckBox("RM"), QCheckBox("TC")
+        self.c_neu_mr.setChecked("MR" in mods)
+        self.c_neu_ct.setChecked("CT" in mods)
+        lm.addWidget(self.c_neu_mr)
+        lm.addWidget(self.c_neu_ct)
+        lm.addStretch(1)
+        f.addRow("Modalidades:", lm)
+        self.e_neu_mr = QLineEdit(str(cfg(NE.CHAVE_PRIOR_MR) or ""))
+        self.e_neu_ct = QLineEdit(str(cfg(NE.CHAVE_PRIOR_CT) or ""))
+        dica = ("Séries em ordem de preferência, separadas por |: vale a primeira que aparecer na descrição da "
+                "série; entre iguais, a de mais cortes. Na RM, a 3D T1 é a melhor.")
+        self.e_neu_mr.setToolTip(dica)
+        self.e_neu_ct.setToolTip(dica)
+        f.addRow("Série preferida na RM:", self.e_neu_mr)
+        f.addRow("Série preferida na TC:", self.e_neu_ct)
+        lf = QHBoxLayout()
+        self.s_neu_esp = QDoubleSpinBox()
+        self.s_neu_esp.setRange(0, 20)
+        self.s_neu_esp.setDecimals(2)
+        self.s_neu_esp.setSuffix(" mm")
+        self.s_neu_esp.setSpecialValueText("sem limite")
+        self.s_neu_esp.setValue(float(cfg(NE.CHAVE_ESPESSURA) or 0))
+        self.s_neu_min = QSpinBox()
+        self.s_neu_min.setRange(NE.MIN_CORTES, 2000)
+        self.s_neu_min.setValue(int(cfg(NE.CHAVE_MIN_CORTES) or NE.MIN_CORTES))
+        lf.addWidget(QLabel("espessura até"))
+        lf.addWidget(self.s_neu_esp)
+        lf.addWidget(QLabel("  mínimo de"))
+        lf.addWidget(self.s_neu_min)
+        lf.addWidget(QLabel("cortes"))
+        lf.addStretch(1)
+        f.addRow("Filtros da série:", lf)
+        self.l_neu_dest = _lista_de_nos(self.repo, cfg(NE.CHAVE_DESTINOS))
+        self.l_neu_dest.setToolTip("As séries “Encéfalo” e “Índices do crânio” vão para os nós marcados depois de "
+                                   "feitas.")
+        f.addRow("Depois de fazer, enviar para:", self.l_neu_dest)
+        return g
+
     # ------------------------------------------------------------ implante
     def _grupo_implante(self) -> QGroupBox:
         g = QGroupBox("Implante de silicone (mamografia)")
@@ -395,6 +458,14 @@ class CadIaTab(QWidget):
         s.set(CF.CHAVE_ESPESSURA, round(self.s_cef_esp.value(), 2))
         s.set(CF.CHAVE_MIN_CORTES, self.s_cef_min.value())
         s.set(CF.CHAVE_DESTINOS, _marcados(self.l_cef_dest))
+        s.set(NE.CHAVE_AUTO, self.c_neu_auto.isChecked())
+        s.set(NE.CHAVE_EXAME_CONTEM, self.e_neu_exame.text().strip())
+        s.set(NE.CHAVE_MODALIDADES, [m for m, c in (("MR", self.c_neu_mr), ("CT", self.c_neu_ct)) if c.isChecked()])
+        s.set(NE.CHAVE_PRIOR_MR, self.e_neu_mr.text().strip())
+        s.set(NE.CHAVE_PRIOR_CT, self.e_neu_ct.text().strip())
+        s.set(NE.CHAVE_ESPESSURA, round(self.s_neu_esp.value(), 2))
+        s.set(NE.CHAVE_MIN_CORTES, self.s_neu_min.value())
+        s.set(NE.CHAVE_DESTINOS, _marcados(self.l_neu_dest))
         s.set(IMP.CHAVE, self.c_imp_auto.isChecked())
         s.set(IMP.CHAVE_ANTERIORES, self.c_imp_ant.isChecked())
         s.set(IMP.CHAVE_SO_COM_MARCA, self.r_imp_marca.isChecked())

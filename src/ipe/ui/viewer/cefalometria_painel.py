@@ -19,6 +19,9 @@ from PySide6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QTextEdit, QVBoxLayout,
 )
 
+from dataclasses import dataclass, field
+from typing import Callable
+
 from ipe.ai import cefalometria as CF
 from ipe.ui.tabelas import colunas_ajustaveis
 from ipe.ui.viewer.roteiro_painel import valor_da_anotacao
@@ -27,7 +30,7 @@ from ipe.ui.viewer.roteiro_painel import valor_da_anotacao
 FERRAMENTA = {k: "measure" for k in CF.ORDEM}
 FERRAMENTA["area"] = "polygon"
 FERRAMENTA.pop("hioide_nivel")
-TIPOS = {"measure": ("line",), "polygon": ("polygon",)}
+TIPOS = {"measure": ("line",), "polygon": ("polygon",), "angle": ("angle",)}
 INSTRUCAO = {
     "area": "No plano perpendicular ao eixo da via aérea (MPR oblíquo), no ponto mais estreito, contorne a luz.",
     "palato_comprimento": "No sagital mediano, da espinha nasal posterior à ponta da úvula.",
@@ -52,7 +55,7 @@ def vazio() -> CF.Cefalometria:
 
 def _numero(txt: str) -> float | None:
     t = (txt or "").strip().replace(",", ".")
-    for suf in ("mm²", "mm2", "mm"):
+    for suf in ("mm²", "mm2", "mm", "mL", "ml", "°", "%"):
         if t.endswith(suf):
             t = t[: -len(suf)].strip()
     try:
@@ -61,9 +64,52 @@ def _numero(txt: str) -> float | None:
         return None
 
 
+@dataclass
+class Definicao:
+    """O que muda de uma IA de medidas para outra (cefalometria, índices do crânio…): a janela é a mesma."""
+    modulo: object                       # o módulo das medidas (ORDEM, NOMES, NUMERO, REFERENCIAS…)
+    titulo: str
+    ferramenta: dict
+    instrucao: dict
+    vazio: Callable
+    texto: Callable                      # (res, settings, automatica) -> str
+    explicacao_auto: str
+    textuais: set = field(default_factory=set)        # medidas que são texto, não número
+    recalcular: Callable | None = None                # medidas que saem de outras (Evans = cornos ÷ crânio)
+    dica: Callable | None = None                      # (medida) -> texto extra na dica da linha
+
+
+DEF_CEFALOMETRIA = Definicao(
+    CF, "Cefalometria", FERRAMENTA, INSTRUCAO, vazio,
+    lambda res, s, auto: CF.texto_do_laudo(res, s, automatica=auto),
+    "Medidas feitas pela IA (TotalSegmentator + geometria). <b>Confira cada uma</b> na imagem "
+    "“Cefalometria: conferência” do exame; troque digitando ou com <i>Medir à mão</i>.",
+    textuais={"hioide_nivel"},
+    dica=lambda m: f"{m.texto} — {CF.classe_da_area(m.valor)}" if m.id == "area" and m.texto and m.valor is not None
+    else "",
+)
+
+
+def def_neuro() -> Definicao:
+    from ipe.ai import neuro as N
+    return Definicao(
+        N, N.TITULO, N.FERRAMENTA, N.INSTRUCAO, N.vazio,
+        lambda res, s, auto: N.texto_do_laudo(res, s, automatica=auto),
+        "Medidas feitas pela IA (SynthSeg + geometria), nos planos da aquisição. <b>Confira cada uma</b> na "
+        "imagem “Índices do crânio: conferência” do exame ou com <i>Ver no quadro</i>; troque digitando ou "
+        "com <i>Medir à mão</i>.",
+        recalcular=N.recalcular,
+        dica=lambda m: m.texto if m.id == "v3" and m.texto else "",
+    )
+
+
 class CefalometriaPainel(QDialog):
-    def __init__(self, tab, res: CF.Cefalometria | None = None, parent=None, automatica: bool = False):
+    """A janela de conferência das medidas de uma IA (a cefalometria foi a primeira; `D` diz qual)."""
+
+    def __init__(self, tab, res: CF.Cefalometria | None = None, parent=None, automatica: bool = False,
+                 D: Definicao | None = None):
         super().__init__(parent or tab)
+        self.D = D or DEF_CEFALOMETRIA
         self.tab = tab
         self.settings = getattr(tab, "settings", None)
         self.setWindowFlag(Qt.Window, True)
@@ -126,14 +172,13 @@ class CefalometriaPainel(QDialog):
 
     # ------------------------------------------------------------ dados
     def carregar(self, res: CF.Cefalometria | None, automatica: bool = False) -> None:
-        self.res = res if res is not None else vazio()
+        self.res = res if res is not None else self.D.vazio()
         self.original = copy.deepcopy(self.res)
         self.automatica = automatica and res is not None
-        self.setWindowTitle("Cefalometria — conferência da automática" if self.automatica else "Cefalometria — à mão")
+        self.setWindowTitle(f"{self.D.titulo} — conferência da automática" if self.automatica
+                            else f"{self.D.titulo} — à mão")
         if self.automatica:
-            self.titulo.setText("Medidas feitas pela IA (TotalSegmentator + geometria). <b>Confira cada uma</b> na "
-                                "imagem “Cefalometria: conferência” do exame; troque digitando ou com "
-                                "<i>Medir à mão</i>.")
+            self.titulo.setText(self.D.explicacao_auto)
         else:
             self.titulo.setText("Faça as medidas na ordem: escolha a linha e clique em <i>Medir à mão</i>, ou digite "
                                 "o valor.")
@@ -142,16 +187,17 @@ class CefalometriaPainel(QDialog):
         self.tabela.setCurrentCell(0, 2)
 
     def _encher(self) -> None:
-        refs = CF.referencias(self.settings)
+        M = self.D.modulo
+        refs = M.referencias(self.settings)
         self.tabela.blockSignals(True)
-        self.tabela.setRowCount(len(CF.ORDEM))
-        for r, k in enumerate(CF.ORDEM):
+        self.tabela.setRowCount(len(M.ORDEM))
+        for r, k in enumerate(M.ORDEM):
             m = self.res.medidas[k]
             if m.valor is not None:
                 v = m.texto_valor()
             else:
                 v = m.texto if m.texto and not m.motivo else ""
-            itens = [QTableWidgetItem(CF.NUMERO[k]), QTableWidgetItem(m.nome), QTableWidgetItem(v),
+            itens = [QTableWidgetItem(M.NUMERO[k]), QTableWidgetItem(m.nome), QTableWidgetItem(v),
                      QTableWidgetItem(refs.get(k, "")), QTableWidgetItem(m.origem or "falta")]
             for c, it in enumerate(itens):
                 if c != 2:
@@ -159,8 +205,9 @@ class CefalometriaPainel(QDialog):
                 it.setData(Qt.UserRole, k)
                 self.tabela.setItem(r, c, it)
             dica = []
-            if k == "area" and m.texto and m.valor is not None:
-                dica.append(f"{m.texto} — {CF.classe_da_area(m.valor)}")
+            extra = self.D.dica(m) if self.D.dica else ""
+            if extra:
+                dica.append(extra)
             if m.motivo and m.valor is None:
                 dica.append(f"não medido: {m.motivo}")
                 itens[4].setText("não medido")
@@ -171,12 +218,13 @@ class CefalometriaPainel(QDialog):
                 it.setToolTip("\n".join(dica))
         self.tabela.blockSignals(False)
         self._atualizar_texto()
-        if hasattr(self.tab, "mostrar_cefalometria_na_tela"):
-            self.tab.mostrar_cefalometria_na_tela(self.res)
+        if hasattr(self.tab, "mostrar_linhas_da_ia"):
+            self.tab.mostrar_linhas_da_ia(self.res, self.D.modulo)
 
     def chave_atual(self) -> str | None:
         r = self.tabela.currentRow()
-        return CF.ORDEM[r] if 0 <= r < len(CF.ORDEM) else None
+        ordem = self.D.modulo.ORDEM
+        return ordem[r] if 0 <= r < len(ordem) else None
 
     def _mostrar_instrucao(self) -> None:
         k = self.chave_atual()
@@ -184,8 +232,8 @@ class CefalometriaPainel(QDialog):
             return
         m = self.res.medidas[k]
         extra = f"<br>⚠ não medido pela IA: {m.motivo}" if m.motivo and m.valor is None else ""
-        self.instrucao.setText(f"<b>{m.nome}</b><br>{INSTRUCAO.get(k, '')}{extra}")
-        self.b_medir.setEnabled(k in FERRAMENTA)
+        self.instrucao.setText(f"<b>{m.nome}</b><br>{self.D.instrucao.get(k, '')}{extra}")
+        self.b_medir.setEnabled(k in self.D.ferramenta)
         self.b_ver.setEnabled(bool(m.linhas))
         o = self.original.medidas[k]
         self.b_auto.setEnabled(self.automatica and m.origem == "editado" and (o.valor is not None or bool(o.texto)))
@@ -196,11 +244,13 @@ class CefalometriaPainel(QDialog):
             m.texto = texto
         if valor is not None:
             m.valor = valor
-            if k == "area":
-                m.texto = ""                        # o local era o do automático
+            if k not in self.D.textuais:
+                m.texto = ""                        # o local (área), as três larguras (3º ventrículo)…
         m.motivo = ""
         m.origem = "editado"
         m.linhas = []
+        if self.D.recalcular is not None:
+            self.D.recalcular(self.res)
         self._encher()
 
     def _editou(self, it: QTableWidgetItem) -> None:
@@ -208,7 +258,7 @@ class CefalometriaPainel(QDialog):
             return
         k = it.data(Qt.UserRole)
         txt = it.text().strip()
-        if k == "hioide_nivel":
+        if k in self.D.textuais:
             self.definir(k, texto=txt)
             return
         v = _numero(txt)
@@ -218,6 +268,8 @@ class CefalometriaPainel(QDialog):
         if v is None:
             m = self.res.medidas[k]
             m.valor, m.origem = None, "editado"
+            if self.D.recalcular is not None:
+                self.D.recalcular(self.res)
             self._encher()
             return
         self.definir(k, valor=v)
@@ -233,6 +285,8 @@ class CefalometriaPainel(QDialog):
         k = self.chave_atual()
         if k is not None:
             self.res.medidas[k] = copy.deepcopy(self.original.medidas[k])
+            if self.D.recalcular is not None:
+                self.D.recalcular(self.res)
             self._encher()
             self._mostrar_instrucao()
 
@@ -246,19 +300,19 @@ class CefalometriaPainel(QDialog):
 
     def medir_linha_atual(self) -> None:
         k = self.chave_atual()
-        if k is None or k not in FERRAMENTA:
+        if k is None or k not in self.D.ferramenta:
             return
         self.esperando = k
         if hasattr(self.tab, "set_left_tool"):
-            self.tab.set_left_tool(FERRAMENTA[k])
-        self.tab.status_message.emit(f"Cefalometria: faça a medida “{CF.NOMES[k]}”.")
+            self.tab.set_left_tool(self.D.ferramenta[k])
+        self.tab.status_message.emit(f"{self.D.titulo}: faça a medida “{self.D.modulo.NOMES[k]}”.")
         self.b_medir.setText("Esperando a medida…")
 
     def medida_feita(self, vp) -> None:
         k = self.esperando
         if k is None or not self.isVisible():
             return
-        tipos = TIPOS.get(FERRAMENTA.get(k, ""), ())
+        tipos = TIPOS.get(self.D.ferramenta.get(k, ""), ())
         novas = [a for a in getattr(vp, "annotations", []) if a.done and a.kind in tipos and id(a) not in self._usadas]
         if not novas:
             return
@@ -270,27 +324,29 @@ class CefalometriaPainel(QDialog):
         self.esperando = None
         self.b_medir.setText("Medir à mão")
         self.definir(k, valor=v)
-        r = CF.ORDEM.index(k)
-        if not self.automatica and r + 1 < len(CF.ORDEM):         # à mão: vai para a próxima
+        ordem = self.D.modulo.ORDEM
+        r = ordem.index(k)
+        if not self.automatica and r + 1 < len(ordem):            # à mão: vai para a próxima
             self.tabela.setCurrentCell(r + 1, 2)
-            if CF.ORDEM[r + 1] in FERRAMENTA:
+            if ordem[r + 1] in self.D.ferramenta:
                 self.medir_linha_atual()
 
     # ------------------------------------------------------------ referências e texto
     def editar_referencias(self) -> bool:
-        refs = CF.referencias(self.settings)
+        M = self.D.modulo
+        refs = M.referencias(self.settings)
         dlg = QDialog(self)
-        dlg.setWindowTitle("Referências da cefalometria")
+        dlg.setWindowTitle("Referências da cefalometria" if M is CF else "Referências dos índices do crânio")
         form = QFormLayout(dlg)
         campos = {}
-        for k in CF.ORDEM:
+        for k in M.ORDEM:
             campos[k] = QLineEdit(refs.get(k, ""))
-            form.addRow(CF.NOMES[k], campos[k])
+            form.addRow(M.NOMES[k], campos[k])
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel | QDialogButtonBox.RestoreDefaults)
         bb.accepted.connect(dlg.accept)
         bb.rejected.connect(dlg.reject)
         bb.button(QDialogButtonBox.RestoreDefaults).clicked.connect(
-            lambda: [campos[k].setText(CF.REFERENCIAS[k]) for k in CF.ORDEM])
+            lambda: [campos[k].setText(M.REFERENCIAS[k]) for k in M.ORDEM])
         form.addRow(bb)
         if dlg.exec() != QDialog.Accepted:
             return False
@@ -299,19 +355,20 @@ class CefalometriaPainel(QDialog):
 
     def salvar_referencias(self, novas: dict) -> None:
         if self.settings is not None:
-            diferentes = {k: v for k, v in novas.items() if v != CF.REFERENCIAS.get(k)}
-            self.settings.set(CF.CHAVE_REFERENCIAS, diferentes)
+            M = self.D.modulo
+            diferentes = {k: v for k, v in novas.items() if v != M.REFERENCIAS.get(k)}
+            self.settings.set(M.CHAVE_REFERENCIAS, diferentes)
         self._encher()
 
     def texto(self) -> str:
-        return CF.texto_do_laudo(self.res, self.settings, automatica=self.automatica)
+        return self.D.texto(self.res, self.settings, self.automatica)
 
     def _atualizar_texto(self) -> None:
         self.texto_laudo.setPlainText(self.texto())
 
     def _copiar(self) -> None:
         QGuiApplication.clipboard().setText(self.texto())
-        self.tab.status_message.emit("Texto da cefalometria copiado.")
+        self.tab.status_message.emit("Texto copiado.")
 
     def _mandar_ao_laudo(self) -> None:
         ok = hasattr(self.tab, "append_to_report") and self.tab.append_to_report(self.texto())
