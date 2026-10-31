@@ -404,10 +404,8 @@ class AutomationEngine(QObject):
                 rotulos, versao, _s = t.ler_rotulos()
                 return CF.calcular(t.vol, rotulos, self.settings), versao
             if neuro:
-                rotulos, versao, _s = t.ler_rotulos()
-                r = NE.calcular(t.vol, rotulos, self.settings)
-                r.modalidade = t.modalidade
-                return r, versao
+                _r, versao, _s = t.ler_rotulos()
+                return NE.calcular_do_trabalho(t, self.settings), versao
             if coluna:
                 rotulos, versao, _s = t.ler_rotulos()
                 niveis = COL.nomear(t.vol, rotulos)

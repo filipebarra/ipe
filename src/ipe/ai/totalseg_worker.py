@@ -71,17 +71,36 @@ def _recorte_da_cabeca(dados, afim):
 
 
 def _synthseg(vol_kji, afim) -> tuple:
-    """SynthSeg pela DIPY (PyTorch). `vol_kji` como o programa manda; devolve (rótulos (k,j,i), classes)."""
+    """SynthSeg pela DIPY (PyTorch). `vol_kji` como o programa manda.
+
+    Devolve (rótulos na grade da série (k,j,i), classes, rótulos a 1 mm (i,j,k), afim RAS da grade de
+    1 mm). O SynthSeg segmenta a 1 mm qualquer que seja a série — é a "super-resolução" dele: uma
+    sagital de 5 mm com 6,5 mm entre cortes tem o 3º ventrículo num corte só, mas a segmentação a 1 mm
+    tem a largura dele. As medidas são feitas nesta grade; a da série serve à SEG e à tela."""
     import numpy as np
     os.environ.setdefault("DIPY_NN_BACKEND", "torch")
     from dipy.nn.torch.synthseg import SynthSeg
+    from dipy.nn.utils import inv_pad_crop, recover_img, transform_img
     dados = np.ascontiguousarray(vol_kji.transpose(2, 1, 0)).astype(np.float32)     # (i, j, k)
     fat, afim_r = _recorte_da_cabeca(dados, afim)
+    recorte = np.ascontiguousarray(dados[fat])
     modelo = SynthSeg()
-    rot, nomes, _m = modelo.predict(dados[fat], afim_r)
+    prob = modelo.predict(recorte, afim_r, return_prob=True)            # (192,)*3 + (33,), já limpo
+    lab192 = np.asarray(modelo.labels_segmentation)[np.asarray(prob).argmax(-1)].astype(np.int32)
+    del prob
+    _t, params = transform_img(recorte, afim_r, target_voxsize=(1.0, 1.0, 1.0), final_size=(192, 192, 192),
+                               order=0)
+    lab_1mm = lab192
+    if params.get("crop_value") is not None and params.get("pad_value") is not None:
+        lab_1mm = inv_pad_crop(lab192, params["crop_value"], params["pad_value"])
+    afim_1mm = np.eye(4)
+    afim_1mm[:3, :3] = np.diag(np.asarray(params["target_voxsize"], float))
+    afim_1mm[:3, 3] = np.asarray(params["new_origin_world"], float)
+    serie = np.round(recover_img(lab192, params, order=0)).astype(np.uint8)
     lab = np.zeros(dados.shape, np.uint8)
-    lab[fat] = np.asarray(rot).astype(np.uint8)
-    return lab.transpose(2, 1, 0), {int(k): str(v) for k, v in nomes.items() if int(k)}
+    lab[fat] = serie
+    nomes = {int(k): str(v) for k, v in modelo.label_dict.items() if int(k)}
+    return lab.transpose(2, 1, 0), nomes, np.asarray(lab_1mm).astype(np.uint8), afim_1mm
 
 
 def _simular(vol, tarefas: list, afim=None) -> dict:
@@ -175,6 +194,10 @@ def main(pasta: str) -> int:
             for nome, (lab, classes) in _simular(vol, job["tarefas"], job.get("affine")).items():
                 np.save(d / f"rotulos_{nome}.npy", lab)
                 resultado["tarefas"][nome] = {"classes": {str(k): v for k, v in classes.items()}, "segundos": 0.0}
+                if nome == "synthseg" and job.get("affine") is not None:
+                    # como o de verdade: a grade "de 1 mm" (aqui, a própria série, nos eixos i, j, k)
+                    np.save(d / f"rotulos_{nome}_1mm.npy", np.ascontiguousarray(lab.transpose(2, 1, 0)))
+                    resultado["tarefas"][nome]["afim_1mm"] = job["affine"]
             resultado["versao"] = "simulado"
         else:
             etapa("carregando o TotalSegmentator")
@@ -200,10 +223,12 @@ def main(pasta: str) -> int:
                 etapa(f"{t.get('rotulo', nome)}")
                 t0 = time.time()
                 if nome == "synthseg":                  # 0.99.17: encéfalo pela DIPY (não é do TotalSegmentator)
-                    lab, classes = _synthseg(vol, afim)
+                    lab, classes, lab_1mm, afim_1mm = _synthseg(vol, afim)
                     np.save(d / f"rotulos_{nome}.npy", lab)
+                    np.save(d / f"rotulos_{nome}_1mm.npy", lab_1mm)
                     resultado["tarefas"][nome] = {"classes": {str(k): v for k, v in classes.items()},
-                                                  "segundos": round(time.time() - t0, 1)}
+                                                  "segundos": round(time.time() - t0, 1),
+                                                  "afim_1mm": np.asarray(afim_1mm, float).tolist()}
                     continue
                 kw = dict(task=nome, ml=True, device=job.get("device", "cpu"), quiet=False,
                           nr_thr_resamp=1, nr_thr_saving=1)

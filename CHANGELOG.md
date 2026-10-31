@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.18 — índices do crânio medidos na grade fina do SynthSeg
+- No primeiro caso real (RM de Parkinson só com 2D de 5 mm), o 3º ventrículo saiu com 0,4 mm e o
+  diâmetro do crânio não saiu: a medida era feita na grade da série, onde o 3º ventrículo cabe num
+  corte só. Agora as medidas são feitas na segmentação de 1 mm que o SynthSeg produz de qualquer
+  série; a SEG continua na grade da série.
+- A série preferida não pega mais SWAN, fase, angio, perfusão nem reconstruções (o "3D" da lista
+  tinha escolhido a 3D SWAN).
+
 ## 0.99.17 — índices do crânio automáticos (SynthSeg)
 - No botão **Índices**: **Índices automáticos (IA, SynthSeg)** em RM de qualquer sequência ou TC de
   crânio — índice de Evans, largura do 3º ventrículo (média de três), ângulo calosal e volumes dos

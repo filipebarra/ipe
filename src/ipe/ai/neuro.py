@@ -122,13 +122,16 @@ PADROES = {
     CHAVE_EXAME_CONTEM: "CRANIO|ENCEFALO|CEREBRO|HEAD|BRAIN|PARKINSON|HIDROCEFALIA|DEMENCIA|HIPOCAMPO",
     CHAVE_MODALIDADES: ["MR", "CT"],
     CHAVE_PRIOR_CT: "PARTES MOLES|CEREBRO|BRAIN|STD|AX",
-    CHAVE_PRIOR_MR: "3D T1|T1 3D|FSPGR|MPRAGE|BRAVO|TFE|3D|T1|FLAIR|T2",
+    CHAVE_PRIOR_MR: "3D T1|T1 3D|FSPGR|SPGR|MPRAGE|BRAVO|TFE|3D FLAIR|CUBE|T1|FLAIR|T2",
     CHAVE_ESPESSURA: 0.0,
     CHAVE_MIN_CORTES: MIN_CORTES,
     CHAVE_DESTINOS: [],
 }
 PERFIL = {"modalidades": CHAVE_MODALIDADES, "exame_contem": CHAVE_EXAME_CONTEM, "prior_ct": CHAVE_PRIOR_CT,
-          "prior_mr": CHAVE_PRIOR_MR, "espessura": CHAVE_ESPESSURA, "min_cortes": CHAVE_MIN_CORTES}
+          "prior_mr": CHAVE_PRIOR_MR, "espessura": CHAVE_ESPESSURA, "min_cortes": CHAVE_MIN_CORTES,
+          # 0.99.18: no caso real, o "3D" da lista pegou a 3D SWAN — suscetibilidade, fase e angio não servem
+          "excluir": ("SWAN", "SWI", "PHA", "FASE", "PHASE", "TOF", "ANGIO", "PERF", "ASL", "ESPECTRO", "SPECTRO",
+                      "MPR ", "RECONSTRU")}
 
 
 def config(settings, chave):
@@ -540,3 +543,41 @@ def valores_para_roteiro(res: Resultado) -> dict:
         if m[k].valor is not None:
             out[passo] = [m[k].valor]
     return out
+
+
+# ------------------------------------------------------------------ a grade de 1 mm do SynthSeg (0.99.18)
+def volume_da_grade(lab_ijk: np.ndarray, afim_ras: np.ndarray):
+    """(Volume, rótulos (k,j,i)) da segmentação a 1 mm que o SynthSeg devolve (eixos do mundo, RAS)."""
+    from ipe.imaging.volume import Volume
+    A = np.asarray(afim_ras, float)
+    ras_para_lps = np.diag([-1.0, -1.0, 1.0])
+    origem = ras_para_lps @ A[:3, 3]
+    passos = ras_para_lps @ A[:3, :3]
+    lab = np.ascontiguousarray(np.asarray(lab_ijk).transpose(2, 1, 0))
+    dx, dy = float(np.linalg.norm(passos[:, 0])), float(np.linalg.norm(passos[:, 1]))
+    vol = Volume(lab, origem, passos[:, 0] / dx, passos[:, 1] / dy, passos[:, 2], dx, dy, None, "")
+    return vol, lab
+
+
+def calcular_do_trabalho(trabalho, settings=None) -> Resultado:
+    """As medidas na grade de 1 mm do SynthSeg, quando o trabalhador a devolveu; senão, na da série.
+    A série pode ser sagital de 5 mm (a 2D dos protocolos de Parkinson): nela o 3º ventrículo cabe num
+    corte só e a largura sairia do tamanho de um pixel — foi o que aconteceu no primeiro caso real."""
+    rotulos, _versao, _s = trabalho.ler_rotulos()
+    extra = (getattr(trabalho, "extras", None) or {}).get("synthseg")
+    if extra is not None:
+        vol1, lab1 = volume_da_grade(*extra)
+        res = calcular(vol1, {"synthseg": (lab1, rotulos.get("synthseg", (None, NOMES_SYNTHSEG))[1])}, settings)
+        # a SEG vai na grade da série (a da tela): as estruturas saem de lá
+        lab_serie = _lab(rotulos, trabalho.vol.data.shape)
+        res.estruturas = {}
+        if lab_serie is not None:
+            for cid in ESTRUTURAS:
+                m = lab_serie == cid
+                if m.any():
+                    fat, off = CF._recorte(m)
+                    res.estruturas[cid] = (m[fat], off)
+    else:
+        res = calcular(trabalho.vol, rotulos, settings)
+    res.modalidade = trabalho.modalidade
+    return res

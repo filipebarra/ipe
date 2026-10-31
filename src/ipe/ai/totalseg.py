@@ -361,10 +361,18 @@ class Trabalho:
                              "instalar_segmentacao (ele acrescenta a DIPY e os pesos do SynthSeg).")
             raise Falhou(f"O TotalSegmentator não terminou: {r.get('erro') or 'erro desconhecido'}")
         rotulos = {}
+        self.extras = {}
+        self.versao = r.get("versao", "")
         for nome, info in r["tarefas"].items():
             lab = np.load(self.pasta / f"rotulos_{nome}.npy")
             rotulos[nome] = (lab, {int(k): v for k, v in info["classes"].items()})
+            fino = self.pasta / f"rotulos_{nome}_1mm.npy"
+            if fino.exists() and info.get("afim_1mm"):          # SynthSeg: a segmentação a 1 mm (0.99.18)
+                self.extras[nome] = (np.load(fino), np.asarray(info["afim_1mm"], float))
         return rotulos, r.get("versao", ""), sum(float(i.get("segundos", 0)) for i in r["tarefas"].values())
+
+    extras: dict = field(default_factory=dict)          # tarefa -> (rótulos a 1 mm (i,j,k), afim RAS)
+    versao: str = ""
 
     def limpar(self) -> None:
         if self.pasta is not None:
@@ -441,13 +449,14 @@ def escolher_serie(repo, study_uid: str, settings=None, perfil: dict | None = No
     mods = {m.upper() for m in (ler(settings, perfil["modalidades"]) or [])} & {"CT", "MR"}
     minimo = int(ler(settings, perfil["min_cortes"]) or 0)
     limite = float(ler(settings, perfil["espessura"]) or 0)
+    excluir = tuple(perfil.get("excluir", ()))
     candidatas = []
     for s in repo.series_for_study(study_uid):
         mod = (s.modality or "").upper()
         if mod not in mods:
             continue
         desc = _sem_acento(s.description or "")
-        if "TOTALSEGMENTATOR" in desc or "SYNTHSEG" in desc or any(x in desc for x in _NUNCA):
+        if "TOTALSEGMENTATOR" in desc or "SYNTHSEG" in desc or any(x in desc for x in _NUNCA + excluir):
             continue
         n = len(repo.instances_for_series(s.series_uid))
         if n < max(minimo, min_absoluto):

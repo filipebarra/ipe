@@ -274,9 +274,8 @@ class Segmentacao(QObject):
     def _fim_neuro(self) -> None:
         from ipe.ai import neuro as N
         from ipe.ai import neuro_saida as NS
-        rotulos, versao, _s = self.trabalho.ler_rotulos()
-        res = N.calcular(self.trabalho.vol, rotulos, self.trabalho.settings)
-        res.modalidade = self.trabalho.modalidade
+        res = N.calcular_do_trabalho(self.trabalho, self.trabalho.settings)
+        versao = getattr(self.trabalho, "versao", "")
         saida = NS.gravar(self.trabalho, res, versao, self.repo.db, self.storage, repo=self.repo,
                           settings=self.trabalho.settings)
         saida["neuro"] = res

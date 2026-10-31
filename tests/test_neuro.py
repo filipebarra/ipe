@@ -285,3 +285,102 @@ def test_instalador_acrescenta_a_dipy():
     for arq in ("instalar_segmentacao.bat", "instalar_segmentacao.sh"):
         texto = (raiz / arq).read_text(encoding="utf-8")
         assert "dipy>=1.12" in texto and "synthseg_torch_weights" in texto and "DIPY_HOME" in texto, arq
+
+
+# ------------------------------------------------------------------ 0.99.18: medir na grade de 1 mm do SynthSeg
+def test_grade_de_1mm_vira_volume_em_lps():
+    lab = np.zeros((10, 12, 14), np.uint8)              # (i, j, k) em RAS
+    lab[2, 3, 4] = 14
+    afim = np.eye(4)
+    afim[:3, 3] = [-50.0, -60.0, -70.0]
+    vol, lab_kji = N.volume_da_grade(lab, afim)
+    p = N.pontos(vol, lab_kji == 14)
+    # RAS (−48, −57, −66) → LPS (48, 57, −66)
+    assert p.shape == (1, 3) and np.allclose(p[0], [48.0, 57.0, -66.0])
+
+
+def test_serie_sagital_grossa_mede_na_grade_fina(env, tmp_path):
+    """O primeiro caso real: série sagital de 5 mm — a largura do 3º ventrículo saiu do tamanho de um
+    pixel. Medindo na grade do SynthSeg (aqui simulada pela própria série de 1 mm), sai a de verdade,
+    e a SEG continua na grade da série."""
+    from ipe.ai import totalseg as TS
+    from ipe.imaging.series import FrameCache
+    paths, db, repo = env
+    uid, serie = _exame(env, tmp_path)
+    t = TS.Trabalho(repo, FrameCache(256), None, uid, serie, simular=True)
+    t.tarefas_proprias, t.min_cortes, t.modalidades = N.tarefas, N.MIN_CORTES, ("MR", "CT")
+    t.preparar()
+    try:
+        t.rodar_aqui()
+        r = N.calcular_do_trabalho(t)
+        assert "synthseg" in t.extras and t.versao == "simulado"
+        assert r["v3"].valor == pytest.approx(7.0, abs=0.6) and r["cranio"].valor is not None
+        assert r.modalidade == "MR" and r.estruturas
+        m, off = r.estruturas[N.V3]
+        assert m.ndim == 3 and (np.asarray(off) >= 0).all()
+    finally:
+        t.limpar()
+
+
+def test_serie_preferida_nao_pega_swan():
+    from types import SimpleNamespace
+
+    from ipe.ai import totalseg as TS
+
+    class Repo:
+        def series_for_study(self, _u):
+            return [SimpleNamespace(series_uid="swan", modality="MR", description="3D Ax SWAN"),
+                    SimpleNamespace(series_uid="t1", modality="MR", description="S T1 FLAIR")]
+
+        def instances_for_series(self, uid):
+            return [{"path": ""}] * (74 if uid == "swan" else 25)
+    orig = TS._espessura
+    TS._espessura = lambda *_a: None
+    try:
+        uid, _m = N.escolher_serie(Repo(), "x")
+    finally:
+        TS._espessura = orig
+    assert uid == "t1"
+
+
+def test_geometria_do_synthseg_de_verdade_com_modelo_falso(monkeypatch):
+    """O caminho do trabalhador com a DIPY de verdade (transform_img, inv_pad_crop, recover_img) e um
+    modelo falso que "acerta tudo": a grade de 1 mm e a da série têm de cair no mesmo lugar do paciente.
+    É onde um eixo trocado ou um sinal de RAS/LPS errado passaria despercebido."""
+    dipy_utils = pytest.importorskip("dipy.nn.utils")
+    import sys
+    import types
+
+    from ipe.ai import totalseg as TS
+    from ipe.ai import totalseg_worker as W
+    vol, _r, lab = fantoma()
+    rotulos_ss = np.array(sorted({0, *N.NOMES_SYNTHSEG}))
+
+    class Falso:
+        labels_segmentation = rotulos_ss
+        label_dict = {0: "background", **N.NOMES_SYNTHSEG}
+
+        def predict(self, img, afim, return_prob=False):
+            t, _p = dipy_utils.transform_img(img, afim, target_voxsize=(1.0, 1.0, 1.0),
+                                             final_size=(192, 192, 192), order=0)
+            idx = np.searchsorted(rotulos_ss, np.round(t).astype(int))
+            prob = np.zeros(t.shape + (len(rotulos_ss),), bool)
+            np.put_along_axis(prob, idx[..., None], True, axis=-1)
+            return prob
+
+    mod = types.ModuleType("dipy.nn.torch.synthseg")
+    mod.SynthSeg = Falso
+    monkeypatch.setitem(sys.modules, "dipy.nn.torch.synthseg", mod)
+    afim = TS.afim_ras(vol)
+    serie, classes, lab_1mm, afim_1mm = W._synthseg(lab.astype(np.float32), afim)
+    assert serie.shape == lab.shape and classes[14] == "3rd ventricle"
+    # a da série volta igual (fora o que o cubo de 192 mm cortou)
+    dentro = serie > 0
+    assert (serie[dentro] == lab[dentro]).mean() > 0.99
+    # a de 1 mm, no mesmo lugar do paciente
+    vol1, lab1 = N.volume_da_grade(lab_1mm, afim_1mm)
+    c0 = N.pontos(vol, lab == N.V3).mean(axis=0)
+    c1 = N.pontos(vol1, lab1 == N.V3).mean(axis=0)
+    assert np.allclose(c0, c1, atol=0.6)
+    r = N.calcular(vol1, {"synthseg": (lab1, dict(N.NOMES_SYNTHSEG))})
+    assert r["v3"].valor == pytest.approx(7.0, abs=0.6) and r["cornos"].valor == pytest.approx(37.0, abs=1.0)

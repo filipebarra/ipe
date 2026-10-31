@@ -3,6 +3,10 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.18 — head indices measured on SynthSeg's 1 mm grid
+- Measurements now use SynthSeg's 1 mm segmentation (thick 2D series gave a one-pixel 3rd ventricle);
+  SWAN, phase, angio and perfusion series are no longer picked.
+
 ## 0.99.17 — automatic head indices (SynthSeg)
 - Evans index, 3rd ventricle width, callosal angle and hippocampal/ventricular volumes from SynthSeg
   (DIPY's PyTorch version) on head MR of any sequence or CT, with the same review window; the MRPI 2.0,

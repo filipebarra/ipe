@@ -3,6 +3,10 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.18 — índices del cráneo medidos en la malla de 1 mm de SynthSeg
+- Las medidas usan la segmentación de 1 mm de SynthSeg (las series 2D gruesas daban un 3.er ventrículo
+  de un píxel); ya no se eligen series SWAN, de fase, angio ni perfusión.
+
 ## 0.99.17 — índices del cráneo automáticos (SynthSeg)
 - Índice de Evans, ancho del 3.er ventrículo, ángulo calloso y volúmenes de hipocampos y ventrículos
   con SynthSeg (versión PyTorch de DIPY) en RM de cualquier secuencia o TC, con la misma ventana de
