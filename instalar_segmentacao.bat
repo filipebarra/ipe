@@ -42,6 +42,17 @@ if exist "%VENV%\Scripts\python.exe" (
   )
 )
 
+rem ambiente incompleto (instalacao interrompida, ou apagado pela metade): apaga antes de refazer
+if exist "%VENV%" if not exist "%VENV%\Scripts\python.exe" (
+  echo O ambiente que existia estava incompleto: apagando e refazendo.
+  rmdir /s /q "%VENV%" 2>nul
+  if exist "%VENV%" (
+    echo [ERRO] Nao consegui apagar %VENV%
+    echo        Feche o Ipe ^(e qualquer segmentacao em andamento^), apague essa pasta e rode de novo.
+    goto :fim
+  )
+)
+
 if not exist "%VENV%\Scripts\python.exe" (
   if defined PYEXE (
     echo Python encontrado:
@@ -124,5 +135,5 @@ if not defined UVEXE (
   goto :eof
 )
 set "UV_PYTHON_INSTALL_DIR=%BASE%\python"
-"%UVEXE%" venv --python 3.12 --seed "%VENV%"
+"%UVEXE%" venv --clear --python 3.12 --seed "%VENV%"
 goto :eof
