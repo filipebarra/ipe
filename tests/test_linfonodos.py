@@ -18,7 +18,8 @@ Z = np.arange(220, -1, -1)
 
 #: estrutura -> (código no fantoma, caixas [(x0, x1, y0, y1, z0, z1)] do lado esquerdo; o direito é o espelho)
 CAIXAS = {
-    "skull": (14, [(-80, 80, -60, 80, 200, 220)], False),
+    # o "skull" do TotalSegmentator pode trazer a mandíbula (caso real): uma "mandíbula" logo acima do hioide
+    "skull": (14, [(-80, 80, -60, 80, 200, 220), (-40, 40, -58, -45, 128, 140)], False),
     "hyoid": (1, [(-15, 15, -20, -12, 120, 124)], False),
     "thyroid_cartilage": (3, [(-15, 15, -25, -15, 95, 115)], False),
     "cricoid_cartilage": (2, [(-12, 12, -20, -5, 80, 86)], False),
@@ -33,8 +34,8 @@ CAIXAS = {
     "common_carotid_artery_right": (19, [(-31, -25, 0, 6, 30, 110)], False),
     "internal_carotid_artery_left": (5, [(27, 33, 3, 9, 111, 195)], False),
     "internal_carotid_artery_right": (4, [(-33, -27, 3, 9, 111, 195)], False),
-    "internal_jugular_vein_left": (7, [(35, 45, 2, 12, 30, 195)], False),
-    "internal_jugular_vein_right": (6, [(-45, -35, 2, 12, 30, 195)], False),
+    "internal_jugular_vein_left": (7, [(35, 45, 2, 12, 30, 200)], False),
+    "internal_jugular_vein_right": (6, [(-45, -35, 2, 12, 30, 200)], False),
     "sternocleidomastoid_left": (9, [(46, 60, -10, 25, 40, 190)], False),
     "sternocleidomastoid_right": (8, [(-60, -46, -10, 25, 40, 190)], False),
 }
@@ -235,3 +236,14 @@ def test_instalador_baixa_os_musculos_do_pescoco():
     raiz = Path(__file__).resolve().parent.parent
     for arq in ("instalar_segmentacao.bat", "instalar_segmentacao.sh"):
         assert "headneck_muscles" in (raiz / arq).read_text(encoding="utf-8"), arq
+
+
+def test_base_do_cranio_sem_jugulares_ignora_a_mandibula():
+    vol, rot = fantoma()
+    lab, cl = rot["headneck_bones_vessels"]
+    lab = lab.copy()
+    for cid in (9, 10, 11, 12):                  # sem carótidas internas nem jugulares
+        lab[lab == cid] = 0
+    rot["headneck_bones_vessels"] = (lab, cl)
+    m = L.marcos(vol, rot)
+    assert m.z_cranio == pytest.approx(200, abs=0.6) and any("base do crânio" in a for a in m.avisos)

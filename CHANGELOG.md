@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.21 — níveis linfonodais: base do crânio pelas jugulares
+- No primeiro caso real (TC de pescoço, tórax e abdome de 15/09), a base do crânio saiu 9 mm acima
+  do hioide: o "crânio" do TotalSegmentator traz a mandíbula. Agora a base do crânio (limite de cima
+  dos níveis II e V) é o topo das jugulares internas (forame jugular) ou das carótidas internas; só sem
+  elas usa o crânio, e só a parte de trás. Refaça o mapa desse exame.
+
 ## 0.99.20 — níveis linfonodais cervicais
 - Botão **Linfonodos** (TC de pescoço): o TotalSegmentator acha os marcos (base do crânio, hioide,
   cricoide, manúbrio, clavículas, submandibulares, digástricos, carótidas, jugulares e

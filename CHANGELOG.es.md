@@ -3,6 +3,10 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.21 — niveles ganglionares: base del cráneo por las yugulares
+- La base del cráneo (límite superior de los niveles II y V) sale del borde superior de las yugulares
+  internas o de las carótidas internas; el cráneo de TotalSegmentator incluye la mandíbula.
+
 ## 0.99.20 — niveles ganglionares cervicales
 - Mapa de los niveles ganglionares (I–VII, derecho/izquierdo) en la TC de cuello con los reparos de
   TotalSegmentator y las reglas de imagen del estadiaje, rotulado en cualquier plano; la lesión

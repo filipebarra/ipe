@@ -3,6 +3,10 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.21 — lymph node levels: skull base from the jugular veins
+- The skull base (top of levels II and V) now comes from the top of the internal jugular veins or
+  internal carotids; TotalSegmentator's skull includes the mandible.
+
 ## 0.99.20 — cervical lymph node levels
 - Lymph node level map (I–VII, right/left) on neck CT from TotalSegmentator landmarks and the imaging
   rules of staging, labeled in any plane; a lesion segmented with the Segment tool gets its level.

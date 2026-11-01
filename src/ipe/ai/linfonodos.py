@@ -208,9 +208,23 @@ def marcos(vol, rotulos: dict) -> Marcos:
         m.z_cricoide = float(P["cricoid_cartilage"][:, 2].min())
     else:
         m.avisos.append("cricoide não segmentada")
-    if "skull" in P:
-        sk = P["skull"][np.abs(P["skull"][:, 0] - xm) <= 50]
-        m.z_cranio = float((sk if len(sk) else P["skull"])[:, 2].min())
+    # base do crânio (0.99.21): no primeiro caso real o "skull" do TotalSegmentator trouxe a mandíbula, e o
+    # mínimo dele caiu 9 mm acima do hioide — o nível II quase sumiu. O topo das jugulares internas (forame
+    # jugular) e das carótidas internas (canal carotídeo) é a base do crânio que interessa ao nível II.
+    topos = [float(P[n][:, 2].max()) for n in ("internal_jugular_vein_left", "internal_jugular_vein_right")
+             if n in P]
+    if not topos:
+        topos = [float(P[n][:, 2].max()) for n in ("internal_carotid_artery_left", "internal_carotid_artery_right")
+                 if n in P]
+    if topos:
+        m.z_cranio = float(np.mean(topos))
+    elif "skull" in P:
+        sk = P["skull"]
+        if "hyoid" in P:                                   # só a parte de trás (occipital, mastoide): sem a mandíbula
+            sk = sk[sk[:, 1] > float(np.median(P["hyoid"][:, 1])) + 20]
+        if len(sk):
+            m.z_cranio = float(sk[:, 2].min())
+            m.avisos.append("base do crânio estimada pelo crânio (sem as jugulares)")
     if "sternum" in P:
         m.z_manubrio = float(P["sternum"][:, 2].max())
     for lado, sufixo in (("D", "right"), ("E", "left")):
