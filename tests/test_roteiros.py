@@ -132,3 +132,44 @@ def test_aplicacao_indices_aparece_no_cranio():
     from ipe.ui.viewer import aplicacoes as AP
     assert AP.avaliar(AP.APLICACOES["indices"], AP.Contexto({"MR"}, {"cranio"}, set()))[0]
     assert not AP.avaliar(AP.APLICACOES["indices"], AP.Contexto({"MR"}, {"mama"}, set()))[0]
+
+
+# ------------------------------------------------------------------ 0.99.19: bulbos olfatórios (planimetria)
+def test_bulbos_somam_os_cortes_e_trocam_o_mesmo_corte():
+    a = R.Andamento(R.BULBOS)
+    d, e = R.BULBOS.passos[0], R.BULBOS.passos[1]
+    a.registrar(d, 10 * 2.0, chave=("s", 1))
+    a.registrar(d, 12 * 2.0, chave=("s", 2))
+    a.registrar(d, 15 * 2.0, chave=("s", 1))          # refez o corte 1: troca
+    assert a.valores["bulbo_d"] == [30.0, 24.0]
+    a.registrar(e, 50.0, chave=("s", 5))
+    assert a.pronto() and a.proximo().id == "sulco_d"
+    res = {r.nome: r.valor for r in a.resultados()}
+    assert res["Volume do bulbo olfatório direito"] == pytest.approx(54.0)
+    assert res["Volume dos bulbos olfatórios (soma)"] == pytest.approx(104.0)
+    a.registrar(R.BULBOS.passos[2], 6.5)
+    t = R.texto_do_laudo(a)
+    assert "Volume do bulbo olfatório direito: 54 mm³." in t and "sulco olfatório direito: 6,5 mm" in t
+    assert "8 mm" in t
+
+
+def test_painel_planimetria_area_vezes_distancia(aba):
+    app, w, tab = aba
+    painel = tab.abrir_roteiro("bulbos")
+    vp = tab.viewports[0]
+    assert tab.left_tool == "polygon"
+    from ipe.ui.viewer.roteiro_painel import distancia_entre_cortes
+    dz = distancia_entre_cortes(vp)
+    assert dz and dz > 0
+    sp = vp.measure_spacing() or (1.0, 1.0)
+    lado = 5.0 / sp[1]                                    # quadrado de 5 mm × 5 mm (se o pixel for quadrado)
+    _medir(vp, "polygon", [(10, 10), (10 + lado, 10), (10 + lado, 10 + lado), (10, 10 + lado)])
+    v1 = painel.andamento.valores["bulbo_d"][0]
+    assert v1 == pytest.approx(25.0 * dz * (sp[1] / sp[0]) ** 0, rel=0.1)
+    assert painel.passo_atual().id == "bulbo_d"            # continua no mesmo passo (vários cortes)
+    vp.go_to(min(vp.index + 1, len(vp.frames) - 1))
+    _medir(vp, "polygon", [(10, 10), (10 + lado, 10), (10 + lado, 10 + lado), (10, 10 + lado)])
+    assert len(painel.andamento.valores["bulbo_d"]) == 2
+    _medir(vp, "polygon", [(10, 10), (10 + 2 * lado, 10), (10 + 2 * lado, 10 + lado), (10, 10 + lado)])
+    assert len(painel.andamento.valores["bulbo_d"]) == 2       # o mesmo corte: troca
+    assert "mm³ (2 cortes)" in painel.lista.item(0).text()

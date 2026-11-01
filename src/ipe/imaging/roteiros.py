@@ -43,10 +43,13 @@ class Passo:
     opcional: bool = False
     max_vezes: int = 0               # aceita até N (média): 2 = lado direito e esquerdo
     aceita_obliquo: bool = False     # o oblíquo próximo do plano pedido é o certo (pedúnculo superior)
+    #: planimetria (Cavalieri, 0.99.19): cada contorno é um corte; o valor guardado é área × distância
+    #: entre os cortes (mm³) e o passo soma. Contorno de novo no mesmo corte troca o anterior.
+    acumula: bool = False
 
     @property
     def limite(self) -> int:
-        return max(self.vezes, self.max_vezes)
+        return 10_000 if self.acumula else max(self.vezes, self.max_vezes)
 
 
 @dataclass(frozen=True)
@@ -189,7 +192,51 @@ CALOSAL = Roteiro(
     descricao="Ângulo entre os ventrículos laterais no coronal da comissura posterior",
 )
 
-ROTEIROS: dict[str, Roteiro] = {r.id: r for r in (MRPI, EVANS, CALOSAL)}
+# ------------------------------------------------------------------ bulbos olfatórios (0.99.19)
+def soma(valores) -> float | None:
+    v = [float(x) for x in (valores or []) if x is not None]
+    return sum(v) if v else None
+
+
+def _bulbos(valores: dict) -> list:
+    d, e = soma(valores.get("bulbo_d")), soma(valores.get("bulbo_e"))
+    total = d + e if d is not None and e is not None else None
+    out = [Resultado("Volume do bulbo olfatório direito", d, "mm³", casas=0),
+           Resultado("Volume do bulbo olfatório esquerdo", e, "mm³", casas=0),
+           Resultado("Volume dos bulbos olfatórios (soma)", total, "mm³", casas=0)]
+    sd, se = media(valores.get("sulco_d")), media(valores.get("sulco_e"))
+    ref = "abaixo de 8 mm sugere hipoplasia ou aplasia do bulbo (Huart et al., 2011)"
+    if sd is not None:
+        out.append(Resultado("Profundidade do sulco olfatório direito", sd, "mm", ref, casas=1))
+    if se is not None:
+        out.append(Resultado("Profundidade do sulco olfatório esquerdo", se, "mm", ref, casas=1))
+    return out
+
+
+BULBOS = Roteiro(
+    "bulbos", "Bulbos olfatórios",
+    (
+        Passo("bulbo_d", "Bulbo olfatório direito", "polygon", "Coronal",
+              "No coronal T2 fino, contorne o bulbo direito em cada corte, da ponta anterior até onde ele afina "
+              "de repente e vira o trato olfatório. Cada contorno é um corte; o volume é a soma das áreas × a "
+              "distância entre os cortes (Cavalieri). Contorno de novo no mesmo corte troca o anterior. Ao "
+              "terminar, Próximo passo.", acumula=True),
+        Passo("bulbo_e", "Bulbo olfatório esquerdo", "polygon", "Coronal",
+              "O mesmo para o bulbo esquerdo.", acumula=True),
+        Passo("sulco_d", "Sulco olfatório direito", "measure", "Coronal",
+              "No coronal do plano tangente à parte posterior dos globos oculares, meça a profundidade do sulco "
+              "olfatório: da linha tangente aos giros reto e orbitário medial até o fundo do sulco.",
+              opcional=True),
+        Passo("sulco_e", "Sulco olfatório esquerdo", "measure", "Coronal",
+              "O mesmo do lado esquerdo.", opcional=True),
+    ),
+    _bulbos,
+    descricao="Volume dos bulbos olfatórios por planimetria (Cavalieri) no coronal T2 e profundidade do sulco "
+              "olfatório",
+    fonte="Buschhüter et al., NeuroImage 2008 (volumes por idade); Huart et al., 2011 (sulco olfatório)",
+)
+
+ROTEIROS: dict[str, Roteiro] = {r.id: r for r in (MRPI, EVANS, CALOSAL, BULBOS)}
 
 
 # ------------------------------------------------------------------ andamento de um roteiro
@@ -199,6 +246,7 @@ class Andamento:
     roteiro: Roteiro
     valores: dict = field(default_factory=dict)
     avisos: dict = field(default_factory=dict)          # passo -> [texto]
+    chaves: dict = field(default_factory=dict)          # passo -> [corte de cada valor] (planimetria)
 
     def feitas(self, passo: Passo) -> int:
         return len(self.valores.get(passo.id, []))
@@ -215,11 +263,17 @@ class Andamento:
                 return p
         return None
 
-    def registrar(self, passo: Passo, valor: float, avisos: list | None = None) -> None:
+    def registrar(self, passo: Passo, valor: float, avisos: list | None = None, chave=None) -> None:
         lista = self.valores.setdefault(passo.id, [])
-        if len(lista) >= passo.limite:
-            lista.pop(0)                              # refazer: a mais antiga sai
-        lista.append(float(valor))
+        chs = self.chaves.setdefault(passo.id, [None] * len(lista))
+        if chave is not None and chave in chs:            # o mesmo corte de novo: troca
+            lista[chs.index(chave)] = float(valor)
+        else:
+            if len(lista) >= passo.limite:
+                lista.pop(0)                              # refazer: a mais antiga sai
+                chs.pop(0)
+            lista.append(float(valor))
+            chs.append(chave)
         if avisos:
             self.avisos.setdefault(passo.id, [])
             for a in avisos:
@@ -228,6 +282,7 @@ class Andamento:
 
     def apagar(self, passo: Passo) -> None:
         self.valores.pop(passo.id, None)
+        self.chaves.pop(passo.id, None)
         self.avisos.pop(passo.id, None)
 
     def pronto(self) -> bool:

@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.19 — bulbos olfatórios
+- Novo roteiro em **Índices**: **Bulbos olfatórios**. Contorne o bulbo direito e o esquerdo em cada
+  corte coronal T2; o volume é a soma das áreas × a distância entre os cortes (Cavalieri), em mm³.
+  Contornar de novo o mesmo corte troca o anterior. Opcional: profundidade do sulco olfatório
+  (abaixo de 8 mm sugere hipoplasia ou aplasia — Huart et al., 2011).
+- Aviso quando os cortes estão a mais de 3 mm (volume pouco preciso para o bulbo).
+- Sem automático: o modelo de IA de bulbo olfatório (Deep-MI) não tem licença publicada e pede T2 de
+  0,8 mm do encéfalo inteiro.
+
 ## 0.99.18 — índices do crânio medidos na grade fina do SynthSeg
 - No primeiro caso real (RM de Parkinson só com 2D de 5 mm), o 3º ventrículo saiu com 0,4 mm e o
   diâmetro do crânio não saiu: a medida era feita na grade da série, onde o 3º ventrículo cabe num

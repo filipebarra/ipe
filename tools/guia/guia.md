@@ -1009,6 +1009,7 @@ Roteiros de fábrica:
 | MRPI e MRPI 2.0 | áreas da ponte e do mesencéfalo (sagital mediano), pedúnculo cerebelar médio (sagital) e superior (coronal oblíquo), e, para o 2.0, o 3º ventrículo (três medidas) e os cornos frontais (axial AC-PC) | MRPI = (ponte ÷ mesencéfalo) × (PCM ÷ PCS); MRPI 2.0 = MRPI × (3º ventrículo ÷ cornos frontais) |
 | Índice de Evans | cornos frontais e diâmetro interno do crânio, no mesmo axial | cornos ÷ crânio |
 | Ângulo calosal | ângulo no coronal perpendicular ao AC-PC, na comissura posterior | — |
+| Bulbos olfatórios | contorno do bulbo direito e do esquerdo em cada corte coronal T2 (planimetria) e, opcional, a profundidade do sulco olfatório no plano tangente à parte posterior dos globos | volume = soma das áreas × distância entre os cortes (Cavalieri), em mm³; contorno de novo no mesmo corte troca o anterior |
 
 O plano e a espessura do corte são conferidos e viram **observação** ao lado do número, não recusa: medida num plano diferente do pedido, ou em corte acima de 3 mm, aparece com ⚠. Em exames com série 3D, use o MPR para chegar ao plano certo. Os valores de referência aparecem como texto ao lado do número, com a fonte — o programa não classifica. **Copiar o texto** e **Mandar para o laudo** levam o resultado no formato de lista, com as referências entre parênteses.
 

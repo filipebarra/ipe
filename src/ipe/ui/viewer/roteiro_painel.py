@@ -45,6 +45,20 @@ def espessura_do_quadro(vp) -> float | None:
         return None
 
 
+def distancia_entre_cortes(vp) -> float | None:
+    """mm entre o corte atual e o vizinho (posições do arquivo ou da reconstrução), ou None."""
+    import numpy as np
+    fr = getattr(vp, "frames", None) or []
+    i = getattr(vp, "index", 0)
+    if len(fr) < 2 or fr[0].position is None or fr[0].normal is None:
+        return None
+    j = i + 1 if i + 1 < len(fr) else i - 1
+    if fr[j].position is None or fr[i].position is None:
+        return None
+    d = abs(float((np.asarray(fr[j].position) - np.asarray(fr[i].position)) @ np.asarray(fr[0].normal)))
+    return d if d > 0 else None
+
+
 class RoteiroPainel(QDialog):
     def __init__(self, tab, roteiro_id: str = "mrpi", parent=None):
         super().__init__(parent or tab)
@@ -151,7 +165,10 @@ class RoteiroPainel(QDialog):
             feitas = a.feitas(p)
             vals = a.valores.get(p.id, [])
             unid = R.UNIDADE.get(p.ferramenta, "")
-            if vals:
+            if vals and p.acumula:
+                txt = f"{R.soma(vals):.0f} mm³ ({len(vals)} {'corte' if len(vals) == 1 else 'cortes'})"
+                marca = "✓"
+            elif vals:
                 m = R.media(vals)
                 txt = f"{m:.1f}".replace(".", ",") + f" {unid}"
                 if len(vals) > 1:
@@ -238,15 +255,29 @@ class RoteiroPainel(QDialog):
         valor = valor_da_anotacao(vp, ann)
         if valor is None or valor <= 0:
             return
+        extra, chave = [], None
+        if p.acumula:                          # planimetria: área × distância entre os cortes (0.99.19)
+            passo_mm = distancia_entre_cortes(vp)
+            if passo_mm is None:
+                passo_mm = espessura_do_quadro(vp) or 1.0
+                extra.append("distância entre os cortes desconhecida: usada a espessura")
+            elif passo_mm > 3.0:
+                extra.append(f"cortes a cada {passo_mm:.1f} mm: volume pouco preciso para uma estrutura tão "
+                             "pequena")
+            valor = valor * passo_mm
+            chave = (getattr(vp, "series_uid", ""), getattr(vp, "index", 0),
+                     vp.plano_nome() if hasattr(vp, "plano_nome") else "")
         self.registrar(p, valor, vp.plano_nome() if hasattr(vp, "plano_nome") else "",
-                       espessura_do_quadro(vp), sem_escala=vp.measure_spacing(ann) is None)
+                       espessura_do_quadro(vp), sem_escala=vp.measure_spacing(ann) is None, extra=extra,
+                       chave=chave)
 
     def registrar(self, p: R.Passo, valor: float, plano: str = "", espessura: float | None = None,
-                  sem_escala: bool = False) -> None:
+                  sem_escala: bool = False, extra: list | None = None, chave=None) -> None:
         avisos = R.avisos_da_medida(p, plano, espessura)
         if sem_escala:
             avisos.append("imagem sem escala: valor em pixels")
-        self.andamento.registrar(p, valor, avisos)
+        avisos += list(extra or [])
+        self.andamento.registrar(p, valor, avisos, chave=chave)
         if self.andamento.feitas(p) >= p.limite:
             prox = self.andamento.proximo()
             self.esperando = None

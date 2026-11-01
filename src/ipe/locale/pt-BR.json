@@ -4060,7 +4060,26 @@
   "Índices do crânio (IA)",
   "Índices do crânio (SynthSeg)…",
   "Índices do crânio automáticos — conferência",
-  "Índices do crânio — Evans, 3º ventrículo, ângulo calosal e volumes (SynthSeg)"
+  "Índices do crânio — Evans, 3º ventrículo, ângulo calosal e volumes (SynthSeg)",
+  "Bulbo olfatório direito",
+  "Bulbo olfatório esquerdo",
+  "Bulbos olfatórios",
+  "Buschhüter et al., NeuroImage 2008 (volumes por idade); Huart et al., 2011 (sulco olfatório)",
+  "No coronal T2 fino, contorne o bulbo direito em cada corte, da ponta anterior até onde ele afina de repente e vira o trato olfatório. Cada contorno é um corte; o volume é a soma das áreas × a distância entre os cortes (Cavalieri). Contorno de novo no mesmo corte troca o anterior. Ao terminar, Próximo passo.",
+  "No coronal do plano tangente à parte posterior dos globos oculares, meça a profundidade do sulco olfatório: da linha tangente aos giros reto e orbitário medial até o fundo do sulco.",
+  "O mesmo para o bulbo esquerdo.",
+  "Profundidade do sulco olfatório direito",
+  "Profundidade do sulco olfatório esquerdo",
+  "Sulco olfatório direito",
+  "Sulco olfatório esquerdo",
+  "Volume do bulbo olfatório direito",
+  "Volume do bulbo olfatório esquerdo",
+  "Volume dos bulbos olfatórios (soma)",
+  "Volume dos bulbos olfatórios por planimetria (Cavalieri) no coronal T2 e profundidade do sulco olfatório",
+  "abaixo de 8 mm sugere hipoplasia ou aplasia do bulbo (Huart et al., 2011)",
+  "distância entre os cortes desconhecida: usada a espessura",
+  "corte",
+  "cortes"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -5065,6 +5084,8 @@
   "Índices do crânio: conferência {}",
   "Encéfalo {}",
   "Evans {}",
-  "ângulo calosal {}"
+  "ângulo calosal {}",
+  "cortes a cada {} mm: volume pouco preciso para uma estrutura tão pequena",
+  "{} mm³ ({} {})"
  ]
 }

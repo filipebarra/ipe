@@ -3,6 +3,10 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.19 — olfactory bulbs
+- New guided measurement: olfactory bulb volume by planimetry (Cavalieri) on coronal T2, and
+  olfactory sulcus depth.
+
 ## 0.99.18 — head indices measured on SynthSeg's 1 mm grid
 - Measurements now use SynthSeg's 1 mm segmentation (thick 2D series gave a one-pixel 3rd ventricle);
   SWAN, phase, angio and perfusion series are no longer picked.
