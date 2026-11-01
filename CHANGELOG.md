@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.20 — níveis linfonodais cervicais
+- Botão **Linfonodos** (TC de pescoço): o TotalSegmentator acha os marcos (base do crânio, hioide,
+  cricoide, manúbrio, clavículas, submandibulares, digástricos, carótidas, jugulares e
+  esternocleidomastóideos — tarefas abertas) e o Ipê monta o mapa dos níveis I a VII, direito e
+  esquerdo, pelas regras de imagem do estadiamento. O rótulo de cada nível aparece em qualquer plano.
+- A lesão segmentada com a ferramenta Segmentar ganha o nível sozinha ("Linfonodo IIA E") e a regra
+  que o decidiu.
+- CAD/IA: automático na chegada. O mapa e os marcos ficam na SEG do exame e voltam ao reabrir.
+- O instalar_segmentacao baixa também o modelo dos músculos do pescoço (headneck_muscles).
+
 ## 0.99.19 — bulbos olfatórios
 - Novo roteiro em **Índices**: **Bulbos olfatórios**. Contorne o bulbo direito e o esquerdo em cada
   corte coronal T2; o volume é a soma das áreas × a distância entre os cortes (Cavalieri), em mm³.

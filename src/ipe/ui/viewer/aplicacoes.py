@@ -177,6 +177,8 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
     Aplicacao("mn", "MN", frozenset({"NM"}), modulo="mn", descricao="Medicina nuclear"),
     Aplicacao("indices", "Índices", frozenset({"MR", "CT"}), ((frozenset({"cranio"}), frozenset()),),
               descricao="Medidas guiadas: MRPI e MRPI 2.0, índice de Evans, ângulo calosal"),
+    Aplicacao("linfonodos", "Linfonodos", frozenset({"CT"}), ((frozenset({"pescoco"}), frozenset()),),
+              descricao="Mapa dos níveis linfonodais cervicais (I a VII) e o nível da lesão segmentada"),
     Aplicacao("cefalometria", "Cefalometria", frozenset({"CT"}),
               ((frozenset({"face", "pescoco"}), frozenset()),),
               descricao="Cefalometria do cavum: via aérea, palato mole, língua e hioide (automática ou à mão)"),

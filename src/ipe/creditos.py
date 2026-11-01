@@ -78,7 +78,8 @@ CREDITOS: tuple[Credito, ...] = (
     # ------------------------------------------------------------------ inteligência artificial
     Credito("TotalSegmentator", "segmentação de órgãos abdominais, vértebras e discos (TC e RM) e das "
             "estruturas da cefalometria — palato, faringe, hioide, mandíbula e língua (TC; tarefas abertas "
-            "head_glands_cavities, headneck_bones_vessels, craniofacial_structures e head_muscles)",
+            "head_glands_cavities, headneck_bones_vessels, craniofacial_structures, head_muscles e "
+            "headneck_muscles) e dos marcos dos níveis linfonodais cervicais",
             "Apache-2.0 (algumas tarefas pedem licença, gratuita para uso não comercial)",
             "https://github.com/wasserth/TotalSegmentator", onde="segmentação",
             citacao="Wasserthal J, et al. TotalSegmentator: robust segmentation of 104 anatomic "

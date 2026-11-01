@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from ipe.ai import cefalometria as CF
 from ipe.ai import coluna as COL
+from ipe.ai import linfonodos as LN
 from ipe.ai import neuro as NE
 from ipe.ai import totalseg as TS
 from ipe.automation import implante as IMP
@@ -59,7 +60,8 @@ class CadIaTab(QWidget):
                    ("Níveis da coluna", "_grupo_coluna", COL.CHAVE_AUTO),
                    ("Implante de silicone", "_grupo_implante", IMP.CHAVE),
                    ("Cefalometria do cavum", "_grupo_cefalometria", CF.CHAVE_AUTO),
-                   ("Índices do crânio", "_grupo_neuro", NE.CHAVE_AUTO))
+                   ("Índices do crânio", "_grupo_neuro", NE.CHAVE_AUTO),
+                   ("Níveis linfonodais", "_grupo_linfonodos", LN.CHAVE_AUTO))
 
     def __init__(self, settings, repo=None, parent=None):
         """Como a aba Mamografia (0.99.1): as ferramentas à esquerda, as configurações à direita."""
@@ -110,7 +112,7 @@ class CadIaTab(QWidget):
             self.l_ferramentas.item(k).setText(f"{nome}\n   {'automático na chegada' if auto else 'só à mão'}")
 
     def _caixas_auto(self) -> list:
-        return [self.c_seg_auto, self.c_col_auto, self.c_imp_auto, self.c_cef_auto, self.c_neu_auto]
+        return [self.c_seg_auto, self.c_col_auto, self.c_imp_auto, self.c_cef_auto, self.c_neu_auto, self.c_lin_auto]
 
     def mostrar(self, nome: str) -> None:
         for k, (n, _c, _ch) in enumerate(self.FERRAMENTAS):
@@ -388,6 +390,52 @@ class CadIaTab(QWidget):
         f.addRow("Depois de fazer, enviar para:", self.l_neu_dest)
         return g
 
+    # ------------------------------------------------------------ níveis linfonodais (0.99.20)
+    def _grupo_linfonodos(self) -> QGroupBox:
+        g = QGroupBox("Níveis linfonodais cervicais — mapa I a VII na TC (TotalSegmentator)")
+        f = QFormLayout(g)
+        cfg = lambda k: LN.config(self.settings, k)      # noqa: E731
+        expl = QLabel("Na TC do pescoço: acha os marcos (base do crânio, hioide, cricoide, manúbrio, clavículas, "
+                      "submandibulares, digástricos, carótidas, jugulares e esternocleidomastóideos) e monta o mapa "
+                      "dos níveis I a VII, direito e esquerdo, com o rótulo em qualquer plano. Uma lesão segmentada "
+                      "com a ferramenta Segmentar ganha o nível sozinha. Usa a mesma instalação da segmentação.")
+        expl.setWordWrap(True)
+        expl.setStyleSheet("color: gray")
+        f.addRow(expl)
+        self.c_lin_auto = QCheckBox("Fazer automaticamente quando o exame chegar (só TC)")
+        self.c_lin_auto.setChecked(bool(cfg(LN.CHAVE_AUTO)))
+        f.addRow(self.c_lin_auto)
+        self.e_lin_exame = QLineEdit(str(cfg(LN.CHAVE_EXAME_CONTEM) or ""))
+        self.e_lin_exame.setPlaceholderText("vazio = qualquer TC; ex.: PESCOCO|CERVICAL|LARINGE")
+        self.e_lin_exame.setToolTip("Pedaços da descrição do exame, separados por |, sem diferença de acento ou "
+                                    "maiúscula. Vale para o automático.")
+        f.addRow("Descrição do exame contém:", self.e_lin_exame)
+        self.e_lin_ct = QLineEdit(str(cfg(LN.CHAVE_PRIOR_CT) or ""))
+        self.e_lin_ct.setToolTip("Séries em ordem de preferência, separadas por |: vale a primeira que aparecer na "
+                                 "descrição da série; entre iguais, a de mais cortes.")
+        f.addRow("Série preferida na TC:", self.e_lin_ct)
+        lf = QHBoxLayout()
+        self.s_lin_esp = QDoubleSpinBox()
+        self.s_lin_esp.setRange(0, 20)
+        self.s_lin_esp.setDecimals(2)
+        self.s_lin_esp.setSuffix(" mm")
+        self.s_lin_esp.setSpecialValueText("sem limite")
+        self.s_lin_esp.setValue(float(cfg(LN.CHAVE_ESPESSURA) or 0))
+        self.s_lin_min = QSpinBox()
+        self.s_lin_min.setRange(LN.MIN_CORTES, 2000)
+        self.s_lin_min.setValue(int(cfg(LN.CHAVE_MIN_CORTES) or LN.MIN_CORTES))
+        lf.addWidget(QLabel("espessura até"))
+        lf.addWidget(self.s_lin_esp)
+        lf.addWidget(QLabel("  mínimo de"))
+        lf.addWidget(self.s_lin_min)
+        lf.addWidget(QLabel("cortes"))
+        lf.addStretch(1)
+        f.addRow("Filtros da série:", lf)
+        self.l_lin_dest = _lista_de_nos(self.repo, cfg(LN.CHAVE_DESTINOS))
+        self.l_lin_dest.setToolTip("A série “Níveis linfonodais” vai para os nós marcados depois de feita.")
+        f.addRow("Depois de fazer, enviar para:", self.l_lin_dest)
+        return g
+
     # ------------------------------------------------------------ implante
     def _grupo_implante(self) -> QGroupBox:
         g = QGroupBox("Implante de silicone (mamografia)")
@@ -466,6 +514,12 @@ class CadIaTab(QWidget):
         s.set(NE.CHAVE_ESPESSURA, round(self.s_neu_esp.value(), 2))
         s.set(NE.CHAVE_MIN_CORTES, self.s_neu_min.value())
         s.set(NE.CHAVE_DESTINOS, _marcados(self.l_neu_dest))
+        s.set(LN.CHAVE_AUTO, self.c_lin_auto.isChecked())
+        s.set(LN.CHAVE_EXAME_CONTEM, self.e_lin_exame.text().strip())
+        s.set(LN.CHAVE_PRIOR_CT, self.e_lin_ct.text().strip())
+        s.set(LN.CHAVE_ESPESSURA, round(self.s_lin_esp.value(), 2))
+        s.set(LN.CHAVE_MIN_CORTES, self.s_lin_min.value())
+        s.set(LN.CHAVE_DESTINOS, _marcados(self.l_lin_dest))
         s.set(IMP.CHAVE, self.c_imp_auto.isChecked())
         s.set(IMP.CHAVE_ANTERIORES, self.c_imp_ant.isChecked())
         s.set(IMP.CHAVE_SO_COM_MARCA, self.r_imp_marca.isChecked())

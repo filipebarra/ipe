@@ -43,6 +43,19 @@ NOMES_SYNTHSEG = {
 }
 
 
+#: fantoma dos níveis linfonodais: tarefa -> {id da classe: (código, nome)}
+LINFO_SIM = {
+    "headneck_bones_vessels": {3: (1, "hyoid"), 4: (2, "cricoid_cartilage"), 2: (3, "thyroid_cartilage"),
+                               9: (4, "internal_carotid_artery_right"), 10: (5, "internal_carotid_artery_left"),
+                               11: (6, "internal_jugular_vein_right"), 12: (7, "internal_jugular_vein_left")},
+    "headneck_muscles": {1: (8, "sternocleidomastoid_right"), 2: (9, "sternocleidomastoid_left")},
+    "head_glands_cavities": {9: (10, "submandibular_gland_right"), 10: (11, "submandibular_gland_left")},
+    "head_muscles": {10: (12, "digastric_right"), 11: (13, "digastric_left")},
+    "total": {1: (14, "skull"), 2: (15, "sternum"), 3: (16, "clavicula_left"), 4: (17, "clavicula_right"),
+              5: (18, "common_carotid_artery_left"), 6: (19, "common_carotid_artery_right")},
+}
+
+
 def _recorte_da_cabeca(dados, afim):
     """O SynthSeg trabalha num cubo de 192 mm: com o pescoço na série, o alto da cabeça poderia ficar
     de fora. Recorta a cabeça (o que é mais claro que o fundo) e, no eixo crânio-caudal, os 200 mm de
@@ -111,6 +124,13 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
     for t in tarefas:
         nome = t["nome"]
         lab = np.zeros(vol.shape, np.uint8)
+        if t.get("linfo"):
+            # fantoma dos níveis linfonodais (0.99.20): HU = 2000 + código da estrutura
+            codigos = LINFO_SIM.get(nome, {})
+            for cid, (cod, _n) in codigos.items():
+                lab[vol == 2000 + cod] = cid
+            saida[nome] = (lab, {cid: n for cid, (_c, n) in codigos.items()})
+            continue
         if t.get("neuro"):
             # fantoma do SynthSeg (0.99.17): HU = 1000 + rótulo do FreeSurfer
             lab = np.where(vol >= 1000, np.clip(vol - 1000, 0, 255), 0).astype(np.uint8)

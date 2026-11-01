@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.20 — niveles ganglionares cervicales
+- Mapa de los niveles ganglionares (I–VII, derecho/izquierdo) en la TC de cuello con los reparos de
+  TotalSegmentator y las reglas de imagen del estadiaje, rotulado en cualquier plano; la lesión
+  segmentada con la herramienta Segmentar recibe su nivel.
+
 ## 0.99.19 — bulbos olfatorios
 - Nueva medida guiada: volumen de los bulbos olfatorios por planimetría (Cavalieri) en coronal T2 y
   profundidad del surco olfatorio.

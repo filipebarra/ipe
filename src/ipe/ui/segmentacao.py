@@ -99,6 +99,12 @@ class Segmentacao(QObject):
             self.trabalho.min_cortes = CF.MIN_CORTES
             self.trabalho.modalidades = ("CT",)
             self.trabalho.motivo_modalidade = "A cefalometria automática é só para TC."
+        if tipo == "linfonodos":
+            from ipe.ai import linfonodos as LN
+            self.trabalho.tarefas_proprias = LN.tarefas
+            self.trabalho.min_cortes = LN.MIN_CORTES
+            self.trabalho.modalidades = ("CT",)
+            self.trabalho.motivo_modalidade = "O mapa dos níveis linfonodais é feito na TC."
         if tipo == "neuro":
             from ipe.ai import neuro as N
             self.trabalho.tarefas_proprias = N.tarefas
@@ -107,7 +113,8 @@ class Segmentacao(QObject):
             self.trabalho.motivo_modalidade = "Os índices do crânio são para RM ou TC."
         self.titulo = {"coluna": "Identificar vértebras e discos",
                        "cefalometria": "Cefalometria automática",
-                       "neuro": "Índices do crânio (IA)"}.get(tipo, "Segmentar órgãos")
+                       "neuro": "Índices do crânio (IA)",
+                       "linfonodos": "Níveis linfonodais (IA)"}.get(tipo, "Segmentar órgãos")
         self.proc: QProcess | None = None
         self.dlg: QProgressDialog | None = None
         self.etapa = "preparando"
@@ -240,6 +247,9 @@ class Segmentacao(QObject):
             if self.tipo == "neuro":
                 self._fim_neuro()
                 return
+            if self.tipo == "linfonodos":
+                self._fim_linfonodos()
+                return
             from ipe.ai import totalseg_saida as SAIDA
             res = self.trabalho.ler()
             saida = SAIDA.gravar(self.trabalho, res, self.repo.db, self.storage)
@@ -285,6 +295,23 @@ class Segmentacao(QObject):
                "janela dos índices antes de mandar para o laudo.")
         if res.avisos:
             msg += "\n\nConfira: " + "; ".join(res.avisos) + "."
+        self._fim(saida, msg)
+
+    def _fim_linfonodos(self) -> None:
+        from ipe.ai import linfonodos as LN
+        rotulos, versao, _s = self.trabalho.ler_rotulos()
+        m = LN.marcos(self.trabalho.vol, rotulos)
+        vols = LN.mapa(m, self.trabalho.vol)
+        saida = LN.gravar(self.trabalho, m, rotulos, versao, self.repo.db, self.storage, repo=self.repo,
+                          volumes=vols)
+        saida["linfonodos"] = m
+        saida["mapa"] = LN.objeto(m, self.trabalho.study_uid, volumes=vols)
+        minutos = (time.monotonic() - self.inicio) / 60
+        msg = (f"Mapa dos níveis linfonodais pronto em {minutos:.1f} min ({LN.resumo(m)}). Os rótulos dos "
+               "níveis aparecem em qualquer plano; segmente um linfonodo com a ferramenta Segmentar e o nível "
+               "vem junto.")
+        if m.avisos:
+            msg += "\n\nConfira: " + "; ".join(m.avisos) + "."
         self._fim(saida, msg)
 
     def _fim_coluna(self) -> None:

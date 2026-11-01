@@ -200,6 +200,16 @@ class OncoMixin:
                         self.overlay_objects.append(M.objeto_de_linhas(res, study))
                         added += 1
                     continue
+                if s.description == "Níveis linfonodais · TotalSegmentator":
+                    # 0.99.20: o mapa dos níveis (rótulos em qualquer plano) e os marcos para a ferramenta Segmentar
+                    from ipe.ai import linfonodos as LN
+                    lido = LN.ler_do_exame(self.repo, study, com_mapa=True)
+                    if lido is not None:
+                        marcos_, vols = lido
+                        self.overlay_objects[:] = [o for o in self.overlay_objects if o.source != LN.FONTE_OVERLAY]
+                        self.overlay_objects.append(LN.objeto(marcos_, study, volumes=vols))
+                        self.marcos_linfonodais = marcos_
+                        added += 1
                 if (s.modality or "").upper() not in O.OVERLAY_MODALITIES:
                     continue
                 if s.description == "Níveis da coluna (conferência) · TotalSegmentator":
@@ -913,11 +923,34 @@ class SegmentDialog(QDialog):
             self.atualizar_distancias()
             return
         txt = f"<b>{self.res.summary()}</b>" if self.res.voxels else "<b>Nada segmentado.</b>"
+        nivel = self._nivel_linfonodal()
+        if nivel:
+            txt += f"<br>Nível linfonodal: <b>{nivel[1]}</b> <span style='color:#888'>({nivel[2]})</span>"
         if self.res.notes:
             txt += "<br><span style='color:#c80'>" + "; ".join(self.res.notes) + "</span>"
         rng = f"faixa usada: {self.res.lo:.2f} a " + ("∞" if not np.isfinite(self.res.hi) else f"{self.res.hi:.2f}")
         txt += f"<br><span style='color:#888'>{self.res.voxels} voxels · {rng}</span>"
         self.result.setText(txt)
+
+    def _nivel_linfonodal(self):
+        """0.99.20: com o mapa dos níveis no exame, o nível do centro da lesão (rótulo, texto, regra). O nome
+        padrão ("Segmentação 3") vira "Linfonodo IIA D"."""
+        m = getattr(self.tab, "marcos_linfonodais", None)
+        if m is None or not self.res.voxels:
+            return None
+        try:
+            from ipe.ai import cefalometria as CF
+            from ipe.ai import linfonodos as LN
+            centro = CF.pontos(self.vol, self.res.mask, self.res.offset).mean(axis=0)
+            curto, longo, regra = LN.texto_da_lesao(centro, m)
+        except Exception:  # noqa: BLE001
+            log.exception("nível linfonodal da lesão")
+            return None
+        if curto and self.name.text().startswith("Segmentação"):
+            self.name.setText(f"Linfonodo {curto}")
+            self.obj.label = self.name.text()
+        self.obj.stats["nivel_linfonodal"] = longo
+        return curto, longo, regra
 
     def _mostrar_cad(self) -> None:
         """Os números do CAD da lesão, com os seis padrões em cor — a mesma cor do mapa."""

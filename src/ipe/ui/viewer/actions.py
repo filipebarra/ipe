@@ -111,6 +111,7 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("annot.export", "Exportar medidas para planilha (CSV/Excel)", "Medidas"),
     ("roteiro.mrpi", "Medidas guiadas: MRPI e MRPI 2.0", "Medidas"),
     ("cefalometria.auto", "Cefalometria do cavum (automática)", "Medidas"),
+    ("linfonodos.auto", "Mapa dos níveis linfonodais (IA)", "Medidas"),
 ]
 
 # Forma histórica (id, nome, atalho padrão, grupo), que o resto do programa e os testes usam.

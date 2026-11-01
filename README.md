@@ -64,6 +64,7 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
   do plano e da espessura do corte.
 - Índices do crânio automáticos (SynthSeg): Evans, 3º ventrículo, ângulo calosal e volumes dos
   hipocampos, em RM de qualquer sequência ou TC.
+- Níveis linfonodais cervicais na TC (mapa I a VII em qualquer plano; a lesão segmentada ganha o nível).
 - Cefalometria do cavum na TC, automática (TotalSegmentator) ou à mão: área mínima da via aérea
   perpendicular ao eixo, palato mole, espaço aéreo posterior, hioide e língua, no formato do laudo.
 

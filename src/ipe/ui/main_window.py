@@ -1320,6 +1320,13 @@ class MainWindow(QMainWindow):
         for t in self.all_viewer_tabs():
             if study_uid in (getattr(t, "study_order", None) or [t.study_uid]):
                 carregar_na_aba(t, saida)
+                if (saida or {}).get("mapa") is not None:          # níveis linfonodais (0.99.20)
+                    from ipe.ai import linfonodos as LN
+                    t.overlay_objects[:] = [o for o in t.overlay_objects if o.source != LN.FONTE_OVERLAY]
+                    t.overlay_objects.append(saida["mapa"])
+                    t.marcos_linfonodais = saida["linfonodos"]
+                    if hasattr(t, "_apply_overlays"):
+                        t._apply_overlays()
 
     def _implante_pronto(self, study_uid: str) -> None:
         """As cópias sem implante de um exame ficaram prontas (0.97). Se ele já está aberto no

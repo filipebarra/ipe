@@ -1132,6 +1132,12 @@ class ViewerTab(OncoMixin, QWidget):
         cef.setIcon(icon("measure"))
         cef.setIconText("Cefalometria")
         self._button(tb, cef, menu_cef, app="cefalometria")
+        # níveis linfonodais (0.99.20): mapa na TC de pescoço; a lesão segmentada ganha o nível
+        lin = self._act("linfonodos.auto", "Mapa dos níveis linfonodais (IA)",
+                        lambda: self.linfonodos_automatico(self.active))
+        lin.setIcon(icon("measure"))
+        lin.setIconText("Linfonodos")
+        self._button(tb, lin, None, app="linfonodos")
         self._montar_bloco_de_aplicacoes(tb)
         self._button(tb, self._plain("Mais", "more", "Mais opções"), more, instant=True)
 
@@ -2767,6 +2773,24 @@ class ViewerTab(OncoMixin, QWidget):
                                     "(de preferência a 3D T1) num quadro.")
             return None
         return self.segmentar_orgaos(vp, simular=simular, tipo="neuro")
+
+    # ------------------------------------------------------------ níveis linfonodais (0.99.20)
+    def linfonodos_automatico(self, vp=None, simular: bool = False):
+        vp = vp or self.active
+        if vp is None or (vp.modality or "").upper() != "CT":
+            QMessageBox.information(self, "Níveis linfonodais (IA)",
+                                    "O mapa dos níveis linfonodais é feito na TC do pescoço: abra a série "
+                                    "(axial de partes moles) num quadro.")
+            return None
+        return self.segmentar_orgaos(vp, simular=simular, tipo="linfonodos")
+
+    def nivel_linfonodal_do_ponto(self, p):
+        """(rótulo, texto, regra) do ponto (mm) pelo mapa do exame, ou None sem mapa."""
+        m = getattr(self, "marcos_linfonodais", None)
+        if m is None:
+            return None
+        from ipe.ai import linfonodos as LN
+        return LN.texto_da_lesao(np.asarray(p, float), m)
 
     def neuro_botao(self):
         if self.neuro_do_exame() is not None:
@@ -4879,6 +4903,17 @@ class ViewerTab(OncoMixin, QWidget):
                 carregar_na_aba(self, saida)
                 self.status_message.emit(msg)
                 self.abrir_cefalometria(saida.get("cefalometria"), automatica=True)
+                QMessageBox.information(self, seg.titulo, msg)
+                return
+            if saida is not None and tipo == "linfonodos":
+                carregar_na_aba(self, saida)
+                from ipe.ai import linfonodos as LN
+                self.overlay_objects[:] = [o for o in self.overlay_objects if o.source != LN.FONTE_OVERLAY]
+                self.overlay_objects.append(saida["mapa"])
+                self.marcos_linfonodais = saida["linfonodos"]
+                if hasattr(self, "_apply_overlays"):
+                    self._apply_overlays()
+                self.status_message.emit(msg)
                 QMessageBox.information(self, seg.titulo, msg)
                 return
             if saida is not None and tipo == "neuro":

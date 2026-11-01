@@ -37,7 +37,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 
 | Ferramenta | Para que serve | Licença |
 |---|---|---|
-| [TotalSegmentator](https://github.com/wasserth/TotalSegmentator) | segmentação de órgãos abdominais, vértebras e discos (TC e RM) e das estruturas da cefalometria — palato, faringe, hioide, mandíbula e língua (TC; tarefas abertas head_glands_cavities, headneck_bones_vessels, craniofacial_structures e head_muscles) | Apache-2.0 (algumas tarefas pedem licença, gratuita para uso não comercial) |
+| [TotalSegmentator](https://github.com/wasserth/TotalSegmentator) | segmentação de órgãos abdominais, vértebras e discos (TC e RM) e das estruturas da cefalometria — palato, faringe, hioide, mandíbula e língua (TC; tarefas abertas head_glands_cavities, headneck_bones_vessels, craniofacial_structures, head_muscles e headneck_muscles) e dos marcos dos níveis linfonodais cervicais | Apache-2.0 (algumas tarefas pedem licença, gratuita para uso não comercial) |
 | [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) | a rede por trás do TotalSegmentator | Apache-2.0 |
 | [PyTorch](https://pytorch.org) | a biblioteca de redes neurais da segmentação | BSD-3-Clause |
 | [DIPY](https://dipy.org) | a versão em PyTorch do SynthSeg, no ambiente da segmentação | BSD-3-Clause |

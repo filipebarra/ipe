@@ -1028,6 +1028,23 @@ A janela de conferência é a mesma da cefalometria: valor, referência, de quem
 
 No exame ficam a SEG **Encéfalo · SynthSeg** e a imagem **Índices do crânio: conferência · SynthSeg** (axial dos cornos, coronal da comissura posterior e a lista). Automático na chegada: **Configurações ▸ CAD/IA ▸ Índices do crânio (SynthSeg)…**. Precisa rodar uma vez de novo o instalar_segmentacao, que acrescenta a DIPY e os pesos do SynthSeg.
 
+## Níveis linfonodais cervicais
+
+Botão **Linfonodos** (TC de pescoço; em outros exames, pelo botão **Aplicações**): **Mapa dos níveis linfonodais (IA)**. A série de TC do quadro ativo vai para o TotalSegmentator, que acha os marcos; o Ipê monta o mapa dos níveis I a VII, direito e esquerdo, pelas regras de imagem do estadiamento:
+
+| Nível | Regra usada |
+|---|---|
+| IA / IB | acima da borda de baixo do hioide e à frente da borda posterior da submandibular; IA entre as barrigas anteriores dos digástricos |
+| IIA / IIB | do hioide à base do crânio, à frente da borda posterior do esternocleidomastóideo e lateral à carótida; IIB atrás da borda posterior da jugular |
+| III | do hioide à borda de baixo da cricoide |
+| IV | da cricoide à clavícula |
+| VA / VB | atrás da borda posterior do esternocleidomastóideo; VB abaixo da cricoide |
+| VI | entre as carótidas, do hioide ao topo do manúbrio |
+| VII | abaixo do topo do manúbrio, entre as carótidas |
+| retrofaríngeo | acima do hioide, medial à carótida |
+
+O rótulo de cada nível ("IIA D") aparece em qualquer plano, no meio do pedaço que o corte atravessa — no axial, no coronal reformatado, no sagital. Com o mapa feito, uma lesão segmentada com a ferramenta **Segmentar** ganha o nível sozinha (nome "Linfonodo IIA E" e a regra que decidiu). Os marcos ficam na SEG **Níveis linfonodais · TotalSegmentator** (hioide, cricoide, carótidas, jugulares, esternocleidomastóideos, submandibulares), para conferir. Marco que não apareceu vira aviso, e o limite dele não é usado. Automático na chegada: **Configurações ▸ CAD/IA ▸ Níveis linfonodais…**.
+
 ## Cefalometria do cavum
 
 Botão **Cefalometria** (aparece em TC de face, cavum ou pescoço; em outros exames, pelo botão **Aplicações**). Dois caminhos:
