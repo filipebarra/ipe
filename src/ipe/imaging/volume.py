@@ -42,6 +42,9 @@ class Volume:
     source_path: str
     warnings: list[str] = field(default_factory=list)
     monochrome1: bool = False
+    #: selos de integridade herdados das imagens de origem (0.99.22): a reconstrução de uma série
+    #: comprimida com perdas continua com perdas, e o selo tem de ir junto
+    origem_header: dict = field(default_factory=dict)
 
     @property
     def dz(self) -> float:
@@ -117,11 +120,15 @@ def build_volume(frames: list[Frame], cache: FrameCache,
     data = None
     integral = True
     total = len(frames)
+    from ipe.imaging import selos as SL
+    perdas = None
     for k, f in enumerate(frames):
         img = first if k == 0 else cache.get(f)
         if img.pixels.shape != (h, w):
             raise VolumeError("As imagens da série têm tamanhos diferentes.")
         px = img.pixels
+        if perdas is None and SL.com_perdas(img.header):
+            perdas = img.header                      # basta um corte com perdas para o volume ter
         if data is None:
             data = np.empty((total, h, w), dtype=np.float32)
         data[k] = px
@@ -136,7 +143,13 @@ def build_volume(frames: list[Frame], cache: FrameCache,
                   row_dir=np.asarray(ori[:3], float), col_dir=np.asarray(ori[3:], float),
                   slice_vec=slice_vec, dx=float(cs), dy=float(rs), window=first.window,
                   source_path=frames[0].path, warnings=warnings,
-                  monochrome1=first.header.get("_monochrome1") == "1")
+                  monochrome1=first.header.get("_monochrome1") == "1",
+                  origem_header=_header_de_origem(perdas or first.header))
+
+
+def _header_de_origem(h: dict) -> dict:
+    from ipe.imaging import selos as SL
+    return {k: h[k] for k in SL.CHAVES_HERDADAS if h.get(k)}
 
 
 # ---------------------------------------------------------------------------
@@ -250,7 +263,7 @@ class MPRPlane:
             self._cache.move_to_end(key)
             return self._cache[key]
         px = self._extract(idx)
-        header = {"SliceThickness": str(max(self.slab_mm, self.step_mm))}
+        header = {**getattr(self.vol, "origem_header", {}), "SliceThickness": str(max(self.slab_mm, self.step_mm))}
         if self.vol.monochrome1:
             header["_monochrome1"] = "1"
         img = FrameImage(px, False, self.vol.window, (self.row_spacing, self.col_spacing),

@@ -38,7 +38,12 @@ MAPS: dict[str, tuple[str, str, str, str, str]] = {
     "sub": ("Subtração", "Fase inicial − pré-contraste", "sinal", "sinal", ""),
     "ttp": ("Tempo até o pico", "Tempo até o pico", "s", "s", "rainbow"),
     "cin": ("Cinética", "Mapa cinético em 6 classes", "classe", "classe", "cinetico"),
+    # 0.99.22 (plano AW M10): projeções ao longo das fases, não do espaço
+    "mipt": ("MIP temporal", "Maior realce em qualquer fase pós (máximo das subtrações)", "sinal", "sinal", ""),
+    "medt": ("Média temporal", "Realce médio das fases pós-contraste", "sinal", "sinal", ""),
 }
+#: mapas que são subtração (janela simétrica do sinal, sem limiar)
+SUBTRACOES = ("sub", "mipt", "medt")
 MASKED = -1.0
 
 # Classes do mapa cinético, na ordem do valor do pixel (0 = sem cor).
@@ -344,13 +349,16 @@ class DynamicMaps:
         ser = np.where(enh, ser, MASKED)
         ei = ei_rel if self.relative else (s1 - s0)
         ttp = np.asarray(self.dset.times, np.float32)[self.pre + np.argmax(post, axis=0)] - self.dset.times[self.pre]
+        pos_fases = st[self.pre + 1:] if len(st) > self.pre + 1 else st[self.pre:self.pre + 1]
         out = {"msi": msi, "pei": pei, "ser": ser, "ei": ei, "sub": s1 - s0, "ttp": ttp,
-               "cin": self._cinetica(st, s0, base, valid)}
+               "cin": self._cinetica(st, s0, base, valid),
+               "mipt": pos_fases.max(axis=0) - s0, "medt": pos_fases.mean(axis=0) - s0}
         for key in ("msi", "pei", "ei", "ttp"):
             m = enh if self.threshold_all else valid
             out[key] = np.where(m, out[key], 0.0).astype(np.float32)
         out["ser"] = out["ser"].astype(np.float32)
-        out["sub"] = out["sub"].astype(np.float32)
+        for key in SUBTRACOES:
+            out[key] = out[key].astype(np.float32)
         out["cin"] = out["cin"].astype(np.float32)
         self._maps[k] = out
         while len(self._maps) > 24:
@@ -421,11 +429,11 @@ class DynamicMaps:
             vals = []
             for k in sorted({n // 3, n // 2, (2 * n) // 3}):
                 m = self.compute(k)[kind]
-                v = m[m > 0] if kind != "sub" else m
+                v = m[m > 0] if kind not in SUBTRACOES else m
                 if v.size:
-                    vals.append(np.percentile(v, 99.5 if kind != "sub" else 99.8))
+                    vals.append(np.percentile(v, 99.5 if kind not in SUBTRACOES else 99.8))
             hi = max(vals) if vals else 1.0
-            if kind == "sub":
+            if kind in SUBTRACOES:
                 self._windows[kind] = (max(hi, 1.0), max(hi, 1.0) / 3)
             else:
                 self._windows[kind] = (max(hi, 1e-3), max(hi, 1e-3) / 2)

@@ -4,6 +4,8 @@ O fantoma é desenhado em mm do paciente (LPS: +y posterior, +z superior), com 1
 via aérea vertical (raio 8 mm, estreitando para 4,5 mm em z = 70), palato mole de 36 mm × 10 mm,
 palato duro, língua elipsoide, mandíbula com Me e Go conhecidos, hioide e C2–C4.
 """
+import copy
+
 import numpy as np
 import pytest
 
@@ -300,7 +302,7 @@ def test_tela_automatica_abre_a_conferencia_e_edita(env, tmp_path, monkeypatch):
         assert "7. Nível do hioide em relação à coluna: platô inferior de C3." in p.texto()
         # editar digitando: vira "editado" e o texto diz
         p.tabela.item(5, 2).setText("12,5")
-        assert p.res["hioide_mp"].valor == pytest.approx(12.5) and p.tabela.item(5, 4).text() == "editado"
+        assert p.res["hioide_mp"].valor == pytest.approx(12.5) and p.tabela.item(5, 4).text() == "editado *"
         assert "hioide ao plano mandibular: 12,5 mm" in p.texto() and "corrigidas à mão" in p.texto()
         p.tabela.setCurrentCell(5, 2)
         p._voltar_ao_automatico()
@@ -321,6 +323,14 @@ def test_tela_automatica_abre_a_conferencia_e_edita(env, tmp_path, monkeypatch):
         p.salvar_referencias(dict(CF.REFERENCIAS, lingua_ap="até 80 mm"))
         assert "(até 80 mm)" in p.texto()
         assert tab.settings.get(CF.CHAVE_REFERENCIAS) == {"lingua_ap": "até 80 mm"}
+        # estado do resultado (0.99.22): editado, aceito por quem; reabrir traz a conferência
+        assert p.estado_texto().startswith("Editado")
+        p.aceitar()
+        assert p.estado_texto().startswith("Aceito por") and "editados" in p.estado_texto()
+        assert repo.revisao_ia(tab.study_uid, "cefalometria")["estado"] == "aceito"
+        p.carregar(copy.deepcopy(p.original), automatica=True)
+        assert p.res["lingua_transversal"].valor == pytest.approx(45.0, abs=0.5)
+        assert p.estado_texto().startswith("Aceito por")
     finally:
         w.close()
 

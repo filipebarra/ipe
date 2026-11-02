@@ -440,10 +440,62 @@ class MainWindow(QMainWindow):
         if so_viewer is None:
             so_viewer = self.__dict__.setdefault("_janela_do_pedido", {}).pop(
                 study_uid, self.so_viewer_externo())
+        if not self.outro_paciente_na_chamada(study_uid):
+            return
         if so_viewer:
             self.abrir_so_viewer(study_uid)
         else:
             self.open_study(study_uid)
+
+    #: o que fazer quando a chamada externa traz outro paciente com um já aberto (0.99.22)
+    OUTRO_PACIENTE = (("perguntar", "Perguntar"), ("fechar", "Fechar o anterior em todos os monitores"),
+                      ("manter", "Manter os dois abertos (só avisar)"))
+
+    def outro_paciente_na_chamada(self, study_uid: str) -> bool:
+        """Chamada do RIS com outro paciente enquanto um já está aberto: fecha, avisa ou pergunta.
+
+        Na AW, abrir o paciente seguinte com o anterior ainda num dos monitores é a forma clássica
+        de laudar a imagem de um no nome do outro. Devolve False se ele cancelou a abertura."""
+        from ipe.ui import compare_studies as CS
+        novo = self.repo.study_info(study_uid) or {}
+        outros = [t for t in self.all_viewer_tabs()
+                  if t.study_uid != study_uid and CS.pacientes_diferentes([novo, t.study_info or {}])]
+        if not novo or not outros:
+            return True
+        modo = str(self.settings.get("viewer.outro_paciente_externo", "perguntar") or "perguntar")
+        if modo == "perguntar":
+            modo = self.perguntar_outro_paciente(novo, outros)
+        if modo == "cancelar":
+            return False
+        if modo == "fechar":
+            for t in outros:
+                t.monitor_group = []
+                self.fechar_aba(t)
+            self.statusBar().showMessage(
+                f"Fechado o exame de {CS.nome_curto(outros[0].study_info)} para abrir o de {CS.nome_curto(novo)}.",
+                8000)
+        else:
+            self.statusBar().showMessage(
+                f"Atenção: {CS.nome_curto(novo)} foi aberto com {CS.nome_curto(outros[0].study_info)} ainda aberto.",
+                12000)
+        return True
+
+    def perguntar_outro_paciente(self, novo: dict, outros: list) -> str:
+        from ipe.ui import compare_studies as CS
+        nomes = ", ".join(dict.fromkeys(CS.nome_curto(t.study_info) for t in outros))
+        caixa = QMessageBox(self)
+        caixa.setIcon(QMessageBox.Warning)
+        caixa.setWindowTitle("Outro paciente")
+        caixa.setText(f"Chegou o exame de {CS.nome_curto(novo)}, mas {nomes} ainda está aberto.")
+        caixa.setInformativeText("Fechar o anterior em todos os monitores? (Rede ▸ chamada externa decide "
+                                 "isto sem perguntar.)")
+        b_fechar = caixa.addButton("Fechar o anterior", QMessageBox.AcceptRole)
+        b_manter = caixa.addButton("Manter os dois", QMessageBox.NoRole)
+        caixa.addButton("Não abrir", QMessageBox.RejectRole)
+        caixa.setDefaultButton(b_fechar)
+        caixa.exec()
+        clicado = caixa.clickedButton()
+        return "fechar" if clicado is b_fechar else "manter" if clicado is b_manter else "cancelar"
 
     def avisar_bandeja_so_viewer(self) -> None:
         """Fechou a janela da chamada externa: fecha as dos outros monitores e diz que o programa

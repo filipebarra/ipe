@@ -116,14 +116,14 @@ class RepoAnnotationStore:
 
 
 MEASURE_TOOLS = ("pick", "measure", "polyline", "angle", "cobb", "height", "ellipse", "rect", "polygon",
-                 "probe", "tic", "grow", "ctr", "spine", "calibration", "text", "arrow", "pencil")
+                 "probe", "ruler3d", "tic", "grow", "ctr", "spine", "calibration", "text", "arrow", "pencil")
 VOLUME = {"CT", "MR", "PT", "NM"}     # modalidades que empilham cortes: 3D, MPR e fusão
-TOOL_ICONS = {"measure": "measure", "oblique": "mpr", "curve": "mpr", "rotplane": "mpr",
+TOOL_ICONS = {"measure": "measure", "ruler3d": "measure", "oblique": "mpr", "curve": "mpr", "rotplane": "mpr",
               "quadzoom": "quad", "loupe": "loupe",
               "grow": "segment", "pick": "pick"}
 TOOL_SHORT = {"film": "Filme", "wl": "Janela", "zoom": "Zoom", "pan": "Pan", "scroll": "Rolar", "measure": "Régua",
               "polyline": "Polilinha", "angle": "Ângulo", "cobb": "Cobb", "ellipse": "Elipse",
-              "rect": "Retângulo", "polygon": "Polígono", "probe": "Intensidade", "height": "Altura",
+              "rect": "Retângulo", "polygon": "Polígono", "probe": "Intensidade", "ruler3d": "Régua 3D", "height": "Altura",
               "ctr": "ICT", "spine": "Coluna", "tic": "Curva", "calibration": "Calibrar",
               "arrow": "Seta", "text": "Texto", "pencil": "Lápis", "cross": "Cursor 3D",
               "oblique": "Oblíquo", "curve": "Curvo", "quadzoom": "Quadrante", "loupe": "Lupa",
@@ -412,6 +412,27 @@ class ViewerTab(OncoMixin, QWidget):
             acao.setVisible(mostra)
             btn.setVisible(mostra)
         self._atualizar_aplicacoes()
+
+    def switch_wl(self) -> None:
+        """Próxima janela gravada no arquivo (0.99.22, plano AW M15). Na mamografia vale para os
+        quadros à vista: a AW troca a janela das quatro incidências juntas."""
+        vp = self.active
+        if vp is None:
+            return
+        msg = vp.switch_wl()
+        if not msg:
+            self.status_message.emit("Esta imagem não traz janelas gravadas no arquivo.")
+            return
+        if (vp.modalidade_atual() or "").upper() == "MG":
+            i = vp._janela_arquivo[0]
+            for v in self._shown():
+                if v is not vp and (v.modalidade_atual() or "").upper() == "MG" and v.janelas_do_arquivo():
+                    v.usar_janela_do_arquivo(min(i, len(v.janelas_do_arquivo()) - 1))
+        self.status_message.emit(msg)
+
+    def pacientes_no_layout(self) -> list[dict]:
+        """A identidade de cada quadro com imagem (para o selo de mistura de pacientes, 0.99.22)."""
+        return [vp.study_info for vp in getattr(self, "viewports", []) if vp.frames and vp.study_info]
 
     # ------------------------------------------------- aplicações do exame (0.99.12)
     def contexto_do_exame(self):
@@ -801,6 +822,7 @@ class ViewerTab(OncoMixin, QWidget):
         self.fusion_menu.aboutToShow.connect(self._fill_fusion_menu)
         fu = self._plain("Fusão", "fusion", "Fusão: sobrepor outra série ao quadro ativo (ex.: PET na TC)")
         self._button(tb, fu, self.fusion_menu, instant=True, app="fusao")
+        self._act("wl.switch", "Switch WL", self.switch_wl)
         fit = self._act("view.fit", "Ajustar à janela", lambda: self._on_active(lambda v: v.fit()))
         fit.setIcon(icon("fit"))
         reset = self._act("view.reset", "Restaurar", lambda: self._on_active(lambda v: v.reset_view()))
@@ -1263,8 +1285,18 @@ class ViewerTab(OncoMixin, QWidget):
 
     def _fill_preset_menu(self, menu: QMenu) -> None:
         menu.clear()
-        presets = self.settings.get("viewer.wl_presets", {})
+        vp = self.active
+        js = vp.janelas_do_arquivo() if vp is not None else ()
+        if js:
+            menu.addAction("Do arquivo (Switch WL)").setEnabled(False)
+            for i, (nome, w, l) in enumerate(js):
+                a = menu.addAction(f"   {nome}  (W {w:g} / L {l:g})")
+                a.triggered.connect(lambda _=False, k=i: self._on_active(lambda v: v.usar_janela_do_arquivo(k)))
+            menu.addSeparator()
+        presets = vp.presets_da_janela() if vp is not None else self.settings.get("viewer.wl_presets", {})
         for key, (name, w, l) in sorted(presets.items()):
+            if not name:
+                continue
             a = menu.addAction(f"{name}   (W {w:g} / L {l:g})")
             a.setShortcut(QKeySequence(key))
             a.triggered.connect(lambda _=False, kk=key: self._on_active(lambda v: v.apply_preset(kk)))
@@ -1273,6 +1305,10 @@ class ViewerTab(OncoMixin, QWidget):
         a.setShortcut(QKeySequence("0"))
         a.triggered.connect(lambda: self._on_active(
             lambda v: (setattr(v.state, "window_set", False), v._load_current(), v.update())))
+        menu.addSeparator()
+        menu.addAction("Digitar a janela…").triggered.connect(lambda: self._on_active(lambda v: v.digitar_janela()))
+        menu.addAction("Guardar a janela atual como preset…").triggered.connect(
+            lambda: self._on_active(lambda v: v.guardar_janela_atual()))
 
     def _fill_annotation_list(self) -> None:
         m = self.annot_list_menu
@@ -2259,6 +2295,8 @@ class ViewerTab(OncoMixin, QWidget):
         vp.set_series(series_uid, frames, self._series_label(series_uid),
                       self.study_infos.get(s.study_uid, self.study_info), start_index)
         vp.left_tool = self.left_tool
+        vp.pacientes_do_layout = self.pacientes_no_layout
+        vp.regua3d_estado = self.__dict__.setdefault("_regua3d", {})
         vp.anonymize = self.anonymize
         self.hub.leave(vp)
         self._activate(vp)

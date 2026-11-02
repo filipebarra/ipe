@@ -19,6 +19,8 @@ from __future__ import annotations
 import logging
 import math
 
+import numpy as np
+
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen, QPolygonF
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout,
@@ -43,6 +45,7 @@ TOOLS = {
     "rect": "ROI retangular",
     "polygon": "ROI poligonal / livre",
     "probe": "Intensidade (valor do pixel)",
+    "ruler3d": "Régua 3D (um ponto em cada corte)",
     "height": "Diferença de altura",
     "ctr": "Índice cardiotorácico",
     "spine": "Rotular coluna",
@@ -68,7 +71,7 @@ CLICK_TOOLS = {"cross", "film", "oblique", "curve", "quadzoom", "loupe", "grow"}
 # dois: o que move a imagem (Mouse) e o que mede (Medidas). A ferramenta escolhida é a mesma coisa
 # nos dois casos — o que muda é onde ela está.
 FERRAMENTAS_DE_MEDIDA = ("pick", "measure", "polyline", "angle", "cobb", "ellipse", "rect",
-                         "polygon", "probe", "height", "ctr", "spine", "tic", "calibration",
+                         "polygon", "probe", "ruler3d", "height", "ctr", "spine", "tic", "calibration",
                          "grow", "arrow", "text", "pencil")
 
 
@@ -79,7 +82,7 @@ def ferramentas_divididas() -> tuple[dict, dict]:
     return mouse, medidas
 # ferramenta do botão esquerdo -> tipo de anotação
 ANNOT_TOOLS = {"measure": "line", "polyline": "polyline", "angle": "angle", "cobb": "cobb",
-               "ellipse": "ellipse", "rect": "rect", "polygon": "polygon", "probe": "probe",
+               "ellipse": "ellipse", "rect": "rect", "polygon": "polygon", "probe": "probe", "ruler3d": "ponto3d",
                "height": "height", "ctr": "ctr", "spine": "spine", "tic": "tic",
                "calibration": "calibration", "arrow": "arrow", "text": "text", "pencil": "pencil",
                # "pick" passa pelo mesmo caminho das medidas, mas **não cria** nenhuma: só escolhe,
@@ -128,6 +131,8 @@ SELECTED_COLOR = QColor(255, 230, 80)
 ANNOT_COLORS = {"arrow": QColor(255, 220, 80), "text": QColor(255, 220, 80), "pencil": QColor(255, 150, 60),
                 "spine": QColor(120, 200, 255), "calibration": QColor(255, 120, 255),
                 "tic": QColor(255, 120, 120), "seg": QColor(90, 220, 255)}
+#: o que marca a ROI de referência (0.99.22); sobrevive a ligar/desligar lesão
+REF_CHAVES = ("referencia", "ref_media")
 ROI_LABEL_LEFT = ("ellipse", "polygon", "rect", "tic", "line", "arrow", "polyline", "height")
 
 
@@ -261,6 +266,8 @@ class AnnotationMixin:
                 a.cache.clear()
         if ann.meta.get("lesion") is not None:
             self.update_lesion_values(ann)
+        if ann.kind == "ponto3d" and created:
+            self._ponto_da_regua3d(ann)
         self._store("save", ann)
         if ann.kind == "tic":
             self.sig.tic_requested.emit(self, ann)
@@ -275,7 +282,7 @@ class AnnotationMixin:
         pix = img.pixels if img is not None and not img.is_color else None
         if ann.kind == "seg":           # os valores vêm da segmentação 3D, não do desenho
             return
-        keep = {k: v for k, v in ann.meta.items() if k in ("lesion", "lesion_name", "role")}
+        keep = {k: v for k, v in ann.meta.items() if k in ("lesion", "lesion_name", "role") + REF_CHAVES}
         try:
             vals = measure_values(ann.kind, ann.points, pix, self.measure_spacing(ann), getattr(self, "suv_factor", None))
         except Exception as e:  # noqa: BLE001
@@ -287,14 +294,85 @@ class AnnotationMixin:
         """Liga (ou desliga, com None) a medida a uma lesão do acompanhamento."""
         if lesion_id is None:
             ann.meta = {k: v for k, v in ann.meta.items() if k not in ("lesion", "lesion_name")} \
-                if ann.kind == "seg" else {}
+                if ann.kind == "seg" else {k: v for k, v in ann.meta.items() if k in REF_CHAVES}
         else:
-            base = dict(ann.meta) if ann.kind == "seg" else {}
+            base = dict(ann.meta) if ann.kind == "seg" else {k: v for k, v in ann.meta.items() if k in REF_CHAVES}
             ann.meta = {**base, "lesion": lesion_id, "lesion_name": name}
             self.update_lesion_values(ann)
         ann.cache.clear()
         self._store("save", ann)
         self.update()
+
+    # ---- régua 3D (0.99.22, plano AW 8): A num corte, B em outro (ou em outro quadro)
+    def _ponto_da_regua3d(self, ann: Annotation) -> None:
+        """Primeiro clique: ponto A. Segundo (em qualquer corte ou quadro da aba): ponto B, e a
+        distância em 3D com dx/dy/dz vai para os dois."""
+        import uuid
+        pt = ann.points[0]
+        xyz = self.pixel_to_patient(pt[0], pt[1])
+        if xyz is None:
+            ann.meta = {"papel": "A", "erro": "imagem sem posição no paciente"}
+            return
+        estado = getattr(self, "regua3d_estado", None)
+        if estado is None:
+            estado = self.regua3d_estado = {}
+        pend = estado.get("A")
+        dono = estado.get("dono_A")
+        if pend is not None and dono is not None and pend not in getattr(dono, "annotations", []):
+            pend = None                          # o ponto A foi apagado: este vira o novo A
+        xyz = [float(v) for v in xyz]
+        if pend is None or pend is ann:
+            ann.meta = {"papel": "A", "xyz": xyz, "par": uuid.uuid4().hex[:12]}
+            estado["A"] = ann
+            estado["dono_A"] = self
+            return
+        a_xyz = np.asarray(pend.meta["xyz"], float)
+        d = np.asarray(xyz) - a_xyz
+        dist = float(np.linalg.norm(d))
+        mesmo_plano = pend.frame_key == ann.frame_key and bool(ann.frame_key[0])
+        dados = {"dist": dist, "d": [float(x) for x in d], "plano": "2D" if mesmo_plano else "3D"}
+        ann.meta = {"papel": "B", "xyz": xyz, "par": pend.meta.get("par"), **dados}
+        pend.meta.update(dados)
+        pend.cache.clear()
+        estado["A"] = None
+        if dono is not None and dono is not self:
+            dono._store("save", pend)
+            dono.update()
+        elif pend in self.annotations:
+            self._store("save", pend)
+
+    # ---- ROI de referência (0.99.22, plano AW): as outras ROIs mostram a média em % dela
+    def roi_de_referencia(self) -> Annotation | None:
+        return next((a for a in self.annotations if (a.meta or {}).get("referencia")), None)
+
+    def marcar_referencia(self, ann: Annotation | None) -> None:
+        """Faz de `ann` a ROI de referência da série (None desliga). Só uma por série."""
+        for a in self.annotations:
+            if (a.meta or {}).get("referencia") and a is not ann:
+                a.meta = {k: v for k, v in a.meta.items() if k not in REF_CHAVES}
+                self._store("save", a)
+        if ann is not None:
+            img = self._img
+            pix = img.pixels if img is not None and not img.is_color else None
+            media = M.media_da_roi(ann, pix, self.measure_spacing(ann)) if ann.frame_key == self.frame_key() else None
+            ann.meta = {**(ann.meta or {}), "referencia": True}
+            if media is not None:
+                ann.meta["ref_media"] = media
+            self._store("save", ann)
+        self.update()
+
+    def media_de_referencia(self) -> float | None:
+        ref = self.roi_de_referencia()
+        if ref is None:
+            return None
+        if ref.frame_key == self.frame_key() and self._img is not None and not self._img.is_color:
+            m = M.media_da_roi(ref, self._img.pixels, self.measure_spacing(ref))
+            if m is not None:
+                if abs(m - float(ref.meta.get("ref_media") or 0)) > 1e-9:
+                    ref.meta["ref_media"] = m          # a ROI foi mexida: o número acompanha
+                return m
+        v = ref.meta.get("ref_media")
+        return float(v) if v is not None else None
 
     def delete_annotation(self, ann: Annotation) -> None:
         if ann in self.annotations:
@@ -561,7 +639,7 @@ class AnnotationMixin:
             self._draft = a
             self.update()
             return
-        pts = [ip] if kind in ("polygon", "polyline", "pencil", "probe") else [ip, ip]
+        pts = [ip] if kind in ("polygon", "polyline", "pencil", "probe", "ponto3d") else [ip, ip]
         a = self._new_annotation(kind, pts)
         pr["new"] = a
         if kind == "angle" or kind in TWO_LINE:
@@ -587,7 +665,7 @@ class AnnotationMixin:
                 last = a.points[-1]
                 if math.hypot(ip[0] - last[0], ip[1] - last[1]) >= self._img_tol(3):
                     a.points.append(ip)
-            elif a.kind == "probe":
+            elif a.kind in ("probe", "ponto3d"):
                 a.points[0] = ip
             else:
                 a.points[-1] = ip
@@ -639,7 +717,7 @@ class AnnotationMixin:
                 elif a.kind in ("polygon", "polyline"):   # por cliques
                     a.points = [ip, ip]
                     self._draft = a
-                elif a.kind == "probe":
+                elif a.kind in ("probe", "ponto3d"):
                     self._finish(a)
                 elif a.kind == "angle":
                     pass                             # continua por cliques
@@ -681,6 +759,14 @@ class AnnotationMixin:
                            * self.escala_da_letra("viewer.measure_font_scale"))
         fm = QFontMetrics(font)
         p.setFont(font)
+        incerteza = bool(self.settings.get("viewer.incerteza_medidas", False)) if self.settings is not None else False
+        try:
+            espessura = float((img.header or {}).get("SliceThickness") or 0) or None
+        except (TypeError, ValueError):
+            espessura = None
+        if getattr(self, "mpr_plane", None) is not None:
+            espessura = None            # reconstrução: o aviso que vale é o do pixel na direção
+        ref_media = self.media_de_referencia()
         for a in anns:
             base = getattr(self, "ann_colors", {}).get(id(a)) or ANNOT_COLORS.get(a.kind, MEASURE_COLOR)
             color = SELECTED_COLOR if a is self.selected else base
@@ -751,7 +837,7 @@ class AnnotationMixin:
                     p.drawEllipse(c, 6, 6)
                     p.setBrush(Qt.NoBrush)
                 anchor = c + QPointF(6, 0)
-            elif k == "probe" and pts:
+            elif k in ("probe", "ponto3d") and pts:
                 c = pts[0]
                 p.drawLine(c - QPointF(8, 0), c - QPointF(2, 0))
                 p.drawLine(c + QPointF(2, 0), c + QPointF(8, 0))
@@ -775,6 +861,9 @@ class AnnotationMixin:
                                    "probe", "polyline", "calibration")
             spacing = self.measure_spacing(a) if usa_regiao else spacing_base
             texts = M.labels(a, pix, spacing, self.modality, getattr(self, "suv_factor", None)) if show and k != "spine" else []
+            if texts and a.done:
+                texts += M.linhas_extras(a, pix, spacing, incerteza=incerteza, espessura=espessura,
+                                         ref_media=ref_media)
             lid = a.meta.get("lesion") if a.meta else None
             if lid is not None and show:
                 lname = getattr(self, "lesion_names", {}).get(lid) or a.meta.get("lesion_name") or f"Lesão {lid}"

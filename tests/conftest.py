@@ -65,3 +65,11 @@ def _sem_juntar_folhas(monkeypatch):
     o juntar liga explicitamente (test_juntar_folhas.py)."""
     from ipe.printing import juntar
     monkeypatch.setattr(juntar, "PADRAO", False)
+
+
+@pytest.fixture(autouse=True)
+def _outro_paciente_sem_perguntar(monkeypatch):
+    """A pergunta "outro paciente aberto" (0.99.22) é modal: nos testes antigos de chamada externa
+    ela travaria esperando clique. Mantém os dois; os testes dela trocam isto explicitamente."""
+    from ipe.ui.main_window import MainWindow
+    monkeypatch.setattr(MainWindow, "perguntar_outro_paciente", lambda self, novo, outros: "manter")

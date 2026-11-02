@@ -147,6 +147,31 @@ A coluna *tecla* abaixo é sugestão: quase toda a lista de atalhos vem de fábr
 - Arrastar uma miniatura da tira para um quadro põe aquela série ali.
 - O canto inferior direito do quadro diz o plano (clicável), a fase da dinâmica, a janela e o FOV.
 
+## Selos de integridade
+
+Uma faixa no alto do quadro avisa o que pode tornar a imagem imprópria para ler. Clicar nela explica cada selo.
+
+| Selo | Cor | Quando |
+|---|---|---|
+| COMPRESSÃO COM PERDAS — imprópria para o laudo | vermelho | mamografia comprimida com perdas (pelo atributo Lossy Image Compression ou pela sintaxe do arquivo), com o método e a taxa. O ACR e a FDA não aceitam para a leitura final |
+| Compressão com perdas | âmbar | qualquer outra modalidade comprimida com perdas |
+| Modality LUT em tabela | vermelho | o arquivo converte os pixels por tabela; o Ipê aplica só slope/intercept, então HU e densidades podem não ser os reais |
+| PACIENTES DIFERENTES NO LAYOUT | vermelho | os quadros da tela têm exames de pacientes diferentes (nome ou ID não batem) |
+| Pixel não quadrado | âmbar | espaçamentos diferentes na linha e na coluna |
+| Imagem derivada | âmbar | ImageType DERIVED\SECONDARY (reconstrução, captura, mapa) |
+
+A reconstrução (MPR, MIP) herda o selo de compressão da série de origem.
+
+**Na cópia.** Em Configurações ▸ Visualizador ▸ Anotações, *Na cópia (Ctrl+C)* escolhe o nível de anotação da imagem copiada, separado do da tela — por exemplo, Parcial 1 (sem os dados do paciente) para aula, sem precisar anonimizar o arquivo. O *carimbo mínimo* põe no pé da cópia a série, a janela, a escala, o processamento aplicado (MIP 10 mm, subtração, DSA, filtro, fusão) e os selos graves, mesmo com as anotações escondidas. O item *Selos de integridade* fica em Configurações ▸ Visualizador ▸ Anotações; os selos vermelhos aparecem em qualquer nível, menos no Ausente.
+
+## Janela: do arquivo, digitada e presets por modalidade
+
+O menu da janela (seta do botão Janela, ou duplo clique no "W … L …" do canto) traz:
+
+- **Do arquivo (Switch WL)**: todas as janelas gravadas no DICOM, com o nome (a mamografia costuma trazer NORMAL, HARDER, SOFTER) e as VOI LUT. A ação *Switch WL* (sem tecla de fábrica; escolha a sua em Atalhos de teclado) percorre essas janelas em ciclo; na mamografia troca as incidências à vista juntas. O nome da janela aparece ao lado do W/L até você arrastar a janela.
+- **Digitar a janela…**: largura e nível, por exemplo `400 40` ou `1500/-600`.
+- **Guardar a janela atual como preset…**: grava a janela à vista na lista da modalidade do quadro. RM, mamografia, PET e as outras podem ter lista própria; sem ela vale a lista geral (a de TC). As teclas 1–9 aplicam o preset da modalidade do quadro ativo. As listas também se editam em Configurações ▸ Visualizador ▸ Presets de janela, escolhendo a lista no alto. Os protocolos de exibição continuam usando a lista geral.
+
 ## Enviar ao filme: F1 e F2
 
 Com o foco num quadro do exame:
@@ -171,6 +196,13 @@ O botão **Medidas** abre uma janela com tudo o que foi medido no exame: série,
 - A ferramenta **Selecionar** edita o que já existe: clique escolhe, arrastar move, arrastar a ponta redimensiona, Delete apaga.
 - **Editar lesão…** (ou duplo clique numa linha de segmentação) reabre a segmentação com o limiar e o mamilo que você usou (capítulo 6).
 - As medidas saem para planilha (CSV/Excel) e para DICOM SR.
+
+### Régua 3D, incerteza e ROI de referência
+
+- **Régua 3D** (menu Medidas): clique o ponto A num corte e o ponto B em outro corte — ou em outro quadro, como o axial e o sagital. A distância sai em 3D, com as componentes direita-esquerda, ântero-posterior e craniocaudal; nos dois pontos do mesmo corte, o rótulo diz "(2D)". O terceiro clique começa uma régua nova.
+- **Cortes grossos**: a régua desenhada numa reconstrução de cortes grossos (o sagital de um axial de 5 mm) avisa quando a direção dela tem pixel de 5 mm — a medida craniocaudal herda esse erro, a ântero-posterior não. Na imagem original, a régua menor que a espessura do corte também avisa.
+- **Incerteza** (Configurações ▸ Visualizador ▸ Texto e marcas sobre a imagem): mostra ± o pixel na direção da régua e ± perímetro × pixel ÷ 2 na área da ROI. Desligada de fábrica; os avisos acima aparecem sempre.
+- **ROI de referência**: botão direito numa ROI ▸ *Usar como ROI de referência*. As outras ROIs da série passam a mostrar a média delas em % da referência (lesão/fígado, lesão/aorta, lesão/músculo). Só uma por série; ela fica marcada "Referência (100%)" e acompanha se você a mexer.
 
 ## Escala das medidas e calibração
 
@@ -419,6 +451,10 @@ Os valores ficam guardados: o próximo exame abre com os últimos que você usou
 | SER | razão de realce: < 0,9 persistente, 0,9–1,1 platô, > 1,1 washout |
 | Cinética | as seis classes em cor: o tom diz o comportamento tardio (azul persistente, verde platô, vermelho washout) e o brilho diz a intensidade |
 | Subtração | pós menos pré |
+| MIP temporal | o maior realce de cada voxel em **qualquer** fase pós-contraste (máximo das subtrações): a lesão aparece no pico dela, mesmo que seja fora da fase inicial |
+| Média temporal | o realce médio das fases pós-contraste |
+
+**Paisagem.** Com a subtração ligada no menu da fase (canto do quadro), *Paisagem (anatomia na subtração)* devolve 10, 20, 30 ou 50% da anatomia à subtração — para achar o mamilo, o clipe ou a pele sem trocar de série. Vale para todas as fases e aparece no canto ("subtração + 20% anatomia"). A subtração digital (DSA) tem a mesma opção no menu dela.
 
 Cada mapa guarda a cor que você escolheu por último, separadamente. A legenda ao lado sempre mostra a tabela em uso.
 
@@ -633,6 +669,8 @@ Quando a chamada abre só o visualizador, o exame aparece numa janela maximizada
 - o exame abre em todos os monitores marcados como viewer, repartido pelo mesmo critério do caminho normal;
 - fechar a janela de um monitor fecha o exame em todas;
 - ao fechar o exame, o programa continua na bandeja: o nó DICOM segue recebendo e a próxima chamada abre na hora.
+
+**Outro paciente com um já aberto.** Se a chamada traz outro paciente enquanto um ainda está aberto em algum monitor, o Ipê pergunta: fechar o anterior em todos os monitores, manter os dois ou não abrir. Em Rede ▸ Chamada externa, *Chamada com outro paciente aberto* decide sem perguntar. Abrir o seguinte com o anterior à vista é como a imagem de um acaba laudada no nome do outro. O filme faz o mesmo: pôr imagens de outro paciente num filme que já tem imagens pede confirmação.
 
 Liga-se em **Rede ▸ Chamada externa ▸ Abrir só o visualizador (sem o banco de dados)**, ou por chamada com `janela=viewer` / `janela=completo` — o parâmetro manda sobre a configuração.
 
@@ -1048,6 +1086,8 @@ O rótulo de cada nível ("IIA D") aparece em qualquer plano, no meio do pedaço
 ## Cefalometria do cavum
 
 Botão **Cefalometria** (aparece em TC de face, cavum ou pescoço; em outros exames, pelo botão **Aplicações**). Dois caminhos:
+
+> **Estado do resultado** (vale também para os índices do crânio): a janela diz se o resultado está *automático — ainda não conferido*, *editado (\*)* ou *aceito por fulano em data*. Cada valor trocado leva "editado \*" na coluna De quem. **Aceitar o resultado** grava quem e quando, com o que foi editado; ao reabrir o exame, a janela volta como você deixou.
 
 - **Automática (IA)**: a série de TC do quadro ativo (de preferência axial fina) vai para o TotalSegmentator, que separa palato mole e duro, naso, oro e hipofaringe, hioide, mandíbula, língua e as vértebras cervicais. As contas são feitas pelo Ipê sobre essas estruturas. Leva alguns minutos em CPU, e dá para continuar trabalhando. Usa a mesma instalação da segmentação abdominal; na primeira vez, baixa os modelos de cabeça e pescoço (ou rode de novo o instalar_segmentacao).
 - **À mão (roteiro)**: a mesma janela, vazia; escolha a linha, clique em **Medir à mão** e faça a medida num quadro (régua; contorno para a área).

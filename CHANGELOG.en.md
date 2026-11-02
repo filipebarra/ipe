@@ -3,6 +3,20 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.22 — cheap round of the AW plan: seals, patient mix, windows, measurements and output
+- Integrity seals at the top of the viewport: lossy-compressed mammography in red ("not suitable for
+  reporting"), lossy compression elsewhere, Modality LUT table, non-square pixel, derived image.
+- Patient mix: red seal when viewports show different patients; an external call bringing another
+  patient asks (close the previous on all monitors / keep both / don't open) or follows the setting;
+  the film asks before mixing patients.
+- Switch WL through the windows stored in the file; typed window; "save current window as preset"
+  with per-modality preset lists.
+- Landmark blend in dynamic and DSA subtraction; temporal MIP and temporal mean maps.
+- Reference ROI (others show % of it); 3D ruler; thick-slice warnings and optional ± uncertainty.
+- AI result status (automatic / edited * / accepted by whom and when), stored with the exam.
+- Copy (Ctrl+C) with its own annotation level and a minimum stamp (series, window, scale, processing).
+- Fix: a PACS reply (priors, save without implant) arriving after the tab closed raised an error; now discarded.
+
 ## 0.99.21 — lymph node levels: skull base from the jugular veins
 - The skull base (top of levels II and V) now comes from the top of the internal jugular veins or
   internal carotids; TotalSegmentator's skull includes the mandible.

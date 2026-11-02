@@ -23,6 +23,7 @@ KINDS = {
     "rect": "ROI retangular",
     "polygon": "ROI poligonal / livre",
     "probe": "Intensidade (valor do pixel)",
+    "ponto3d": "Régua 3D",
     "height": "Diferença de altura",
     "ctr": "Índice cardiotorácico",
     "spine": "Rotular coluna",
@@ -258,6 +259,18 @@ def labels(ann: Annotation, pixels: np.ndarray | None, spacing: tuple[float, flo
             if chest > 0:
                 out.append(f"ICT {heart / chest:.2f}")
         return out
+    if k == "ponto3d":
+        m = ann.meta or {}
+        papel = m.get("papel", "A")
+        if m.get("erro"):
+            return [f"Régua 3D: {m['erro']}"]
+        if m.get("dist") is None:
+            return ["Régua 3D: ponto A (clique o ponto B em outro corte)"]
+        out = [f"{papel}: {m['dist']:.1f} mm ({m.get('plano', '3D')})"]
+        if papel == "B" and len(m.get("d") or []) == 3:
+            dx, dy, dz = m["d"]
+            out.append(f"D-E {abs(dx):.1f}  A-P {abs(dy):.1f}  C-C {abs(dz):.1f} mm")
+        return out
     if k == "probe" and pts and pixels is not None:
         v = pixel_value(pixels, pts[0])
         if v is None:
@@ -313,6 +326,74 @@ def labels(ann: Annotation, pixels: np.ndarray | None, spacing: tuple[float, flo
     return []
 
 
+# --------------------------------------------------------------- incerteza e referência (0.99.22)
+def resolucao_na_direcao(p1: Point, p2: Point, spacing: tuple[float, float] | None) -> float:
+    """O tamanho do pixel na direção da linha, em mm: é o erro de pôr cada ponta num pixel.
+
+    Na reconstrução de uma série de cortes grossos (sagital de um axial de 5 mm) o pixel tem 5 mm na
+    vertical; a medida craniocaudal herda esse erro, a ântero-posterior não."""
+    rs, cs = spacing or (1.0, 1.0)
+    dx, dy = (p2[0] - p1[0]) * cs, (p2[1] - p1[1]) * rs
+    d = math.hypot(dx, dy)
+    if d <= 0:
+        return max(rs, cs)
+    return math.hypot(cs * dx / d, rs * dy / d)
+
+
+def perimetro_mm(kind: str, points: list[Point], spacing: tuple[float, float] | None) -> float:
+    rs, cs = spacing or (1.0, 1.0)
+    if kind in ("ellipse", "tic", "rect") and len(points) >= 2:
+        (x1, y1), (x2, y2) = points[:2]
+        a, b = abs(x2 - x1) * cs / 2, abs(y2 - y1) * rs / 2
+        if kind == "rect":
+            return 4 * (a + b)
+        return math.pi * (3 * (a + b) - math.sqrt(max((3 * a + b) * (a + 3 * b), 0.0)))   # Ramanujan
+    if len(points) < 2:
+        return 0.0
+    pts = list(points) + [points[0]]
+    return sum(math.hypot((q[0] - p[0]) * cs, (q[1] - p[1]) * rs) for p, q in zip(pts, pts[1:]))
+
+
+def media_da_roi(ann: "Annotation", pixels: np.ndarray | None, spacing) -> float | None:
+    if ann.kind not in ROI_KINDS or pixels is None:
+        return None
+    st = ann.cache.get((tuple(ann.points), id(pixels), spacing))
+    if st is None:
+        st = roi_stats(pixels, ann.kind, ann.points, spacing)
+    return st.mean
+
+
+def linhas_extras(ann: "Annotation", pixels: np.ndarray | None, spacing: tuple[float, float] | None, *,
+                  incerteza: bool = False, espessura: float | None = None,
+                  ref_media: float | None = None) -> list[str]:
+    """O que o quadro acrescenta à medida (0.99.22, plano AW): incerteza (opcional), aviso de
+    espessura/cortes grossos (sempre) e o percentual da ROI de referência."""
+    pts, k = ann.points, ann.kind
+    out: list[str] = []
+    if k == "line" and len(pts) >= 2 and spacing:
+        d = length_mm(pts[0], pts[1], spacing)
+        r = resolucao_na_direcao(pts[0], pts[1], spacing)
+        if incerteza:
+            out.append(f"± {r:.1f} mm")
+        fino = min(spacing)
+        if r > 2 * fino and r >= 1.5:
+            out.append(f"⚠ pixel de {r:.1f} mm nesta direção (cortes grossos)")
+        elif espessura and espessura >= d > 0:
+            out.append(f"⚠ menor que a espessura do corte ({espessura:.1f} mm)")
+    if k in ROI_KINDS and len(pts) >= 2 and spacing and incerteza:
+        pix_mm = math.sqrt(spacing[0] * spacing[1])
+        e = perimetro_mm(k, pts, spacing) * pix_mm / 2
+        out.append(f"Área ± {e:.1f} mm²")
+    if k in ROI_KINDS and pixels is not None:
+        if (ann.meta or {}).get("referencia"):
+            out.append("Referência (100%)")
+        elif ref_media:
+            m = media_da_roi(ann, pixels, spacing)
+            if m is not None and ref_media > 0:
+                out.append(f"{m / ref_media * 100:.0f}% da referência")
+    return out
+
+
 # --------------------------------------------------------------- edição
 def nearest_handle(ann: Annotation, p: Point, tol: float) -> int | None:
     """Índice do ponto de controle mais próximo (até `tol`, em pixels de imagem)."""
@@ -341,7 +422,7 @@ def hit(ann: Annotation, p: Point, tol: float) -> bool:
     if not pts:
         return False
     k = ann.kind
-    if k in ("text", "probe", "spine", "seg"):
+    if k in ("text", "probe", "spine", "seg", "ponto3d"):
         return any(math.hypot(q[0] - p[0], q[1] - p[1]) <= tol * 3 for q in pts)
     if k in ("line", "arrow", "calibration", "height") and len(pts) >= 2:
         return _dist_segment(p, pts[0], pts[1]) <= tol

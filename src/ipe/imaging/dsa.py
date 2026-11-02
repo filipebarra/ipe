@@ -53,6 +53,19 @@ def subtract(live: np.ndarray, mask: np.ndarray, mode: str = "log", dy: int = 0,
     return -out if invert else out
 
 
+def paisagem(sub: np.ndarray, live: np.ndarray, fracao: float, invert: bool = False) -> np.ndarray:
+    """"Landmark" da AW (0.99.22): devolve à subtração uma fração da anatomia do quadro, na mesma
+    escala e no mesmo sentido (o que absorve mais aparece do mesmo lado que o vaso)."""
+    f = float(fracao or 0.0)
+    if f <= 0 or sub.shape != live.shape:
+        return sub
+    a = live.astype(np.float32)
+    lo, hi = np.percentile(a, (1, 99))
+    alto = float(np.percentile(np.abs(sub), 99)) or 1.0
+    anat = (float(np.median(a)) - a) / max(float(hi - lo), 1e-6) * 2.0 * alto
+    return (sub + f * (-anat if invert else anat)).astype(np.float32)
+
+
 def auto_window(sub: np.ndarray, percentil: float = 99.0) -> tuple[float, float]:
     """Janela para a imagem subtraída: simétrica em torno de zero, pelos extremos reais."""
     if sub.size == 0:

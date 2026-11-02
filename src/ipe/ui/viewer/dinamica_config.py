@@ -27,6 +27,8 @@ VISTAS: dict[str, str] = {
     "ei": "Realce inicial",
     "sub": "Subtração (inicial − pré)",
     "ttp": "Tempo até o pico",
+    "mipt": "MIP temporal (maior realce em qualquer fase)",
+    "medt": "Média temporal do realce",
     "ph:pre": "Fase: pré-contraste",
     "ph:early": "Fase: inicial (a do SER)",
     "ph:late": "Fase: tardia (a do SER)",
@@ -35,7 +37,7 @@ VISTAS: dict[str, str] = {
     "serie": "Outra série do exame (T2, difusão…)",
     "": "Vazio",
 }
-MAPAS = ("cin", "msi", "pei", "ser", "ei", "sub", "ttp")
+MAPAS = ("cin", "msi", "pei", "ser", "ei", "sub", "ttp", "mipt", "medt")
 
 #: cor do quadro: "" = a do mapa (a última que ele escolheu para aquele mapa, ou a de fábrica)
 COR_PADRAO = ""

@@ -11,6 +11,8 @@ ausente). Tudo isso eu configuro no menu de configurações."*
 - O nível em uso vale para todos os quadros e fica guardado: trocar a cada exame seria trabalho à
   toa. Ele troca pelo botão "Anotações" da barra, pelo botão direito do quadro ou pela ação
   "Anotações: próximo nível" (sem tecla de fábrica; a tecla é escolha dele).
+- Os selos **graves** (mamografia comprimida com perdas, Modality LUT não aplicada) aparecem em
+  qualquer nível menos o Ausente, mesmo que a lista dele não tenha o item: são segurança (0.99.22).
 - Ctrl+C copia o quadro **como está na tela**, então o nível também decide o que vai na cópia.
 """
 from __future__ import annotations
@@ -36,6 +38,7 @@ ITENS: list[tuple[str, str, str]] = [
     ("fase", "Fase da dinâmica (clicável)", "Canto inferior direito"),
     ("janela", "Janela e nível (W/L)", "Canto inferior direito"),
     ("fov", "FOV e zoom", "Canto inferior direito"),
+    ("selos", "Selos de integridade (compressão com perdas, LUT…)", "Alto do quadro"),
     ("letras", "Letras de orientação nas bordas", "Sobre a imagem"),
     ("medidas", "Medidas, setas e textos desenhados", "Sobre a imagem"),
     ("medidas_aviso", "Aviso de imagens com medida", "Sobre a imagem"),
@@ -60,7 +63,7 @@ _DADOS_DO_PACIENTE = {"nome", "id", "sexo_idade", "instituicao", "data"}
 FABRICA: dict[str, list[str]] = {
     "completa": list(CHAVES),
     "parcial1": [k for k in CHAVES if k not in _DADOS_DO_PACIENTE],
-    "parcial2": ["serie", "fase_nome", "imagem", "fase", "janela", "letras", "medidas", "chave",
+    "parcial2": ["serie", "fase_nome", "imagem", "fase", "janela", "selos", "letras", "medidas", "chave",
                  "barra_cores", "tomo"],
 }
 

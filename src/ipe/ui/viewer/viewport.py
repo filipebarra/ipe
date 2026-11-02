@@ -18,7 +18,7 @@ from PySide6.QtGui import (
     QAction, QColor, QFont, QFontMetrics, QImage, QKeyEvent, QMouseEvent, QPainter, QPen,
     QPolygonF, QWheelEvent,
 )
-from PySide6.QtWidgets import QApplication, QInputDialog, QMenu, QWidget
+from PySide6.QtWidgets import QApplication, QInputDialog, QMenu, QMessageBox, QWidget
 
 from ipe.core.i18n import tr
 from ipe.imaging import measure as M
@@ -319,7 +319,23 @@ class Viewport(AnnotationMixin, QWidget):
         if not self.phases:
             return ""
         sub = "  subtração" if self.subtract and self.phase > 0 else ""
+        pais = float(getattr(self, "paisagem", 0.0) or 0.0)
+        if sub and pais > 0:
+            sub += f" + {pais * 100:.0f}% anatomia"
         return f"Fase {self.phase + 1}/{len(self.phases)}{sub}  ◂▸"
+
+    #: frações da anatomia que a paisagem devolve à subtração
+    PAISAGENS = (0.0, 0.1, 0.2, 0.3, 0.5)
+
+    def set_paisagem(self, fracao: float) -> None:
+        """Mistura a anatomia de volta na subtração para localizar o realce (mamilo, clipe, pele)
+        sem trocar de série. 0 = subtração pura."""
+        self.paisagem = max(0.0, min(1.0, float(fracao)))
+        if self.subtract:
+            self.state.window_set = False
+            self._qimage_key = None
+            self._load_current()
+            self.update()
 
     def show_phase_menu(self, global_pos) -> None:
         if not self.phases:
@@ -333,6 +349,14 @@ class Viewport(AnnotationMixin, QWidget):
         sub = QAction("Subtração (fase − pré-contraste)", menu, checkable=True, checked=self.subtract)
         sub.triggered.connect(self.set_subtract)
         menu.addAction(sub)
+        pm = menu.addMenu("Paisagem (anatomia na subtração)")
+        pm.setEnabled(self.subtract)
+        atual = float(getattr(self, "paisagem", 0.0) or 0.0)
+        for f in self.PAISAGENS:
+            a = QAction("Sem anatomia (subtração pura)" if f == 0 else f"{f * 100:.0f}% da anatomia", pm,
+                        checkable=True, checked=abs(f - atual) < 1e-6)
+            a.triggered.connect(lambda _=False, ff=f: self.set_paisagem(ff))
+            pm.addAction(a)
         cine = QAction("Cine das fases", menu)
         cine.triggered.connect(lambda: self.toggle_cine(phases=True))
         menu.addAction(cine)
@@ -374,7 +398,9 @@ class Viewport(AnnotationMixin, QWidget):
                 pre = self.cache.get(pre_f)
                 if pre.pixels.shape == self._img.pixels.shape:
                     from dataclasses import replace
-                    self._img = replace(self._img, pixels=self._img.pixels - pre.pixels, window=None)
+                    # paisagem (0.99.22, plano AW M11): devolve uma fração da anatomia à subtração
+                    k = 1.0 - float(getattr(self, "paisagem", 0.0) or 0.0)
+                    self._img = replace(self._img, pixels=self._img.pixels - k * pre.pixels, window=None)
             if self.dsa.get("on") and len(self.frames) > 1 and not self._img.is_color:
                 self._img = self._dsa_image(self._img)
             if self.tomo_slab > 1 and self.in_tomo() and not self._img.is_color and len(self.frames) > 1:
@@ -425,6 +451,8 @@ class Viewport(AnnotationMixin, QWidget):
             sub = D.subtract(img.pixels, mask, self.dsa.get("mode", "log"),
                              int(self.dsa.get("dy", 0)), int(self.dsa.get("dx", 0)),
                              invert=bool(self.dsa.get("invert", False)))
+            sub = D.paisagem(sub, img.pixels, float(self.dsa.get("paisagem", 0.0) or 0.0),
+                             bool(self.dsa.get("invert", False)))
         except Exception:  # noqa: BLE001
             log.exception("subtração DSA")
             return img
@@ -436,7 +464,7 @@ class Viewport(AnnotationMixin, QWidget):
         """Liga/desliga ou ajusta a subtração; a janela é recalculada porque os valores mudam."""
         antes = dict(self.dsa)
         self.dsa.update(mudancas)
-        if self.dsa.get("on") != antes.get("on") or self.dsa.get("mode") != antes.get("mode"):
+        if any(self.dsa.get(k) != antes.get(k) for k in ("on", "mode", "paisagem")):
             self.state.window_set = False
         self._dsa_key = None
         self._qimage_key = None
@@ -449,7 +477,9 @@ class Viewport(AnnotationMixin, QWidget):
             return ""
         d = self.dsa
         desloc = f", deslocada {d['dy']:+d}/{d['dx']:+d} px" if (d.get("dy") or d.get("dx")) else ""
-        return f"DSA: máscara no quadro {int(d.get('mask', 0)) + 1}{desloc}"
+        pais = float(d.get("paisagem", 0.0) or 0.0)
+        pais_txt = f", paisagem {pais * 100:.0f}%" if pais > 0 else ""
+        return f"DSA: máscara no quadro {int(d.get('mask', 0)) + 1}{desloc}{pais_txt}"
 
     def _corrige_implante_now(self, mascara) -> None:
         from dataclasses import replace
@@ -1441,14 +1471,86 @@ class Viewport(AnnotationMixin, QWidget):
         hover, self._hover = self._hover, None
         hotspots = dict(self._hotspots)
         self._capturando = True
+        self._nivel_forcado = self.nivel_de_saida()
         try:
             self.render(out)
+            if self.settings is None or self.settings.get("viewer.carimbo_saida", True):
+                p = QPainter(out)
+                try:
+                    self._draw_carimbo(p)
+                finally:
+                    p.end()
         finally:
             self._capturando = False
+            self._nivel_forcado = None
             self._hover = hover
             self._hotspots = hotspots
         out.setDevicePixelRatio(1.0)
         return out
+
+    # ---- perfil de anotação da saída e carimbo mínimo (0.99.22, plano AW 12)
+    def nivel_de_saida(self) -> str | None:
+        """Nível de anotação da cópia/exportação; None = o mesmo da tela."""
+        from ipe.ui.viewer import anotacoes as AN
+        if self.settings is None:
+            return None
+        n = str(self.settings.get("viewer.anotacoes_saida", "") or "")
+        return n if n in AN.NOME_DO_NIVEL else None
+
+    def processamento_aplicado(self) -> list[str]:
+        """O que foi feito na imagem além de mostrá-la: entra sempre no carimbo da saída."""
+        out = []
+        if self.dsa.get("on"):
+            out.append(self.dsa_status())
+        if self.subtract and self.phases and self.phase > 0:
+            pais = float(getattr(self, "paisagem", 0.0) or 0.0)
+            out.append(f"Subtração fase {self.phase + 1} − pré" + (f" + {pais * 100:.0f}% anatomia" if pais else ""))
+        if self.state.filter:
+            from ipe.imaging.filters import label as _flabel
+            out.append(_flabel(self.state.filter))
+        plano = getattr(self, "mpr_plane", None)
+        if plano is not None:
+            slab = float(getattr(plano, "slab_mm", 0) or 0)
+            modo = {"mip": "MIP", "minip": "MinIP", "avg": "média"}.get(str(getattr(plano, "mode", "")), "")
+            nome = getattr(plano, "name", "") or "Reconstrução"
+            out.append(f"{nome} {modo} {slab:.0f} mm".replace("  ", " ") if slab > 0 and modo else str(nome))
+        if self.tomo_slab > 1 and self.in_tomo():
+            out.append(f"Tomo: {self.tomo_slab} cortes ({'MIP' if self.tomo_slab_mode == 'mip' else 'média'})")
+        if self.fusion is not None:
+            out.append(f"Fusão: {self.fusion.label} {self.fusion.alpha * 100:.0f}%")
+        return out
+
+    def carimbo_texto(self) -> str:
+        """A linha mínima que toda imagem que sai do programa leva: série, janela, escala e
+        processamento (rastreabilidade: quem vê a cópia sabe o que foi feito nela)."""
+        partes = []
+        if self.series_label:
+            partes.append(self.series_label)
+        if self._img is not None and not self._img.is_color:
+            partes.append(f"W {self.state.width:.0f} L {self.state.level:.0f}")
+        if self._img is not None and self._img.pixel_spacing:
+            rs, cs = self._img.pixel_spacing
+            partes.append(f"pixel {cs:.2f} mm" if abs(rs - cs) < 1e-6 else f"pixel {rs:.2f}×{cs:.2f} mm")
+        else:
+            partes.append("sem escala")
+        partes += self.processamento_aplicado()
+        partes += [s.texto for s in self.selos() if s.grave]
+        return " · ".join(partes)
+
+    def _draw_carimbo(self, p: QPainter) -> None:
+        txt = tr(self.carimbo_texto())
+        if not txt:
+            return
+        f = QFont()
+        f.setPixelSize(max(11, int(p.device().height() / 70)))
+        p.setFont(f)
+        fm = QFontMetrics(f)
+        W, H = p.device().width(), p.device().height()
+        txt = fm.elidedText(txt, Qt.ElideRight, W - 12)
+        r = QRectF(0, H - fm.height() - 6, W, fm.height() + 6)
+        p.fillRect(r, QColor(0, 0, 0, 170))
+        p.setPen(QColor(235, 235, 235))
+        p.drawText(r.adjusted(6, 0, -6, 0), Qt.AlignLeft | Qt.AlignVCenter, txt)
 
     def copiar_para_area_de_transferencia(self) -> tuple[int, int] | None:
         """Ctrl+C: o quadro vai para a área de transferência. Devolve o tamanho copiado."""
@@ -1463,7 +1565,7 @@ class Viewport(AnnotationMixin, QWidget):
         from ipe.ui.viewer import anotacoes as AN
         if self.settings is None:
             return set(AN.CHAVES)
-        return AN.itens_do_nivel(self.settings)
+        return AN.itens_do_nivel(self.settings, getattr(self, "_nivel_forcado", None))
 
     def _mostra(self, item: str) -> bool:
         vis = getattr(self, "_anot_vis", None)
@@ -1527,7 +1629,9 @@ class Viewport(AnnotationMixin, QWidget):
                 f = self.suv_factor
                 br.append((f"SUV  W {self.state.width * f:.1f}  L {self.state.level * f:.1f}", "wl", "janela"))
             else:
-                br.append((f"W {self.state.width:.0f}  L {self.state.level:.0f}", "wl", "janela"))
+                nome_j = self.nome_da_janela()
+                br.append((f"W {self.state.width:.0f}  L {self.state.level:.0f}" + (f"  {nome_j}" if nome_j else ""),
+                           "wl", "janela"))
         br.append((self._fov_text(), "zoom", "fov"))
         if self.is_4d():
             bl.insert(0, (self.cardiac_text(), "phase", "fase_cardiaca"))
@@ -1574,10 +1678,7 @@ class Viewport(AnnotationMixin, QWidget):
 
     def fase_texto(self) -> str:
         """Fase da dinâmica: esquerdo avança, direito volta."""
-        if not self.phases:
-            return ""
-        sub = "  subtração" if self.subtract and self.phase > 0 else ""
-        return f"Fase {self.phase + 1}/{len(self.phases)}{sub}  ◂▸"
+        return self.phase_text()
 
     def _position_text(self) -> str:
         f = self.frames[self.index] if self.frames else None
@@ -1646,6 +1747,7 @@ class Viewport(AnnotationMixin, QWidget):
         draw_block("tr", lines["tr"], True, False)
         draw_block("bl", lines["bl"], False, True)
         draw_block("br", lines["br"], True, True)
+        self._draw_selos(p, font, margin, lh, hot_enabled)
         if self.settings.get("viewer.tomo_dial", True) and self._mostra("tomo"):
             from ipe.ui.viewer import tomo_dial as TD
             canto = "br" if self.chest_screen_side() == "left" else "bl"
@@ -1712,6 +1814,62 @@ class Viewport(AnnotationMixin, QWidget):
             p.drawText(QPointF(margin, self.height() / 2 + lh * 3), "Medidas calibradas")
         if self._mostra("mouse") and not self._capturando:
             self._draw_mouse_icon(p, font, margin, lh, hot_enabled)
+
+    # --------------------------------------------------- selos de integridade (0.99.22)
+    def selos(self) -> list:
+        """Os selos da imagem à vista (compressão com perdas, Modality LUT, pixel não quadrado…)."""
+        if self._img is None:
+            return []
+        from ipe.imaging import selos as SL
+        out = SL.selos(self._img.header, self._img.pixel_spacing)
+        layout = getattr(self, "pacientes_do_layout", None)
+        if callable(layout) and self.study_info:
+            from ipe.ui import compare_studies as CS
+            if CS.pacientes_diferentes([self.study_info, *layout()]):
+                nome = (self.case_label or "Paciente oculto") if self.anonymize else CS.nome_curto(self.study_info)
+                out.insert(0, SL.selo_de_mistura(nome))
+        return out
+
+    def _selos_visiveis(self) -> list:
+        from ipe.ui.viewer import anotacoes as AN
+        nivel = getattr(self, "_nivel_forcado", None) or (AN.nivel_atual(self.settings) if self.settings else "")
+        if nivel == "ausente":
+            return []
+        todos = self.selos()
+        return todos if self._mostra("selos") else [s for s in todos if s.grave]
+
+    def _draw_selos(self, p: QPainter, font: QFont, margin: int, lh: float, hot_enabled: bool) -> None:
+        sel = self._selos_visiveis()
+        if not sel:
+            return
+        txt = "  ·  ".join(tr(s.texto) for s in sel)
+        f = QFont(font)
+        f.setBold(any(s.grave for s in sel))
+        fm = QFontMetrics(f)
+        tw = fm.horizontalAdvance(txt)
+        largura = self.width() - 2 * margin
+        if tw > largura:                       # quadro estreito: só o primeiro (o mais grave)
+            txt = tr(sel[0].texto) + ("  …" if len(sel) > 1 else "")
+            tw = fm.horizontalAdvance(txt)
+        rect = QRectF((self.width() - tw) / 2 - 6, margin + lh * 1.3, tw + 12, fm.height() + 4)
+        grave = sel[0].grave
+        p.save()
+        p.setFont(f)
+        p.fillRect(rect, QColor(170, 0, 0, 200) if grave else QColor(0, 0, 0, 150))
+        if hot_enabled:
+            self._hotspots.setdefault("selos", rect)
+            if self._hover == "selos":
+                p.fillRect(rect, QColor(255, 200, 0, 60))
+        p.setPen(QColor(255, 255, 255) if grave else QColor(255, 190, 70))
+        p.drawText(QPointF(rect.x() + 6, rect.y() + 2 + fm.ascent()), txt)
+        p.restore()
+
+    def explicar_selos(self) -> None:
+        sel = self.selos()
+        if not sel:
+            return
+        texto = "\n\n".join(f"• {tr(s.texto)}\n{tr(s.explicacao)}" for s in sel)
+        QMessageBox.information(self, tr("Selos de integridade"), texto)
 
     # --------------------------------------------------- ícone do mouse (o que cada botão faz)
     def mouse_actions(self) -> list[tuple[str, str]]:
@@ -2438,6 +2596,9 @@ class Viewport(AnnotationMixin, QWidget):
         if hot == "escala":
             self.menu_da_escala(global_pos)
             return
+        if hot == "selos":
+            self.explicar_selos()
+            return
         if hot == "orient":
             m = QMenu(self)
             self.add_orientation_actions(m)
@@ -2638,11 +2799,88 @@ class Viewport(AnnotationMixin, QWidget):
             super().keyPressEvent(e)
 
     # ------------------------------------------------------------ menus
-    def apply_preset(self, key: str) -> None:
-        presets = self.settings.get("viewer.wl_presets", {})
+    def presets_da_janela(self) -> dict:
+        """Presets da modalidade deste quadro (0.99.22); sem lista própria, os gerais."""
+        from ipe.imaging import presets_janela as PJ
+        return PJ.presets(self.settings, self.modalidade_atual())
+
+    def apply_preset(self, key: str, geral: bool = False) -> None:
+        """Tecla 1–9. `geral`: a lista geral (os protocolos de exibição gravam a tecla dela)."""
+        presets = (self.settings.get("viewer.wl_presets", {}) or {}) if geral else self.presets_da_janela()
         if key in presets:
             _name, w, l = presets[key]
             self.set_window(float(w), float(l))
+
+    # ---- Switch WL (0.99.22): as janelas gravadas no arquivo, uma a uma
+    def janelas_do_arquivo(self) -> tuple:
+        return tuple(getattr(self._img, "janelas", ()) or ()) if self._img is not None else ()
+
+    def usar_janela_do_arquivo(self, i: int) -> None:
+        js = self.janelas_do_arquivo()
+        if not js:
+            return
+        i %= len(js)
+        nome, w, l = js[i]
+        self.set_window(float(w), float(l))
+        self._janela_arquivo = (i, nome, float(w), float(l))
+
+    def switch_wl(self) -> str:
+        """Próxima janela do arquivo, em ciclo. Devolve o que mostrou (para a barra de status)."""
+        js = self.janelas_do_arquivo()
+        if not js:
+            return ""
+        atual = getattr(self, "_janela_arquivo", None)
+        i = 0
+        if atual is not None and self._na_janela_do_arquivo():
+            i = atual[0] + 1
+        elif len(js) > 1 and abs(self.state.width - js[0][1]) < 1e-3 and abs(self.state.level - js[0][2]) < 1e-3:
+            i = 1                          # já está na primeira (a que abre): a tecla vai para a segunda
+        self.usar_janela_do_arquivo(i)
+        i, nome, _w, _l = self._janela_arquivo
+        return f"Janela do arquivo {i + 1}/{len(js)}: {nome}"
+
+    def _na_janela_do_arquivo(self) -> bool:
+        a = getattr(self, "_janela_arquivo", None)
+        return a is not None and abs(self.state.width - a[2]) < 1e-3 and abs(self.state.level - a[3]) < 1e-3
+
+    def nome_da_janela(self) -> str:
+        """Nome da janela do arquivo em uso (some quando ele arrasta a janela)."""
+        return self._janela_arquivo[1] if self._na_janela_do_arquivo() else ""
+
+    def digitar_janela(self) -> None:
+        """Clicar no "W 400 L 40" e digitar (0.99.22, plano AW item 9)."""
+        from ipe.imaging import presets_janela as PJ
+        txt, ok = QInputDialog.getText(self, "Janela", "Largura e nível (ex.: 400 40):",
+                                       text=f"{self.state.width:.0f} {self.state.level:.0f}")
+        if not ok:
+            return
+        wl = PJ.ler_wl(txt)
+        if wl is None:
+            QMessageBox.warning(self, "Janela", "Digite dois números: a largura (maior que zero) e o nível.")
+            return
+        self.set_window(*wl)
+
+    def guardar_janela_atual(self) -> bool:
+        """Guarda a janela à vista como preset da modalidade do quadro (0.99.22, item 10)."""
+        from ipe.imaging import presets_janela as PJ
+        mod = self.modalidade_atual() or ""
+        nome, ok = QInputDialog.getText(self, "Guardar a janela atual",
+                                        f"Nome do preset ({mod or 'geral'}, W {self.state.width:.0f} "
+                                        f"L {self.state.level:.0f}):", text=self.nome_da_janela())
+        if not ok or not nome.strip():
+            return False
+        tecla = PJ.tecla_livre(self.settings, mod) if PJ.tem_lista_propria(self.settings, mod) or \
+            (mod and mod != "CT") else None
+        teclas = [str(k) for k in range(1, 10)]
+        if tecla is None:
+            atuais = self.presets_da_janela()
+            itens = [f"{k}  {atuais[k][0]}" if k in atuais else f"{k}  (livre)" for k in teclas]
+            esc, ok = QInputDialog.getItem(self, "Guardar a janela atual", "Em que tecla?", itens, 0, False)
+            if not ok:
+                return False
+            tecla = esc.split()[0]
+        PJ.guardar(self.settings, mod, tecla, nome.strip(), self.state.width, self.state.level)
+        return True
 
     def show_preset_menu(self, global_pos) -> None:
         menu = QMenu(self)
@@ -2650,8 +2888,19 @@ class Viewport(AnnotationMixin, QWidget):
         menu.exec(global_pos)
 
     def _add_preset_actions(self, menu: QMenu) -> None:
-        presets = self.settings.get("viewer.wl_presets", {})
-        for key, (name, w, l) in sorted(presets.items()):
+        js = self.janelas_do_arquivo()
+        if js:
+            tit = QAction("Do arquivo (Switch WL)", menu)
+            tit.setEnabled(False)
+            menu.addAction(tit)
+            for i, (nome, w, l) in enumerate(js):
+                act = QAction(f"   {nome}  (W {w:g} / L {l:g})", menu)
+                act.triggered.connect(lambda _=False, k=i: self.usar_janela_do_arquivo(k))
+                menu.addAction(act)
+            menu.addSeparator()
+        for key, (name, w, l) in sorted(self.presets_da_janela().items()):
+            if not name:
+                continue
             act = QAction(f"{key}  {name}  (W {w} / L {l})", menu)
             act.triggered.connect(lambda _=False, kk=key: self.apply_preset(kk))
             menu.addAction(act)
@@ -2659,6 +2908,14 @@ class Viewport(AnnotationMixin, QWidget):
         auto.triggered.connect(lambda: (setattr(self.state, "window_set", False),
                                         self._load_current(), self.update()))
         menu.addAction(auto)
+        menu.addSeparator()
+        dig = QAction("Digitar a janela…", menu)
+        dig.triggered.connect(self.digitar_janela)
+        menu.addAction(dig)
+        cap = QAction("Guardar a janela atual como preset…", menu)
+        cap.setToolTip("Vale para a modalidade deste quadro: RM, mamografia e PET podem ter presets próprios.")
+        cap.triggered.connect(self.guardar_janela_atual)
+        menu.addAction(cap)
 
     def show_context_menu(self, global_pos, local_pos: QPointF | None = None) -> None:
         self.build_context_menu(local_pos).exec(global_pos)
@@ -2685,6 +2942,14 @@ class Viewport(AnnotationMixin, QWidget):
                                 else "Trocar / desligar a lesão…", menu)
                 a_les.triggered.connect(lambda: self.sig.lesion_requested.emit(self, target))
                 menu.addAction(a_les)
+            if target.kind in M.ROI_KINDS and target.frame_key[0]:
+                if (target.meta or {}).get("referencia"):
+                    a_ref = QAction("Deixar de ser a ROI de referência", menu)
+                    a_ref.triggered.connect(lambda: self.marcar_referencia(None))
+                else:
+                    a_ref = QAction("Usar como ROI de referência (as outras mostram % dela)", menu)
+                    a_ref.triggered.connect(lambda: self.marcar_referencia(target))
+                menu.addAction(a_ref)
             if target.kind == "tic":
                 a_tic = QAction("Mostrar curva tempo-intensidade…", menu)
                 a_tic.triggered.connect(lambda: self.sig.tic_requested.emit(self, target))
@@ -2815,6 +3080,13 @@ class Viewport(AnnotationMixin, QWidget):
                         checked=bool(self.dsa.get("invert")))
             a.triggered.connect(lambda on: self.set_dsa(invert=on))
             dm.addAction(a)
+            pm = dm.addMenu("Paisagem (anatomia na subtração)")
+            atual = float(self.dsa.get("paisagem", 0.0) or 0.0)
+            for f in self.PAISAGENS:
+                a = QAction("Sem anatomia (subtração pura)" if f == 0 else f"{f * 100:.0f}% da anatomia", pm,
+                            checkable=True, checked=abs(f - atual) < 1e-6)
+                a.triggered.connect(lambda _c=False, ff=f: self.set_dsa(on=True, paisagem=ff))
+                pm.addAction(a)
             dm.addSeparator()
             dm.addAction("Ajustar o deslocamento da máscara…", self.open_dsa_shift)
         from ipe.imaging import filters as _filters

@@ -46,6 +46,20 @@ def differences(infos: list) -> list:
     return saida
 
 
+def pacientes_diferentes(infos: list) -> bool:
+    """Nome ou ID não batem (0.99.22). Nascimento e sexo em branco num dos lados não bastam: o
+    aviso de mistura tem de ser raro para ser lido."""
+    for campo in ("patient_name", "patient_id"):
+        vistos = {_norma(campo, (i or {}).get(campo)) for i in infos if (i or {}).get(campo)}
+        if len(vistos) > 1:
+            return True
+    return False
+
+
+def nome_curto(info: dict) -> str:
+    return _mostra("patient_name", (info or {}).get("patient_name"))
+
+
 def summary(infos: list) -> str:
     """Texto do aviso quando os exames não são do mesmo paciente."""
     linhas = []

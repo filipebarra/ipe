@@ -147,6 +147,9 @@ class PriorsPanel(QWidget):
         self.status.setText("Consultando o PACS…")
 
         def done(res, err) -> None:
+            import shiboken6
+            if not shiboken6.isValid(self.status):
+                return                       # a aba fechou antes de o PACS responder
             if err is not None:
                 self.status.setText(f"Erro: {err}")
                 return

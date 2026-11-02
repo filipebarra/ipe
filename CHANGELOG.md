@@ -3,6 +3,32 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.22 — rodada barata do plano AW: selos, mistura de pacientes, janelas, medidas e saída
+- **Selos de integridade** no alto do quadro: mamografia comprimida com perdas sai em vermelho
+  ("imprópria para o laudo", com método e taxa); compressão com perdas nas outras modalidades,
+  Modality LUT em tabela (não aplicada), pixel não quadrado e imagem derivada. Clicar explica. A
+  reconstrução herda o selo da série de origem.
+- **Mistura de pacientes**: selo vermelho quando os quadros da tela têm pacientes diferentes; a
+  chamada externa que traz outro paciente com um já aberto pergunta (fechar o anterior em todos os
+  monitores, manter os dois, não abrir) — ou decide sozinha, em Rede ▸ Chamada externa; o filme
+  pede confirmação antes de juntar pacientes.
+- **Switch WL**: o menu da janela lista as janelas gravadas no arquivo (NORMAL, HARDER, SOFTER, VOI
+  LUT) e a ação *Switch WL* percorre em ciclo; na mamografia, as incidências à vista juntas.
+- **Janela digitada** e **"Guardar a janela atual como preset"**, com listas de presets por
+  modalidade (RM, mamografia, PET…); as teclas 1–9 usam a lista da modalidade do quadro.
+- **Paisagem** na subtração da dinâmica e na DSA (10–50% da anatomia de volta, para localizar o
+  realce) e dois mapas novos na dinâmica: **MIP temporal** (maior realce em qualquer fase) e
+  **média temporal**.
+- **ROI de referência**: as outras ROIs da série mostram a média em % dela.
+- **Régua 3D** (ponto A num corte, B em outro ou em outro quadro, com D-E/A-P/C-C), aviso de
+  cortes grossos na direção da régua e de medida menor que a espessura, e incerteza opcional (±).
+- **Estado do resultado de IA** (cefalometria, índices do crânio): automático, editado (\*) ou
+  aceito por quem e quando — guardado com o exame, e a janela reabre como ficou.
+- **Cópia (Ctrl+C)** com nível de anotação próprio e **carimbo mínimo** (série, janela, escala,
+  processamento aplicado e selos graves).
+- Correção: resposta do PACS (anteriores, salvar sem o silicone) que chegava depois de a aba fechar
+  dava erro; agora é descartada.
+
 ## 0.99.21 — níveis linfonodais: base do crânio pelas jugulares
 - No primeiro caso real (TC de pescoço, tórax e abdome de 15/09), a base do crânio saiu 9 mm acima
   do hioide: o "crânio" do TotalSegmentator traz a mandíbula. Agora a base do crânio (limite de cima

@@ -892,6 +892,8 @@ class FilmComposer(QWidget):
         sem `at`: nas vagas livres a partir da folha atual. Devolve quantas entraram."""
         if not cells:
             return 0
+        if not self._mistura_aceita(cells):
+            return 0
         if self.film.image_count() == 0 and self.film.name == Film().name:
             info = self.src.study_info(cells[0].study_uid)
             self.film.name = " — ".join(x for x in (info.get("patient_name", ""), info.get("description", "")) if x) \
@@ -932,6 +934,32 @@ class FilmComposer(QWidget):
         self.status_message.emit(f"{len(cells)} imagem(ns) no filme “{self.film.name}” "
                                  f"(folha {last + 1}/{len(self.film.sheets)})")
         return len(cells)
+
+    def _mistura_aceita(self, cells: list) -> bool:
+        """Imagens de outro paciente num filme que já tem imagens: pergunta antes (0.99.22).
+        Filme com dois pacientes é laudo trocado esperando para acontecer."""
+        from ipe.ui import compare_studies as CS
+        ja = [u for u in self.film.study_uids() if u]
+        novos = [c.study_uid for c in cells if c is not None and c.study_uid and c.study_uid not in ja]
+        if not ja or not novos:
+            return True
+        infos = [self.src.study_info(u) for u in dict.fromkeys(ja + novos)]
+        if not CS.pacientes_diferentes(infos):
+            return True
+        return self.confirmar_mistura(infos)
+
+    def confirmar_mistura(self, infos: list) -> bool:
+        from ipe.ui import compare_studies as CS
+        caixa = QMessageBox(self)
+        caixa.setIcon(QMessageBox.Warning)
+        caixa.setWindowTitle("Filme com outro paciente")
+        caixa.setText("Este filme já tem imagens de outro paciente.")
+        caixa.setInformativeText(CS.summary(infos) + "\n\n" + "Pôr as imagens no mesmo filme assim mesmo?")
+        caixa.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+        caixa.setDefaultButton(QMessageBox.Cancel)
+        caixa.button(QMessageBox.Yes).setText("Pôr assim mesmo")
+        caixa.button(QMessageBox.Cancel).setText("Cancelar")
+        return caixa.exec() == QMessageBox.Yes
 
     def add_images(self, items: list[dict]) -> int:
         """Itens vindos do visualizador: study_uid, series_uid, index, e opcionalmente width, level,

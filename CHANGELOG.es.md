@@ -3,6 +3,21 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.22 — ronda barata del plan AW: sellos, mezcla de pacientes, ventanas, medidas y salida
+- Sellos de integridad arriba del cuadro: mamografía comprimida con pérdida en rojo ("no apta para el
+  informe"), compresión con pérdida en otras modalidades, Modality LUT en tabla, píxel no cuadrado,
+  imagen derivada.
+- Mezcla de pacientes: sello rojo cuando los cuadros muestran pacientes distintos; la llamada externa
+  que trae otro paciente pregunta (cerrar el anterior en todos los monitores / mantener los dos / no
+  abrir) o sigue la configuración; la película pide confirmación antes de mezclar pacientes.
+- Switch WL por las ventanas guardadas en el archivo; ventana escrita; "guardar la ventana actual como
+  preset" con listas de presets por modalidad.
+- Paisaje en la sustracción dinámica y en la DSA; mapas MIP temporal y media temporal.
+- ROI de referencia (las otras muestran % de ella); regla 3D; avisos de cortes gruesos e incertidumbre ±.
+- Estado del resultado de IA (automático / editado * / aceptado por quién y cuándo), guardado con el examen.
+- Copia (Ctrl+C) con nivel de anotación propio y sello mínimo (serie, ventana, escala, procesamiento).
+- Corrección: una respuesta del PACS (anteriores, guardar sin el implante) que llegaba tras cerrar la pestaña daba error; ahora se descarta.
+
 ## 0.99.21 — niveles ganglionares: base del cráneo por las yugulares
 - La base del cráneo (límite superior de los niveles II y V) sale del borde superior de las yugulares
   internas o de las carótidas internas; el cráneo de TotalSegmentator incluye la mandíbula.

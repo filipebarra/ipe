@@ -160,8 +160,8 @@ class FilmCell(Viewport):
         self.state.window_set = True
         self._changed()
 
-    def apply_preset(self, key: str) -> None:
-        super().apply_preset(key)
+    def apply_preset(self, key: str, geral: bool = False) -> None:
+        super().apply_preset(key, geral)
         self._changed()
 
     # ------------------------------------------------------------ geometria (com giro/espelho)

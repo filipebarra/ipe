@@ -11,6 +11,7 @@ que monta o texto e manda para o laudo.
 from __future__ import annotations
 
 import copy
+import logging
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QGuiApplication
@@ -25,6 +26,8 @@ from typing import Callable
 from ipe.ai import cefalometria as CF
 from ipe.ui.tabelas import colunas_ajustaveis
 from ipe.ui.viewer.roteiro_painel import valor_da_anotacao
+
+log = logging.getLogger(__name__)
 
 #: ferramenta para medir à mão: a área é um contorno; o nível do hioide é texto (digitado)
 FERRAMENTA = {k: "measure" for k in CF.ORDEM}
@@ -148,6 +151,16 @@ class CefalometriaPainel(QDialog):
         for b in (self.b_ver, self.b_medir, self.b_auto, self.b_refs):
             linha.addWidget(b)
         linha.addStretch(1)
+        # estado do resultado (0.99.22, plano AW): automático, editado*, aceito por quem e quando
+        self.l_estado = QLabel()
+        self.l_estado.setWordWrap(True)
+        self.b_aceitar = QPushButton("Aceitar o resultado")
+        self.b_aceitar.setToolTip("Registra que você conferiu: quem e quando ficam guardados com o exame, "
+                                  "neste computador, junto com o que foi editado.")
+        self.b_aceitar.clicked.connect(self.aceitar)
+        linha_estado = QHBoxLayout()
+        linha_estado.addWidget(self.l_estado, 1)
+        linha_estado.addWidget(self.b_aceitar)
         self.texto_laudo = QTextEdit()
         self.texto_laudo.setReadOnly(True)
         self.texto_laudo.setMinimumHeight(170)
@@ -164,6 +177,7 @@ class CefalometriaPainel(QDialog):
         lay.addWidget(self.tabela, 1)
         lay.addWidget(self.instrucao)
         lay.addLayout(linha)
+        lay.addLayout(linha_estado)
         lay.addWidget(QLabel("<b>Texto para o laudo</b>"))
         lay.addWidget(self.texto_laudo)
         lay.addLayout(rodape)
@@ -175,6 +189,15 @@ class CefalometriaPainel(QDialog):
         self.res = res if res is not None else self.D.vazio()
         self.original = copy.deepcopy(self.res)
         self.automatica = automatica and res is not None
+        self.revisao = None
+        if self.automatica:
+            self.revisao = self._ler_revisao()
+            dados = (self.revisao or {}).get("dados") or ""
+            if dados:
+                try:
+                    self.res = self.D.modulo.de_json(dados)      # o que ficou da conferência anterior
+                except Exception:  # noqa: BLE001
+                    log.exception("revisão da IA ilegível")
         self.setWindowTitle(f"{self.D.titulo} — conferência da automática" if self.automatica
                             else f"{self.D.titulo} — à mão")
         if self.automatica:
@@ -213,11 +236,13 @@ class CefalometriaPainel(QDialog):
                 itens[4].setText("não medido")
                 itens[4].setForeground(QBrush(QColor(240, 170, 90)))
             elif m.origem == "editado":
+                itens[4].setText("editado *")
                 itens[4].setForeground(QBrush(QColor(120, 190, 255)))
             for it in itens:
                 it.setToolTip("\n".join(dica))
         self.tabela.blockSignals(False)
         self._atualizar_texto()
+        self._mostrar_estado()
         if hasattr(self.tab, "mostrar_linhas_da_ia"):
             self.tab.mostrar_linhas_da_ia(self.res, self.D.modulo)
 
@@ -251,6 +276,7 @@ class CefalometriaPainel(QDialog):
         m.linhas = []
         if self.D.recalcular is not None:
             self.D.recalcular(self.res)
+        self._gravar_revisao("editado")
         self._encher()
 
     def _editou(self, it: QTableWidgetItem) -> None:
@@ -270,9 +296,75 @@ class CefalometriaPainel(QDialog):
             m.valor, m.origem = None, "editado"
             if self.D.recalcular is not None:
                 self.D.recalcular(self.res)
+            self._gravar_revisao("editado")
             self._encher()
             return
         self.definir(k, valor=v)
+
+    # ------------------------------------------------------------ estado (0.99.22)
+    def _chave_modulo(self) -> str:
+        return getattr(self.D.modulo, "__name__", "ia").rsplit(".", 1)[-1]
+
+    def _repo(self):
+        return getattr(self.tab, "repo", None)
+
+    def _ler_revisao(self) -> dict | None:
+        repo, uid = self._repo(), getattr(self.tab, "study_uid", "")
+        if repo is None or not uid or not hasattr(repo, "revisao_ia"):
+            return None
+        try:
+            return repo.revisao_ia(uid, self._chave_modulo())
+        except Exception:  # noqa: BLE001
+            log.exception("ler a revisão da IA")
+            return None
+
+    def editado(self) -> bool:
+        return any(m.origem == "editado" for m in self.res.medidas.values())
+
+    def _gravar_revisao(self, estado: str, usuario: str = "") -> None:
+        if not self.automatica:
+            return
+        repo, uid = self._repo(), getattr(self.tab, "study_uid", "")
+        if repo is None or not uid or not hasattr(repo, "salvar_revisao_ia"):
+            return
+        try:
+            repo.salvar_revisao_ia(uid, self._chave_modulo(), estado, self.editado(), usuario,
+                                   self.D.modulo.para_json(self.res))
+            self.revisao = repo.revisao_ia(uid, self._chave_modulo())
+        except Exception:  # noqa: BLE001
+            log.exception("gravar a revisão da IA")
+
+    @staticmethod
+    def _usuario() -> str:
+        try:
+            from ipe.auth import session as S
+            return S.get().username or ""
+        except Exception:  # noqa: BLE001
+            return ""
+
+    def aceitar(self) -> None:
+        self._gravar_revisao("aceito", self._usuario() or "usuário do computador")
+        self._mostrar_estado()
+
+    def estado_texto(self) -> str:
+        if not self.automatica:
+            return "Medidas à mão."
+        r = self.revisao or {}
+        ed = self.editado()
+        if r.get("estado") == "aceito":
+            q = r.get("quando")
+            quando = q.strftime("%d/%m/%Y %H:%M") if hasattr(q, "strftime") else str(q or "")
+            return (f"Aceito por {r.get('usuario') or '?'} em {quando}" +
+                    (" — com valores editados (*)" if ed else " — sem edição"))
+        if ed:
+            return "Editado (*) — ainda não aceito"
+        return "Automático — ainda não conferido"
+
+    def _mostrar_estado(self) -> None:
+        if not hasattr(self, "l_estado"):
+            return
+        self.l_estado.setText(f"<b>Estado:</b> {self.estado_texto()}")
+        self.b_aceitar.setVisible(self.automatica)
 
     def ver_no_quadro(self) -> bool:
         k = self.chave_atual()
@@ -287,6 +379,7 @@ class CefalometriaPainel(QDialog):
             self.res.medidas[k] = copy.deepcopy(self.original.medidas[k])
             if self.D.recalcular is not None:
                 self.D.recalcular(self.res)
+            self._gravar_revisao("editado" if self.editado() else "auto")
             self._encher()
             self._mostrar_instrucao()
 

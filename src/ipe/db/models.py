@@ -272,6 +272,21 @@ class StudyRegistration(Base):
     __table_args__ = (UniqueConstraint("study_a", "study_b"),)
 
 
+class RevisaoIA(Base):
+    """Conferência de um resultado de IA (0.99.22, plano AW): auto, editado, aceito por quem e quando.
+    `dados` guarda o resultado como ficou depois da conferência (JSON do módulo)."""
+    __tablename__ = "revisao_ia"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    study_uid: Mapped[str] = mapped_column(String(64), index=True)
+    modulo: Mapped[str] = mapped_column(String(32), default="")
+    estado: Mapped[str] = mapped_column(String(16), default="auto")      # auto | editado | aceito
+    editado: Mapped[bool] = mapped_column(Boolean, default=False)
+    usuario: Mapped[str] = mapped_column(String(64), default="")
+    quando: Mapped[datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+    dados: Mapped[str] = mapped_column(Text, default="")
+    __table_args__ = (UniqueConstraint("study_uid", "modulo"),)
+
+
 class SeriesGroup(Base):
     """Séries agrupadas pelo usuário (ex.: fases de uma RM dinâmica, uma série por fase)."""
     __tablename__ = "series_group"

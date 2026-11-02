@@ -349,14 +349,39 @@ class PreferencesDialog(QDialog):
     def teclas_emprestadas(self) -> dict[str, str]:
         return {f: c.currentData() for f, c in self.c_teclas.items() if c.currentData()}
 
+    #: listas de presets de janela: a geral e uma por modalidade (0.99.22)
+    PRESET_LISTAS = (("", "Geral (e TC)"), ("CT", "TC (lista própria)"), ("MR", "RM"), ("MG", "Mamografia"),
+                     ("PT", "PET"), ("NM", "Medicina nuclear"), ("CR", "Raio X (CR)"), ("DX", "Raio X (DX)"),
+                     ("US", "Ultrassom"), ("XA", "Angiografia"))
+
     def _presets_tab(self) -> QWidget:
         w = QWidget()
         lay = QVBoxLayout(w)
-        presets = self.settings.get("viewer.wl_presets", {})
+        mods = self.settings.get("viewer.wl_presets_mod", {}) or {}
+        self._presets_listas = {"": dict(self.settings.get("viewer.wl_presets", {}) or {})}
+        self._presets_listas.update({k: dict(v) for k, v in mods.items() if isinstance(v, dict)})
+        topo = QHBoxLayout()
+        topo.addWidget(QLabel("Lista:"))
+        self.c_preset_lista = QComboBox()
+        for chave, nome in self.PRESET_LISTAS:
+            self.c_preset_lista.addItem(nome, chave)
+        topo.addWidget(self.c_preset_lista, 1)
+        lay.addLayout(topo)
         self.t_presets = QTableWidget(9, 4)
         self.t_presets.setHorizontalHeaderLabels(["Tecla", "Nome", "Largura (W)", "Nível (L)"])
         self.t_presets.verticalHeader().setVisible(False)
         self.t_presets.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self._preset_lista_atual = ""
+        self._mostrar_presets("")
+        self.c_preset_lista.currentIndexChanged.connect(self._trocar_lista_de_presets)
+        lay.addWidget(self.t_presets)
+        colunas_ajustaveis(self.t_presets)
+        lay.addWidget(QLabel("Deixe o nome vazio para não usar a tecla. A modalidade com lista vazia usa a "
+                             "geral. No quadro, o menu da janela tem \"Guardar a janela atual como preset\"."))
+        return w
+
+    def _mostrar_presets(self, chave: str) -> None:
+        presets = self._presets_listas.get(chave, {}) or {}
         for row in range(9):
             key = str(row + 1)
             name, ww, wl = presets.get(key, ["", "", ""])
@@ -365,10 +390,33 @@ class PreferencesDialog(QDialog):
             self.t_presets.setItem(row, 0, k_item)
             for col, val in ((1, name), (2, ww), (3, wl)):
                 self.t_presets.setItem(row, col, QTableWidgetItem(str(val)))
-        lay.addWidget(self.t_presets)
-        colunas_ajustaveis(self.t_presets)
-        lay.addWidget(QLabel("Deixe o nome vazio para não usar a tecla."))
-        return w
+
+    def _ler_presets_da_tabela(self) -> dict | None:
+        presets = {}
+        for row in range(9):
+            name = (self.t_presets.item(row, 1).text() or "").strip()
+            if not name:
+                continue
+            try:
+                ww = float(self.t_presets.item(row, 2).text().replace(",", "."))
+                wl = float(self.t_presets.item(row, 3).text().replace(",", "."))
+            except ValueError:
+                QMessageBox.warning(self, "Preset inválido", f"Largura/nível inválidos na tecla {row + 1}.")
+                return None
+            presets[str(row + 1)] = [name, ww, wl]
+        return presets
+
+    def _trocar_lista_de_presets(self, _i: int) -> None:
+        lidos = self._ler_presets_da_tabela()
+        if lidos is None:
+            i = self.c_preset_lista.findData(self._preset_lista_atual)
+            self.c_preset_lista.blockSignals(True)
+            self.c_preset_lista.setCurrentIndex(i)
+            self.c_preset_lista.blockSignals(False)
+            return
+        self._presets_listas[self._preset_lista_atual] = lidos
+        self._preset_lista_atual = self.c_preset_lista.currentData()
+        self._mostrar_presets(self._preset_lista_atual)
 
 
     DIN_COLS = ["Ação", "Modalidade", "Descrição contém", "Nome", "Situação", "Exame de origem"]
@@ -579,6 +627,11 @@ class PreferencesDialog(QDialog):
         self.cb_dial = QCheckBox("Indicador de profundidade da tomossíntese no canto do quadro")
         self.cb_dial.setChecked(bool(self.settings.get("viewer.tomo_dial", True)))
         f2.addRow(self.cb_dial)
+        self.cb_incerteza = QCheckBox("Mostrar a incerteza ao lado da medida (± pixel na régua, ± na área)")
+        self.cb_incerteza.setChecked(bool(self.settings.get("viewer.incerteza_medidas", False)))
+        self.cb_incerteza.setToolTip("O erro de pôr cada ponta num pixel. O aviso de cortes grossos e de "
+                                     "medida menor que a espessura aparece sempre.")
+        f2.addRow(self.cb_incerteza)
         raiz.addWidget(g2)
 
         # --- sincronização automática por modalidade (0.99.9)
@@ -790,18 +843,11 @@ class PreferencesDialog(QDialog):
                                         f"O atalho {key} está em duas ações. Troque um deles.")
                     return
                 seen[key] = aid
-        presets = {}
-        for row in range(9):
-            name = (self.t_presets.item(row, 1).text() or "").strip()
-            if not name:
-                continue
-            try:
-                ww = float(self.t_presets.item(row, 2).text().replace(",", "."))
-                wl = float(self.t_presets.item(row, 3).text().replace(",", "."))
-            except ValueError:
-                QMessageBox.warning(self, "Preset inválido", f"Largura/nível inválidos na tecla {row + 1}.")
-                return
-            presets[str(row + 1)] = [name, ww, wl]
+        lidos = self._ler_presets_da_tabela()
+        if lidos is None:
+            return
+        self._presets_listas[self._preset_lista_atual] = lidos
+        presets = self._presets_listas.get("", {})
         teclas = self.teclas_emprestadas()
         if len(set(teclas.values())) != len(teclas):
             QMessageBox.warning(self, "Tecla repetida",
@@ -812,6 +858,7 @@ class PreferencesDialog(QDialog):
         s.set("shortcuts", shortcuts)
         s.set("viewer.teclas_emprestadas", teclas)
         s.set("viewer.wl_presets", presets)
+        s.set("viewer.wl_presets_mod", {k: v for k, v in self._presets_listas.items() if k and v})
         s.set("viewer.mouse", {
             "left": self.c_left.currentData(), "right": self.c_right.currentData(),
             "right_click": self.c_right_click.currentData(), "middle": self.c_middle.currentData(),
@@ -853,6 +900,7 @@ class PreferencesDialog(QDialog):
         s.set("import.copy_to_storage", self.cb_copy.isChecked())
         s.set("viewer.overlay_hotspots", self.cb_hot.isChecked())
         s.set("viewer.measure_font_scale", round(self.s_letra_med.value() / 100.0, 2))
+        s.set("viewer.incerteza_medidas", self.cb_incerteza.isChecked())
         s.set("viewer.overlay_font_scale", round(self.s_letra_ov.value() / 100.0, 2))
         s.set("ui.start_maximized", self.c_maximizada.isChecked())
         s.set("ui.janelas_maximizadas", self.c_todas_max.isChecked())

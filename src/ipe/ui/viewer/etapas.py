@@ -86,7 +86,7 @@ def _janela(vp, valor: str, settings) -> None:
         except ValueError:
             log.info("janela %r do protocolo não entendida", valor)
         return
-    vp.apply_preset(valor)
+    vp.apply_preset(valor, geral=True)
 
 
 def _posicao(vp, pos: str, centro) -> None:

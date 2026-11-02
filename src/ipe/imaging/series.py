@@ -56,6 +56,8 @@ class FrameImage:
     header: dict = field(default_factory=dict)
     # regiões calibradas do ultrassom (imaging.us_regioes.Regiao); a escala muda por imagem
     us_regioes: tuple = ()
+    # todas as janelas gravadas no arquivo, para o "Switch WL" (0.99.22): ((nome, largura, nível), …)
+    janelas: tuple = ()
 
 
 def quadro_na_posicao(frames: list, ponto, fracao: float = 0.5) -> int:
@@ -168,7 +170,14 @@ def read_frame(frame: Frame) -> FrameImage:
     header = {k: str(ds.get(k, "")) for k in (
         "Modality", "SeriesDescription", "InstanceNumber", "SliceLocation",
         "SliceThickness", "KVP", "Exposure", "RepetitionTime", "EchoTime",
-        "ImageLaterality", "ViewPosition")}
+        "ImageLaterality", "ViewPosition", "LossyImageCompression", "LossyImageCompressionRatio",
+        "LossyImageCompressionMethod", "ImageType", "FrameOfReferenceUID")}
+    # para os selos de integridade (0.99.22): a sintaxe do arquivo e a Modality LUT em tabela,
+    # que o programa não aplica (só slope/intercept)
+    meta = getattr(ds, "file_meta", None)
+    header["_ts"] = str(getattr(meta, "TransferSyntaxUID", "") or "") if meta is not None else ""
+    if "ModalityLUTSequence" in ds:
+        header["_modality_lut"] = "1"
 
     if spp == 3 or photometric.startswith(("RGB", "YBR")):
         if photometric.startswith("YBR"):
@@ -207,7 +216,8 @@ def read_frame(frame: Frame) -> FrameImage:
         # MONOCHROME1: valor alto = preto. Invertido na exibição (ver windowing)
         header["_monochrome1"] = "1"
     sp, fonte, regs = _escala(ds)
-    return FrameImage(px, False, window, sp, fonte, photometric, header, regs)
+    return FrameImage(px, False, window, sp, fonte, photometric, header, regs,
+                      janelas_do_arquivo(ds, frame.frame_index))
 
 
 def _lut_window(item) -> tuple[float, float] | None:
@@ -220,6 +230,50 @@ def _lut_window(item) -> tuple[float, float] | None:
         return float(n), first + n / 2.0
     except (AttributeError, IndexError, KeyError, TypeError, ValueError):
         return None
+
+
+def janelas_do_arquivo(ds, frame_index: int = 0) -> tuple[tuple[str, float, float], ...]:
+    """Todas as janelas que o arquivo traz, com o nome (WindowCenterWidthExplanation ou
+    LUTExplanation). A mamografia costuma trazer duas ou três ("NORMAL", "HARDER", "SOFTER"); a
+    AW percorre todas com uma tecla (Switch WL)."""
+    places = []
+    for caminho in (lambda: ds.PerFrameFunctionalGroupsSequence[frame_index].FrameVOILUTSequence[0],
+                    lambda: ds.SharedFunctionalGroupsSequence[0].FrameVOILUTSequence[0]):
+        try:
+            places.append(caminho())
+        except (AttributeError, IndexError, KeyError, TypeError):
+            pass
+    places.append(ds)
+
+    def lista(v):
+        if v is None or v == "":
+            return []
+        if isinstance(v, (list, tuple, pydicom.multival.MultiValue)):
+            return list(v)
+        return [v]
+    out: list[tuple[str, float, float]] = []
+    for item in places:
+        ws, cs = lista(item.get("WindowWidth")), lista(item.get("WindowCenter"))
+        nomes = [str(x) for x in lista(item.get("WindowCenterWidthExplanation"))]
+        for i, (w, c) in enumerate(zip(ws, cs)):
+            try:
+                w, c = float(w), float(c)
+            except (TypeError, ValueError):
+                continue
+            if w > 0 and not any(abs(w - a) < 1e-6 and abs(c - b) < 1e-6 for _n, a, b in out):
+                out.append((nomes[i].strip() if i < len(nomes) and nomes[i].strip() else f"Janela {len(out) + 1}",
+                            w, c))
+        if out:
+            break                   # a do quadro vence a compartilhada, que vence a do arquivo
+    try:
+        for i, seq in enumerate(ds.VOILUTSequence):
+            n = int(seq.LUTDescriptor[0]) or 65536
+            first = float(seq.LUTDescriptor[1])
+            nome = str(seq.get("LUTExplanation", "") or "").strip() or f"Tabela {i + 1}"
+            out.append((nome + " (VOI LUT)", float(n), first + n / 2.0))
+    except (AttributeError, IndexError, KeyError, TypeError, ValueError):
+        pass
+    return tuple(out)
 
 
 def voi_window(ds, frame_index: int = 0) -> tuple[tuple[float, float] | None, str]:

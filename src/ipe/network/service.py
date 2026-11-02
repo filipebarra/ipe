@@ -302,7 +302,13 @@ class NetworkService(QObject):
 
         def finish(res, err) -> None:
             self._relays.discard(relay)
-            on_done(res, err)
+            try:
+                on_done(res, err)
+            except RuntimeError as e:
+                # a janela/aba que pediu fechou antes da resposta: o widget já não existe
+                if "deleted" not in str(e):
+                    raise
+                log.debug("resposta assíncrona descartada (quem pediu já fechou): %s", e)
         relay.done.connect(finish)
         (pool or self.query_pool).start(_Task(fn, relay))
 

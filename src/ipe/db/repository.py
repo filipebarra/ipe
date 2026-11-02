@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 from ipe.db.models import (
     AeIdentity, AnnotationRecord, AuditLog, AutomationRule, CaseList, DeletionLog, Diagnosis, JobRun, CaseListItem, Comment, Instance, KeyImage, Patient, Series, Study,
     DicomNode, PrintJobRecord, PrintSendRecord, SavedFilm, SeriesGroup, StudyRegistration, User, AppSetting, Lesion, LesionTrack, Report,
+    RevisaoIA,
 )
 from ipe.db.session import Database
 
@@ -754,6 +755,26 @@ class Repository:
                 if r is not None:
                     return [sign * r.dx, sign * r.dy, sign * r.dz], sign * r.rel
         return None
+
+    # ------------------------------------------------------------ conferência de IA (0.99.22)
+    def revisao_ia(self, study_uid: str, modulo: str) -> dict | None:
+        with self.db.session() as s:
+            r = s.scalar(select(RevisaoIA).where(RevisaoIA.study_uid == study_uid, RevisaoIA.modulo == modulo))
+            if r is None:
+                return None
+            return {"estado": r.estado, "editado": bool(r.editado), "usuario": r.usuario,
+                    "quando": r.quando, "dados": r.dados}
+
+    def salvar_revisao_ia(self, study_uid: str, modulo: str, estado: str, editado: bool, usuario: str,
+                          dados: str) -> None:
+        with self.db.session() as s:
+            r = s.scalar(select(RevisaoIA).where(RevisaoIA.study_uid == study_uid, RevisaoIA.modulo == modulo))
+            if r is None:
+                r = RevisaoIA(study_uid=study_uid, modulo=modulo)
+                s.add(r)
+            r.estado, r.editado, r.usuario, r.dados = estado, bool(editado), usuario or "", dados or ""
+            r.quando = datetime.now()
+            s.commit()
 
     def save_registration(self, study_a: str, study_b: str, offset, rel: float = 0.0,
                           method: str = "manual") -> None:

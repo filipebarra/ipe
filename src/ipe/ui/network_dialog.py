@@ -360,6 +360,17 @@ class NetworkDialog(QDialog):
         f.addRow("Porta HTTP:", self.http_port)
         f.addRow("Token:", tok)
         f.addRow(self.so_viewer)
+        # 0.99.22: a chamada traz outro paciente com um já aberto
+        from ipe.ui.main_window import MainWindow
+        self.outro_pac = QComboBox()
+        for chave, nome in MainWindow.OUTRO_PACIENTE:
+            self.outro_pac.addItem(nome, chave)
+        i = self.outro_pac.findData(str(self.settings.get("viewer.outro_paciente_externo", "perguntar") or "perguntar"))
+        self.outro_pac.setCurrentIndex(max(0, i))
+        self.outro_pac.setToolTip("Quando a chamada do RIS abre um paciente e outro ainda está aberto em "
+                                  "algum monitor. Abrir o seguinte com o anterior à vista é como a imagem "
+                                  "de um acaba laudada no nome do outro.")
+        f.addRow("Chamada com outro paciente aberto:", self.outro_pac)
         f.addRow(self.remote)
         f.addRow("IPs permitidos:", self.ips)
         f.addRow(QLabel("<b>Impressora DICOM (receber filmes das modalidades)</b>"))
@@ -619,6 +630,7 @@ class NetworkDialog(QDialog):
                   "external_viewer_only": self.so_viewer.isChecked(),
                   "http_allowed_ips": ips})
         self.settings.set("dicom", c)
+        self.settings.set("viewer.outro_paciente_externo", self.outro_pac.currentData())
         self.settings.set("network.stream_default", self.stream_default.isChecked())
         self.settings.set("network.stream_external", self.stream_ext.isChecked())
         self.settings.set("network.stream_ask", self.stream_ask.isChecked())
