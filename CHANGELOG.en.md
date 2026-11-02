@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.25 — usage mode on first use
+- On first launch the program asks how it will be used: just me (opens without login), several people on
+  this computer (creates the administrator there), this computer is the group server, or connect to a
+  server. Works for the installer, the portable package, `executar.bat` and Linux.
+- Settings ▸ Users ▸ Usage mode changes it later.
+- Sign in with the Windows/Linux account, without a password, for users linked to that account.
+
 ## 0.99.24 — security review
 - `ipe://` links without the token no longer open on their own: the program asks first (or accepts /
   refuses, in Network ▸ External call). With `&token=` in the link it opens directly. Constant-time token

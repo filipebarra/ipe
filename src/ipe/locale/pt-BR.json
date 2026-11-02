@@ -4287,7 +4287,30 @@
   "Rede local = endereços internos (10.x, 172.16–31.x, 192.168.x, VPN 100.64.x). As modalidades estão sempre na rede interna; o que vem de fora dela não é modalidade.",
   "baixar do PACS",
   "ATENÇÃO: sem certificado (central.certfile), o servidor usa HTTP e as senhas passam pela rede sem criptografia. Use só em rede interna confiável.",
-  "<small><span style='color:#c03030'>Sem certificado o servidor usa HTTP: usuário e senha passam pela rede sem criptografia. Use só numa rede interna confiável, ou indique um certificado (.pem) para HTTPS.</span> Senha errada 5 vezes em 10 minutos bloqueia aquele computador por 10 minutos.</small>"
+  "<small><span style='color:#c03030'>Sem certificado o servidor usa HTTP: usuário e senha passam pela rede sem criptografia. Use só numa rede interna confiável, ou indique um certificado (.pem) para HTTPS.</span> Senha errada 5 vezes em 10 minutos bloqueia aquele computador por 10 minutos.</small>",
+  "<b>Bem-vindo ao Ipê.</b> Como este computador vai usar o programa? Dá para trocar depois, em Configurações ▸ Usuários ▸ Modo de uso.",
+  "Abre direto, sem pedir usuário e senha. É o caso do computador pessoal, de casa ou do consultório. Dá para pôr senha depois, em Configurações ▸ Usuários.",
+  "Administrador do programa",
+  "Com “entrar com a conta do sistema” ligado (Modo de uso), quem abrir o programa com esta conta do Windows/Linux entra direto como este usuário.",
+  "Começar",
+  "Conectar a um servidor do grupo",
+  "Conta do sistema:",
+  "Entrar como",
+  "Este computador guarda os exames, os usuários e as configurações do grupo, e atende os outros computadores da rede, que entram como clientes.",
+  "Este computador usa o banco e os usuários de um servidor do grupo. Os exames abertos ficam num cache local.",
+  "Este computador é o servidor do grupo",
+  "Informe o endereço do servidor do grupo.",
+  "Modo de uso",
+  "Modo de uso (só eu, várias pessoas, servidor)…",
+  "Modo de uso: “Só eu uso este computador” — o programa abre sem pedir login. Para que cada pessoa entre com o seu usuário e senha, troque para “Várias pessoas” em Configurações ▸ Usuários ▸ Modo de uso.",
+  "Quem abrir o programa com a conta do Windows/Linux ligada a um usuário entra direto como ele. A conta de cada usuário fica em Usuários e permissões.",
+  "Servidor do grupo",
+  "Só eu uso este computador",
+  "Testar",
+  "Várias pessoas usam este computador",
+  "entrar como cliente do servidor do grupo.",
+  "vazio = sempre pede a senha",
+  "Cada pessoa entra com o seu usuário. O administrador cadastra os outros (médicos, residentes, técnicos) e o que cada perfil pode fazer."
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -5358,6 +5381,9 @@
   "{} {} {} sai da coluna ({} a {})",
   "Um link pediu para {} o exame {}.\n\nO link não traz o token de acesso: pode ter vindo de qualquer página aberta no navegador. Continuar?\n\n(Para o RIS não perguntar, ponha &token=<token> no link; o token está em Rede ▸ Chamada externa.)",
   "Link ipe:// sem o token recusado ({}). Rede ▸ Chamada externa diz o que fazer com links sem token.",
-  "muitas senhas erradas deste computador: tente de novo em {} min"
+  "muitas senhas erradas deste computador: tente de novo em {} min",
+  "Entrar com a conta do sistema ({}) sem digitar senha",
+  "Usar a deste computador ({})",
+  "{} — como o programa vai ser usado"
  ]
 }

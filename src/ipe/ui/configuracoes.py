@@ -70,6 +70,7 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         ("Abrir a pasta de dados", "f:_open_data_folder", ""),
     ]),
     ("Usuários", [
+        ("Modo de uso (só eu, várias pessoas, servidor)…", "f:abrir_modo_de_uso", "users"),
         ("Usuários e permissões…", lambda w: w.open_users(tab=0), "users"),
     ]),
     ("Sistema", [

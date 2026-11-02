@@ -47,9 +47,20 @@ class UserEditDialog(QDialog):
         self.pw.setPlaceholderText("obrigatória" if user is None else "deixe vazio para manter")
         self.must = QCheckBox("Pedir para trocar a senha no próximo acesso")
         self.must.setChecked(user is None or bool(u.get("must_change")))
+        # 0.99.25: a conta do Windows/Linux que entra como este usuário sem digitar senha
+        from ipe.auth import modo as MODO
+        self.conta = QLineEdit(u.get("conta_sistema", "") or "", placeholderText="vazio = sempre pede a senha")
+        self.conta.setToolTip("Com \u201centrar com a conta do sistema\u201d ligado (Modo de uso), quem abrir o "
+                              "programa com esta conta do Windows/Linux entra direto como este usuário.")
+        b_conta = QPushButton(f"Usar a deste computador ({MODO.conta_do_sistema() or '?'})")
+        b_conta.clicked.connect(lambda: self.conta.setText(MODO.conta_do_sistema()))
+        linha_conta = QHBoxLayout()
+        linha_conta.addWidget(self.conta, 1)
+        linha_conta.addWidget(b_conta)
         for lab, w in (("Usuário:", self.username), ("Nome:", self.full_name), ("Perfil:", self.role),
                        ("", self.active), ("Senha:", self.pw), ("", self.must)):
             f.addRow(lab, w)
+        f.addRow("Conta do sistema:", linha_conta)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.accepted.connect(self._ok)
         bb.rejected.connect(self.reject)
@@ -68,7 +79,7 @@ class UserEditDialog(QDialog):
                 return
         self.data.update({"username": self.username.text().strip(), "full_name": self.full_name.text().strip(),
                           "role": self.role.currentData(), "active": self.active.isChecked(),
-                          "must_change": self.must.isChecked()})
+                          "must_change": self.must.isChecked(), "conta_sistema": self.conta.text().strip()})
         if pw:
             self.data["password"] = pw
         else:
@@ -217,13 +228,14 @@ class UsersDialog(QDialog):
         """Explica o modo de um usuário só — e como sair dele, que é cadastrar alguém."""
         if self.settings is None or not hasattr(self, "faixa_modo"):
             return
-        um_so = str(self.settings.get("auth.mode", "multi")) == "single"
-        vazio = self.t_users.rowCount() == 0
-        self.faixa_modo.setVisible(um_so and vazio)
-        if um_so and vazio:
+        um_so = str(self.settings.get("auth.mode", "multi")) == "single" and \
+            str(self.settings.get("central.mode", "local")) == "local"
+        self.faixa_modo.setVisible(um_so)
+        if um_so:
             self.faixa_modo.setText(
-                "Este computador foi instalado como \u201csó eu uso\u201d: o programa abre sem pedir "
-                "login. Cadastre alguém aqui e, a partir da próxima abertura, o login passa a ser pedido.")
+                "Modo de uso: \u201cSó eu uso este computador\u201d — o programa abre sem pedir login. Para que "
+                "cada pessoa entre com o seu usuário e senha, troque para \u201cVárias pessoas\u201d em "
+                "Configurações ▸ Usuários ▸ Modo de uso.")
 
     # ------------------------------------------------------------ perfis
     def _roles_tab(self) -> QWidget:

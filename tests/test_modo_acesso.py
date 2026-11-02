@@ -44,12 +44,15 @@ def test_um_usuario_so_abre_sem_pedir_nada(auth, cfg):
     assert s.can("configure") and s.can("delete")
 
 
-def test_cadastrar_alguem_faz_o_login_voltar(auth, cfg):
-    """É o jeito de mudar de ideia: não há outra chave para virar."""
+def test_so_eu_com_usuario_cadastrado_entra_como_ele(auth, cfg):
+    """0.99.25: mudar de ideia agora é o Modo de uso (Configurações ▸ Usuários). Em "só eu", com um
+    usuário cadastrado, o programa entra como ele — antes, cadastrar alguém fazia o login voltar."""
     cfg.set("auth.mode", "single")
     assert single_user(auth, cfg)
     auth.create_first_admin("filipe", "Filipe", "uma senha comprida")
-    assert not single_user(auth, cfg)           # agora existe gente: pede login
+    assert not single_user(auth, cfg)
+    s = do_login(auth, cfg)
+    assert s is not None and s.username == "filipe"
 
 
 def test_modo_cliente_ignora_a_escolha(auth, cfg, monkeypatch):
@@ -96,8 +99,12 @@ def test_a_tela_de_usuarios_avisa_do_modo(env):
     s = Settings(paths.settings_file)
     s.set("auth.mode", "single")
     dlg = UsersDialog(repo, s)
-    assert dlg.faixa_modo.isVisibleTo(dlg) and "só eu uso" in dlg.faixa_modo.text()
+    assert dlg.faixa_modo.isVisibleTo(dlg) and "Só eu uso" in dlg.faixa_modo.text()
+    assert "Modo de uso" in dlg.faixa_modo.text()     # diz onde mudar (0.99.25)
     from ipe.auth.backend import LocalAuth
     LocalAuth(repo).create_first_admin("filipe", "Filipe", "uma senha comprida")
     dlg.fill_users()
-    assert not dlg.faixa_modo.isVisibleTo(dlg)   # com gente cadastrada o aviso some
+    assert dlg.faixa_modo.isVisibleTo(dlg)            # com gente cadastrada o modo continua valendo
+    s.set("auth.mode", "multi")
+    dlg.fill_users()
+    assert not dlg.faixa_modo.isVisibleTo(dlg)

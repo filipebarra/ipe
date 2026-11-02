@@ -167,18 +167,17 @@ def single_user(auth, settings) -> bool:
 
 
 def do_login(auth, settings, where: str = ""):
-    """Primeiro acesso (cria o admin) e login. Devolve a sessão ou None (cancelado)."""
-    if single_user(auth, settings):
-        from ipe.auth.session import UserSession
-        return UserSession()              # abre direto, com todas as permissões
+    """Primeiro acesso (cria o admin) e login. Devolve a sessão ou None (cancelado).
+
+    0.99.25: quem entra sem senha (só eu; entrar automaticamente; conta do sistema) decide
+    `ipe.auth.modo.sessao_sem_senha`."""
+    from ipe.auth import modo as MODO
+    s = MODO.sessao_sem_senha(auth, settings)
+    if s is not None:
+        return s
     if not auth.remote and auth.needs_first_admin():
         if FirstAdminDialog(auth).exec() != QDialog.Accepted:
             return None
-    auto = settings.get("auth.auto_login", "") if settings is not None else ""
-    if auto and not auth.remote and hasattr(auth, "auto_session"):
-        s = auth.auto_session(auto)
-        if s is not None:
-            return s
     dlg = LoginDialog(auth, settings, where=where)
     if dlg.exec() != QDialog.Accepted:
         return None

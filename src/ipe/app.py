@@ -214,8 +214,25 @@ def open_main_window(paths, settings):
     db = Database(paths.database)
     repo = Repository(db)
     auth = LocalAuth(repo)
+    # 0.99.25: primeiro uso — perguntar como o programa vai ser usado (e criar o administrador, se for o caso)
+    from ipe.auth import modo as MODO
+    criado = ""
+    if MODO.precisa_perguntar(settings, repo):
+        from PySide6.QtWidgets import QDialog
+
+        from ipe.ui.modo_de_uso import ModoDeUsoDialog
+        dlg = ModoDeUsoDialog(settings, repo, auth, primeiro_uso=True)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return None
+        criado = dlg.admin_criado
+        mode = settings.get("central.mode", "local")
+        if mode == "client":
+            from ipe.central.client_mode import open_client_window
+            return open_client_window(paths, settings)
     where = "Servidor central deste grupo" if mode == "server" else ""
-    s = do_login(auth, settings, where=where)
+    s = auth.auto_session(criado) if criado else None    # acabou de digitar a senha: não pede de novo
+    if s is None:
+        s = do_login(auth, settings, where=where)
     if s is None:
         return None
     win = MainWindow(paths, settings, auth=auth, repo=repo, db=db)

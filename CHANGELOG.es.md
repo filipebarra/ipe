@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.25 — modo de uso en el primer uso
+- En la primera apertura el programa pregunta cómo se va a usar: solo yo (abre sin login), varias personas
+  en esta computadora (crea el administrador ahí), esta computadora es el servidor del grupo, o conectar a
+  un servidor. Vale para el instalador, el portátil, `executar.bat` y Linux.
+- Configuración ▸ Usuarios ▸ Modo de uso lo cambia después.
+- Entrar con la cuenta de Windows/Linux, sin contraseña, para usuarios vinculados a esa cuenta.
+
 ## 0.99.24 — revisión de seguridad
 - Los enlaces `ipe://` sin el token ya no abren solos: el programa pregunta antes (o acepta / rechaza, en
   Red ▸ Llamada externa). Con `&token=` en el enlace abre directo. Comparación del token en tiempo constante.

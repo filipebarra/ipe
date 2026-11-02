@@ -701,6 +701,22 @@ class MainWindow(QMainWindow):
         dlg.tabs.setCurrentIndex(tab)
         dlg.exec()
 
+    def abrir_modo_de_uso(self) -> bool:
+        """Configurações ▸ Usuários ▸ Modo de uso (0.99.25)."""
+        from ipe.auth import session as S
+        if not getattr(self.repo, "remote", False) and self.repo.user_count() and not S.require("users", self):
+            return False
+        from ipe.ui.modo_de_uso import ModoDeUsoDialog
+        dlg = ModoDeUsoDialog(self.settings, self.repo, getattr(self, "auth", None), self)
+        if not dlg.exec():
+            return False
+        if hasattr(self, "start_central_server"):
+            try:
+                self.start_central_server()
+            except Exception:  # noqa: BLE001
+                log.exception("ligar/desligar o servidor central")
+        return True
+
     def change_password(self) -> None:
         from ipe.auth import session as S
         from ipe.ui.login import ChangePasswordDialog

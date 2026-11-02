@@ -90,6 +90,7 @@ def main(argv: list[str] | None = None) -> int:
         from ipe.core.config import Settings, get_paths
         s = Settings(get_paths().settings_file)
         s.set("auth.mode", args.mode)
+        s.set("auth.modo_confirmado", True)      # o instalador já perguntou: o primeiro uso não pergunta de novo
         s.save()
         print(f"Modo de acesso: {args.mode}")
         return 0

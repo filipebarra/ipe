@@ -1167,6 +1167,19 @@ A janela completa, com todas as abas, continua em **Configurações ▸ Todas as
 
 Em Configurações ▸ Visualizador ▸ *Botões extras na barra*: quatro botões (Inverter, Girar e espelhar, Cine, Ocultar dados do paciente) saem da barra por padrão e vivem no menu **Mais**; desmarcar e marcar ali move entre os dois lugares. A função nunca some: só muda de lugar.
 
+## Modo de uso
+
+Na primeira vez que o programa abre, ele pergunta como vai ser usado. Dá para trocar depois em **Configurações ▸ Usuários ▸ Modo de uso**.
+
+| Modo | Como fica |
+|---|---|
+| **Só eu uso este computador** | abre direto, sem pedir usuário e senha. Com usuários já cadastrados, entra como o escolhido ("Entrar como") ou, havendo um só, como ele |
+| **Várias pessoas usam este computador** | cada um entra com o seu usuário. Na primeira vez você já cria o administrador ali mesmo |
+| **Este computador é o servidor do grupo** | guarda os exames, os usuários e as configurações e atende os outros computadores (porta escolhida ali; certificado em Rede ▸ Servidor central) |
+| **Conectar a um servidor do grupo** | usa o banco e os usuários do servidor; **Testar** confere o endereço. Entrar ou sair deste modo pede para reabrir o programa |
+
+**Entrar com a conta do sistema.** Nos modos de várias pessoas e de servidor, a caixa *Entrar com a conta do sistema sem digitar senha* deixa quem abriu o programa com a conta do Windows/Linux ligada a um usuário entrar direto como ele. A conta de cada um fica no cadastro do usuário (**Conta do sistema**, com o botão *Usar a deste computador*); conta vazia sempre pede a senha, e usuário desativado não entra. Cada entrada assim fica no registro de acesso.
+
 ## Usuários e permissões
 
 Botão **Usuários**. Quatro perfis de fábrica — Administrador, Médico, Residente e Técnico — e a tabela de permissões de cada perfil é editável pelo administrador.

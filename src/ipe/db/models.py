@@ -478,6 +478,9 @@ class User(Base):
     created: Mapped[datetime] = mapped_column(DateTime, default=_now)
     last_login: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     prefs: Mapped[str] = mapped_column(Text, default="{}")       # preferências do usuário (JSON)
+    # 0.99.25: a conta do Windows/Linux deste usuário — com "entrar pela conta do sistema" ligado, quem
+    # abriu o programa com essa conta entra sem digitar senha
+    conta_sistema: Mapped[str] = mapped_column(String(128), default="")
 
 
 class AppSetting(Base):

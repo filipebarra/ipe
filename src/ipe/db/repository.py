@@ -1531,7 +1531,7 @@ class Repository:
     def _user_dict(u: User) -> dict:
         return {"id": u.id, "username": u.username, "full_name": u.full_name, "role": u.role,
                 "active": bool(u.active), "must_change": bool(u.must_change), "created": u.created,
-                "last_login": u.last_login}
+                "last_login": u.last_login, "conta_sistema": u.conta_sistema or ""}
 
     def users(self) -> list[dict]:
         with self.db.session() as s:
@@ -1546,6 +1546,17 @@ class Repository:
             u = s.scalar(select(User).where(func.lower(User.username) == username.strip().lower()))
             return self._user_dict(u) if u else None
 
+    def user_by_conta_sistema(self, conta: str) -> dict | None:
+        """O usuário ativo ligado a esta conta do Windows/Linux (0.99.25). Sem diferença de maiúsculas."""
+        conta = str(conta or "").strip().lower()
+        if not conta:
+            return None
+        with self.db.session() as s:
+            for u in s.scalars(select(User).where(func.lower(User.conta_sistema) == conta)):
+                if u.active:
+                    return self._user_dict(u)
+        return None
+
     def save_user(self, data: dict) -> int:
         """Cria/edita (username, full_name, role, active, must_change; "password" opcional)."""
         from ipe.auth.passwords import hash_password
@@ -1557,7 +1568,7 @@ class Repository:
                     raise ValueError(f"Já existe o usuário {data['username']}.")
                 u = User(username=data["username"].strip())
                 s.add(u)
-            for f in ("full_name", "role", "active", "must_change"):
+            for f in ("full_name", "role", "active", "must_change", "conta_sistema"):
                 if f in data:
                     setattr(u, f, data[f])
             if data.get("password"):
