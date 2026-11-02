@@ -1112,6 +1112,38 @@ No exame ficam duas séries, só neste computador: **Cefalometria · TotalSegmen
 
 # Configurações, usuários e exportação
 
+## Níveis da coluna e vértebra de transição
+
+**Identificar vértebras e discos desta série** (botão direito no quadro de uma TC ou RM da coluna) dá nome a cada vértebra e disco. Os nomes aparecem em qualquer série e plano do exame.
+
+**De onde vem a numeração** — a janela final e a lista do objeto dizem qual foi usada:
+
+| Âncora | Quando |
+|---|---|
+| contando a partir de C2 | a série pega a C2 e não falta vértebra até o sacro |
+| pela última costela (T12) | TC sem C2: a vértebra da costela mais baixa é a T12 (supõe 12 pares) |
+| C2 em outra série do exame | a série não pega a C2, mas outra do exame (coluna total, mesmo Frame of Reference) pega da C2 até ela |
+| pelos nomes da IA | nenhuma das anteriores: confira |
+
+Com C2 e costelas juntas, a costela confere a contagem: a última costela em L1 vira "L1 com costela", e em T11, "T12 sem costela" (transição toracolombar). Se a série pega da C7 à última costela, o número de pares aparece quando não é 12.
+
+**Transição lombossacral** — os nomes seguem lombarizada / sacralizada:
+
+| Na tela | Quer dizer |
+|---|---|
+| **S1 lombarizada**, sacro como **Sacro (S2)** | seis vértebras de tipo lombar; o disco de baixo é S1-S2 |
+| **L5 sacralizada** | L5 ainda separada do sacro, com transição (marcada por você) |
+| **Sacro (L5 sacralizada)** | só quatro lombares livres: a L5 está fundida ao sacro; o último disco é L4-L5 |
+| **L5 transição?** | cinco lombares, mas com indício: disco L5-S1 rudimentar (menos da metade dos de cima) ou Castellvi sugerido |
+
+**Castellvi** é sugerido pela forma da última vértebra livre: apófise transversa com 19 mm ou mais de altura (I) ou encostada na asa sacral (II; se for fusão óssea, troque para III). Precisa que a série pegue ±45 mm da linha média — a sagital de RM quase nunca pega, e aí a janela diz "não avaliável".
+
+**Botão direito ▸ Numeração da coluna**:
+- **Ajustar a numeração e a vértebra de transição…** — a janela abre com a vértebra que estava sob o clique. *Esta vértebra é a…* renumera tudo a partir dela; *Transição lombossacral* (nenhuma, L5 sacralizada, L5 fundida ao sacro, S1 lombarizada) renumera para ficar coerente; *Castellvi* vem com a sugestão e o motivo. A **frase para o laudo** se refaz a cada escolha (Copiar / Mandar para o laudo). **Aplicar** grava no exame e marca quem conferiu.
+- **Um nível para baixo / para cima** — todos os nomes andam um nível. Se algum sairia da coluna (antes de C1 ou depois de S2), o programa recusa e diz.
+
+**Exames seguintes do paciente**: a numeração que você aplicou fica guardada. Se o próximo exame do mesmo paciente sair diferente (por exemplo, L5 aqui e S1 lombarizada no anterior), aparece o aviso com a data do exame anterior.
+
 ## O menu Configurações
 
 Tudo o que se configura mora no menu **Configurações** (e no botão Configurações da tela inicial), com um submenu por assunto: **Visualizador** (barra e aplicações, botões extras, mouse, atalhos, presets de janela, anotações, texto sobre a imagem, sincronização), **Protocolos de exame** (protocolos de exibição, mamografia, dinâmica da mama, dinâmicos, regiões do corpo), **CAD/IA**, **Monitores** (papel, layout, ordem e calibração GSDF), **Rede** (nós DICOM, automação, servidor central, link ipe://), **Impressão** (impressoras DICOM e configurações de impressão), **Banco de dados** (importação, pasta do banco), **Usuários** e **Sistema** (ao abrir o programa, desempenho, módulos, idioma). Cada item abre a sua própria janela, só com aquele assunto. Os menus Exibir, Rede, Impressão e Usuário ficam só com ações.

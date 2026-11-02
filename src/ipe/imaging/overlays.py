@@ -130,6 +130,18 @@ class MaskVolume:
         m = np.unpackbits(bits)[: int(np.prod(forma))].reshape(forma).astype(bool)
         return cls(m, d["origem"], d["matriz"], tuple(color), label)
 
+    def contem(self, p, folga: int = 0) -> bool:
+        """O ponto do paciente (mm) cai num voxel da máscara (com `folga` voxels em volta)?"""
+        ijk = np.rint(self._inv @ (np.asarray(p, float) - self.origem)).astype(int)
+        nz, ny, nx = self.mascara.shape
+        i, j, k = int(ijk[0]), int(ijk[1]), int(ijk[2])
+        k0, k1 = max(k - folga, 0), min(k + folga + 1, nz)
+        j0, j1 = max(j - folga, 0), min(j + folga + 1, ny)
+        i0, i1 = max(i - folga, 0), min(i + folga + 1, nx)
+        if k0 >= k1 or j0 >= j1 or i0 >= i1:
+            return False
+        return bool(self.mascara[k0:k1, j0:j1, i0:i1].any())
+
     # -------------------------------------------------------------- corte por um plano
     def cantos(self) -> np.ndarray:
         nz, ny, nx = self.mascara.shape

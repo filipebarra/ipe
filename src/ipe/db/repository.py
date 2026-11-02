@@ -776,6 +776,21 @@ class Repository:
             r.quando = datetime.now()
             s.commit()
 
+    def revisoes_ia_do_paciente(self, study_uid: str, modulo: str) -> list[dict]:
+        """As conferências deste módulo nos **outros** exames do mesmo paciente (0.99.23: a numeração da
+        coluna que ele confirmou num exame vale de aviso no seguinte). Mais recentes primeiro."""
+        with self.db.session() as s:
+            st = s.scalar(select(Study).where(Study.study_uid == study_uid))
+            if st is None:
+                return []
+            q = (select(RevisaoIA, Study).join(Study, Study.study_uid == RevisaoIA.study_uid)
+                 .where(Study.patient_fk == st.patient_fk, RevisaoIA.modulo == modulo,
+                        RevisaoIA.study_uid != study_uid))
+            out = [{"study_uid": r.study_uid, "data": e.study_date, "estado": r.estado, "usuario": r.usuario,
+                    "quando": r.quando, "dados": r.dados, "descricao": e.description}
+                   for r, e in s.execute(q)]
+        return sorted(out, key=lambda d: d["data"] or "", reverse=True)
+
     def save_registration(self, study_a: str, study_b: str, offset, rel: float = 0.0,
                           method: str = "manual") -> None:
         if study_a == study_b:

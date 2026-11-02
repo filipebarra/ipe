@@ -2945,6 +2945,7 @@ class ViewerTab(OncoMixin, QWidget):
         vp.sig.orgaos_requested.connect(self.segmentar_orgaos)
         vp.sig.coluna_requested.connect(lambda v: self.segmentar_orgaos(v, tipo="coluna"))
         vp.sig.renumerar_requested.connect(self.renumerar_coluna)
+        vp.sig.numeracao_requested.connect(self.abrir_numeracao_coluna)
         vp.sig.lesion_requested.connect(self.choose_lesion_for)
         vp.sig.segment_requested.connect(self.segment_at)
         vp.sig.status_message.connect(self.status_message)
@@ -4893,36 +4894,98 @@ class ViewerTab(OncoMixin, QWidget):
             if vp.implant_found:
                 self.salvar_implante([vp])
 
+    def objetos_da_coluna(self, vp=None) -> list:
+        estudo = getattr(vp, "study_uid", "") or self.study_uid
+        return [o for o in self.overlay_objects
+                if getattr(o, "source", "") == "Coluna" and o.study_uid in ("", estudo)]
+
+    def guardar_coluna(self, o, estudo: str = "", conferido: bool = False) -> None:
+        """Depois de renumerar ou ajustar: o SEG guardado (reabrir vem certo), a tabela das medidas e,
+        se ele conferiu, a numeração do exame (aviso no próximo exame do paciente)."""
+        from ipe.ai import coluna as COL
+        caminho = getattr(o, "caminho", "")
+        estudo = estudo or o.study_uid or self.study_uid
+        if caminho:
+            try:
+                COL.salvar_no_seg(caminho, o)
+                storage = getattr(self, "storage_root", None)
+                if storage is not None and COL.config(self.settings, COL.CHAVE_MEDIR) and \
+                        COL.tem_tabela(self.repo, estudo):
+                    COL.gravar_tabela(self.repo, self.repo.db, storage, estudo, caminho, obj=o)
+            except Exception:  # noqa: BLE001
+                log.exception("guardar a numeração da coluna")
+        if conferido:
+            from ipe.auth import session as S
+            try:
+                quem = S.get().username or ""
+            except Exception:  # noqa: BLE001
+                quem = ""
+            COL.guardar_conferencia(self.repo, estudo, o.numeracao, quem)
+
+    def _coluna_mudou(self) -> None:
+        if hasattr(self, "_apply_overlays"):
+            self._apply_overlays()
+        for v in self.viewports:
+            v.update()
+
     def renumerar_coluna(self, vp, passo: int) -> int:
         """Níveis da coluna ±1 (0.99.2): todos os nomes andam um nível, na tela e no SEG guardado — ao
-        reabrir o exame já vem certo. Devolve quantos objetos mudaram."""
+        reabrir o exame já vem certo. Devolve quantos objetos mudaram. 0.99.23: recusa, dizendo, quando
+        um nível sairia da coluna (antes parava em S1 e dava duas S1)."""
         from ipe.ai import coluna as COL
-        estudo = getattr(vp, "study_uid", "") or self.study_uid
         n = 0
-        for o in self.overlay_objects:
-            if getattr(o, "source", "") != "Coluna" or o.study_uid not in ("", estudo):
-                continue
-            COL.renumerar(o, passo)
-            caminho = getattr(o, "caminho", "")
-            if caminho:
-                try:
-                    COL.renumerar_seg(caminho, passo)
-                    # a tabela dos discos tem os nomes escritos: renumerou, refaz (0.99.3)
-                    storage = getattr(self, "storage_root", None)
-                    if storage is not None and COL.config(self.settings, COL.CHAVE_MEDIR) and \
-                            COL.tem_tabela(self.repo, estudo):
-                        COL.gravar_tabela(self.repo, self.repo.db, storage, estudo, caminho, obj=o)
-                except Exception:  # noqa: BLE001
-                    log.exception("guardar a renumeração da coluna")
+        for o in self.objetos_da_coluna(vp):
+            try:
+                COL.renumerar(o, passo)
+            except COL.ForaDaColuna as e:
+                self.status_message.emit(f"Não renumerei: {e}.")
+                return 0
+            self.guardar_coluna(o, getattr(vp, "study_uid", ""))
             n += 1
         if n:
-            if hasattr(self, "_apply_overlays"):
-                self._apply_overlays()
-            for v in self.viewports:
-                v.update()
+            self._coluna_mudou()
             self.status_message.emit("Níveis da coluna renumerados: " + ("um nível para baixo." if passo > 0
                                                                          else "um nível para cima."))
         return n
+
+    def abrir_numeracao_coluna(self, vp, ponto=None):
+        """Botão direito ▸ Numeração da coluna ▸ Ajustar… (0.99.23): a janela abre com a vértebra que
+        estava sob o clique."""
+        from ipe.ui.viewer.coluna_numeracao import NumeracaoDialog
+        objs = self.objetos_da_coluna(vp)
+        if not objs:
+            self.status_message.emit("Esta aba não tem os níveis da coluna identificados.")
+            return None
+        o = objs[-1]
+        clicada = None
+        if ponto is not None:
+            for mv in o.volumes:
+                if "-" not in str(getattr(mv, "nivel", mv.label)) and mv.contem(ponto, folga=1):
+                    clicada = getattr(mv, "nivel", None)
+                    break
+        dlg = NumeracaoDialog(self, o, clicada=clicada, repo=self.repo, study_uid=o.study_uid or self.study_uid)
+
+        def aplicado():
+            self.guardar_coluna(o, o.study_uid or self.study_uid, conferido=True)
+            self._coluna_mudou()
+            self.status_message.emit("Numeração da coluna conferida: " + __import__(
+                "ipe.ai.coluna", fromlist=["descrever"]).descrever(o.numeracao) + ".")
+        dlg.aplicado.connect(aplicado)
+        dlg.laudo.connect(lambda txt: self.mandar_texto_ao_laudo(txt))
+        dlg.show()
+        self._numeracao_dlg = dlg
+        return dlg
+
+    def mandar_texto_ao_laudo(self, texto: str) -> None:
+        ok = False
+        try:
+            ok = bool(hasattr(self, "append_to_report") and self.append_to_report(texto))
+        except Exception:  # noqa: BLE001
+            log.exception("mandar ao laudo")
+        if not ok:
+            from PySide6.QtWidgets import QApplication
+            QApplication.clipboard().setText(texto)
+            self.status_message.emit("Sem laudo aberto: a frase foi copiada.")
 
     def segmentar_orgaos(self, vp, simular: bool = False, tipo: str = "abdome"):
         """Quadro ▸ botão direito ▸ Segmentar órgãos abdominais (0.98) ou Identificar vértebras e discos

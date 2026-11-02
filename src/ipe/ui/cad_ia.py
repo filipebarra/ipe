@@ -216,7 +216,8 @@ class CadIaTab(QWidget):
         expl = QLabel("Dá nome a cada vértebra e disco (C2-C3 … L5-S1). Os nomes aparecem em qualquer série e "
                       "plano do exame — num axial, o nível daquele corte. Usa a mesma instalação da "
                       "segmentação abdominal. Contagem que pede conferência (vértebra de transição, série só "
-                      "torácica) gera aviso; botão direito ▸ Renumerar os níveis corrige com um clique.")
+                      "torácica) gera aviso. A contagem parte da C2 ou da última costela; vértebra de transição e "
+                      "Castellvi se conferem no botão direito ▸ Numeração da coluna.")
         expl.setWordWrap(True)
         expl.setStyleSheet("color: gray")
         f.addRow(expl)

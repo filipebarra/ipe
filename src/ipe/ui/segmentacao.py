@@ -120,6 +120,7 @@ class Segmentacao(QObject):
         self.etapa = "preparando"
         self.fase = "principal"                  # "conferencia": a segunda sagital da coluna (0.99.5)
         self._primeira: dict | None = None
+        self._pend_coluna: dict | None = None   # 0.99.23: a principal esperando a série com a C2
         self.inicio = 0.0
         self.cancelado = False
         self._timer = QTimer(self)
@@ -158,6 +159,10 @@ class Segmentacao(QObject):
             self.trabalho.preparar(progresso=self._progresso_volume)
             prog, args, env = self.trabalho.comando()
         except Exception as e:  # noqa: BLE001
+            if self.fase == "ancora":                 # sem a âncora: segue com a principal
+                log.warning("preparar a série âncora da coluna: %s", e)
+                self._sem_ancora(f"não deu para montar a série com a C2 ({e})")
+                return True
             if self.fase == "conferencia":            # a primeira já está gravada: segue com ela
                 log.warning("preparar a segunda sagital: %s", e)
                 self._primeira["notas"].append(f"Não deu para conferir na segunda sagital ({e}): as medidas "
@@ -204,7 +209,8 @@ class Segmentacao(QObject):
         if self.dlg is None:
             return
         s = int(time.monotonic() - self.inicio) if self.inicio else 0
-        fase = "Conferindo na segunda sagital — " if self.fase == "conferencia" else "Segmentando: "
+        fase = {"conferencia": "Conferindo na segunda sagital — ",
+                "ancora": "Contando a partir de C2 na outra série — "}.get(self.fase, "Segmentando: ")
         self.dlg.setLabelText(f"{fase}{self.etapa}\n{s // 60}:{s % 60:02d} — em CPU leva alguns minutos; "
                               "dá para continuar trabalhando.")
 
@@ -216,6 +222,9 @@ class Segmentacao(QObject):
             pass                                    # ainda montando o volume: o progresso devolve False
 
     def _erro_processo(self, err) -> None:
+        if err == QProcess.FailedToStart and self.fase == "ancora":
+            self._sem_ancora("não consegui iniciar a contagem na série com a C2")
+            return
         if err == QProcess.FailedToStart and self.fase == "conferencia":
             self.fase = "principal"
             self._primeira["notas"].append("Não consegui iniciar a conferência na segunda sagital: as medidas "
@@ -228,6 +237,9 @@ class Segmentacao(QObject):
 
     # ------------------------------------------------------------ fim
     def _processo_terminou(self, *_a) -> None:
+        if self.fase == "ancora":
+            self._fim_ancora()
+            return
         if self.fase == "conferencia":
             self._fim_conferencia()
             return
@@ -320,14 +332,84 @@ class Segmentacao(QObject):
         niveis = COL.nomear(self.trabalho.vol, rotulos)
         if not niveis.itens:
             raise TS.Falhou("O TotalSegmentator não achou vértebras nesta série.")
+        if niveis.numeracao.ancora == "modelo":
+            # 0.99.23: sem C2 nem a última costela nesta série — outra do exame que pegue da C2 até aqui
+            outra = COL.serie_ancora(self.repo, self.trabalho.study_uid, self.trabalho.series_uid,
+                                     self.trabalho.settings)
+            if outra:
+                principal = self.trabalho
+                self._pend_coluna = {"trabalho": principal, "rotulos": rotulos, "versao": versao,
+                                     "niveis": niveis,
+                                     "desc": (self.repo.series_meta(outra) or {}).get("description", "")}
+                self.trabalho = TS.Trabalho(self.repo, principal.cache, principal.settings, principal.study_uid,
+                                            outra, simular=principal.simular)
+                self.trabalho.tarefas_proprias = COL.tarefas_ancora
+                self.trabalho.min_cortes = COL.MIN_CORTES
+                self.fase, self.etapa = "ancora", "montando o volume"
+                if self.dlg is not None:
+                    self.dlg.setLabelText("Contando a partir de C2 na outra série: montando o volume…")
+                    QApplication.processEvents()
+                if self._lancar():
+                    return
+                self._restaurar_principal()
+                niveis = self._pend_coluna["niveis"]
+        self._seguir_coluna(niveis, versao)
+
+    def _restaurar_principal(self) -> None:
+        anc = self.trabalho
+        if self._pend_coluna and anc is not self._pend_coluna["trabalho"]:
+            anc.limpar()
+            self.trabalho = self._pend_coluna["trabalho"]
+        self.fase = "principal"
+
+    def _sem_ancora(self, motivo: str) -> None:
+        pend = self._pend_coluna
+        self._restaurar_principal()
+        pend["niveis"].numeracao.evidencias.append(f"não contei pela C2: {motivo}")
+        self._seguir_coluna(pend["niveis"], pend["versao"])
+
+    def _fim_ancora(self) -> None:
+        from ipe.ai import coluna as COL
+        pend = self._pend_coluna
+        if self.cancelado:
+            self.cancelado = False
+            self._sem_ancora("a contagem na série com a C2 foi cancelada")
+            return
+        try:
+            r2, _v2, _s2 = self.trabalho.ler_rotulos()
+            anc = COL.nomear(self.trabalho.vol, r2)
+            vol_principal = pend["trabalho"].vol
+            niveis = COL.com_ancora(vol_principal, pend["rotulos"], pend["niveis"], anc, pend["desc"])
+        except Exception as e:  # noqa: BLE001
+            log.exception("contagem pela série âncora")
+            self._sem_ancora(f"a contagem na outra série falhou ({e})")
+            return
+        self._restaurar_principal()
+        self._seguir_coluna(niveis, pend["versao"])
+
+    def _seguir_coluna(self, niveis, versao) -> None:
+        try:
+            self._seguir_coluna_(niveis, versao)
+        except Exception as e:  # noqa: BLE001
+            if not isinstance(e, TS.Falhou):
+                log.exception("gravar a coluna")
+            self._fim(None, str(e) if isinstance(e, TS.Falhou) else f"Não deu para gravar a coluna: {e}")
+
+    def _seguir_coluna_(self, niveis, versao) -> None:
+        from ipe.ai import coluna as COL
+        COL.conferir_anteriores(self.repo, self.trabalho.study_uid, niveis)
         saida = COL.gravar(self.trabalho, niveis, versao, self.repo.db, self.storage, repo=self.repo)
         saida["niveis"] = niveis
         minutos = (time.monotonic() - self.inicio) / 60
         discos, vert = niveis.nomes("disco"), niveis.nomes("vertebra")
         msg = (f"Níveis identificados em {minutos:.1f} min: {vert[0]} a {vert[-1]}"
                + (f", {len(discos)} discos ({discos[0]} a {discos[-1]})" if discos else ", nenhum disco")
-               + ". Os nomes aparecem em qualquer série e plano do exame; se a contagem estiver deslocada, "
-                 "botão direito ▸ Renumerar os níveis.")
+               + f". Numeração: {COL.ANCORAS.get(niveis.numeracao.ancora, '')}."
+               + " Os nomes aparecem em qualquer série e plano do exame; para corrigir a contagem ou marcar "
+                 "uma vértebra de transição, botão direito ▸ Numeração da coluna.")
+        frase = COL.frase_do_laudo(niveis.numeracao)
+        if niveis.numeracao.tipo_lombossacral or niveis.numeracao.toracolombar:
+            msg += f"\n\n{frase}"
         self._primeira = {"saida": saida, "msg": msg, "notas": [],
                           "avisos": ("Confira: " + "; ".join(niveis.avisos) + ".") if niveis.avisos else ""}
         medir = COL.config(self.trabalho.settings, COL.CHAVE_MEDIR) and saida.get("seg_path")

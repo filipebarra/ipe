@@ -3,6 +3,19 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.23 — vértebra de transição e a numeração da coluna
+- **Correção:** subir um nível na lombar dava duas S1 (a lista de nomes acabava em S1). Agora a última
+  livre vira S1, o sacro vira S2 e o disco S1-S2; renumerar para fora da coluna é recusado com aviso.
+- **Numeração pela sequência física**, contada **a partir de C2** (na série ou em outra série do exame que
+  pegue da C2 até ela) ou **pela última costela** (T12, na TC); só sem âncora valem os nomes da IA. Dois
+  corpos com o mesmo nome viram dois.
+- **Vértebra de transição** com os nomes lombarizada / sacralizada: S1 lombarizada (sacro como S2), L5
+  sacralizada, L5 fundida ao sacro; transição toracolombar (L1 com costela, T12 sem costela) e contagem
+  de pares de costelas. Indícios: disco rudimentar e **Castellvi sugerido** (apófise alta ou encostada
+  na asa sacral).
+- **Botão direito ▸ Numeração da coluna ▸ Ajustar…**: "esta vértebra é a…", transição, Castellvi e a
+  frase para o laudo; grava no exame e avisa no próximo exame do paciente se a numeração sair diferente.
+
 ## 0.99.22 — rodada barata do plano AW: selos, mistura de pacientes, janelas, medidas e saída
 - **Selos de integridade** no alto do quadro: mamografia comprimida com perdas sai em vermelho
   ("imprópria para o laudo", com método e taxa); compressão com perdas nas outras modalidades,

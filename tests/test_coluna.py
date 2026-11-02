@@ -76,7 +76,7 @@ def medir(monkeypatch):
 
 # ------------------------------------------------------------------ regras
 def test_deslocar_e_nomes():
-    assert COL.deslocar("L4", 1) == "L5" and COL.deslocar("L5", 1) == "S1"
+    assert COL.deslocar("L4", 1) == "L5" and COL.deslocar("L5", 1) == "S1" and COL.deslocar("S1", 1) == "S2"
     assert COL.deslocar("L4-L5", 1) == "L5-S1" and COL.deslocar("T12-L1", -1) == "T11-T12"
     assert COL.nome_da_vertebra("vertebrae_L4") == "L4" and COL.nome_da_vertebra("sacrum") == "S1"
     assert COL.nome_da_vertebra("liver") is None
@@ -163,7 +163,7 @@ def test_tela_identifica_e_renumera(env, tmp_path, monkeypatch):
         vp = next(v for v in tab.viewports if v.frames)
         menu = [a.text() for a in vp.build_context_menu().actions()]
         assert any(t.startswith("Identificar vértebras e discos") for t in menu)
-        assert not any(t.startswith("Renumerar") for t in menu)           # ainda não há níveis
+        assert not any(t.startswith("Numeração da coluna") for t in menu)  # ainda não há níveis
         assert any(a.text().startswith("Identificar vértebras") and a.isEnabled()
                    for a in w.browser.series_menu(uid, [serie]).actions())
         tab.segmentar_orgaos(vp, simular=True, tipo="coluna")
@@ -175,7 +175,7 @@ def test_tela_identifica_e_renumera(env, tmp_path, monkeypatch):
         col = [o for o in tab.overlay_objects if o.source == "Coluna"]
         assert len(col) == 1 and "L4-L5" in [mv.label for mv in col[0].volumes]
         menu = [a.text() for a in vp.build_context_menu().actions()]
-        assert any(t.startswith("Renumerar os níveis") for t in menu)
+        assert any(t.startswith("Numeração da coluna") for t in menu)
         assert tab.renumerar_coluna(vp, 1) == 1
         assert "L5-S1" in [mv.label for mv in col[0].volumes] and "L1" not in [mv.label for mv in col[0].volumes]
         # guardado no SEG: relido, já vem renumerado

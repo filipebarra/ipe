@@ -3,6 +3,17 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.23 — vértebra de transición y numeración de la columna
+- Corrección: subir un nivel en la lumbar daba dos S1; ahora la última libre pasa a S1, el sacro a S2 y
+  el disco a S1-S2; renumerar fuera de la columna se rechaza con aviso.
+- Numeración por la secuencia física, contada desde C2 (en la serie u otra serie del examen) o por la
+  última costilla (T12, TC); los nombres de la IA solo sin ancla.
+- Vértebra de transición con los nombres lumbarizada / sacralizada (S1 lumbarizada, L5 sacralizada, L5
+  fusionada al sacro), transición toracolumbar, conteo de pares de costillas, disco rudimentario y
+  Castellvi sugerido.
+- Botón derecho ▸ Numeración de la columna ▸ Ajustar…: "esta vértebra es…", transición, Castellvi y la
+  frase del informe; se guarda con el examen y avisa en el siguiente examen del paciente si difiere.
+
 ## 0.99.22 — ronda barata del plan AW: sellos, mezcla de pacientes, ventanas, medidas y salida
 - Sellos de integridad arriba del cuadro: mamografía comprimida con pérdida en rojo ("no apta para el
   informe"), compresión con pérdida en otras modalidades, Modality LUT en tabla, píxel no cuadrado,

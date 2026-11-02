@@ -424,6 +424,24 @@ class AutomationEngine(QObject):
             if coluna:
                 rotulos, versao, _s = t.ler_rotulos()
                 niveis = COL.nomear(t.vol, rotulos)
+                if niveis.itens and niveis.numeracao.ancora == "modelo":
+                    # 0.99.23: contar pela C2 noutra série do exame que pegue da C2 até aqui
+                    outra = COL.serie_ancora(self.repo, study_uid, serie, self.settings)
+                    if outra:
+                        ta = TS.Trabalho(self.repo, FrameCache(256), self.settings, study_uid, outra,
+                                         simular=self._seg_simular)
+                        ta.tarefas_proprias, ta.min_cortes = COL.tarefas_ancora, COL.MIN_CORTES
+                        try:
+                            ta.preparar()
+                            ta.rodar_aqui()
+                            ra, _va, _sa = ta.ler_rotulos()
+                            desc = (self.repo.series_meta(outra) or {}).get("description", "")
+                            niveis = COL.com_ancora(t.vol, rotulos, niveis, COL.nomear(ta.vol, ra), desc)
+                        except Exception as e:  # noqa: BLE001
+                            log.warning("coluna: contagem pela C2 em %s: %s", outra, e)
+                            niveis.numeracao.evidencias.append(f"não contei pela C2: {e}")
+                        finally:
+                            ta.limpar()
                 # 0.99.5: na RM, a mesma conta na outra sagital, para conferir as medidas
                 if niveis.itens and COL.quer_conferencia(self.settings, t.modalidade):
                     outra = COL.segunda_serie(self.repo, study_uid, serie, self.settings)
@@ -477,6 +495,7 @@ class AutomationEngine(QObject):
                     niveis, versao = res
                     if not niveis.itens:
                         raise TS.Falhou("o TotalSegmentator não achou vértebras nesta série")
+                    COL.conferir_anteriores(self.repo, study_uid, niveis)
                     saida = COL.gravar(t, niveis, versao, self.db, self.paths.storage, repo=self.repo)
                     saida["niveis"] = niveis
                     resumo = COL.resumo(niveis)

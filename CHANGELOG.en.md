@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.23 — transitional vertebra and spine numbering
+- Fix: moving one level up in the lumbar spine produced two S1s; now the last free vertebra becomes S1,
+  the sacrum S2 and the disc S1-S2; renumbering out of the spine is refused with a warning.
+- Numbering by the physical sequence, counted from C2 (in the series or another series of the exam) or
+  from the last rib (T12, CT); AI names only without an anchor.
+- Transitional vertebra named lumbarized / sacralized (S1 lumbarized, L5 sacralized, L5 fused to the
+  sacrum), thoracolumbar transition, rib pair count, rudimentary disc and suggested Castellvi.
+- Right click ▸ Spine numbering ▸ Adjust…: "this vertebra is…", transition, Castellvi and the report
+  sentence; saved with the exam, with a warning on the patient's next exam if the numbering differs.
+
 ## 0.99.22 — cheap round of the AW plan: seals, patient mix, windows, measurements and output
 - Integrity seals at the top of the viewport: lossy-compressed mammography in red ("not suitable for
   reporting"), lossy compression elsewhere, Modality LUT table, non-square pixel, derived image.

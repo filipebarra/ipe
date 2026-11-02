@@ -114,6 +114,7 @@ class ViewportSignals(QObject):
     orgaos_requested = Signal(object)               # segmentar órgãos abdominais desta série (0.98)
     coluna_requested = Signal(object)               # identificar vértebras e discos desta série (0.99.2)
     renumerar_requested = Signal(object, int)       # níveis da coluna: todos andam ±1 (0.99.2)
+    numeracao_requested = Signal(object, object)    # coluna: Ajustar a numeração (vp, ponto mm ou None; 0.99.23)
     film_requested = Signal(object)             # ferramenta "enviar ao filme": clique na imagem
     group_action = Signal(object, str)          # "remove_phase" | "ungroup"
     lesion_requested = Signal(object, object)   # viewport, anotação: ligar a uma lesão
@@ -3033,8 +3034,19 @@ class Viewport(AnnotationMixin, QWidget):
             menu.addAction(a_col)
         if any(getattr(o, "source", "") == "Coluna" and o.study_uid in ("", self.study_uid)
                for o in (getattr(self, "overlays", None) or [])):
-            rm = menu.addMenu("Renumerar os níveis da coluna")
-            rm.setToolTip("Para vértebra de transição ou contagem deslocada: todos os nomes andam um nível.")
+            ponto = None
+            if local_pos is not None and self._img is not None:
+                try:
+                    u, v = self._img_pt(local_pos)
+                    ponto = self.pixel_to_patient(u, v)
+                except Exception:  # noqa: BLE001
+                    ponto = None
+            rm = menu.addMenu("Numeração da coluna")
+            rm.setToolTip("Vértebra de transição, contagem deslocada: renumerar ou dizer qual vértebra é qual.")
+            a_aj = QAction("Ajustar a numeração e a vértebra de transição…", rm)
+            a_aj.triggered.connect(lambda _=False, p=ponto: self.sig.numeracao_requested.emit(self, p))
+            rm.addAction(a_aj)
+            rm.addSeparator()
             rm.addAction("Um nível para baixo (L4 vira L5)", lambda: self.sig.renumerar_requested.emit(self, 1))
             rm.addAction("Um nível para cima (L5 vira L4)", lambda: self.sig.renumerar_requested.emit(self, -1))
         menu.addSeparator()
