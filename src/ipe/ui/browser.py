@@ -30,7 +30,7 @@ COLUMNS = [
     ("last_accessed", "Último acesso", "datetime"), ("locked", "Protegido", "bool"),
     ("key_images", "Imagens-chave", "int"), ("measured", "Imagens c/ medida", "int"),
     ("num_groups", "Dinâmicas", "int"), ("lists", "Listas", "text"), ("comment", "Comentário", "text"),
-    ("report", "Laudo", "text"),
+    ("report", "Laudo", "text"), ("banco", "Banco", "banco"),
     ("case_n", "Nº", "int"), ("case_name", "Caso (lista)", "text"),
 ]
 LIST_ONLY = ["case_n", "case_name"]          # aparecem sozinhas quando uma lista está aberta
@@ -123,6 +123,9 @@ class StudyTableModel(QAbstractTableModel):
                 return "🔒" if v else ""
             if kind == "origin":
                 return ORIGINS.get(v, v)
+            if kind == "banco":
+                from ipe.db import banco as B
+                return B.rotulo_do_banco(r)
             if kind in ("int", "float") and not v:
                 return ""
             if key == "patient_name":
@@ -183,6 +186,7 @@ class Browser(QWidget):
     report_requested = Signal(str)                 # abrir o laudo do estudo
     series_changed = Signal()                      # série oculta ou apagada: quem mostra séries recarrega
     segmentacao_pronta = Signal(str, object)       # estudo, saída da segmentação de órgãos (0.98)
+    status_message = Signal(str)                   # 0.99.27: recado para a barra de estado
 
     def __init__(self, repo: Repository, storage_root, parent=None, settings=None):
         super().__init__(parent)
@@ -419,8 +423,13 @@ class Browser(QWidget):
     def _refresh_rows(self) -> None:
         mod = self.modality.currentText()
         d_from, d_to = self._period_range()
-        rows = self.repo.search_studies(self.search.text().strip(),
-                                        "" if mod == "Todas" else mod, d_from, d_to, limit=20000)
+        try:
+            rows = self.repo.search_studies(self.search.text().strip(),
+                                            "" if mod == "Todas" else mod, d_from, d_to, limit=20000,
+                                            banco=getattr(self, "banco", "visivel"))
+        except TypeError:                       # repositório do modo cliente (servidor antigo)
+            rows = self.repo.search_studies(self.search.text().strip(),
+                                            "" if mod == "Todas" else mod, d_from, d_to, limit=20000)
         names: dict[str, str] = {}
         order: dict[str, int] = {}
         if self.current_list is not None:
@@ -627,6 +636,68 @@ class Browser(QWidget):
         """Coloca um painel no alto da coluna da esquerda (usado pelo painel "Locais")."""
         self._left_layout.insertWidget(0, widget)
         self.lists_panel.setMaximumWidth(320)
+
+    def set_banco(self, banco: str) -> None:
+        """0.99.27: que banco a lista mostra — tudo o que vejo, o meu, o compartilhado, os
+        compartilhados comigo, ou (administrador) o banco pessoal de alguém ("usuario:<nome>")."""
+        self.banco = banco or "visivel"
+        self.refresh()
+
+    # ------------------------------------------------------------------ banco pessoal × compartilhado
+    def acoes_de_banco(self, menu, rows) -> None:
+        """Botão direito ▸ Banco: mover para o meu banco, para o compartilhado, compartilhar com…"""
+        from ipe.auth import session as S
+        from ipe.auth import visibilidade as V
+        from ipe.db import banco as B
+        v = V.visao_atual()
+        if v is None or not rows:
+            return
+        sub = menu.addMenu("Banco")
+        sub.setToolTip(B.AVISO_LOCAL)
+        eu = v.usuario.lower()
+        meus = all((r.dono or "").lower() == eu for r in rows)
+        do_servico = any(not r.dono for r in rows)
+        pode_servico = S.can("configure")
+        pode = all((r.dono or "").lower() == eu or v.admin or (not r.dono and pode_servico) for r in rows)
+        uids = [r.study_uid for r in rows]
+        a = sub.addAction("Mover para o meu banco (pessoal)", lambda: self.mover_banco(uids, v.usuario, ""))
+        a.setEnabled(pode and not meus and (not do_servico or pode_servico))
+        if do_servico and not pode_servico:
+            a.setToolTip("Tirar um exame do compartilhado esconde dos outros: só quem configura o computador "
+                         "faz isso. Para juntar casos, use as listas.")
+        a = sub.addAction("Mover para o compartilhado", lambda: self.mover_banco(uids, "", ""))
+        a.setEnabled(pode and not all(not r.dono for r in rows))
+        a = sub.addAction("Compartilhar com…", lambda: self._compartilhar_com(rows))
+        a.setEnabled(pode and (meus or v.admin))
+        if v.admin:
+            outros = sub.addMenu("Passar para o banco de")
+            for u in self.repo.users():
+                if u["active"] and u["username"].lower() != eu:
+                    outros.addAction(u["username"], lambda n=u["username"]: self.mover_banco(uids, n, ""))
+
+    def mover_banco(self, uids, dono: str, visivel_para: str = "") -> int:
+        from ipe.auth import session as S
+        from ipe.db import banco as B
+        n = self.repo.set_study_scope(uids, dono, visivel_para)
+        destino = "compartilhado" if not dono else f"banco pessoal de {dono}"
+        try:
+            self.repo.audit("moveu_banco", f"{n} exame(s) para o {destino}", user=S.get().username,
+                            study_uid=uids[0] if len(uids) == 1 else "")
+        except Exception:  # noqa: BLE001
+            pass
+        self.refresh()
+        self.status_message.emit(f"{n} exame(s) no {destino}." + (" " + B.AVISO_LOCAL if dono else ""))
+        return n
+
+    def _compartilhar_com(self, rows) -> None:
+        from ipe.auth import visibilidade as V
+        from ipe.ui.visivel_para import EscolherUsuarios
+        v = V.visao_atual()
+        dono = rows[0].dono or (v.usuario if v else "")
+        nomes = [u["username"] for u in self.repo.users() if u["active"] and u["username"].lower() != dono.lower()]
+        d = EscolherUsuarios(nomes, V.lista(rows[0].visivel_para), self)
+        if d.exec():
+            self.mover_banco([r.study_uid for r in rows], dono, ",".join(d.escolhidos()))
 
     def set_source(self, repo, storage_root) -> None:
         """Troca o banco que a lista mostra (troca de local)."""
@@ -1237,6 +1308,7 @@ class Browser(QWidget):
             a.triggered.connect(lambda _=False, l=lid, k=kind: self._add_to_list(l, k, rows))
             lists_menu.addAction(a)
 
+        self.acoes_de_banco(menu, rows)
         send_menu = menu.addMenu("Enviar para")
         self.fill_send_menu(send_menu, rows)
         from ipe.auth import session as S

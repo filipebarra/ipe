@@ -20,7 +20,10 @@ from ipe.ui.tabelas import colunas_ajustaveis
 ACTIONS = {"login": "Entrou", "logout": "Saiu", "abrir": "Abriu exame", "exportar": "Exportou",
            "anonimizar": "Exportou anonimizado", "enviar": "Enviou", "apagar": "Apagou", "imprimir": "Imprimiu",
            "baixar": "Baixou do PACS", "busca": "Buscou no PACS", "usuarios": "Alterou usuários",
-           "importar": "Importou", "upload": "Enviou ao servidor"}
+           "importar": "Importou", "upload": "Enviou ao servidor",
+           "abriu_exame_pessoal": "Abriu exame pessoal de outro", "viu_banco_de": "Abriu o banco pessoal de",
+           "moveu_banco": "Mudou o banco do exame", "transferiu_banco": "Passou um banco pessoal",
+           "login_pelo_sistema": "Entrou pela conta do sistema"}
 
 
 def _fmt(dt) -> str:

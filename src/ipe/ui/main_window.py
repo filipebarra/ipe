@@ -171,6 +171,8 @@ class MainWindow(QMainWindow):
         self.locations.add_requested.connect(self.add_location)
         self.locations.rescan_requested.connect(self.rescan_location)
         self.locations.pacs_chosen.connect(self.open_pacs_node)
+        self.locations.banco_chosen.connect(self.escolher_banco)                 # 0.99.27
+        self.browser.status_message.connect(lambda t: self.statusBar().showMessage(t, 10000))
         self.locations.move_default_requested.connect(self.move_default_database)
         self.browser.series_changed.connect(self._series_changed)
         self.browser.segmentacao_pronta.connect(self._segmentacao_pronta)
@@ -701,6 +703,34 @@ class MainWindow(QMainWindow):
         dlg.tabs.setCurrentIndex(tab)
         dlg.exec()
 
+    def escolher_banco(self, banco: str) -> None:
+        """Locais ▸ Banco: que parte do banco a lista mostra. O administrador abrindo o banco de alguém
+        fica no registro de acesso."""
+        if banco.startswith("usuario:"):
+            from ipe.auth import session as S
+            try:
+                self.repo.audit("viu_banco_de", banco.split(":", 1)[1], user=S.get().username)
+            except Exception:  # noqa: BLE001
+                pass
+        self.browser.set_banco(banco)
+
+    def registrar_abertura_alheia(self, study_uid: str) -> str:
+        """0.99.27: o administrador abriu um exame do banco pessoal de outro — fica no registro de acesso.
+        Devolve o dono ("" quando não é o caso)."""
+        from ipe.db import banco as B
+        try:
+            dono = B.precisa_registrar(self.repo.study_info(study_uid))
+        except Exception:  # noqa: BLE001
+            return ""
+        if dono:
+            from ipe.auth import session as S
+            try:
+                self.repo.audit("abriu_exame_pessoal", f"banco pessoal de {dono}", user=S.get().username,
+                                study_uid=study_uid)
+            except Exception:  # noqa: BLE001
+                log.exception("registrar a abertura do exame pessoal")
+        return dono
+
     def abrir_modo_de_uso(self) -> bool:
         """Configurações ▸ Usuários ▸ Modo de uso (0.99.25)."""
         from ipe.auth import session as S
@@ -747,6 +777,10 @@ class MainWindow(QMainWindow):
             self.settings.attach_user(self.auth.prefs(s), lambda p, ss=s: self.auth.save_prefs(ss, p))
         S.audit(self.repo, "login", "")
         self.apply_permissions()
+        # 0.99.27: a lista e o painel Locais passam a mostrar o banco de quem entrou
+        self.locations.banco = "visivel"
+        self.locations.rebuild()
+        self.browser.set_banco("visivel")
 
     def apply_permissions(self) -> None:
         from ipe.auth import session as S
@@ -1161,6 +1195,7 @@ class MainWindow(QMainWindow):
             if series_uids:
                 tab.show_series(series_uids)
             return
+        self.registrar_abertura_alheia(study_uid)
         # monitores com papel "viewer" (fora o da janela principal)
         # Monitor marcado como viewer é viewer. A única exceção é o computador de uma tela só,
         # em que o único viewer é a tela da janela principal: ali o exame vira aba, como sempre
@@ -2935,6 +2970,8 @@ class MainWindow(QMainWindow):
         if self._import_dialog is not None:
             self._import_dialog.close()
             self._import_dialog = None
+        from ipe.db import banco as B                    # 0.99.27: "Exames que eu trago vão para"
+        B.marcar_novos(self.repo, getattr(result, "new_studies", set()) or set(), B.dono_dos_novos(self.settings))
         self.browser.refresh()
         self.statusBar().showMessage(result.summary(), 15000)
         from ipe.central.client_repo import upload_if_client

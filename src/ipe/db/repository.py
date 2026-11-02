@@ -74,6 +74,8 @@ class StudyRow:
     device: str = ""
     report: str = ""              # laudo: "", "rascunho", "assinado", "retificado"
     has_film: bool = False        # tem filme salvo no compositor
+    dono: str = ""                # 0.99.27: "" = compartilhado; usuário = banco pessoal dele
+    visivel_para: str = ""
 
 
 @dataclass
@@ -89,6 +91,35 @@ class SeriesRow:
     body_part: str = ""          # (0018,0015) BodyPartExamined — a região, para a barra do visualizador (0.99.12)
 
 
+def _filtro_de_banco(q, banco: str, visao):
+    """A parte do filtro de banco que o SQL resolve (o resto, exato, em `_no_banco`)."""
+    if visao is None or banco == "todos":
+        return q
+    eu = visao.usuario.lower()
+    if banco == "meu":
+        return q.where(func.lower(Study.dono) == eu)
+    if banco == "compartilhado":
+        return q.where(Study.dono == "")
+    if banco == "comigo":
+        return q.where(Study.dono != "", Study.visivel_para.ilike(f"%{visao.usuario}%"))
+    if banco.startswith("usuario:"):
+        return q.where(func.lower(Study.dono) == banco.split(":", 1)[1].strip().lower()) if visao.admin \
+            else q.where(Study.id < 0)
+    return q.where(or_(Study.dono == "", func.lower(Study.dono) == eu,
+                       Study.visivel_para.ilike(f"%{visao.usuario}%")))
+
+
+def _no_banco(st, banco: str, visao) -> bool:
+    if visao is None or banco in ("todos", "meu", "compartilhado") or banco.startswith("usuario:"):
+        return True
+    from ipe.auth import visibilidade as V
+    eu = visao.usuario.lower()
+    outros = [x.lower() for x in V.lista(st.visivel_para)]
+    if banco == "comigo":
+        return eu in outros
+    return not st.dono or st.dono.lower() == eu or eu in outros
+
+
 class Repository:
     def __init__(self, db: Database):
         self.db = db
@@ -96,7 +127,12 @@ class Repository:
     # ------------------------------------------------------------------ busca
     def search_studies(self, text: str = "", modality: str = "",
                        date_from: str = "", date_to: str = "",
-                       limit: int = 2000) -> list[StudyRow]:
+                       limit: int = 2000, banco: str = "visivel") -> list[StudyRow]:
+        """0.99.27: `banco` = "visivel" (o compartilhado, o meu e o compartilhado comigo), "meu",
+        "compartilhado", "comigo", "usuario:<nome>" (o banco pessoal de alguém — administrador) ou
+        "todos". Sem usuário na sessão (modo "só eu") não há filtro."""
+        from ipe.auth import visibilidade as V
+        visao = V.visao_atual()
         with self.db.session() as s:
             n_series = (select(func.count(Series.id)).where(Series.study_fk == Study.id)
                         .correlate(Study).scalar_subquery())
@@ -130,8 +166,9 @@ class Repository:
                 q = q.where(Study.study_date >= date_from)
             if date_to:
                 q = q.where(Study.study_date <= date_to)
+            q = _filtro_de_banco(q, banco, visao)
             q = q.order_by(Study.study_date.desc(), Study.study_time.desc()).limit(limit)
-            result = list(s.execute(q))
+            result = [r for r in s.execute(q) if _no_banco(r[0], banco, visao)]
             uids = [st.study_uid for st, *_r in result]
             lists: dict[str, list[str]] = {}
             details: dict[str, dict[str, list[str]]] = {}
@@ -184,6 +221,7 @@ class Repository:
                     comment=comments.get(st.study_uid, ""),
                     body_part=", ".join(sorted(parts.get(st.study_uid, set()))), num_groups=ng or 0,
                     report=reports.get(st.study_uid, ""), has_film=st.study_uid in filmados,
+                    dono=st.dono or "", visivel_para=st.visivel_para or "",
                     **{k: "; ".join(v) for k, v in details.get(st.study_uid, {}).items()}))
             return rows
 
@@ -301,8 +339,34 @@ class Repository:
                 "study_time": st.study_time, "accession": st.accession,
                 "description": st.description, "institution": st.institution,
                 "referring": st.referring, "patient_age": st.patient_age,
-                "modalities": st.modalities,
+                "modalities": st.modalities, "dono": st.dono or "", "visivel_para": st.visivel_para or "",
             }
+
+    # ------------------------------------------------------------------ banco pessoal × compartilhado (0.99.27)
+    def set_study_scope(self, study_uids, dono: str = "", visivel_para: str = "") -> int:
+        """Move exames entre os bancos: "" = compartilhado; um usuário = banco pessoal dele. Só a marca
+        muda — os arquivos continuam no mesmo lugar."""
+        n = 0
+        with self.db.session() as s:
+            for st in s.scalars(select(Study).where(Study.study_uid.in_(list(study_uids)))):
+                st.dono, st.visivel_para = (dono or "").strip(), (visivel_para or "").strip()
+                n += 1
+        return n
+
+    def donos_de_exames(self) -> dict[str, int]:
+        """{usuário: exames no banco pessoal dele}."""
+        with self.db.session() as s:
+            return {d: int(n) for d, n in s.execute(select(Study.dono, func.count(Study.id))
+                                                     .where(Study.dono != "").group_by(Study.dono))}
+
+    def transferir_banco(self, de: str, para: str = "") -> int:
+        """O banco pessoal inteiro de `de` passa para `para` ("" = compartilhado)."""
+        with self.db.session() as s:
+            n = 0
+            for st in s.scalars(select(Study).where(func.lower(Study.dono) == de.strip().lower())):
+                st.dono, st.visivel_para = (para or "").strip(), ""
+                n += 1
+        return n
 
     def find_study_uids(self, *, accession: str = "", study_uid: str = "",
                         patient_id: str = "") -> list[str]:

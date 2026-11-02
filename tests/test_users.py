@@ -97,13 +97,15 @@ def test_gui_permissions_and_audit(env, sample_dir, tmp_path):
     shown = []
     orig = QMessageBox.information
     QMessageBox.information = staticmethod(lambda *a, **k: shown.append(a) or 0)
+    meus = []
+    w.abrir_meus_nos = lambda: meus.append(1)          # 0.99.26: sem "configurar", abre os nós pessoais
     try:
         w.open_users()                                   # sem permissão
         w.open_network_settings()
         w.browser._delete([])
     finally:
         QMessageBox.information = orig
-    assert len(shown) == 3
+    assert len(shown) == 2 and meus == [1]
     # export: técnico pode exportar identificado; residente não
     from ipe.ui.export_dialog import ExportDialog
     from ipe.exporter.core import ExportItem

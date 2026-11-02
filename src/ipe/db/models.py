@@ -53,6 +53,10 @@ class Study(Base):
     patient_age: Mapped[str] = mapped_column(String(8), default="")
     # gestão local
     origin: Mapped[str] = mapped_column(String(16), default="import")  # import, received, retrieved, prefetch
+    # 0.99.27: em que banco o exame está — "" = compartilhado; usuário = banco pessoal dele;
+    # visivel_para = com quem o dono compartilhou (vírgulas). Os arquivos ficam no mesmo Storage.
+    dono: Mapped[str] = mapped_column(String(64), default="", index=True)
+    visivel_para: Mapped[str] = mapped_column(Text, default="")
     date_added: Mapped[datetime] = mapped_column(DateTime, default=_now)
     last_accessed: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     locked: Mapped[bool] = mapped_column(Boolean, default=False)       # protegido do autodelete

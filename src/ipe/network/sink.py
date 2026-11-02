@@ -85,6 +85,7 @@ class IncomingSink:
                                  origin=origin).import_paths(paths)
                     if r.new_series:
                         generate_thumbnails(self.repo, r.new_series)
+                    self._banco_dos_novos(r)
                     if self.on_indexed is not None:
                         try:
                             self.on_indexed(r, origin)
@@ -96,6 +97,15 @@ class IncomingSink:
                 with self._cond:
                     self._busy = False
                     self._cond.notify_all()
+
+    def _banco_dos_novos(self, r) -> None:
+        """0.99.27: exame novo que chegou no AE de uma identidade pessoal vai para o banco do dono."""
+        from ipe.db import banco as B
+        for uid in getattr(r, "new_studies", ()) or ():
+            rem = self.remetentes.get(uid) or {}
+            dono = B.dono_da_chegada(self.repo, rem.get("my_ae", ""))
+            if dono:
+                B.marcar_novos(self.repo, [uid], dono)
 
     def flush(self, timeout: float = 60.0) -> bool:
         """Espera até tudo o que chegou estar no banco."""

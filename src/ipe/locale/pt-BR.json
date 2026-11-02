@@ -4322,7 +4322,28 @@
   "Visível para",
   "Visível para:",
   "do serviço",
-  "Este item é "
+  "Este item é ",
+  "Abrir exame daqui fica no registro de acesso.",
+  "Abriu exame pessoal de outro",
+  "Abriu o banco pessoal de",
+  "Banco",
+  "Compartilhado",
+  "Compartilhados comigo",
+  "Entrou pela conta do sistema",
+  "Exames que eu importo ou baixo vão para",
+  "Meu banco",
+  "Mostrar este banco",
+  "Mover para o compartilhado",
+  "Mover para o meu banco (pessoal)",
+  "Mudou o banco do exame",
+  "No mesmo computador, “pessoal” esconde o exame dentro do programa, mas os arquivos continuam na pasta do banco: quem abrir a pasta pelo sistema vê as imagens.",
+  "Passar para o banco de",
+  "Passou um banco pessoal",
+  "Tirar um exame do compartilhado esconde dos outros: só quem configura o computador faz isso. Para juntar casos, use as listas.",
+  "o compartilhado",
+  "o meu banco",
+  "Tudo o que vejo",
+  "Meu"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -5397,6 +5418,10 @@
   "Entrar com a conta do sistema ({}) sem digitar senha",
   "Usar a deste computador ({})",
   "{} — como o programa vai ser usado",
-  "; também: {}"
+  "; também: {}",
+  "Banco de {} ({})",
+  "Passar o banco de {} para",
+  "{} exame(s) no {}.",
+  "banco pessoal de {}"
  ]
 }

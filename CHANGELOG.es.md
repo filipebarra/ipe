@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.27 — base personal y compartida
+- Ubicaciones ▸ Base: todo lo que veo, mi base, compartida y compartidas conmigo; el administrador ve
+  también la base de cada usuario. Columna "Base" en la lista.
+- Botón derecho en el examen ▸ Base: mover a mi base, a la compartida, compartir con…, y (administrador)
+  pasar a la base de otro. El examen sigue siendo uno solo: solo cambia la marca.
+- El examen que llega al AE de una identidad personal va a la base del dueño; lo que usted importa o
+  descarga sigue su elección.
+- Registro de acceso cuando el administrador abre la base o un examen personal de otro; pasar la base
+  entera de quien dejó el servicio a otro usuario o a la compartida.
+
 ## 0.99.26 — "Visible para" en la configuración
 - Nodos DICOM, identidades, servidores de impresión, reglas de impresión y de película automática ganan el
   campo "Visible para": todos (del servicio), solo yo, o yo y usuarios elegidos.

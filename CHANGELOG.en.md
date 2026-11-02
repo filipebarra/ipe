@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.27 — personal and shared database
+- Locations ▸ Database: everything I see, my database, shared, shared with me; the administrator also sees
+  each user's database. "Database" column in the list.
+- Right click on an exam ▸ Database: move to my database, to shared, share with…, and (administrator) hand
+  to another user. The exam stays a single copy: only the mark changes.
+- An exam arriving at a personal identity's AE goes to its owner's database; what you import or download
+  follows your choice.
+- Access log entries when the administrator opens someone's personal database or exam; hand over the
+  whole database of someone who left.
+
 ## 0.99.26 — "Visible to" in settings
 - DICOM nodes, identities, print servers, print rules and auto-film rules get a "Visible to" field: everyone
   (service), only me, or me and chosen users.

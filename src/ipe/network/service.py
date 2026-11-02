@@ -43,6 +43,7 @@ class Job:
     current_series: str = ""                          # série que está vindo agora
     opened: bool = False            # já foi aberto (streaming)
     destino: str = ""               # moveto: AE para onde o nó manda
+    dono_destino: str = ""          # 0.99.27: exame novo baixado vai para o banco pessoal de quem pediu
     id: int = field(default_factory=lambda: next(_ids))
     status: str = "waiting"
     done: int = 0
@@ -73,7 +74,10 @@ class _Task(QRunnable):
             res, err = None, e
             if not isinstance(e, DicomError):
                 log.exception("Falha na operação de rede")
-        self.relay.done.emit(res, err)
+        try:
+            self.relay.done.emit(res, err)
+        except RuntimeError:            # quem pediu já fechou (janela ou teste encerrado)
+            log.debug("resposta de rede descartada: destino fechado")
 
 
 class NetworkService(QObject):
@@ -378,6 +382,12 @@ class NetworkService(QObject):
                 j.stream = j.stream or stream
                 return j
         job = Job("retrieve", label, node, identity, [study_uid], series_uids, open_after, stream)
+        try:
+            from ipe.db import banco as B
+            if self.repo.study_info(study_uid) is None:
+                job.dono_destino = B.dono_dos_novos(self.settings)
+        except Exception:  # noqa: BLE001
+            log.exception("banco do exame baixado")
         self._submit(job)
         return job
 
@@ -549,6 +559,9 @@ class NetworkService(QObject):
                 job.status, job.message = "error", str(err)
             else:
                 job.status, job.message = "done", res or "Concluído"
+                if job.kind == "retrieve" and job.dono_destino:
+                    from ipe.db import banco as B
+                    B.marcar_novos(self.repo, job.study_uids, job.dono_destino)
             self.job_changed.emit(job)
             self.job_finished.emit(job)
         self.run_async(work, done, self.transfer_pool)

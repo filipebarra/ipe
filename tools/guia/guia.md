@@ -1197,6 +1197,17 @@ Com várias pessoas (ou servidor), o cadastro de **nós DICOM**, **identidades**
 - O que trabalha pelo computador — o nó DICOM que recebe, a automação, as regras de impressão — usa todos os itens, de quem forem.
 - No modo **Só eu** o campo não aparece.
 
+### Banco pessoal e compartilhado
+
+Com várias pessoas (ou servidor), o painel **Locais** ganha o grupo **Banco**: *Tudo o que vejo*, *Meu banco*, *Compartilhado* e *Compartilhados comigo*. O administrador vê também **Banco de fulano (n)** para cada um que tem exames pessoais.
+
+- O exame existe **uma vez só** no banco do computador: "pessoal" é uma marca. Mover entre os bancos não copia imagem. Laudos, medidas e anotações acompanham o exame.
+- **Botão direito no exame ▸ Banco**: *Mover para o meu banco (pessoal)*, *Mover para o compartilhado*, *Compartilhar com…* (escolher usuários) e, para o administrador, *Passar para o banco de…*. Tirar um exame do compartilhado esconde dos outros, por isso só quem configura o computador faz isso — para juntar casos, use as listas.
+- **Para onde vão os exames novos**: o que chega pela rede no AE de uma **identidade pessoal** (o "AE do Dr. Fulano", com *Visível para: Só eu*) vai para o banco do dono; o que chega no AE do serviço, para o compartilhado. O que **você** importa ou baixa do PACS segue a sua escolha em **Locais ▸ botão direito num banco ▸ Exames que eu importo ou baixo vão para** (de fábrica, o compartilhado).
+- **O administrador** abre o banco pessoal de qualquer um; abrir esse banco e cada exame dele fica no **registro de acesso**. Quando alguém sai do serviço: botão direito em *Banco de fulano ▸ Passar o banco de fulano para* outro usuário ou o compartilhado.
+- **Atenção**: no mesmo computador, "pessoal" esconde o exame **dentro do programa**, mas os arquivos continuam na pasta do banco — quem abrir a pasta pelo sistema vê as imagens. Sigilo de verdade só no modo servidor.
+- A coluna **Banco** da lista (Colunas ▾) mostra de que banco é cada exame.
+
 ## Usuários e permissões
 
 Botão **Usuários**. Quatro perfis de fábrica — Administrador, Médico, Residente e Técnico — e a tabela de permissões de cada perfil é editável pelo administrador.

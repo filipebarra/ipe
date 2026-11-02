@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.27 — banco pessoal e compartilhado
+- **Locais ▸ Banco**: tudo o que vejo, meu banco, compartilhado e compartilhados comigo; o administrador
+  vê também o banco de cada usuário. Coluna **Banco** na lista.
+- **Botão direito no exame ▸ Banco**: mover para o meu banco, para o compartilhado, compartilhar com…, e
+  (administrador) passar para o banco de outro. O exame continua um só: só a marca muda.
+- **Exame que chega no AE de uma identidade pessoal** vai para o banco do dono; o que você importa ou
+  baixa segue a sua escolha ("Exames que eu importo ou baixo vão para").
+- **Registro de acesso** quando o administrador abre o banco ou um exame pessoal de outro; passar o banco
+  inteiro de quem saiu do serviço para outro usuário ou para o compartilhado.
+
 ## 0.99.26 — "Visível para" nas configurações
 - **Nós DICOM, identidades, servidores de impressão, regras de impressão e do filme automático** ganham o
   campo **Visível para**: todos (do serviço), só eu, ou eu e usuários escolhidos. Item novo do

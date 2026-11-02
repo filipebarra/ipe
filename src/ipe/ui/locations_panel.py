@@ -30,11 +30,13 @@ class LocationsPanel(QWidget):
     pacs_chosen = Signal(object)           # id do nó (ou None = abrir o PACS como está)
     add_requested = Signal()               # pediu para acrescentar um local
     rescan_requested = Signal(str)         # id do local: procurar exames novos na pasta
+    banco_chosen = Signal(str)             # 0.99.27: visivel | meu | compartilhado | comigo | usuario:<nome>
 
     def __init__(self, settings, paths, repo=None, parent=None):
         super().__init__(parent)
         self.settings, self.paths = settings, paths
         self.repo = repo
+        self.banco = "visivel"
 
         self.tree = QTreeWidget()
         self.tree.setHeaderHidden(True)
@@ -122,6 +124,7 @@ class LocationsPanel(QWidget):
                 f.setBold(True)
                 it.setFont(0, f)
                 escolhido = it
+        self._bancos()
         if nodes:
             g2 = QTreeWidgetItem(self.tree, ["Buscar no PACS"])
             g2.setFlags(Qt.ItemIsEnabled)
@@ -136,6 +139,36 @@ class LocationsPanel(QWidget):
         self._fit_height()
         if hasattr(self, "cabecalho"):
             self._texto_do_cabecalho()
+
+    def _bancos(self) -> None:
+        """0.99.27: com várias pessoas, o banco do computador se mostra por partes — o compartilhado,
+        o meu, o compartilhado comigo e, para o administrador, o banco pessoal de cada um."""
+        from ipe.auth import visibilidade as V
+        from ipe.db import banco as B
+        v = V.visao_atual()
+        if v is None or self.repo is None:
+            return
+        g = QTreeWidgetItem(self.tree, ["Banco"])
+        g.setFlags(Qt.ItemIsEnabled)
+        g.setForeground(0, Qt.gray)
+        itens = list(B.BANCOS.items())
+        if v.admin:
+            try:
+                donos = self.repo.donos_de_exames()
+            except Exception:  # noqa: BLE001
+                donos = {}
+            itens += [(f"usuario:{d}", f"Banco de {d} ({n})") for d, n in sorted(donos.items())
+                      if d.lower() != v.usuario.lower()]
+        for chave, nome in itens:
+            it = QTreeWidgetItem(self.tree, [nome])
+            it.setData(0, Qt.UserRole, ("banco", chave))
+            it.setIcon(0, self.style().standardIcon(QStyle.SP_DirHomeIcon if chave == "meu" else QStyle.SP_DirIcon))
+            it.setToolTip(0, B.AVISO_LOCAL if chave in ("meu", "comigo") else
+                          ("Abrir exame daqui fica no registro de acesso." if chave.startswith("usuario:") else ""))
+            if chave == self.banco:
+                f = it.font(0)
+                f.setItalic(True)
+                it.setFont(0, f)
 
     def _fit_height(self) -> None:
         """O painel ocupa só o que precisa (o resto da coluna fica para as listas de casos)."""
@@ -166,6 +199,11 @@ class LocationsPanel(QWidget):
         if kind == "pacs":
             self.pacs_chosen.emit(ident)
             return
+        if kind == "banco":
+            self.banco = str(ident)
+            self.banco_chosen.emit(self.banco)
+            self.rebuild()
+            return
         loc = L.find(self.settings, self.paths, str(ident))
         if loc is None:
             return
@@ -191,6 +229,10 @@ class LocationsPanel(QWidget):
             m.addAction("Buscar neste nó").triggered.connect(lambda: self.pacs_chosen.emit(ident))
             m.exec(self.tree.viewport().mapToGlobal(pos))
             return
+        if kind == "banco":
+            m = self.menu_de_banco(str(ident))
+            m.exec(self.tree.viewport().mapToGlobal(pos))
+            return
         loc = L.find(self.settings, self.paths, str(ident))
         if loc is None:
             return
@@ -208,6 +250,48 @@ class LocationsPanel(QWidget):
             m.addAction("Mudar a pasta deste banco…").triggered.connect(
                 self.move_default_requested.emit)
         m.exec(self.tree.viewport().mapToGlobal(pos))
+
+    def menu_de_banco(self, chave: str) -> QMenu:
+        """Botão direito num banco: para onde vão os exames que eu trago; e, para o administrador, passar o
+        banco pessoal de alguém (que saiu do serviço) para outro usuário ou para o compartilhado."""
+        from ipe.auth import visibilidade as V
+        from ipe.db import banco as B
+        m = QMenu(self)
+        m.addAction("Mostrar este banco").triggered.connect(lambda: self.banco_chosen.emit(chave))
+        novos = m.addMenu("Exames que eu importo ou baixo vão para")
+        atual = str(self.settings.get(B.CHAVE_NOVOS, "compartilhado") or "compartilhado") if self.settings else ""
+        for valor, nome in (("compartilhado", "o compartilhado"), ("meu", "o meu banco")):
+            a = novos.addAction(nome, lambda val=valor: self._novos(val))
+            a.setCheckable(True)
+            a.setChecked(atual == valor)
+        v = V.visao_atual()
+        if chave.startswith("usuario:") and v is not None and v.admin:
+            de = chave.split(":", 1)[1]
+            sub = m.addMenu(f"Passar o banco de {de} para")
+            sub.addAction("o compartilhado", lambda: self.transferir(de, ""))
+            for u in (self.repo.users() if self.repo else []):
+                if u["active"] and u["username"].lower() != de.lower():
+                    sub.addAction(u["username"], lambda n=u["username"]: self.transferir(de, n))
+        return m
+
+    def _novos(self, valor: str) -> None:
+        from ipe.db import banco as B
+        if self.settings is not None:
+            self.settings.set(B.CHAVE_NOVOS, valor)
+            self.settings.save()
+
+    def transferir(self, de: str, para: str) -> int:
+        from ipe.auth import session as S
+        n = self.repo.transferir_banco(de, para)
+        try:
+            self.repo.audit("transferiu_banco", f"{n} exame(s) do banco de {de} para "
+                            + (f"o banco de {para}" if para else "o compartilhado"), user=S.get().username)
+        except Exception:  # noqa: BLE001
+            pass
+        self.banco = "visivel"
+        self.banco_chosen.emit(self.banco)
+        self.rebuild()
+        return n
 
     def _open_folder(self, loc) -> None:
         from PySide6.QtGui import QDesktopServices
