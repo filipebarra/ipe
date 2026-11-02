@@ -2503,7 +2503,12 @@ class MainWindow(QMainWindow):
 
     def open_network_settings(self) -> None:
         from ipe.auth import session as S
-        if not S.require("configure", self):
+        if not S.can("configure"):
+            # 0.99.26: quem não configura o computador ainda cadastra os nós e identidades dele
+            from ipe.auth import visibilidade as V
+            if V.visao_atual() is not None and S.can("query"):
+                return self.abrir_meus_nos()
+            S.require("configure", self)
             return
         from ipe.ui.network_dialog import NetworkDialog
         before = (dict(self.settings.get("dicom", {}) or {}),
@@ -2517,6 +2522,15 @@ class MainWindow(QMainWindow):
         else:
             self.net.refresh_acl()
         self.pacs.refresh_nodes()
+
+    def abrir_meus_nos(self):
+        """Nós DICOM e identidades **pessoais** (quem não tem a permissão de configurar)."""
+        from ipe.ui.network_dialog import NetworkDialog
+        dlg = NetworkDialog(self.settings, self.repo, self.net, self, ao_mudar=self._nos_mudaram, so_pessoal=True)
+        dlg.exec()
+        self.net.refresh_acl()
+        self.pacs.refresh_nodes()
+        return dlg
 
     def _nos_mudaram(self) -> None:
         """Um nó foi salvo ou excluído (na hora, sem esperar fechar a janela da rede)."""

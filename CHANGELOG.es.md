@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.26 — "Visible para" en la configuración
+- Nodos DICOM, identidades, servidores de impresión, reglas de impresión y de película automática ganan el
+  campo "Visible para": todos (del servicio), solo yo, o yo y usuarios elegidos.
+- En las elecciones del día a día cada uno ve lo del servicio, lo suyo y lo compartido con él; el
+  administrador ve y edita lo de todos en la pantalla de configuración.
+- Quien no configura la computadora abre "Mis nodos DICOM".
+
 ## 0.99.25 — modo de uso en el primer uso
 - En la primera apertura el programa pregunta cómo se va a usar: solo yo (abre sin login), varias personas
   en esta computadora (crea el administrador ahí), esta computadora es el servidor del grupo, o conectar a

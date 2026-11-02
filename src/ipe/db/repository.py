@@ -1420,10 +1420,20 @@ class Repository:
     NODE_FIELDS = ("name", "kind", "ae_title", "host", "port", "base_url", "username", "password",
                    "verify_tls", "retrieve",
                    "move_destination", "use_in_search", "use_in_priors", "use_in_send", "stream_open",
-                   "priority", "active", "note")
-    IDENTITY_FIELDS = ("name", "ae_title", "move_destination", "allowed_nodes", "note")
+                   "priority", "active", "note", "dono", "visivel_para")
+    IDENTITY_FIELDS = ("name", "ae_title", "move_destination", "allowed_nodes", "note", "dono", "visivel_para")
 
-    def nodes(self, only_active: bool = False) -> list[dict]:
+    def nodes(self, only_active: bool = False, todos: bool = False, gerenciar: bool = False) -> list[dict]:
+        """Os nós. 0.99.26: filtrados pelo que a sessão aberta enxerga (os do serviço, os dela e os
+        compartilhados com ela); `gerenciar` = tela de configuração (o administrador vê todos); `todos` =
+        quem trabalha pela máquina (o nó DICOM que recebe, a automação), que precisa de todos."""
+        lista = self._nodes(only_active)
+        if todos:
+            return lista
+        from ipe.auth import visibilidade as V
+        return V.filtrar(lista, gerenciar=gerenciar)
+
+    def _nodes(self, only_active: bool = False) -> list[dict]:
         with self.db.session() as s:
             q = select(DicomNode).order_by(DicomNode.priority, DicomNode.name)
             if only_active:
@@ -1439,11 +1449,11 @@ class Repository:
             return out
 
     def node(self, node_id: int) -> dict | None:
-        return next((n for n in self.nodes() if n["id"] == node_id), None)
+        return next((n for n in self.nodes(todos=True) if n["id"] == node_id), None)
 
     def node_by_ae(self, ae_title: str) -> dict | None:
         ae = ae_title.strip()
-        return next((n for n in self.nodes() if n["ae_title"].strip() == ae), None)
+        return next((n for n in self.nodes(todos=True) if n["ae_title"].strip() == ae), None)
 
     def save_node(self, data: dict) -> int:
         with self.db.session() as s:
@@ -1463,7 +1473,14 @@ class Repository:
             if n is not None:
                 s.delete(n)
 
-    def identities(self) -> list[dict]:
+    def identities(self, todos: bool = False, gerenciar: bool = False) -> list[dict]:
+        lista = self._identities()
+        if todos:
+            return lista
+        from ipe.auth import visibilidade as V
+        return V.filtrar(lista, gerenciar=gerenciar)
+
+    def _identities(self) -> list[dict]:
         with self.db.session() as s:
             return [{"id": i.id, **{f: getattr(i, f) for f in self.IDENTITY_FIELDS}}
                     for i in s.scalars(select(AeIdentity).order_by(AeIdentity.name))]
@@ -1471,7 +1488,7 @@ class Repository:
     def identity(self, ident_id: int | None) -> dict | None:
         if not ident_id:
             return None
-        return next((i for i in self.identities() if i["id"] == ident_id), None)
+        return next((i for i in self.identities(todos=True) if i["id"] == ident_id), None)
 
     def save_identity(self, data: dict) -> int:
         with self.db.session() as s:

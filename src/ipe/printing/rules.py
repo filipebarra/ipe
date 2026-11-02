@@ -33,6 +33,8 @@ class Rule:
     calling_aes: list = field(default_factory=list)   # AE title de quem mandou (exato)
     servers: list = field(default_factory=list)       # meu servidor que recebeu (nome)
     modalities: list = field(default_factory=list)    # MG, CT…
+    dono: str = ""              # 0.99.26: "" = do serviço; usuário = pessoal
+    visivel_para: str = ""
 
     def to_dict(self) -> dict:
         return {k: getattr(self, k) for k in Rule.__dataclass_fields__}

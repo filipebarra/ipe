@@ -34,7 +34,7 @@ def _check_ae(parent, ae: str) -> bool:
 
 
 class NodeDialog(QDialog):
-    def __init__(self, node: dict | None, parent=None, net=None, settings=None):
+    def __init__(self, node: dict | None, parent=None, net=None, settings=None, repo=None):
         super().__init__(parent)
         self.net, self.settings = net, settings
         self.setWindowTitle("Nó DICOM remoto")
@@ -127,6 +127,12 @@ class NodeDialog(QDialog):
             f.addRow(lab, w)
             self._linhas[chave] = (f.labelForField(w) if not isinstance(w, QHBoxLayout) else
                                    f.labelForField(linha_senha), w)
+        # 0.99.26: quem vê este nó (todos, só eu, eu e escolhidos)
+        from ipe.ui.visivel_para import VisivelPara
+        self.visivel = VisivelPara(node, repo, settings, self)
+        f.addRow("Visível para:", self.visivel)
+        if not self.visivel.isVisibleTo(self) and settings is not None:
+            f.labelForField(self.visivel).setVisible(False)
         self._trocar_tipo()
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.accepted.connect(self._ok)
@@ -174,7 +180,7 @@ class NodeDialog(QDialog):
                 "use_in_search": self.search.isChecked(), "use_in_priors": self.priors.isChecked(),
                 "use_in_send": self.send.isChecked(), "active": self.active.isChecked(),
                 "stream_open": self.stream.currentData(),
-                "priority": self.priority.value(), "note": self.note.text().strip()})
+                "priority": self.priority.value(), "note": self.note.text().strip(), **self.visivel.valor()})
             self.accept()
             return
         if not self.host.text().strip():
@@ -192,7 +198,7 @@ class NodeDialog(QDialog):
             "use_in_search": self.search.isChecked(), "use_in_priors": self.priors.isChecked(),
             "use_in_send": self.send.isChecked(), "active": self.active.isChecked(),
             "stream_open": self.stream.currentData(),
-            "priority": self.priority.value(), "note": self.note.text().strip()})
+            "priority": self.priority.value(), "note": self.note.text().strip(), **self.visivel.valor()})
         self.accept()
 
 
@@ -234,7 +240,7 @@ class NodeDialog(QDialog):
 
 
 class IdentityDialog(QDialog):
-    def __init__(self, ident: dict | None, nodes: list[dict], parent=None):
+    def __init__(self, ident: dict | None, nodes: list[dict], parent=None, repo=None, settings=None):
         super().__init__(parent)
         self.setWindowTitle("Identidade (AE Title de origem)")
         i = ident or {}
@@ -263,6 +269,11 @@ class IdentityDialog(QDialog):
         f.addRow(QLabel("Nós em que pode ser usada (nenhum marcado = todos):"))
         f.addRow(self.nodes)
         f.addRow("Observação:", self.note)
+        from ipe.ui.visivel_para import VisivelPara
+        self.visivel = VisivelPara(ident, repo, settings, self)
+        f.addRow("Visível para:", self.visivel)
+        if not self.visivel.isVisibleTo(self) and settings is not None:
+            f.labelForField(self.visivel).setVisible(False)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.accepted.connect(self._ok)
         bb.rejected.connect(self.reject)
@@ -277,25 +288,30 @@ class IdentityDialog(QDialog):
                if self.nodes.item(k).checkState() == Qt.Checked]
         self.data.update({"name": self.name.text().strip(), "ae_title": self.ae.text().strip(),
                           "move_destination": self.move_dest.text().strip(),
-                          "allowed_nodes": ",".join(ids), "note": self.note.text().strip()})
+                          "allowed_nodes": ",".join(ids), "note": self.note.text().strip(),
+                          **self.visivel.valor()})
         self.accept()
 
 
 class NetworkDialog(QDialog):
-    def __init__(self, settings, repo, net, parent=None, ao_mudar=None):
+    def __init__(self, settings, repo, net, parent=None, ao_mudar=None, so_pessoal: bool = False):
         super().__init__(parent)
         self.settings, self.repo, self.net = settings, repo, net
         self.ao_mudar = ao_mudar        # 0.99.6: nós/identidades mudaram → as outras telas já veem
-        self.setWindowTitle("Rede DICOM")
+        # 0.99.26: quem não configura o computador mexe só nos nós e identidades **dele**
+        self.so_pessoal = so_pessoal
+        self.setWindowTitle("Meus nós DICOM" if so_pessoal else "Rede DICOM")
         self.resize(860, 560)
         tabs = QTabWidget()
-        tabs.addTab(self._local_tab(), "Este computador")
+        if not so_pessoal:
+            tabs.addTab(self._local_tab(), "Este computador")
         tabs.addTab(self._nodes_tab(), "Nós remotos")
         tabs.addTab(self._ident_tab(), "Identidades")
-        tabs.addTab(self._audit_tab(), "Auditoria")
+        if not so_pessoal:
+            tabs.addTab(self._audit_tab(), "Auditoria")
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.button(QDialogButtonBox.Cancel).setText("Cancelar")
-        bb.accepted.connect(self._save)
+        bb.accepted.connect(self.accept if so_pessoal else self._save)
         bb.rejected.connect(self.reject)
         lay = QVBoxLayout(self)
         lay.addWidget(tabs)
@@ -420,9 +436,9 @@ class NetworkDialog(QDialog):
     def _nodes_tab(self) -> QWidget:
         w = QWidget()
         lay = QVBoxLayout(w)
-        self.t_nodes = QTableWidget(0, 9)
+        self.t_nodes = QTableWidget(0, 10)
         self.t_nodes.setHorizontalHeaderLabels(["Nome", "AE Title", "Endereço", "Porta", "Download",
-                                                "Busca", "Anteriores", "Envio", "Ativo"])
+                                                "Busca", "Anteriores", "Envio", "Ativo", "Visível para"])
         self.t_nodes.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.t_nodes.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.t_nodes.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
@@ -478,12 +494,13 @@ class NetworkDialog(QDialog):
                 if self.pr_list.item(i).checkState() == Qt.Checked]
 
     def _fill_nodes(self) -> None:
-        nodes = self.repo.nodes()
+        from ipe.auth import visibilidade as V
+        nodes = self.repo.nodes(gerenciar=True)
         self.t_nodes.setRowCount(len(nodes))
         for r, n in enumerate(nodes):
             vals = [n["name"], n["ae_title"], n["host"], str(n["port"]), n["retrieve"].upper(),
                     "sim" if n["use_in_search"] else "", "sim" if n["use_in_priors"] else "",
-                    "sim" if n["use_in_send"] else "", "sim" if n["active"] else "não"]
+                    "sim" if n["use_in_send"] else "", "sim" if n["active"] else "não", V.rotulo(n)]
             for c, v in enumerate(vals):
                 it = QTableWidgetItem(v)
                 it.setData(Qt.UserRole, n["id"])
@@ -496,11 +513,27 @@ class NetworkDialog(QDialog):
             return None
         return self.repo.node(self.t_nodes.item(r, 0).data(Qt.UserRole))
 
+    def pode_mexer(self, item: dict | None) -> bool:
+        """No modo pessoal, os itens do serviço e os dos outros só se olham (0.99.26)."""
+        if item is None or not self.so_pessoal:
+            return True
+        from ipe.auth import visibilidade as V
+        v = V.visao_atual()
+        dono = str(item.get("dono") or "")
+        if v is not None and dono and dono.lower() == v.usuario.lower():
+            return True
+        QMessageBox.information(self, "Nó DICOM", "Este item é " + ("do serviço" if not dono else f"de {dono}")
+                                + ": só quem configura o computador pode mudá-lo.")
+        return False
+
     def _edit_node(self, new: bool = False) -> None:
         node = None if new else self._selected_node()
         if not new and node is None:
             return
-        dlg = NodeDialog(node, self, getattr(self, "net", None), getattr(self, "settings", None))
+        if not self.pode_mexer(node):
+            return
+        dlg = NodeDialog(node, self, getattr(self, "net", None), getattr(self, "settings", None),
+                         repo=self.repo)
         if dlg.exec():
             nid = self.repo.save_node(dlg.data)
             self._fill_nodes()
@@ -509,6 +542,8 @@ class NetworkDialog(QDialog):
 
     def _delete_node(self) -> None:
         n = self._selected_node()
+        if n and not self.pode_mexer(n):
+            return
         if n and QMessageBox.question(self, "Excluir", f"Excluir o nó {n['name']}?") == QMessageBox.Yes:
             self.repo.delete_node(n["id"])
             self._fill_nodes()
@@ -557,8 +592,8 @@ class NetworkDialog(QDialog):
         lay = QVBoxLayout(w)
         lay.addWidget(QLabel("Identidades são AE Titles que o programa pode assumir numa busca, download "
                              "ou envio (ex.: buscar no PACS como se fosse a estação de mama)."))
-        self.t_ids = QTableWidget(0, 4)
-        self.t_ids.setHorizontalHeaderLabels(["Nome", "AE Title", "Destino C-MOVE", "Nós"])
+        self.t_ids = QTableWidget(0, 5)
+        self.t_ids.setHorizontalHeaderLabels(["Nome", "AE Title", "Destino C-MOVE", "Nós", "Visível para"])
         self.t_ids.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.t_ids.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.t_ids.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
@@ -578,13 +613,14 @@ class NetworkDialog(QDialog):
         return w
 
     def _fill_ids(self) -> None:
-        ids = self.repo.identities()
-        names = {str(n["id"]): n["name"] for n in self.repo.nodes()}
+        from ipe.auth import visibilidade as V
+        ids = self.repo.identities(gerenciar=True)
+        names = {str(n["id"]): n["name"] for n in self.repo.nodes(gerenciar=True)}
         self.t_ids.setRowCount(len(ids))
         for r, i in enumerate(ids):
             allowed = [names.get(x, x) for x in str(i["allowed_nodes"]).split(",") if x]
             vals = [i["name"], i["ae_title"], i["move_destination"] or "(este programa)",
-                    ", ".join(allowed) or "todos"]
+                    ", ".join(allowed) or "todos", V.rotulo(i)]
             for c, v in enumerate(vals):
                 it = QTableWidgetItem(v)
                 it.setData(Qt.UserRole, i["id"])
@@ -600,7 +636,10 @@ class NetworkDialog(QDialog):
         ident = None if new else self._selected_ident()
         if not new and ident is None:
             return
-        dlg = IdentityDialog(ident, self.repo.nodes(), self)
+        if not self.pode_mexer(ident):
+            return
+        dlg = IdentityDialog(ident, self.repo.nodes(gerenciar=True), self, repo=self.repo,
+                             settings=getattr(self, "settings", None))
         if dlg.exec():
             self.repo.save_identity(dlg.data)
             self._fill_ids()
@@ -608,6 +647,8 @@ class NetworkDialog(QDialog):
 
     def _delete_ident(self) -> None:
         i = self._selected_ident()
+        if i and not self.pode_mexer(i):
+            return
         if i and QMessageBox.question(self, "Excluir", f"Excluir a identidade {i['name']}?") == QMessageBox.Yes:
             self.repo.delete_identity(i["id"])
             self._fill_ids()

@@ -178,7 +178,9 @@ class CentralServer:
         if method in SERVER_STORAGE_ARG:
             args = [args[0], self.storage] if args else []
             kwargs.pop("storage_root", None)
-        return getattr(self.repo, method)(*args, **kwargs)
+        from ipe.auth.visibilidade import com_visao
+        with com_visao(s):                    # 0.99.26: o cliente enxerga o que ele vê, não o que a tela do servidor vê
+            return getattr(self.repo, method)(*args, **kwargs)
 
     # ------------------------------------------------------------------ STOW
     def store(self, parts: list[bytes], s: UserSession) -> dict:

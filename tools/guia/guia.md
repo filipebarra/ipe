@@ -1180,6 +1180,23 @@ Na primeira vez que o programa abre, ele pergunta como vai ser usado. Dá para t
 
 **Entrar com a conta do sistema.** Nos modos de várias pessoas e de servidor, a caixa *Entrar com a conta do sistema sem digitar senha* deixa quem abriu o programa com a conta do Windows/Linux ligada a um usuário entrar direto como ele. A conta de cada um fica no cadastro do usuário (**Conta do sistema**, com o botão *Usar a deste computador*); conta vazia sempre pede a senha, e usuário desativado não entra. Cada entrada assim fica no registro de acesso.
 
+### Visível para: do serviço, pessoal ou compartilhado
+
+Com várias pessoas (ou servidor), o cadastro de **nós DICOM**, **identidades**, **servidores de impressão**, **regras de impressão** e **regras do filme automático** tem o campo **Visível para**:
+
+| Escolha | Quem vê |
+|---|---|
+| **Todos (do serviço)** | todo mundo. Só quem tem a permissão de configurar cria ou muda |
+| **Só eu** | só você |
+| **Eu e usuários escolhidos…** | você e quem você marcar |
+
+- Item novo do administrador nasce **do serviço**; o dos outros nasce **pessoal**.
+- Nas escolhas do dia a dia (com que nó buscar, para onde mandar) cada um vê o do serviço, o seu e o que compartilharam com ele.
+- O **administrador** vê e edita, na tela de configuração, também o que é pessoal dos outros (coluna *Visível para*: "de fulano") — mas isso não entra nas escolhas dele.
+- Quem **não** tem a permissão de configurar abre **Configurações ▸ Rede ▸ Nós DICOM** como **Meus nós DICOM**: só nós e identidades, e só os seus se editam.
+- O que trabalha pelo computador — o nó DICOM que recebe, a automação, as regras de impressão — usa todos os itens, de quem forem.
+- No modo **Só eu** o campo não aparece.
+
 ## Usuários e permissões
 
 Botão **Usuários**. Quatro perfis de fábrica — Administrador, Médico, Residente e Técnico — e a tabela de permissões de cada perfil é editável pelo administrador.

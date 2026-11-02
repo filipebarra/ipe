@@ -26,12 +26,15 @@ class ServerConfig:
     auto_destination: str = ""       # destino fixo ("" = usa as regras; nenhuma regra = segura)
     template: str = ""               # modelo de folha aplicado ao encaminhar ("" = como veio)
     keep_days: int = 0               # 0 = guardar para sempre
+    dono: str = ""                   # 0.99.26: "" = do serviço; usuário = pessoal
+    visivel_para: str = ""
 
     def to_dict(self) -> dict:
         return {"name": self.name, "enabled": self.enabled, "ae_title": self.ae_title,
                 "port": self.port, "accept": self.accept, "timeout": self.timeout,
                 "to_database": self.to_database, "auto_destination": self.auto_destination,
-                "template": self.template, "keep_days": self.keep_days}
+                "template": self.template, "keep_days": self.keep_days, "dono": self.dono,
+                "visivel_para": self.visivel_para}
 
     @staticmethod
     def from_dict(d: dict) -> "ServerConfig":

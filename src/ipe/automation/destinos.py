@@ -17,7 +17,7 @@ def nos_escolhidos(repo, ids) -> list[dict]:
     if not alvo:
         return []
     try:
-        return [n for n in repo.nodes(only_active=True) if n["id"] in alvo]
+        return [n for n in repo.nodes(only_active=True, todos=True) if n["id"] in alvo]
     except Exception:  # noqa: BLE001
         log.exception("nós de destino do CAD/IA")
         return []

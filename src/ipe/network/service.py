@@ -140,7 +140,7 @@ class NetworkService(QObject):
 
     # ------------------------------------------------------------ impressoras DICOM
     def _known_ae(self) -> list[str]:
-        return [n["ae_title"] for n in self.repo.nodes(only_active=True) if n["ae_title"]]
+        return [n["ae_title"] for n in self.repo.nodes(only_active=True, todos=True) if n["ae_title"]]
 
     def print_configs(self) -> list:
         from ipe.printing.config import all_servers

@@ -160,6 +160,11 @@ class ServerEditor(QDialog):
         f.addRow("Ao receber:", self.auto)
         f.addRow("Modelo de folha:", self.modelo)
         f.addRow(self.to_db)
+        from ipe.ui.visivel_para import VisivelPara
+        self.visivel = VisivelPara(srv, getattr(parent, "repo", None), settings, self)
+        f.addRow("Visível para:", self.visivel)
+        if not self.visivel.isVisibleTo(self):
+            f.labelForField(self.visivel).setVisible(False)
         info = QLabel(f"Na modalidade, cadastre uma impressora DICOM com este AE, o IP <b>{_ips()}</b> "
                       f"e esta porta.")
         info.setWordWrap(True)
@@ -203,7 +208,7 @@ class ServerEditor(QDialog):
                               accept=self.aceitar_de.currentData(), timeout=self.timeout.value(),
                               to_database=self.to_db.isChecked(),
                               auto_destination=self.auto.currentData() or "",
-                              template=self.modelo.currentData() or "")
+                              template=self.modelo.currentData() or "", **self.visivel.valor())
 
 
 # ---------------------------------------------------------------------------
@@ -467,6 +472,11 @@ class RuleEditor(QDialog):
         topo = QFormLayout()
         topo.addRow("Nome:", self.name)
         topo.addRow(self.enabled)
+        from ipe.ui.visivel_para import VisivelPara
+        self.visivel = VisivelPara(rule, getattr(parent, "repo", None), settings, self)
+        topo.addRow("Visível para:", self.visivel)
+        if not self.visivel.isVisibleTo(self):
+            topo.labelForField(self.visivel).setVisible(False)
         self.resumo = QLabel("")
         self.resumo.setWordWrap(True)
         self.resumo.setStyleSheet("color:#9a9a9a")
@@ -532,7 +542,7 @@ class RuleEditor(QDialog):
             min_sheets=self.min_sheets.value(), max_sheets=self.max_sheets.value(),
             hour_from=self.h_de.value(), hour_to=self.h_ate.value(),
             destination=self.dest.currentData() or "",
-            template=self.modelo.currentData() or "", stop=self.stop.isChecked())
+            template=self.modelo.currentData() or "", stop=self.stop.isChecked(), **self.visivel.valor())
 
 
 # ---------------------------------------------------------------------------
@@ -695,6 +705,11 @@ class AutoRuleEditor(QDialog):
         topo = QFormLayout()
         topo.addRow("Nome:", self.name)
         topo.addRow(self.enabled)
+        from ipe.ui.visivel_para import VisivelPara
+        self.visivel = VisivelPara(regra, repo if repo is not None else getattr(parent, "repo", None), settings, self)
+        topo.addRow("Visível para:", self.visivel)
+        if not self.visivel.isVisibleTo(self):
+            topo.labelForField(self.visivel).setVisible(False)
         self.resumo = QLabel("")
         self.resumo.setWordWrap(True)
         self.resumo.setStyleSheet("color:#9a9a9a")
@@ -740,7 +755,8 @@ class AutoRuleEditor(QDialog):
             calling_aes=self.l_aes.marcados(), my_aes=self.l_meus.marcados(), modalities=self.l_mods.marcados(),
             description=self.descricao.text().strip(), rows=self.rows.value(), cols=self.cols.value(),
             paper=self.paper.currentData() or "A4", max_images=self.max_images.value(),
-            destination=self.dest.currentData() or "", template=self.modelo.currentData() or "")
+            destination=self.dest.currentData() or "", template=self.modelo.currentData() or "",
+            **self.visivel.valor())
 
 
 class TemplateEditor(QDialog):

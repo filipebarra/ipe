@@ -92,7 +92,7 @@ def run_config(args) -> int:
 def run_node(args) -> int:
     repo = _repo()
     if args.acao == "list":
-        nos = repo.nodes()
+        nos = repo.nodes(todos=True)
         if not nos:
             print("Nenhum nó cadastrado.")
         for n in nos:
@@ -102,7 +102,7 @@ def run_node(args) -> int:
                   + ("" if n["active"] else "  (inativo)"))
         return 0
     if args.acao == "remove":
-        n = next((x for x in repo.nodes() if x["name"] == args.nome), None)
+        n = next((x for x in repo.nodes(todos=True) if x["name"] == args.nome), None)
         if n is None:
             print(f"Nó {args.nome} não existe.", file=sys.stderr)
             return 1
@@ -110,7 +110,7 @@ def run_node(args) -> int:
         print(f"Nó {args.nome} removido.")
         return 0
     # add (ou atualiza o de mesmo nome)
-    atual = next((x for x in repo.nodes() if x["name"] == args.nome), None)
+    atual = next((x for x in repo.nodes(todos=True) if x["name"] == args.nome), None)
     if args.web:
         dados = {"name": args.nome, "kind": "dicomweb", "base_url": args.web,
                  "username": args.usuario, "password": args.senha}

@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.26 — "Visível para" nas configurações
+- **Nós DICOM, identidades, servidores de impressão, regras de impressão e do filme automático** ganham o
+  campo **Visível para**: todos (do serviço), só eu, ou eu e usuários escolhidos. Item novo do
+  administrador nasce do serviço; o dos outros, pessoal.
+- Nas escolhas do dia a dia cada um vê o do serviço, o seu e o compartilhado com ele; o administrador vê e
+  edita o de todos na tela de configuração ("de fulano"), sem que entre nas escolhas dele.
+- Quem não configura o computador abre **Meus nós DICOM** (só nós e identidades, editando os seus).
+- No servidor central, cada pedido de cliente enxerga o que aquele usuário vê.
+
 ## 0.99.25 — modo de uso no primeiro uso
 - **Na primeira abertura o programa pergunta como vai ser usado**: só eu (abre sem login, sem criar
   ninguém), várias pessoas neste computador (cria o administrador ali), este computador é o servidor do

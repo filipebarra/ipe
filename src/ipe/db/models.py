@@ -441,6 +441,9 @@ class DicomNode(Base):
     priority: Mapped[int] = mapped_column(Integer, default=0)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     note: Mapped[str] = mapped_column(Text, default="")
+    # 0.99.26: quem vê ("" = do serviço; usuário = pessoal) e com quem foi compartilhado (vírgulas)
+    dono: Mapped[str] = mapped_column(String(64), default="")
+    visivel_para: Mapped[str] = mapped_column(Text, default="")
 
 
 class AeIdentity(Base):
@@ -452,6 +455,8 @@ class AeIdentity(Base):
     move_destination: Mapped[str] = mapped_column(String(16), default="")  # vazio = este programa
     allowed_nodes: Mapped[str] = mapped_column(Text, default="")           # ids separados por vírgula; vazio = todos
     note: Mapped[str] = mapped_column(Text, default="")
+    dono: Mapped[str] = mapped_column(String(64), default="")              # 0.99.26: "" = do serviço
+    visivel_para: Mapped[str] = mapped_column(Text, default="")
 
 
 class AuditLog(Base):

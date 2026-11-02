@@ -54,7 +54,7 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         ("Calibração GSDF do monitor…", "f:open_gsdf", "configure"),
     ]),
     ("Rede", [
-        ("Nós DICOM (PACS, estações)…", "f:open_network_settings", "configure"),
+        ("Nós DICOM (PACS, estações)…", "f:open_network_settings", "query"),
         ("Automação (buscas agendadas, anteriores, roteamento, limpeza)…", "f:open_automation", "configure"),
         ("Servidor central (intranet)…", "f:open_central_settings", "configure"),
         ("Registrar link ipe:// neste computador", "f:_register_url", "configure"),

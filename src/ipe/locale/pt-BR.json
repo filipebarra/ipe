@@ -4310,7 +4310,19 @@
   "Várias pessoas usam este computador",
   "entrar como cliente do servidor do grupo.",
   "vazio = sempre pede a senha",
-  "Cada pessoa entra com o seu usuário. O administrador cadastra os outros (médicos, residentes, técnicos) e o que cada perfil pode fazer."
+  "Cada pessoa entra com o seu usuário. O administrador cadastra os outros (médicos, residentes, técnicos) e o que cada perfil pode fazer.",
+  ": só quem configura o computador pode mudá-lo.",
+  "Compartilhar com",
+  "Eu + ",
+  "Eu e usuários escolhidos…",
+  "Meus nós DICOM",
+  "Quem também vê este item:",
+  "Só eu",
+  "Todos (do serviço)",
+  "Visível para",
+  "Visível para:",
+  "do serviço",
+  "Este item é "
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -5384,6 +5396,7 @@
   "muitas senhas erradas deste computador: tente de novo em {} min",
   "Entrar com a conta do sistema ({}) sem digitar senha",
   "Usar a deste computador ({})",
-  "{} — como o programa vai ser usado"
+  "{} — como o programa vai ser usado",
+  "; também: {}"
  ]
 }

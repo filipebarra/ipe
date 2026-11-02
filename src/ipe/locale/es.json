@@ -5722,5 +5722,18 @@
  "Cada pessoa entra com o seu usuário. O administrador cadastra os outros (médicos, residentes, técnicos) e o que cada perfil pode fazer.": "Cada persona entra con su usuario. El administrador registra a los demás (médicos, residentes, técnicos) y lo que cada perfil puede hacer.",
  "Entrar com a conta do sistema ({}) sem digitar senha": "Entrar con la cuenta del sistema ({}) sin escribir contraseña",
  "Usar a deste computador ({})": "Usar la de esta computadora ({})",
- "{} — como o programa vai ser usado": "{} — cómo se va a usar el programa"
+ "{} — como o programa vai ser usado": "{} — cómo se va a usar el programa",
+ ": só quem configura o computador pode mudá-lo.": ": solo quien configura la computadora puede cambiarlo.",
+ "Compartilhar com": "Compartir con",
+ "Eu + ": "Yo + ",
+ "Eu e usuários escolhidos…": "Yo y usuarios elegidos…",
+ "Meus nós DICOM": "Mis nodos DICOM",
+ "Quem também vê este item:": "Quién más ve este ítem:",
+ "Só eu": "Solo yo",
+ "Todos (do serviço)": "Todos (del servicio)",
+ "Visível para": "Visible para",
+ "Visível para:": "Visible para:",
+ "do serviço": "del servicio",
+ "Este item é ": "Este ítem es ",
+ "; também: {}": "; también: {}"
 }

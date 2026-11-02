@@ -77,6 +77,8 @@ class AutoRule:
     max_images: int = 8                               # 0 = todas
     destination: str = ""                             # "" = só deixa o filme pronto na lista
     template: str = ""
+    dono: str = ""                                    # 0.99.26: "" = do serviço; usuário = pessoal
+    visivel_para: str = ""
 
     def to_dict(self) -> dict:
         return {k: getattr(self, k) for k in AutoRule.__dataclass_fields__}

@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.26 — "Visible to" in settings
+- DICOM nodes, identities, print servers, print rules and auto-film rules get a "Visible to" field: everyone
+  (service), only me, or me and chosen users.
+- Day-to-day choices show the service's, your own and what was shared with you; the administrator sees and
+  edits everyone's in the settings screen.
+- Users without the configure permission open "My DICOM nodes".
+
 ## 0.99.25 — usage mode on first use
 - On first launch the program asks how it will be used: just me (opens without login), several people on
   this computer (creates the administrator there), this computer is the group server, or connect to a

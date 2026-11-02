@@ -98,7 +98,7 @@ class DicomServer:
         if self.config.get("accept", "known") == "any":
             ae.require_calling_aet = []
         else:
-            known = [n["ae_title"] for n in self.repo.nodes(only_active=True) if n["ae_title"]]
+            known = [n["ae_title"] for n in self.repo.nodes(only_active=True, todos=True) if n["ae_title"]]
             ae.require_calling_aet = known or ["-NENHUM-"]
 
     def aceita_endereco(self, ae_title: str, ip: str) -> bool:
@@ -108,7 +108,7 @@ class DicomServer:
             return True
         from ipe.network.acesso import ip_do_no_confere
         try:
-            nodes = self.repo.nodes(only_active=True)
+            nodes = self.repo.nodes(only_active=True, todos=True)
         except Exception:  # noqa: BLE001
             return False
         return ip_do_no_confere(nodes, ae_title, ip)

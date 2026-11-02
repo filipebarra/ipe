@@ -85,7 +85,7 @@ class AutomationEngine(QObject):
         self.timer.stop()
 
     def _search_nodes(self, node_id=None) -> list[dict]:
-        nodes = [n for n in self.repo.nodes(only_active=True) if n["kind"] in NODES.CONSULTA]
+        nodes = [n for n in self.repo.nodes(only_active=True, todos=True) if n["kind"] in NODES.CONSULTA]
         if node_id:
             return [n for n in nodes if n["id"] == node_id]
         return [n for n in nodes if n["use_in_search"]]

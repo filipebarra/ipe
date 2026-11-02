@@ -5722,5 +5722,18 @@
  "Cada pessoa entra com o seu usuário. O administrador cadastra os outros (médicos, residentes, técnicos) e o que cada perfil pode fazer.": "Each person signs in with their own user. The administrator registers the others (physicians, residents, technicians) and what each profile can do.",
  "Entrar com a conta do sistema ({}) sem digitar senha": "Sign in with the system account ({}) without typing a password",
  "Usar a deste computador ({})": "Use this computer's ({})",
- "{} — como o programa vai ser usado": "{} — how the program will be used"
+ "{} — como o programa vai ser usado": "{} — how the program will be used",
+ ": só quem configura o computador pode mudá-lo.": ": only those who configure the computer can change it.",
+ "Compartilhar com": "Share with",
+ "Eu + ": "Me + ",
+ "Eu e usuários escolhidos…": "Me and chosen users…",
+ "Meus nós DICOM": "My DICOM nodes",
+ "Quem também vê este item:": "Who else sees this item:",
+ "Só eu": "Only me",
+ "Todos (do serviço)": "Everyone (service)",
+ "Visível para": "Visible to",
+ "Visível para:": "Visible to:",
+ "do serviço": "the service's",
+ "Este item é ": "This item is ",
+ "; também: {}": "; also: {}"
 }
