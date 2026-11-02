@@ -872,6 +872,7 @@ class Browser(QWidget):
                     lid, kind="normal" if node["kind"] == "meeting" else "meeting"), self.tree.rebuild()))
             m.addAction("Renomear…", lambda: self._rename(lid))
             m.addAction("Descrição…", lambda: self._describe(lid))
+            self._menu_visivel_da_lista(m, lid, node)
             move = m.addMenu("Mover para")
             move.addAction("(raiz)", lambda: self._move_to(lid, None))
             for d in self.repo.case_list_tree():
@@ -885,6 +886,59 @@ class Browser(QWidget):
         dest = lid if node is not None and node["kind"] == "folder" else None
         m.addAction("Importar lista (pacote .zip)…", lambda: self.import_list_requested.emit(dest))
         m.exec(self.tree.viewport().mapToGlobal(pos))
+
+    def _menu_visivel_da_lista(self, m, lid, node) -> None:
+        """0.99.30: Visível para — todos (do serviço), só eu, eu e escolhidos; o administrador passa para outro."""
+        from ipe.auth import session as S
+        from ipe.auth import visibilidade as V
+        v = V.visao_atual()
+        if v is None or not V.modo_com_usuarios(self.settings):
+            return
+        sub = m.addMenu(f"Visível para ({V.rotulo(node)})")
+        dono = (node.get("dono") or "").lower()
+        meu = dono == v.usuario.lower()
+        pode = v.admin or meu or (not dono)
+        a = sub.addAction("Todos (do serviço)", lambda: self._escopo_lista(lid, "", ""))
+        a.setEnabled(pode and bool(dono))
+        a = sub.addAction("Só eu", lambda: self._escopo_lista(lid, v.usuario, ""))
+        a.setEnabled(pode and not (meu and not node.get("visivel_para")) and (bool(dono) or S.can("configure") or v.admin))
+        if not dono and not (S.can("configure") or v.admin):
+            a.setToolTip("Tirar uma lista de todos esconde dos outros: só quem configura o computador faz isso. "
+                         "Para ter a sua, use Duplicar.")
+        a = sub.addAction("Eu e usuários escolhidos…", lambda: self._compartilhar_lista(lid, node))
+        a.setEnabled(pode and (meu or v.admin or S.can("configure")))
+        if v.admin:
+            outros = sub.addMenu("Passar para")
+            for n in self._nomes_de_usuarios():
+                if n.lower() != dono:
+                    outros.addAction(n, lambda n=n: self._escopo_lista(lid, n, ""))
+
+    def _escopo_lista(self, lid, dono: str, visivel_para: str) -> None:
+        from ipe.auth import session as S
+        try:
+            n = self.repo.escopo_da_lista(lid, dono, visivel_para)
+        except Exception as e:  # noqa: BLE001
+            QMessageBox.information(self, "Visível para", str(e).split(": ", 1)[-1] if "Error" in str(e) else str(e))
+            return
+        try:
+            self.repo.audit("escopo_da_lista", f"lista {lid}: " + (f"de {dono}" if dono else "de todos")
+                            + (f" + {visivel_para}" if visivel_para else "") + f" ({n} item(ns))",
+                            user=S.get().username)
+        except Exception:  # noqa: BLE001
+            pass
+        self.tree.rebuild()
+        self.status_message.emit("Lista " + ("de todos (do serviço)." if not dono else f"pessoal de {dono}."
+                                             + (f" Também para {visivel_para}." if visivel_para else "")))
+
+    def _compartilhar_lista(self, lid, node) -> None:
+        from ipe.auth import visibilidade as V
+        from ipe.ui.visivel_para import EscolherUsuarios
+        v = V.visao_atual()
+        dono = node.get("dono") or (v.usuario if v else "")
+        nomes = [n for n in self._nomes_de_usuarios() if n.lower() != dono.lower()]
+        d = EscolherUsuarios(nomes, V.lista(node.get("visivel_para", "")), self)
+        if d.exec():
+            self._escopo_lista(lid, dono, ",".join(d.escolhidos()))
 
     def _start_meeting(self, lid, start: int = 0) -> None:
         node = self.tree.node(lid)

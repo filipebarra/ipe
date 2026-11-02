@@ -145,6 +145,9 @@ class CaseList(Base):
     owner: Mapped[str] = mapped_column(String(64), default="local")
     shared: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    # 0.99.30: quem vê a lista — "" = todos (do serviço); um usuário = pessoal dele; visivel_para = escolhidos
+    dono: Mapped[str] = mapped_column(String(64), default="")
+    visivel_para: Mapped[str] = mapped_column(Text, default="")
 
     items: Mapped[list["CaseListItem"]] = relationship(back_populates="case_list",
                                                        cascade="all, delete-orphan",

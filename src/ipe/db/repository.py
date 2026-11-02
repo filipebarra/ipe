@@ -496,8 +496,9 @@ class Repository:
         return [(d["id"], d["name"], d["kind"], d["count"]) for d in self.case_list_tree()
                 if d["kind"] not in ("folder", "smart")]
 
-    def case_list_tree(self) -> list[dict]:
-        """Pastas e listas, com pai e ordem (a interface monta a árvore)."""
+    def case_list_tree(self, gerenciar: bool = False) -> list[dict]:
+        """Pastas e listas, com pai e ordem (a interface monta a árvore). `gerenciar`: o administrador
+        vê as de todos (Configurações ▸ Usuários ▸ Pessoais e compartilhadas)."""
         with self.db.session() as s:
             n = (select(func.count(CaseListItem.id)).where(CaseListItem.list_fk == CaseList.id)
                  .correlate(CaseList).scalar_subquery())
@@ -505,8 +506,19 @@ class Repository:
             out = [{"id": cl.id, "name": cl.name, "kind": cl.kind, "count": cnt or 0,
                     "parent": cl.parent_fk, "description": cl.description or "",
                     "smart_query": cl.smart_query or "",
-                    "position": cl.position if cl.position is not None else 10_000 + cl.id}
+                    "position": cl.position if cl.position is not None else 10_000 + cl.id,
+                    "dono": cl.dono or "", "visivel_para": cl.visivel_para or ""}
                    for cl, cnt in rows]
+        # 0.99.30: cada um vê as do serviço, as suas e as compartilhadas com ele; a lista cuja pasta
+        # ele não vê sobe para a raiz
+        from ipe.auth import visibilidade as V
+        v = V.visao_atual()
+        if v is not None and not (gerenciar and v.admin):
+            out = [d for d in out if V.visivel(d, v)]
+            ids = {d["id"] for d in out}
+            for d in out:
+                if d["parent"] is not None and d["parent"] not in ids:
+                    d["parent"] = None
         for d in out:
             if d["kind"] == "smart":
                 d["count"] = len(self.smart_study_uids(d["smart_query"]))
@@ -519,6 +531,7 @@ class Repository:
             if cl is None:
                 return None
             d = {"id": cl.id, "name": cl.name, "kind": cl.kind, "parent": cl.parent_fk,
+                 "dono": cl.dono or "", "visivel_para": cl.visivel_para or "",
                  "description": cl.description or "", "smart_query": cl.smart_query or "",
                  "position": cl.position if cl.position is not None else 10_000 + cl.id,
                  "count": s.scalar(select(func.count(CaseListItem.id)).where(CaseListItem.list_fk == cl.id)) or 0}
@@ -567,11 +580,40 @@ class Repository:
             pos = s.scalar(select(func.coalesce(func.max(CaseList.position), -1))
                            .where(CaseList.parent_fk.is_(None) if parent is None
                                   else CaseList.parent_fk == parent)) + 1
+            from ipe.auth import visibilidade as V
             cl = CaseList(name=name, kind=kind, parent_fk=parent, position=pos, description=description,
-                          smart_query=smart_query)
+                          smart_query=smart_query, **V.padrao_novo())    # 0.99.30: do administrador, de todos
             s.add(cl)
             s.flush()
             return cl.id
+
+    def escopo_da_lista(self, list_id: int, dono: str = "", visivel_para: str = "") -> int:
+        """0.99.30: quem vê a lista (e, numa pasta, tudo o que está dentro). Regras: o dono ou o
+        administrador mudam; tirar do serviço (esconder dos outros) pede configurar; passar para outro
+        usuário, só o administrador. Devolve quantas listas/pastas mudaram."""
+        from ipe.auth import visibilidade as V
+        v = V.visao_atual()
+        dono = (dono or "").strip()
+        with self.db.session() as s:
+            cl = s.get(CaseList, list_id)
+            if cl is None:
+                return 0
+            if v is not None and not v.admin:
+                atual = (cl.dono or "").lower()
+                if atual not in ("", v.usuario.lower()):
+                    raise PermissionError("a lista é de outro usuário")
+                if dono and dono.lower() != v.usuario.lower():
+                    raise PermissionError("só o administrador passa uma lista para outro usuário")
+                if not atual and dono and not V.pode("configure"):
+                    raise PermissionError("tirar uma lista de todos (esconder dos outros) pede a permissão de configurar")
+            alvo = [cl]
+            i = 0
+            while i < len(alvo):
+                alvo += list(s.scalars(select(CaseList).where(CaseList.parent_fk == alvo[i].id)))
+                i += 1
+            for x in alvo:
+                x.dono, x.visivel_para = dono, (visivel_para or "").strip() if dono else ""
+            return len(alvo)
 
     def update_case_list(self, list_id: int, **fields) -> None:
         allowed = {"name", "kind", "description", "parent_fk", "position", "smart_query"}
@@ -606,8 +648,9 @@ class Repository:
             src = s.get(CaseList, list_id)
             if src is None or src.kind == "folder":
                 raise ValueError("Só listas podem ser duplicadas.")
+            from ipe.auth import visibilidade as V
             cl = CaseList(name=name or f"{src.name} (cópia)", kind=src.kind, description=src.description,
-                          parent_fk=src.parent_fk, position=(src.position or 0))
+                          parent_fk=src.parent_fk, position=(src.position or 0), **V.padrao_novo())
             s.add(cl)
             s.flush()
             for it in src.items:
@@ -1860,13 +1903,42 @@ class Repository:
             return self._report_dict(r)
 
     def report_templates(self) -> list[dict]:
-        """Modelos de laudo (os de fábrica, se ninguém editou)."""
+        """Modelos de laudo (os de fábrica, se ninguém editou). 0.99.30: cada um vê os do serviço, os
+        seus e os compartilhados com ele (core/itens.py)."""
+        from ipe.auth import visibilidade as V
+        from ipe.core import itens
         from ipe.reporting.templates import default_templates
         t = self.get_app_setting("report_templates", None)
-        return t if isinstance(t, list) and t else default_templates()
+        if not (isinstance(t, list) and t):
+            return default_templates()
+        return [{k: v for k, v in x.items() if k not in itens.CAMPOS}
+                for x in itens.visiveis("report_templates", t, V.visao_atual())]
 
-    def save_report_templates(self, templates: list[dict]) -> None:
-        self.set_app_setting("report_templates", list(templates or []))
+    def save_report_templates(self, templates: list[dict]) -> list[str]:
+        from ipe.core import itens
+        from ipe.reporting.templates import default_templates
+        return itens.gravar(self, "report_templates", list(templates or []), default_templates())
+
+    # ------------------------------------------------------------------ configurações em três níveis (0.99.30)
+    def itens_de_config(self, chave: str, gerenciar: bool = False):
+        from ipe.core import itens
+        return itens.ler(self, chave, gerenciar)
+
+    def salvar_itens_de_config(self, chave: str, editados, base=None) -> list[str]:
+        from ipe.core import itens
+        return itens.gravar(self, chave, editados, base)
+
+    def adotar_itens_de_config(self, chave: str, pessoais, base=None) -> None:
+        from ipe.core import itens
+        itens.adotar(self, chave, pessoais, base)
+
+    def escopo_de_item_de_config(self, chave: str, nome: str, dono_atual: str, novo_dono: str = "",
+                                 visivel_para: str = "", copiar: bool = False, base=None) -> None:
+        from ipe.core import itens
+        if chave == "report_templates" and base is None:
+            from ipe.reporting.templates import default_templates
+            base = default_templates()
+        itens.escopo(self, chave, nome, dono_atual, novo_dono, visivel_para, copiar=copiar, base=base)
 
     def delete_report(self, report_id: int) -> None:
         with self.db.session() as s:

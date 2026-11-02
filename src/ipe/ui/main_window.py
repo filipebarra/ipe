@@ -799,11 +799,54 @@ class MainWindow(QMainWindow):
         if self.auth is not None:
             self.settings.attach_user(self.auth.prefs(s), lambda p, ss=s: self.auth.save_prefs(ss, p))
         S.audit(self.repo, "login", "")
+        self._ligar_itens()
         self.apply_permissions()
         # 0.99.27: a lista e o painel Locais passam a mostrar o banco de quem entrou
         self.locations.banco = "visivel"
         self.locations.rebuild()
         self.browser.set_banco("visivel")
+
+    def abrir_config_niveis(self):
+        """Configurações ▸ Usuários ▸ Pessoais e compartilhadas (0.99.30)."""
+        from ipe.auth import visibilidade as V
+        if V.visao_atual() is None or not V.modo_com_usuarios(self.settings):
+            QMessageBox.information(self, "Pessoais e compartilhadas",
+                                    "No modo “só eu” tudo é de todos: não há o que compartilhar.\n\n"
+                                    "Com várias pessoas (Configurações ▸ Usuários ▸ Modo de uso), cada protocolo, "
+                                    "modelo e lista pode ser do serviço, só seu ou seu e de quem você escolher.")
+            return None
+        from ipe.ui.config_niveis import ConfigNiveisDialog
+        d = ConfigNiveisDialog(self._repo_de_config(), self.settings, self)
+        d.exec()
+        self.browser.refresh_lists()
+        return d
+
+    def _repo_de_config(self):
+        """Onde moram as configurações com dono: o servidor (modo cliente) ou o banco deste computador
+        (com conexão própria — trocar de local não fecha)."""
+        if self._central is not None:
+            return self._central[1]
+        if getattr(self, "_cfg_repo", None) is None:
+            self._cfg_repo = Repository(Database(self.paths.database))
+        return self._cfg_repo
+
+    def _ligar_itens(self) -> None:
+        """0.99.30: protocolos, modelos de folha, layouts… em três níveis (core/itens.py)."""
+        from ipe.auth import visibilidade as V
+        from ipe.core import itens as IT
+        if V.visao_atual() is None or not V.modo_com_usuarios(self.settings):
+            self.settings.itens = None
+            return
+        try:
+            migrados = self.settings.attach_itens(IT.Armazem(self._repo_de_config(), self.settings.data))
+        except Exception:  # noqa: BLE001
+            log.exception("configurações em três níveis")
+            self.settings.itens = None
+            return
+        n = sum(migrados.values())
+        if n:
+            self.statusBar().showMessage(f"{n} item(ns) pessoais seus (protocolos, layouts…) passaram para o "
+                                         "seu nível pessoal; os do serviço continuam para todos.", 15000)
 
     def apply_permissions(self) -> None:
         from ipe.auth import session as S

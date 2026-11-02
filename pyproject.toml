@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ipe"
-version = "0.99.29"
+version = "0.99.30"
 description = "Ipê — visualizador DICOM para pesquisa e ensino (Windows e Linux)"
 readme = "README.md"
 requires-python = ">=3.10"

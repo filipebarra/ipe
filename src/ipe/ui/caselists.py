@@ -153,6 +153,12 @@ class ListTree(QTreeWidget):
                 it.setToolTip(0, "Lista inteligente (filtro salvo): " + (d["description"] or d["name"]))
             it.setData(0, Qt.UserRole, d["id"])
             it.setToolTip(0, d["description"] or d["name"])
+            if d.get("dono"):                       # 0.99.30: lista pessoal (ou compartilhada com escolhidos)
+                from ipe.auth import visibilidade as V
+                fi = it.font(0)
+                fi.setItalic(True)
+                it.setFont(0, fi)
+                it.setToolTip(0, f"{d['description'] or d['name']}\nVisível para: {V.rotulo(d)}")
             items[d["id"]] = it
         for d in tree:
             it = items[d["id"]]

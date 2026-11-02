@@ -72,6 +72,7 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
     ("Usuários", [
         ("Modo de uso (só eu, várias pessoas, servidor)…", "f:abrir_modo_de_uso", "users"),
         ("Usuários e permissões…", lambda w: w.open_users(tab=0), "users"),
+        ("Configurações pessoais e compartilhadas…", "f:abrir_config_niveis", ""),
     ]),
     ("Sistema", [
         ("Ao abrir o programa…", "p:abertura", ""),

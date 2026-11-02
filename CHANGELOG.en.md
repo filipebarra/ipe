@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.30 — three-level settings
+- **Display and mammography protocols, breast dynamics layouts, sheet templates, report templates and
+  case lists** can now be service-wide, shared with chosen users, or personal.
+- Changing a service item without the configure permission creates a personal copy that only you see.
+- **Settings ▸ Users ▸ Personal and shared settings…** shows and changes who sees each item; case lists
+  have **Visible to** on right click.
+- Shortcuts, mouse and presets: go back to the computer default or make yours the default.
+- In client mode the server stores and enforces everything (another user's personal lists are not served).
+
 ## 0.99.29 — collapse the database panels (Weasis-style)
 - **Locations and lists** (left) and **Series and comments** (right) collapse to a strip on the edge
   with the ◂/▸ button in their title; one click on the strip brings them back at their previous size.

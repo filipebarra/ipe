@@ -42,6 +42,10 @@ RPC_METHODS: dict[str, str] = {
     "set_study_scope": "view", "donos_de_exames": "users", "transferir_banco": "users",
     "nomes_de_usuarios": "", "dados_do_exame": "view", "receber_dados_do_exame": "import",
     "retirar_do_servidor": "view",
+    # 0.99.30: configurações em três níveis (as regras ficam em core/itens.py, com a visão de quem pede)
+    "itens_de_config": "", "salvar_itens_de_config": "", "adotar_itens_de_config": "",
+    "escopo_de_item_de_config": "",
+    "escopo_da_lista": "case_lists",
 }
 
 # 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame
@@ -51,6 +55,13 @@ POR_EXAME = {
     "comments", "mark_opened", "key_images", "key_image_set", "toggle_key_image", "count_annotations",
     "series_groups", "save_series_group", "reports", "lists_of_study", "set_locked", "delete_study",
     "dados_do_exame", "retirar_do_servidor",
+}
+
+# 0.99.30: o primeiro argumento é a lista de casos; o servidor confere se quem pede enxerga a lista
+POR_LISTA = {
+    "case_list_info", "study_uids_in_list", "list_items", "update_case_list", "delete_case_list",
+    "duplicate_case_list", "add_to_case_list", "update_list_item", "remove_from_case_list",
+    "reorder_case_list",
 }
 
 # métodos cujo argumento de caminho é do servidor (o cliente não manda)

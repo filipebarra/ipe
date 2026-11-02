@@ -1225,6 +1225,18 @@ No **modo cliente** o painel **Locais** mostra o **Servidor central** (onde a ja
 - **O servidor confere tudo**: exame do banco pessoal de outro não aparece na busca (nem pelo DICOMweb) e não é entregue a quem pede; tirar do compartilhado pede a permissão de configurar; pôr no banco de outro, só o administrador.
 - **Trocar o modo de uso** não apaga nem copia exame: o programa avisa o que muda (por exemplo, de "várias pessoas" para "só eu", os exames pessoais passam a aparecer para quem usar o computador — e voltam a ser pessoais se voltar).
 
+### Configurações pessoais, compartilhadas e do serviço
+
+Com várias pessoas, também as **listas de configuração** têm três níveis — **do serviço** (todos), **compartilhadas com usuários escolhidos** e **pessoais**: protocolos de exibição, protocolos de mamografia, layouts da dinâmica da mama, modelos de folha da impressão, modelos de laudo e as **listas de casos** (inclusive as inteligentes).
+
+- Nas janelas de sempre nada muda: cada um vê os do serviço, os seus e os compartilhados com ele. Item **novo** nasce do serviço quando é o administrador quem cria e pessoal para os outros.
+- **Mudar um item do serviço** sem a permissão de configurar cria uma **cópia pessoal** com o mesmo nome, que toma o lugar do do serviço **só para você** — os outros continuam com o original. Com a permissão, muda o do serviço. Apagar o do serviço também pede a permissão.
+- **Configurações ▸ Usuários ▸ Configurações pessoais e compartilhadas…** mostra, numa aba por assunto, quem vê cada item, com os botões *Todos (do serviço)*, *Só eu*, *Eu e usuários escolhidos…*, *Copiar para mim* e, para o administrador, *Passar para*. O administrador vê os de todos.
+- **Listas de casos**: botão direito na lista ▸ **Visível para**. Numa pasta, vale para tudo o que está dentro. A lista pessoal aparece em itálico.
+- A aba **Preferências** trata do que já era de cada um (atalhos, mouse, presets de janela, colunas): *Voltar ao padrão deste computador* ou, para quem configura, *Tornar as minhas o padrão deste computador*.
+- Quem já tinha protocolos próprios nas preferências: na primeira entrada eles viram itens pessoais seus.
+- No modo cliente tudo isso mora no servidor, que confere as regras; no "só eu" nada muda.
+
 ## Usuários e permissões
 
 Botão **Usuários**. Quatro perfis de fábrica — Administrador, Médico, Residente e Técnico — e a tabela de permissões de cada perfil é editável pelo administrador.

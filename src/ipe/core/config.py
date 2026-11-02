@@ -11,6 +11,7 @@ testes, em pendrive ou para separar bancos de pesquisa).
 from __future__ import annotations
 
 import json
+import logging
 import os
 from copy import deepcopy
 from dataclasses import dataclass
@@ -18,6 +19,8 @@ from pathlib import Path
 from typing import Any
 
 from platformdirs import user_config_dir, user_data_dir, user_log_dir
+
+log = logging.getLogger(__name__)
 
 from ipe import DATA_NAME
 
@@ -207,6 +210,19 @@ def _get(node: Any, dotted: str) -> tuple[bool, Any]:
     return True, node
 
 
+_CHAVES_ITENS = ("hanging_protocols", "mg_protocols", "dyn.layouts", "printing.templates")   # core/itens.py
+
+
+def _del(node: dict, dotted: str) -> None:
+    parts = dotted.split(".")
+    for part in parts[:-1]:
+        node = node.get(part) if isinstance(node, dict) else None
+        if not isinstance(node, dict):
+            return
+    if isinstance(node, dict):
+        node.pop(parts[-1], None)
+
+
 def _set(node: dict, dotted: str, value: Any) -> None:
     parts = dotted.split(".")
     for part in parts[:-1]:
@@ -267,6 +283,37 @@ class Settings:
 
     def detach_user(self) -> None:
         self.user, self._user_saver = None, None
+        self.itens = None
+
+    # 0.99.30: as listas de configuração com dono (protocolos, modelos…) — ver core/itens.py
+    itens = None
+
+    def attach_itens(self, armazem) -> dict[str, int]:
+        """Liga as CHAVES_SETTINGS ao armazém (modos com usuários). Migra, uma vez, a lista pessoal
+        que o usuário tinha nas preferências dele: vira itens pessoais. Devolve {chave: itens migrados}."""
+        from ipe.core import itens as IT
+        self.itens = armazem
+        migrados: dict[str, int] = {}
+        if armazem is None or self.user is None:
+            return migrados
+        mexeu = False
+        for chave in IT.CHAVES_SETTINGS:
+            ok, v = _get(self.user, chave)
+            if not ok:
+                continue
+            try:
+                if isinstance(v, list):
+                    migrados[chave] = armazem.adotar(chave, v)
+                _del(self.user, chave)
+                mexeu = True
+            except Exception:  # noqa: BLE001
+                log.exception("migrar %s", chave)
+        if mexeu and self._user_saver is not None:
+            try:
+                self._user_saver(self.user)
+            except Exception:  # noqa: BLE001
+                log.exception("gravar as preferências depois da migração")
+        return migrados
 
     ATALHOS_VERSAO = 4          # 2 = a lista de fábrica foi zerada (0.65); 3 = F1/F2 do filme (0.76);
     #                             4 = Ctrl+C copia o quadro (0.99.9)
@@ -327,6 +374,9 @@ class Settings:
         tmp.replace(self.path)
 
     def get(self, dotted: str, default: Any = None) -> Any:
+        if self.itens is not None and dotted in _CHAVES_ITENS:
+            v = self.itens.efetivo(dotted)
+            return v if v is not None else default
         if self.user is not None and is_user_key(dotted):
             found, v = _get(self.user, dotted)
             if found:
@@ -339,6 +389,9 @@ class Settings:
         return v if found else default
 
     def set(self, dotted: str, value: Any) -> None:
+        if self.itens is not None and dotted in _CHAVES_ITENS:
+            self.itens.salvar(dotted, value)
+            return
         if self.user is not None and is_user_key(dotted):
             _set(self.user, dotted, value)
             return

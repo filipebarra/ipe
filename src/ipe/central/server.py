@@ -27,7 +27,7 @@ from ipe.auth.backend import AuthError, LocalAuth
 from ipe.auth.permissions import permissions_for
 from ipe.auth.session import UserSession
 from ipe.central import codec, dicomweb as DW
-from ipe.central.rpc import POR_EXAME, RPC_METHODS, SERVER_STORAGE_ARG
+from ipe.central.rpc import POR_EXAME, POR_LISTA, RPC_METHODS, SERVER_STORAGE_ARG
 
 log = logging.getLogger(__name__)
 TOKEN_IDLE_S = 12 * 3600
@@ -185,6 +185,13 @@ class CentralServer:
             alvo = str(kwargs.get("study_uid", ""))
         if alvo and not self.pode_ver(s, alvo):
             raise PermissionError("o exame está no banco pessoal de outro usuário")
+        if method in POR_LISTA and (args or kwargs.get("list_id") is not None):
+            lid = args[0] if args else kwargs.get("list_id")
+            v = self._visao(s)
+            info = self.repo.case_list_info(lid) if v is not None and not v.admin else None
+            from ipe.auth import visibilidade as V
+            if info is not None and not V.visivel(info, v):
+                raise PermissionError("a lista é pessoal de outro usuário")
         if method == "set_study_scope":
             return self.mudar_banco(s, *args, **kwargs)
         if method == "search_studies":              # "todos" e o banco de outro: só o administrador

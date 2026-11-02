@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.30 — configurações em três níveis
+- **Protocolos de exibição e de mamografia, layouts da dinâmica, modelos de folha, modelos de laudo e
+  listas de casos** passam a ser do serviço, compartilhados com escolhidos ou pessoais.
+- Mudar um item do serviço sem permissão de configurar cria uma cópia pessoal que vale só para você.
+- **Configurações ▸ Usuários ▸ Configurações pessoais e compartilhadas…** mostra e muda quem vê cada
+  item; listas de casos têm **Visível para** no botão direito.
+- Atalhos, mouse e presets: voltar ao padrão do computador ou tornar os seus o padrão.
+- No modo cliente, o servidor guarda e confere tudo (listas pessoais de outro não são entregues).
+
 ## 0.99.29 — recolher os painéis do banco (como no Weasis)
 - **Locais e listas** (esquerda) e **Séries e comentários** (direita) recolhem para uma tira na borda
   pelo botão ◂/▸ do título; um clique na tira traz de volta, do tamanho de antes. A lista de exames
