@@ -58,6 +58,9 @@ def run_server(args) -> int:
         if net.start_print_servers():
             print("Impressora DICOM: ligada")
     print(f"Servidor central em {srv.scheme}://0.0.0.0:{srv.port}  (Ctrl+C para parar)")
+    if srv.scheme == "http":
+        print("ATENÇÃO: sem certificado (central.certfile), o servidor usa HTTP e as senhas passam pela "
+              "rede sem criptografia. Use só em rede interna confiável.")
     signal.signal(signal.SIGINT, lambda *_: app.quit())
     signal.signal(signal.SIGTERM, lambda *_: app.quit())   # systemctl stop / reboot: fecha limpo
     t = QTimer()

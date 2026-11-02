@@ -148,7 +148,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "enabled": True,
         "ae_title": "DICOMVIEWER",
         "port": 11112,
-        "accept": "known",          # known = só nós cadastrados; any = qualquer AE
+        "accept": "known",          # known = só nós cadastrados; known_ip = e no IP cadastrado; any = qualquer AE
         "extra_ae_titles": [],      # outros AE Titles em que o programa também responde
         "timeout": 30,
         "max_parallel": 2,          # transferências simultâneas
@@ -158,13 +158,15 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "http_allow_remote": False,
         "external_viewer_only": False,   # a chamada externa abre só o visualizador
         "http_allowed_ips": [],
+        # link ipe:// sem o token: qualquer página da internet pode montar um (0.99.24)
+        "link_sem_token": "perguntar",   # perguntar | aceitar | recusar
     },
     # impressora DICOM: recebe filmes das modalidades (TC, RM, MG, US) e guarda
     "print_scp": {
         "enabled": False,
         "ae_title": "DICOMPRINT",
         "port": 11113,
-        "accept": "any",            # any = qualquer AE; known = só nós cadastrados
+        "accept": "rede",           # rede = qualquer AE da rede local; any = de qualquer lugar; known = só nós
         "timeout": 60,
         "to_database": True,        # a folha recebida também vira exame no banco
         "auto_destination": "",     # "" = segurar tudo e esperar você decidir

@@ -19,7 +19,8 @@ class ServerConfig:
     enabled: bool = False
     ae_title: str = DEFAULT_AE
     port: int = DEFAULT_PORT
-    accept: str = "any"              # any = qualquer AE; known = só nós cadastrados
+    accept: str = "rede"             # rede = qualquer AE da rede local (0.99.24); any = de qualquer lugar;
+    #                                  known = só nós cadastrados
     timeout: int = 60
     to_database: bool = True         # a folha recebida também vira exame no banco
     auto_destination: str = ""       # destino fixo ("" = usa as regras; nenhuma regra = segura)

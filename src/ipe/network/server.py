@@ -4,6 +4,7 @@ a partir do banco local. Roda em threads do pynetdicom, sem travar a interface."
 from __future__ import annotations
 
 import logging
+import time
 from collections import defaultdict
 
 import pydicom
@@ -27,6 +28,7 @@ class DicomServer:
         self.config = dict(config)
         self._server = None
         self.error = ""
+        self.recusados: list = []          # (quando, AE, IP) das conexões recusadas pelo endereço
 
     @property
     def running(self) -> bool:
@@ -64,7 +66,8 @@ class DicomServer:
             ae.add_supported_context(uid, ALL_TRANSFER_SYNTAXES, scu_role=True, scp_role=True)
         self._ae = ae
         self.refresh_acl()
-        handlers = [(evt.EVT_C_ECHO, self._on_echo), (evt.EVT_C_STORE, self._on_store),
+        handlers = [(evt.EVT_ESTABLISHED, self._on_established),
+                    (evt.EVT_C_ECHO, self._on_echo), (evt.EVT_C_STORE, self._on_store),
                     (evt.EVT_C_FIND, self._on_find), (evt.EVT_C_MOVE, self._on_move),
                     (evt.EVT_C_GET, self._on_get)]
         try:
@@ -97,6 +100,28 @@ class DicomServer:
         else:
             known = [n["ae_title"] for n in self.repo.nodes(only_active=True) if n["ae_title"]]
             ae.require_calling_aet = known or ["-NENHUM-"]
+
+    def aceita_endereco(self, ae_title: str, ip: str) -> bool:
+        """Com "Só nós cadastrados, conferindo o IP" (0.99.24), o aparelho tem de estar no endereço
+        do nó cadastrado com aquele AE: o AE Title sozinho qualquer um na rede imita."""
+        if self.config.get("accept", "known") != "known_ip":
+            return True
+        from ipe.network.acesso import ip_do_no_confere
+        try:
+            nodes = self.repo.nodes(only_active=True)
+        except Exception:  # noqa: BLE001
+            return False
+        return ip_do_no_confere(nodes, ae_title, ip)
+
+    def _on_established(self, event) -> None:
+        a = event.assoc
+        ae_title = str(a.requestor.ae_title or "").strip()
+        ip = str(a.requestor.address or "")
+        if not self.aceita_endereco(ae_title, ip):
+            log.warning("Nó DICOM: recusado %s de %s — o endereço não é o do nó cadastrado", ae_title, ip)
+            self.recusados.append((time.time(), ae_title, ip))
+            del self.recusados[:-50]
+            a.abort()
 
     # ------------------------------------------------------------ serviços
     def _on_echo(self, event) -> int:

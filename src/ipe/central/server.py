@@ -33,6 +33,10 @@ log = logging.getLogger(__name__)
 TOKEN_IDLE_S = 12 * 3600
 
 
+class Bloqueado(AuthError):
+    """Endereço bloqueado por senhas erradas demais (0.99.24)."""
+
+
 class CentralServer:
     def __init__(self, db, repo, storage_root: Path, port: int = 8043, host: str = "0.0.0.0",
                  certfile: str = "", keyfile: str = "", name: str = ""):
@@ -42,6 +46,8 @@ class CentralServer:
         self.certfile, self.keyfile = certfile, keyfile
         self.name = name or socket.gethostname()
         self.tokens: dict[str, tuple[UserSession, float]] = {}
+        from ipe.network.acesso import Tentativas
+        self.tentativas = Tentativas()      # 0.99.24: 5 senhas erradas em 10 min bloqueiam o endereço
         self._lock = threading.Lock()
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
@@ -90,14 +96,27 @@ class CentralServer:
             self.stop()
 
     # ------------------------------------------------------------------ sessões
-    def login(self, username: str, password: str) -> tuple[str, UserSession]:
-        s = self.auth.login(username, password)
+    def login(self, username: str, password: str, ip: str = "") -> tuple[str, UserSession]:
+        s = self._login(username, password, ip)
         tok = secrets.token_urlsafe(32)
         with self._lock:
             self.tokens[tok] = (s, time.time())
         return tok, s
 
-    def session_for(self, headers) -> UserSession | None:
+    def _login(self, username: str, password: str, ip: str = "") -> UserSession:
+        """Login com limite de tentativas por endereço."""
+        falta = self.tentativas.bloqueado(ip)
+        if falta:
+            raise Bloqueado(f"muitas senhas erradas deste computador: tente de novo em {int(falta // 60) + 1} min")
+        try:
+            s = self.auth.login(username, password)
+        except AuthError:
+            self.tentativas.errou(ip)
+            raise
+        self.tentativas.acertou(ip)
+        return s
+
+    def session_for(self, headers, ip: str = "") -> UserSession | None:
         h = headers.get("Authorization", "") or ""
         if h.startswith("Bearer "):
             tok = h[7:].strip()
@@ -114,7 +133,7 @@ class CentralServer:
         if h.startswith("Basic "):
             try:
                 user, _, pw = base64.b64decode(h[6:]).decode("utf-8").partition(":")
-                return self.auth.login(user, pw)
+                return self._login(user, pw, ip)
             except (AuthError, ValueError):
                 return None
         return None
@@ -218,7 +237,11 @@ class _Handler(BaseHTTPRequestHandler):
         return self.rfile.read(n) if n else b""
 
     def _auth(self) -> UserSession | None:
-        s = self.central.session_for(self.headers)
+        try:
+            s = self.central.session_for(self.headers, self.client_address[0])
+        except Bloqueado as e:
+            self._error(429, str(e))
+            return None
         if s is None:
             self.send_response(401)
             self.send_header("WWW-Authenticate", 'Basic realm="Ipe"')
@@ -257,7 +280,9 @@ class _Handler(BaseHTTPRequestHandler):
         if path == "/api/login" and method == "POST":
             try:
                 data = json.loads(self._body() or b"{}")
-                tok, s = c.login(data.get("username", ""), data.get("password", ""))
+                tok, s = c.login(data.get("username", ""), data.get("password", ""), self.client_address[0])
+            except Bloqueado as e:
+                return self._error(429, str(e))
             except AuthError as e:
                 c.repo.audit("login_falhou", f"{data.get('username', '')}", user=data.get("username", "?"),
                              host=self.client_address[0])

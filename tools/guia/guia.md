@@ -1444,6 +1444,14 @@ Era o padrão até a versão 0.64 — está aqui para quem quiser repetir o mesm
 | nao_encontrado | nem no banco nem nos nós (ou não há nó configurado) |
 | importando | a chamada trouxe caminhos de arquivo |
 | erro | falhou; o motivo está no registro |
+| recusado | link ipe:// sem o token, recusado (ou você respondeu "não" à pergunta) |
+
+## Segurança na rede
+
+- **Link `ipe://`**: qualquer página aberta no navegador pode montar um link desses. Com o token da API no link (`…&token=<token>`), ele abre direto; sem o token vale **Rede ▸ Chamada externa ▸ Link ipe:// sem o token**: *Perguntar antes de abrir* (padrão), *Aceitar* ou *Recusar*. Ponha o token no link do RIS para ele não perguntar.
+- **Nó DICOM**: o AE Title é só um nome que o aparelho diz ter — qualquer computador da rede pode imitá-lo. Em **Aceitar conexões de**, *Só nós cadastrados, conferindo o IP do nó* só aceita a conexão que vem do endereço cadastrado no nó com aquele AE.
+- **Impressora DICOM**: impressora nova aceita *qualquer AE da rede local* (10.x, 172.16–31.x, 192.168.x e VPN 100.64.x) — de fora da rede interna não vem modalidade. As impressoras que você já tinha continuam como estavam; troque em Configurações ▸ Impressão ▸ Servidores.
+- **Servidor central**: sem certificado ele usa HTTP, e usuário e senha passam pela rede sem criptografia — use só numa rede interna confiável, ou indique um certificado (.pem). Cinco senhas erradas em 10 minutos bloqueiam aquele computador por 10 minutos.
 
 > **Uma última palavra.** Toda função nova deste programa tem modo manual de reserva, avisa quando não conseguiu e mostra o estado na tela. Quando um número não sai, a resposta é "não deu" — nunca um número grande. O programa devolve número; a interpretação é do médico.
 

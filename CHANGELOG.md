@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.24 — revisão de segurança
+- **Link `ipe://` sem o token** não abre mais sozinho: pergunta antes (Rede ▸ Chamada externa, também
+  "aceitar" ou "recusar"). Com `&token=` no link, abre direto. O token da API passou a ser comparado em
+  tempo constante.
+- **Nó DICOM**: nova opção "Só nós cadastrados, conferindo o IP do nó" — o AE Title sozinho qualquer
+  computador da rede imita.
+- **Impressora DICOM**: impressora nova aceita só da rede local (as já cadastradas continuam como estavam).
+- **Servidor central**: 5 senhas erradas em 10 min bloqueiam o endereço por 10 min; aviso na tela e no
+  console quando roda sem certificado (HTTP).
+
 ## 0.99.23.1
 - Correção: ajustar a numeração da coluna (ex.: L5 sacralizada) mudava só a aba do clique; as outras telas do
   exame e uma cópia repetida do mesmo SEG continuavam com o nome antigo. Agora todas se refazem.

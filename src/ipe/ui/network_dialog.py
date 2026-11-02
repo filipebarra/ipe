@@ -312,7 +312,11 @@ class NetworkDialog(QDialog):
         self.port = QSpinBox(minimum=1, maximum=65535, value=int(c.get("port", 11112)))
         self.accept_c = QComboBox()
         self.accept_c.addItem("Só nós cadastrados", "known")
+        self.accept_c.addItem("Só nós cadastrados, conferindo o IP do nó", "known_ip")
         self.accept_c.addItem("Qualquer AE", "any")
+        self.accept_c.setToolTip("O AE Title é só um nome que o aparelho diz ter: qualquer computador da rede "
+                                 "pode imitá-lo. Conferindo o IP, a conexão só é aceita se vier do endereço "
+                                 "cadastrado no nó com aquele AE (o campo IP do nó).")
         self.accept_c.setCurrentIndex(max(0, self.accept_c.findData(c.get("accept", "known"))))
         self.timeout = QSpinBox(minimum=5, maximum=600, suffix=" s", value=int(c.get("timeout", 30)))
         self.parallel = QSpinBox(minimum=1, maximum=8, value=int(c.get("max_parallel", 2)))
@@ -371,6 +375,16 @@ class NetworkDialog(QDialog):
                                   "algum monitor. Abrir o seguinte com o anterior à vista é como a imagem "
                                   "de um acaba laudada no nome do outro.")
         f.addRow("Chamada com outro paciente aberto:", self.outro_pac)
+        # 0.99.24: link ipe:// sem o token — qualquer página da internet pode montar um
+        self.link_sem = QComboBox()
+        for chave, nome in (("perguntar", "Perguntar antes de abrir"), ("aceitar", "Aceitar"),
+                            ("recusar", "Recusar")):
+            self.link_sem.addItem(nome, chave)
+        self.link_sem.setCurrentIndex(max(0, self.link_sem.findData(str(c.get("link_sem_token", "perguntar")))))
+        self.link_sem.setToolTip("Um link ipe:// pode vir de qualquer página que se abra no navegador. Com o "
+                                 "token no link (…&token=<o token acima>) ele abre direto; sem o token, vale "
+                                 "esta escolha. Ponha o token no link do RIS para ele não perguntar.")
+        f.addRow("Link ipe:// sem o token:", self.link_sem)
         f.addRow(self.remote)
         f.addRow("IPs permitidos:", self.ips)
         f.addRow(QLabel("<b>Impressora DICOM (receber filmes das modalidades)</b>"))
@@ -628,7 +642,7 @@ class NetworkDialog(QDialog):
                   "http_enabled": self.http.isChecked(), "http_port": self.http_port.value(),
                   "http_token": self.token.text(), "http_allow_remote": self.remote.isChecked(),
                   "external_viewer_only": self.so_viewer.isChecked(),
-                  "http_allowed_ips": ips})
+                  "http_allowed_ips": ips, "link_sem_token": self.link_sem.currentData()})
         self.settings.set("dicom", c)
         self.settings.set("viewer.outro_paciente_externo", self.outro_pac.currentData())
         self.settings.set("network.stream_default", self.stream_default.isChecked())

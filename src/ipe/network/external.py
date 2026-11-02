@@ -78,7 +78,18 @@ def parse_url(url: str) -> dict:
     if parts.scheme.lower() not in SCHEMES:
         raise ExternalError("link não é ipe:// nem dicomviewer://")
     command = parts.netloc or parts.path.strip("/").split("/")[0]
-    return payload_from_query(command, parse_qs(parts.query))
+    query = parse_qs(parts.query)
+    token = (query.pop("token", [""]) or [""])[0]
+    payload = payload_from_query(command, query)
+    if token:
+        payload["link_token"] = unquote(token).strip()     # 0.99.24: link com token abre sem perguntar
+    return payload
+
+
+def token_confere(dado: str, esperado: str) -> bool:
+    """Comparação em tempo constante (não deixa adivinhar o token pelo tempo de resposta)."""
+    import hmac
+    return bool(esperado) and hmac.compare_digest(str(dado or "").encode(), str(esperado).encode())
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +169,7 @@ class HttpApi(QObject):
         token = (query.pop("token", [""])[0]
                  or next((h.split(":", 1)[1].strip().removeprefix("Bearer ").strip()
                           for h in headers if h.lower().startswith(("authorization:", "x-token:"))), ""))
-        if not self.token or token != self.token:
+        if not token_confere(token, self.token):
             log.warning("API HTTP: token inválido de %s", ip)
             return "401 Unauthorized", {"ok": False, "erro": "token inválido"}
         path = parts.path.rstrip("/")

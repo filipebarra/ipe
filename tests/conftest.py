@@ -73,3 +73,11 @@ def _outro_paciente_sem_perguntar(monkeypatch):
     ela travaria esperando clique. Mantém os dois; os testes dela trocam isto explicitamente."""
     from ipe.ui.main_window import MainWindow
     monkeypatch.setattr(MainWindow, "perguntar_outro_paciente", lambda self, novo, outros: "manter")
+
+
+@pytest.fixture(autouse=True)
+def _link_sem_perguntar(monkeypatch):
+    """O link ipe:// sem token pergunta antes de abrir (0.99.24) — pergunta modal trava o teste. Os
+    testes de chamada por link aceitam; os de segurança trocam isto explicitamente."""
+    from ipe.ui.main_window import MainWindow
+    monkeypatch.setattr(MainWindow, "perguntar_link", lambda self, args, o_que: True)

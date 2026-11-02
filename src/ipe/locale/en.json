@@ -5680,5 +5680,21 @@
  "{} pares de costelas.": "{} pairs of ribs.",
  "{} {} {} sai da coluna ({} a {})": "{} {} {} goes outside the spine ({} to {})",
  "Sacro (S2)": "Sacrum (S2)",
- "L5 transição?": "L5 transition?"
+ "L5 transição?": "L5 transition?",
+ "Aceitar": "Accept",
+ "Recusar": "Refuse",
+ "Perguntar antes de abrir": "Ask before opening",
+ "Link ipe:// sem o token:": "ipe:// link without the token:",
+ "Um link ipe:// pode vir de qualquer página que se abra no navegador. Com o token no link (…&token=<o token acima>) ele abre direto; sem o token, vale esta escolha. Ponha o token no link do RIS para ele não perguntar.": "An ipe:// link can come from any page opened in the browser. With the token in the link (…&token=<the token above>) it opens directly; without the token, this choice applies. Put the token in the RIS link so it does not ask.",
+ "Só nós cadastrados, conferindo o IP do nó": "Registered nodes only, checking the node's IP",
+ "O AE Title é só um nome que o aparelho diz ter: qualquer computador da rede pode imitá-lo. Conferindo o IP, a conexão só é aceita se vier do endereço cadastrado no nó com aquele AE (o campo IP do nó).": "The AE Title is just a name the device claims: any computer on the network can imitate it. Checking the IP, the connection is accepted only from the address registered in the node with that AE (the node's IP field).",
+ "Qualquer AE da rede local": "Any AE on the local network",
+ "Qualquer AE, de qualquer endereço": "Any AE, from any address",
+ "Rede local = endereços internos (10.x, 172.16–31.x, 192.168.x, VPN 100.64.x). As modalidades estão sempre na rede interna; o que vem de fora dela não é modalidade.": "Local network = internal addresses (10.x, 172.16–31.x, 192.168.x, VPN 100.64.x). Modalities are always on the internal network; what comes from outside it is not a modality.",
+ "baixar do PACS": "download from the PACS",
+ "ATENÇÃO: sem certificado (central.certfile), o servidor usa HTTP e as senhas passam pela rede sem criptografia. Use só em rede interna confiável.": "WARNING: without a certificate (central.certfile), the server uses HTTP and passwords travel over the network unencrypted. Use only on a trusted internal network.",
+ "<small><span style='color:#c03030'>Sem certificado o servidor usa HTTP: usuário e senha passam pela rede sem criptografia. Use só numa rede interna confiável, ou indique um certificado (.pem) para HTTPS.</span> Senha errada 5 vezes em 10 minutos bloqueia aquele computador por 10 minutos.</small>": "<small><span style='color:#c03030'>Without a certificate the server uses HTTP: user and password travel over the network unencrypted. Use only on a trusted internal network, or set a certificate (.pem) for HTTPS.</span> 5 wrong passwords in 10 minutes block that computer for 10 minutes.</small>",
+ "Um link pediu para {} o exame {}.\n\nO link não traz o token de acesso: pode ter vindo de qualquer página aberta no navegador. Continuar?\n\n(Para o RIS não perguntar, ponha &token=<token> no link; o token está em Rede ▸ Chamada externa.)": "A link asked to {} the exam {}.\n\nThe link does not carry the access token: it may have come from any page opened in the browser. Continue?\n\n(So the RIS does not ask, put &token=<token> in the link; the token is in Network ▸ External call.)",
+ "Link ipe:// sem o token recusado ({}). Rede ▸ Chamada externa diz o que fazer com links sem token.": "ipe:// link without the token refused ({}). Network ▸ External call says what to do with links without a token.",
+ "muitas senhas erradas deste computador: tente de novo em {} min": "too many wrong passwords from this computer: try again in {} min"
 }

@@ -448,6 +448,36 @@ class MainWindow(QMainWindow):
             self.open_study(study_uid)
 
     #: o que fazer quando a chamada externa traz outro paciente com um já aberto (0.99.22)
+    def link_permitido(self, args: dict) -> bool:
+        """Link ipe:// (0.99.24): qualquer página da internet pode montar um e fazer o programa abrir
+        um exame ou pedir um download ao PACS. Com o token da API no link (…&token=…), passa; sem ele,
+        vale Rede ▸ Chamada externa ▸ "Link ipe:// sem o token" (perguntar, aceitar ou recusar)."""
+        from ipe.network.external import token_confere
+        cfg = self.settings.get("dicom", {}) or {}
+        if token_confere(args.pop("link_token", ""), cfg.get("http_token", "")):
+            return True
+        modo = str(cfg.get("link_sem_token", "perguntar") or "perguntar")
+        if modo == "aceitar":
+            return True
+        o_que = args.get("accession") or args.get("study_uid") or args.get("patient_id") or "?"
+        if modo == "recusar":
+            log.warning("Link ipe:// sem token recusado: %s", o_que)
+            self.statusBar().showMessage(f"Link ipe:// sem o token recusado ({o_que}). Rede ▸ Chamada externa "
+                                         "diz o que fazer com links sem token.", 12000)
+            return False
+        return self.perguntar_link(args, o_que)
+
+    def perguntar_link(self, args: dict, o_que: str) -> bool:
+        acao = "baixar do PACS" if args.get("command") == "retrieve" else "abrir"
+        self.trazer_para_a_frente()
+        r = QMessageBox.question(
+            self, "Link ipe://",
+            f"Um link pediu para {acao} o exame {o_que}.\n\nO link não traz o token de acesso: pode ter vindo "
+            "de qualquer página aberta no navegador. Continuar?\n\n(Para o RIS não perguntar, ponha "
+            "&token=<token> no link; o token está em Rede ▸ Chamada externa.)",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        return r == QMessageBox.Yes
+
     OUTRO_PACIENTE = (("perguntar", "Perguntar"), ("fechar", "Fechar o anterior em todos os monitores"),
                       ("manter", "Manter os dois abertos (só avisar)"))
 
@@ -1680,6 +1710,8 @@ class MainWindow(QMainWindow):
 
     def handle_external(self, args: dict) -> str:
         """Chamada externa (linha de comando ou outra instância). Devolve mensagem."""
+        if args.get("source") == "link" and not self.link_permitido(args):
+            return "recusado"
         if not self.so_viewer_do_pedido(args):
             self.trazer_para_a_frente()
         command = args.get("command", "open")

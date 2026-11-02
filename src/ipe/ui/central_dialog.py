@@ -49,6 +49,16 @@ class CentralDialog(QDialog):
                       "Outros visualizadores DICOMweb podem usar /dicomweb com usuário e senha.</small>")
         hint.setWordWrap(True)
         fs.addRow(hint)
+        # 0.99.24: sem certificado o servidor fala HTTP, e a senha de cada login passa aberta na rede
+        self.aviso_http = QLabel("<small><span style='color:#c03030'>Sem certificado o servidor usa HTTP: "
+                                 "usuário e senha passam pela rede sem criptografia. Use só numa rede "
+                                 "interna confiável, ou indique um certificado (.pem) para HTTPS.</span> "
+                                 "Senha errada 5 vezes em 10 minutos bloqueia aquele computador por 10 minutos."
+                                 "</small>")
+        self.aviso_http.setWordWrap(True)
+        fs.addRow(self.aviso_http)
+        self.cert.textChanged.connect(lambda t: self.aviso_http.setVisible(not t.strip()))
+        self.aviso_http.setVisible(not self.cert.text().strip())
         lay.addWidget(gs)
 
         # cliente

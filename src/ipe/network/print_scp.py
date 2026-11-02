@@ -115,7 +115,8 @@ class PrintScpServer:
                 ae.add_supported_context(uid, ALL_TRANSFER_SYNTAXES)
         self._ae = ae
         self.refresh_acl()
-        handlers = [(evt.EVT_C_ECHO, self._on_echo), (evt.EVT_C_STORE, self._on_store), (evt.EVT_N_CREATE, self._on_create),
+        handlers = [(evt.EVT_ESTABLISHED, self._on_established),
+                    (evt.EVT_C_ECHO, self._on_echo), (evt.EVT_C_STORE, self._on_store), (evt.EVT_N_CREATE, self._on_create),
                     (evt.EVT_N_SET, self._on_set), (evt.EVT_N_ACTION, self._on_action),
                     (evt.EVT_N_DELETE, self._on_delete), (evt.EVT_N_GET, self._on_get),
                     (evt.EVT_RELEASED, self._on_closed), (evt.EVT_ABORTED, self._on_closed),
@@ -144,11 +145,25 @@ class PrintScpServer:
         ae = self._ae
         if ae is None:
             return
-        if self.config.get("accept", "any") == "any" or self.allowed is None:
+        if self.config.get("accept", "any") in ("any", "rede") or self.allowed is None:
             ae.require_calling_aet = []
         else:
             known = [x for x in self.allowed() if x]
             ae.require_calling_aet = known or ["-NENHUM-"]
+
+    def aceita_endereco(self, ip: str) -> bool:
+        """"Qualquer AE da rede local" (0.99.24, padrão das impressoras novas): de fora da rede interna
+        não vem modalidade."""
+        if self.config.get("accept", "any") != "rede":
+            return True
+        from ipe.network.acesso import ip_da_rede_local
+        return ip_da_rede_local(ip)
+
+    def _on_established(self, event) -> None:
+        ip = str(getattr(event.assoc.requestor, "address", "") or "")
+        if not self.aceita_endereco(ip):
+            log.warning("Impressora DICOM “%s”: recusada a conexão de %s (fora da rede local)", self.name, ip)
+            event.assoc.abort()
 
     # ------------------------------------------------------------ estado da conexão
     def _session(self, event) -> _Association:

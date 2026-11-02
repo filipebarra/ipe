@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.24 — security review
+- `ipe://` links without the token no longer open on their own: the program asks first (or accepts /
+  refuses, in Network ▸ External call). With `&token=` in the link it opens directly. Constant-time token
+  comparison.
+- DICOM node: new "Registered nodes only, checking the node's IP" option.
+- DICOM printer: new printers accept only the local network (existing ones unchanged).
+- Central server: 5 wrong passwords in 10 min block the address for 10 min; warning when running without
+  a certificate (HTTP).
+
 ## 0.99.23.1
 - Fix: adjusting the spine numbering (e.g. sacralized L5) changed only the clicked tab; the other screens of the exam and a duplicate copy of the same SEG kept the old name. Now all are refreshed.
 

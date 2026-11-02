@@ -130,8 +130,12 @@ class ServerEditor(QDialog):
         self.port = QSpinBox(minimum=1, maximum=65535, value=int(s.port))
         # não pode se chamar `self.accept`: apagaria o QDialog.accept e o OK nunca fecharia (0.81)
         self.aceitar_de = QComboBox()
-        self.aceitar_de.addItem("Qualquer AE", "any")
+        self.aceitar_de.addItem("Qualquer AE da rede local", "rede")
+        self.aceitar_de.addItem("Qualquer AE, de qualquer endereço", "any")
         self.aceitar_de.addItem("Só nós cadastrados", "known")
+        self.aceitar_de.setToolTip("Rede local = endereços internos (10.x, 172.16–31.x, 192.168.x, VPN 100.64.x). "
+                                   "As modalidades estão sempre na rede interna; o que vem de fora dela não é "
+                                   "modalidade.")
         self.aceitar_de.setCurrentIndex(max(0, self.aceitar_de.findData(s.accept)))
         self.timeout = QSpinBox(minimum=10, maximum=600, suffix=" s", value=int(s.timeout))
         self.to_db = QCheckBox("Guardar cada folha recebida como exame no banco")

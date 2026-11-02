@@ -4274,7 +4274,20 @@
   "transição?",
   "vértebras (contagem a partir de C2)",
   "Sacro (S2)",
-  "L5 transição?"
+  "L5 transição?",
+  "Aceitar",
+  "Recusar",
+  "Perguntar antes de abrir",
+  "Link ipe:// sem o token:",
+  "Um link ipe:// pode vir de qualquer página que se abra no navegador. Com o token no link (…&token=<o token acima>) ele abre direto; sem o token, vale esta escolha. Ponha o token no link do RIS para ele não perguntar.",
+  "Só nós cadastrados, conferindo o IP do nó",
+  "O AE Title é só um nome que o aparelho diz ter: qualquer computador da rede pode imitá-lo. Conferindo o IP, a conexão só é aceita se vier do endereço cadastrado no nó com aquele AE (o campo IP do nó).",
+  "Qualquer AE da rede local",
+  "Qualquer AE, de qualquer endereço",
+  "Rede local = endereços internos (10.x, 172.16–31.x, 192.168.x, VPN 100.64.x). As modalidades estão sempre na rede interna; o que vem de fora dela não é modalidade.",
+  "baixar do PACS",
+  "ATENÇÃO: sem certificado (central.certfile), o servidor usa HTTP e as senhas passam pela rede sem criptografia. Use só em rede interna confiável.",
+  "<small><span style='color:#c03030'>Sem certificado o servidor usa HTTP: usuário e senha passam pela rede sem criptografia. Use só numa rede interna confiável, ou indique um certificado (.pem) para HTTPS.</span> Senha errada 5 vezes em 10 minutos bloqueia aquele computador por 10 minutos.</small>"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -5342,6 +5355,9 @@
   "tentei contar pela C2 em {}, mas {}",
   "{} pares de costelas",
   "{} pares de costelas.",
-  "{} {} {} sai da coluna ({} a {})"
+  "{} {} {} sai da coluna ({} a {})",
+  "Um link pediu para {} o exame {}.\n\nO link não traz o token de acesso: pode ter vindo de qualquer página aberta no navegador. Continuar?\n\n(Para o RIS não perguntar, ponha &token=<token> no link; o token está em Rede ▸ Chamada externa.)",
+  "Link ipe:// sem o token recusado ({}). Rede ▸ Chamada externa diz o que fazer com links sem token.",
+  "muitas senhas erradas deste computador: tente de novo em {} min"
  ]
 }
