@@ -4922,11 +4922,50 @@ class ViewerTab(OncoMixin, QWidget):
                 quem = ""
             COL.guardar_conferencia(self.repo, estudo, o.numeracao, quem)
 
-    def _coluna_mudou(self) -> None:
-        if hasattr(self, "_apply_overlays"):
-            self._apply_overlays()
-        for v in self.viewports:
-            v.update()
+    def _coluna_mudou(self, o=None) -> None:
+        """Refaz a tela depois de renumerar/ajustar — **em todas as abas e janelas** com este exame.
+
+        0.99.23.1, relato dele: *"mudei a nomenclatura (L5 sacralizada) mas não mudou nada no viewer"*.
+        Cada monitor tem a sua aba, com os seus objetos lidos do SEG; mudar o objeto da aba em que ele
+        clicou deixava as outras telas com o nome antigo. E um objeto repetido na mesma aba (o mesmo SEG
+        lido duas vezes) desenhava o rótulo velho por cima, porque o primeiro rótulo do lugar ganha."""
+        from ipe.ai import coluna as COL
+        caminho = getattr(o, "caminho", "") if o is not None else ""
+        abas = [self]
+        from PySide6.QtWidgets import QApplication
+        for w in QApplication.topLevelWidgets():
+            f = getattr(w, "all_viewer_tabs", None)
+            if callable(f):
+                try:
+                    abas += [t for t in f() if t is not self]
+                except Exception:  # noqa: BLE001
+                    log.exception("abas abertas")
+                break
+        for t in abas:
+            objs = getattr(t, "overlay_objects", None)
+            if objs is None:
+                continue
+            if caminho:
+                novo = []
+                for x in objs:
+                    if getattr(x, "source", "") == "Coluna" and getattr(x, "caminho", "") == caminho:
+                        if t is self:
+                            if x is o:
+                                novo.append(x)
+                            continue                 # repetido nesta aba: sai, fica o que mudou
+                        try:
+                            x = COL.objeto_do_seg(caminho, x.study_uid)
+                            x.enabled = True
+                        except Exception:  # noqa: BLE001
+                            log.exception("reler a coluna em outra aba")
+                    novo.append(x)
+                if t is self and o not in novo:
+                    novo.append(o)
+                objs[:] = novo
+            if hasattr(t, "_apply_overlays"):
+                t._apply_overlays()
+            for v in getattr(t, "viewports", []):
+                v.update()
 
     def renumerar_coluna(self, vp, passo: int) -> int:
         """Níveis da coluna ±1 (0.99.2): todos os nomes andam um nível, na tela e no SEG guardado — ao
@@ -4934,16 +4973,23 @@ class ViewerTab(OncoMixin, QWidget):
         um nível sairia da coluna (antes parava em S1 e dava duas S1)."""
         from ipe.ai import coluna as COL
         n = 0
+        vistos, mudados = set(), []
         for o in self.objetos_da_coluna(vp):
+            chave = getattr(o, "caminho", "") or id(o)
+            if chave in vistos:
+                continue                              # o mesmo SEG lido duas vezes: renumera um só
+            vistos.add(chave)
             try:
                 COL.renumerar(o, passo)
             except COL.ForaDaColuna as e:
                 self.status_message.emit(f"Não renumerei: {e}.")
                 return 0
             self.guardar_coluna(o, getattr(vp, "study_uid", ""))
+            mudados.append(o)
             n += 1
+        for o in mudados:
+            self._coluna_mudou(o)
         if n:
-            self._coluna_mudou()
             self.status_message.emit("Níveis da coluna renumerados: " + ("um nível para baixo." if passo > 0
                                                                          else "um nível para cima."))
         return n
@@ -4967,7 +5013,7 @@ class ViewerTab(OncoMixin, QWidget):
 
         def aplicado():
             self.guardar_coluna(o, o.study_uid or self.study_uid, conferido=True)
-            self._coluna_mudou()
+            self._coluna_mudou(o)
             self.status_message.emit("Numeração da coluna conferida: " + __import__(
                 "ipe.ai.coluna", fromlist=["descrever"]).descrever(o.numeracao) + ".")
         dlg.aplicado.connect(aplicado)

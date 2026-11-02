@@ -375,3 +375,50 @@ def test_serie_ancora_e_a_que_pega_da_c2_ate_a_lombar(env, tmp_path):
     assert COL.serie_ancora(repo, uid, series["SAG LOMBAR"]) == series["SAG COLUNA TOTAL"]
     # a cervical não chega à lombar; e a total não é âncora dela mesma
     assert COL.serie_ancora(repo, uid, series["SAG COLUNA TOTAL"]) is None
+
+
+def test_ajustar_muda_todas_as_abas_e_tira_a_copia_repetida(env, tmp_path, monkeypatch):
+    """0.99.23.1: "mudei a nomenclatura (L5 sacralizada) mas não mudou nada no viewer" — a outra tela
+    (outra aba) e uma cópia repetida do mesmo SEG continuavam com o nome antigo."""
+    import time
+
+    from PySide6.QtWidgets import QApplication, QMessageBox
+
+    import test_coluna as TC
+    from ipe.core.config import Settings
+    from ipe.ui.main_window import MainWindow
+    app = QApplication.instance() or QApplication([])
+    paths, db, repo = env
+    uid, serie = TC._exame(env, tmp_path)
+    avisos = []
+    monkeypatch.setattr(QMessageBox, "information", lambda _p, _t, msg, *a, **k: avisos.append(msg))
+    monkeypatch.setattr(QMessageBox, "warning", lambda _p, _t, msg, *a, **k: avisos.append("ERRO " + msg))
+    w = MainWindow(paths, Settings(paths.settings_file), repo=repo, db=db)
+    w.show()
+    try:
+        assert w.handle_external({"accession": "COL01"}) == "aberto"
+        tab = w.tabs.currentWidget()
+        app.processEvents()
+        vp = next(v for v in tab.viewports if v.frames)
+        tab.segmentar_orgaos(vp, simular=True, tipo="coluna")
+        fim = time.time() + 60
+        while not avisos and time.time() < fim:
+            app.processEvents()
+            time.sleep(0.05)
+        col = tab.objetos_da_coluna(vp)[0]
+        # a mesma SEG lida de novo nesta aba, por cima (como ao reabrir as sobreposições)
+        tab.overlay_objects.insert(0, COL.objeto_do_seg(col.caminho, uid))
+        # a outra tela: outra aba com a sua cópia
+        outra = SimpleNamespace(overlay_objects=[COL.objeto_do_seg(col.caminho, uid)], viewports=[],
+                                _apply_overlays=lambda: None)
+        monkeypatch.setattr(MainWindow, "all_viewer_tabs", lambda self: [tab, outra])
+        dlg = tab.abrir_numeracao_coluna(vp, None)
+        dlg.c_ls.setCurrentIndex(2)                                   # L5 sacralizada (parcial)
+        assert dlg.aplicar()
+        cols = tab.objetos_da_coluna(vp)
+        assert len(cols) == 1 and "L5 sacralizada" in [mv.label for mv in cols[0].volumes]
+        assert all(o in vp.overlays for o in cols)
+        assert "L5 sacralizada" in [mv.label for mv in outra.overlay_objects[0].volumes]
+        dlg.close()
+    finally:
+        w.close()

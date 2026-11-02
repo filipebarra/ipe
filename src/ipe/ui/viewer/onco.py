@@ -219,6 +219,9 @@ class OncoMixin:
                         # 0.99.2: a coluna volta como volumes com nome — o rótulo em qualquer série e plano
                         from ipe.ai import coluna as COL
                         try:
+                            if any(getattr(x, "source", "") == "Coluna" and getattr(x, "caminho", "") ==
+                                   str(inst["path"]) for x in self.overlay_objects):
+                                continue        # já está na aba: duas cópias desenhavam o rótulo velho
                             obj = COL.objeto_do_seg(inst["path"], study)
                             COL.anexar_medidas(obj, tuple(COL.conferencias_do_exame(self.repo, study)))
                         except Exception:  # noqa: BLE001

@@ -3,6 +3,10 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.23.1
+- Correção: ajustar a numeração da coluna (ex.: L5 sacralizada) mudava só a aba do clique; as outras telas do
+  exame e uma cópia repetida do mesmo SEG continuavam com o nome antigo. Agora todas se refazem.
+
 ## 0.99.23 — vértebra de transição e a numeração da coluna
 - **Correção:** subir um nível na lombar dava duas S1 (a lista de nomes acabava em S1). Agora a última
   livre vira S1, o sacro vira S2 e o disco S1-S2; renumerar para fora da coluna é recusado com aviso.

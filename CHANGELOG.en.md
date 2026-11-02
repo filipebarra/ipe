@@ -3,6 +3,9 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.23.1
+- Fix: adjusting the spine numbering (e.g. sacralized L5) changed only the clicked tab; the other screens of the exam and a duplicate copy of the same SEG kept the old name. Now all are refreshed.
+
 ## 0.99.23 — transitional vertebra and spine numbering
 - Fix: moving one level up in the lumbar spine produced two S1s; now the last free vertebra becomes S1,
   the sacrum S2 and the disc S1-S2; renumbering out of the spine is refused with a warning.
