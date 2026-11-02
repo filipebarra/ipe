@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.29 — recoger los paneles del banco (como en Weasis)
+- **Ubicaciones y listas** (izquierda) y **Series y comentarios** (derecha) se recogen en una tira en el
+  borde con el botón ◂/▸ del título; un clic en la tira los trae de vuelta, del tamaño de antes. La
+  lista de estudios queda con todo el ancho.
+- El botón **Listas** y el menú **Ver** abren y recogen los paneles; el estado queda guardado.
+
 ## 0.99.28 — banco personal en el servidor o en este equipo
 - **Modo cliente**: el panel Ubicaciones muestra el **Servidor central** y el **Banco de este equipo**; el
   local abre sin red y sirve de banco de casos.

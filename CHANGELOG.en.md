@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.29 — collapse the database panels (Weasis-style)
+- **Locations and lists** (left) and **Series and comments** (right) collapse to a strip on the edge
+  with the ◂/▸ button in their title; one click on the strip brings them back at their previous size.
+  The exam list gets the full width.
+- The **Lists** button and the **View** menu open and collapse the panels; the state is remembered.
+
 ## 0.99.28 — personal bank on the server or on this computer
 - **Client mode**: the Locations panel shows the **Central server** and **This computer's database**; the
   local one opens without a network and works as a case bank.

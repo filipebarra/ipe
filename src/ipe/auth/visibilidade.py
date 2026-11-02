@@ -29,6 +29,7 @@ class Visao:
 
 _ctx: ContextVar[Visao | None] = ContextVar("visao_ipe", default=None)
 _FORCADA: ContextVar[bool] = ContextVar("visao_forcada", default=False)
+_SESSAO: ContextVar[object] = ContextVar("sessao_forcada", default=None)
 
 
 def _da_sessao(s) -> Visao | None:
@@ -54,11 +55,28 @@ def com_visao(sessao):
     """O pedido de um cliente no servidor central enxerga o que **ele** enxerga."""
     t1 = _ctx.set(_da_sessao(sessao))
     t2 = _FORCADA.set(True)
+    t3 = _SESSAO.set(sessao)
     try:
         yield
     finally:
+        _SESSAO.reset(t3)
         _FORCADA.reset(t2)
         _ctx.reset(t1)
+
+
+def pode(perm: str) -> bool:
+    """A permissão de quem está pedindo (no servidor, a do cliente; 0.99.29)."""
+    s = _SESSAO.get() if _FORCADA.get() else None
+    if s is None:
+        from ipe.auth import session as S
+        try:
+            s = S.get()
+        except Exception:  # noqa: BLE001
+            return True
+    try:
+        return bool(s.can(perm))
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def lista(texto) -> list[str]:

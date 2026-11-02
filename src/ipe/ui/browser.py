@@ -255,8 +255,13 @@ class Browser(QWidget):
         left.addWidget(self.btn_meeting)
         left_w = QWidget()
         left_w.setLayout(left)
-        left_w.setMaximumWidth(280)
-        self.lists_panel = left_w
+        # 0.99.29: os painéis dos lados recolhem para uma tira na borda, como no Weasis
+        from ipe.ui.painel_recolhivel import PainelRecolhivel
+        self.painel_esq = PainelRecolhivel("Locais e listas", left_w, "esq")
+        self.painel_esq.set_max_aberto(280)
+        self.painel_esq.recolher(not bool(self._settings_get("browser.show_lists", True)), salvar=False)
+        self.painel_esq.mudou.connect(self._painel_esq_mudou)
+        self.lists_panel = self.painel_esq
 
         # --- tabela de estudos
         self.model = StudyTableModel()
@@ -326,6 +331,7 @@ class Browser(QWidget):
         btn_comment = QPushButton("Adicionar comentário")
         btn_comment.clicked.connect(self._add_comment)
         right = QVBoxLayout()
+        right.setContentsMargins(0, 0, 0, 0)
         right.addLayout(cab)
         right.addWidget(self.series_list, 3)
         right.addWidget(QLabel("<b>Comentários</b>"))
@@ -333,14 +339,23 @@ class Browser(QWidget):
         right.addWidget(btn_comment)
         right_w = QWidget()
         right_w.setLayout(right)
+        self.painel_dir = PainelRecolhivel("Séries e comentários", right_w, "dir", self.settings,
+                                           "browser.painel_dir_recolhido")
+        self.painel_dir.mudou.connect(lambda on: self._painel_mudou(2, on))
 
         split = QSplitter()
-        split.addWidget(left_w)
+        split.setChildrenCollapsible(False)
+        split.addWidget(self.painel_esq)
         split.addWidget(self.table)
-        split.addWidget(right_w)
+        split.addWidget(self.painel_dir)
         split.setStretchFactor(1, 3)
         split.setStretchFactor(2, 1)
         split.setSizes([250, 850, 340])
+        self.split = split
+        self._larguras = {0: 250, 2: 340}         # para voltar ao tamanho de antes ao abrir
+        for i, painel in ((0, self.painel_esq), (2, self.painel_dir)):
+            if painel.recolhido:                  # já abre recolhido (como ficou da última vez)
+                self._painel_mudou(i, True)
 
         self.count_label = QLabel()
         root = QVBoxLayout(self)
@@ -635,7 +650,44 @@ class Browser(QWidget):
     def add_side_panel(self, widget) -> None:
         """Coloca um painel no alto da coluna da esquerda (usado pelo painel "Locais")."""
         self._left_layout.insertWidget(0, widget)
-        self.lists_panel.setMaximumWidth(320)
+        self.painel_esq.set_max_aberto(320)
+
+    # ------------------------------------------------------------------ painéis recolhíveis (0.99.29)
+    listas_mudou = Signal(bool)              # True = painel da esquerda aberto (o botão Listas acompanha)
+
+    def _painel_mudou(self, indice: int, recolhido: bool) -> None:
+        split = getattr(self, "split", None)
+        if split is None:
+            return
+        tam = split.sizes()
+        if recolhido:
+            if tam[indice] > 60:
+                self._larguras[indice] = tam[indice]
+            from ipe.ui.painel_recolhivel import LARGURA_TIRA
+            sobra = tam[indice] - (LARGURA_TIRA + 4)
+            if sobra > 0:
+                tam[indice] -= sobra
+                tam[1] += sobra
+                split.setSizes(tam)
+            return
+        alvo = max(180, self._larguras.get(indice, 280))
+        tira = tam[indice]
+        tam[indice] = alvo
+        tam[1] = max(200, tam[1] - (alvo - tira))
+        split.setSizes(tam)
+
+    def _painel_esq_mudou(self, recolhido: bool) -> None:
+        self._painel_mudou(0, recolhido)
+        if self.settings is not None:
+            self.settings.set("browser.show_lists", not recolhido)
+            try:
+                self.settings.save()
+            except Exception:  # noqa: BLE001
+                pass
+        if recolhido and self.current_list is not None:
+            self.tree.select_id(None)
+            self._list_selected(None)
+        self.listas_mudou.emit(not recolhido)
 
     def set_banco(self, banco: str) -> None:
         """0.99.27: que banco a lista mostra — tudo o que vejo, o meu, o compartilhado, os
@@ -1479,10 +1531,10 @@ class Browser(QWidget):
                         lambda nid, iid, u=uids: self.send_requested.emit(u, nid, iid))
 
     def set_lists_visible(self, on: bool) -> None:
-        self.lists_panel.setVisible(on)
-        if not on and self.current_list is not None:
-            self.tree.select_id(None)
-            self._list_selected(None)
+        """O botão Listas: abre ou recolhe o painel da esquerda (0.99.29: recolhe para a borda)."""
+        if self.painel_esq.recolhido == (not on):
+            return
+        self.painel_esq.recolher(not on)
 
     def set_home_bar(self, bar: QWidget) -> None:
         """Barra de botões da tela inicial (montada pela janela principal)."""
@@ -1494,8 +1546,6 @@ class Browser(QWidget):
         ok = S.can("case_lists")
         for w in (self.tree, self.btn_meeting):
             w.setVisible(ok)
-        show = ok and bool(self.settings.get("browser.show_lists", True)) if self.settings is not None else ok
-        self.lists_panel.setVisible(show)
         if not ok and self.current_list is not None:
             self.tree.select_id(None)
             self._list_selected(None)

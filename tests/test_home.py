@@ -48,9 +48,9 @@ def test_home_bar(env, sample_dir, monkeypatch):
     w.tabs.setCurrentWidget(w.browser)
     # listas: mostrar/esconder
     hb.buttons["list"].defaultAction().trigger()
-    assert w.browser.lists_panel.isHidden() and st.get("browser.show_lists") is False
+    assert w.browser.lists_panel.recolhido and st.get("browser.show_lists") is False   # 0.99.29: recolhe para a borda
     hb.buttons["list"].defaultAction().trigger()
-    assert not w.browser.lists_panel.isHidden()
+    assert not w.browser.lists_panel.recolhido
     # ocultar dados: PACS indisponível
     hb.buttons["anon"].defaultAction().trigger()
     assert w.browser.model.anonymize and not hb.buttons["pacs"].isEnabled()

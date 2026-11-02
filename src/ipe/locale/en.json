@@ -5798,5 +5798,11 @@
  "{} exame(s) {} ({} imagem(ns)": "{} exam(s) {} ({} image(s)",
  "“{}” não tem exames.": "“{}” has no exams.",
  "{} exame(s) para {}": "{} exam(s) to {}",
- " {} com erro: ": " {} with errors: "
+ " {} com erro: ": " {} with errors: ",
+ "Locais e listas": "Locations and lists",
+ "Séries e comentários": "Series and comments",
+ "Mostrar Locais e listas": "Show Locations and lists",
+ "Mostrar Séries e comentários": "Show Series and comments",
+ "Abrir o painel “{}”": "Open the “{}” panel",
+ "Recolher o painel “{}” para a borda": "Collapse the “{}” panel to the edge"
 }

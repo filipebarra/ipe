@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.29 — recolher os painéis do banco (como no Weasis)
+- **Locais e listas** (esquerda) e **Séries e comentários** (direita) recolhem para uma tira na borda
+  pelo botão ◂/▸ do título; um clique na tira traz de volta, do tamanho de antes. A lista de exames
+  fica com a largura toda.
+- O botão **Listas** e o menu **Exibir** abrem e recolhem os painéis; o estado fica guardado.
+
 ## 0.99.28 — banco pessoal no servidor ou neste computador
 - **Modo cliente**: o painel Locais mostra o **Servidor central** e o **Banco deste computador**; o banco
   daqui abre sem rede e serve de banco de casos.

@@ -296,6 +296,16 @@ class MainWindow(QMainWindow):
         vazio.setEnabled(False)
         v.addAction(vazio)
         v._vazio = vazio
+        # 0.99.29: no banco de dados, recolher os painéis dos lados (como no Weasis)
+        p_esq = QAction("Mostrar Locais e listas", j)
+        p_esq.setCheckable(True)
+        p_esq.triggered.connect(lambda on: self.browser.painel_esq.recolher(not on))
+        p_dir = QAction("Mostrar Séries e comentários", j)
+        p_dir.setCheckable(True)
+        p_dir.triggered.connect(lambda on: self.browser.painel_dir.recolher(not on))
+        v.addAction(p_esq)
+        v.addAction(p_dir)
+        v._paineis = (p_esq, p_dir)
         sep_banco = v.addSeparator()
         banco = QAction("Voltar ao banco de dados", j)
         banco.setShortcut(QKeySequence("Ctrl+B"))
@@ -578,8 +588,12 @@ class MainWindow(QMainWindow):
             if getattr(menu, "_sep_banco", None) is not None:
                 menu._sep_banco.setVisible(not no_banco)
         vazio = getattr(menu, "_vazio", None)
+        paineis = getattr(menu, "_paineis", ())
+        for a, painel in zip(paineis, (self.browser.painel_esq, self.browser.painel_dir)):
+            a.setVisible(no_banco)
+            a.setChecked(not painel.recolhido)
         if vazio is not None:
-            vazio.setVisible(not tem_exame and not self.detached and (banco is None or no_banco))
+            vazio.setVisible(not tem_exame and not self.detached and (banco is None or no_banco) and not paineis)
 
     def acrescentar_impressora_dicom(self, nova: bool = True):
         """Menu Impressão ▸ Acrescentar impressora DICOM… (0.99.6): o cadastro das impressoras do filme,

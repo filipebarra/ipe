@@ -115,6 +115,8 @@ class HomeBar(QToolBar):
         QShortcut(QKeySequence("F5"), b, activated=lambda: (b.refresh_lists(), b.refresh()))
         lists_visible = bool(win.settings.get("browser.show_lists", True))
         self.buttons["list"].setChecked(lists_visible)
+        # 0.99.29: o painel da esquerda também recolhe pelo botão do próprio título (estilo Weasis)
+        b.listas_mudou.connect(lambda on: self.buttons["list"].defaultAction().setChecked(on))
 
     def _report(self) -> None:
         rows = self.browser.selected_rows()

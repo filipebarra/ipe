@@ -5798,5 +5798,11 @@
  "{} exame(s) {} ({} imagem(ns)": "{} estudio(s) {} ({} imagen(es)",
  "“{}” não tem exames.": "“{}” no tiene estudios.",
  "{} exame(s) para {}": "{} estudio(s) a {}",
- " {} com erro: ": " {} con error: "
+ " {} com erro: ": " {} con error: ",
+ "Locais e listas": "Ubicaciones y listas",
+ "Séries e comentários": "Series y comentarios",
+ "Mostrar Locais e listas": "Mostrar Ubicaciones y listas",
+ "Mostrar Séries e comentários": "Mostrar Series y comentarios",
+ "Abrir o painel “{}”": "Abrir el panel “{}”",
+ "Recolher o painel “{}” para a borda": "Recoger el panel “{}” en el borde"
 }

@@ -4370,7 +4370,11 @@
   "só o administrador põe exame no banco de outro usuário",
   "só o dono (ou o administrador) tira o exame pessoal do servidor",
   "O banco deste computador continua aqui: aparece em Locais ▸ Banco deste computador, abre sem o servidor e pode ser enviado a ele (botão direito no local ▸ Enviar este banco ao servidor central).",
-  " (tirados do servidor)"
+  " (tirados do servidor)",
+  "Locais e listas",
+  "Séries e comentários",
+  "Mostrar Locais e listas",
+  "Mostrar Séries e comentários"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -5460,6 +5464,8 @@
   "{} exame(s) {} ({} imagem(ns)",
   "“{}” não tem exames.",
   "{} exame(s) para {}",
-  " {} com erro: "
+  " {} com erro: ",
+  "Abrir o painel “{}”",
+  "Recolher o painel “{}” para a borda"
  ]
 }

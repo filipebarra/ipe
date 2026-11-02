@@ -56,6 +56,12 @@ Botão direito num exame (ou em vários selecionados):
 - **Anonimizar uma cópia deste exame…** — exporta anonimizado ou guarda uma cópia anonimizada no banco (capítulo 14);
 - laudo, listas de casos, proteção, apagar e o resto das ações do exame.
 
+### Recolher os painéis dos lados
+
+Os dois painéis dos lados da lista — **Locais e listas**, à esquerda, e **Séries e comentários**, à direita — recolhem para uma **tira na borda**, como os painéis do Weasis: botão **◂/▸** no título do painel. Recolhido, sobra a tira com o nome escrito de lado; um clique nela (ou na setinha) traz o painel de volta, do tamanho que estava. A lista de exames fica com a largura toda.
+
+O botão **Listas** da barra abre e recolhe o painel da esquerda, e **Exibir ▸ Mostrar Locais e listas / Mostrar Séries e comentários** faz o mesmo no menu. Cada usuário tem o seu estado, e o programa abre como ficou da última vez.
+
 ## Painel de séries
 
 - Alterna entre ícone e lista pelo botão do cabeçalho; a escolha fica guardada.
