@@ -1281,7 +1281,7 @@ def _principal(v: np.ndarray, vao: float) -> np.ndarray:
 def _altura(t: np.ndarray, s: np.ndarray, s0: float, largura: float, passo_u: float) -> float | None:
     """Altura na coluna de voxels em s0: do voxel mais de cima ao mais de baixo, mais um voxel. Os
     pedaços soltos já saíram antes (`_principal` no eixo da coluna); um buraco **dentro** do corpo não
-    encurta a altura (0.99.5: na RM da [paciente], L3 tinha um buraco de 15 mm na frente)."""
+    encurta a altura (0.99.5: numa RM real do acervo, L3 tinha um buraco de 15 mm na frente)."""
     j = np.abs(s - s0) <= largura
     if j.sum() < 2:
         return None
@@ -1564,7 +1564,7 @@ def _combinar(prim: list, outras: list[list]) -> None:
 
 
 def contagem_difere(obj, conferencias: tuple) -> str:
-    """As duas sagitais deram nomes diferentes ao mesmo osso? (Na RM da [paciente], o que a Sag T2 chamou de
+    """As duas sagitais deram nomes diferentes ao mesmo osso? (Numa RM real do acervo, o que a Sag T2 chamou de
     T11 a outra chamou de T12.) O par é pela posição; vale o deslocamento da maioria dos pares."""
     def centros(o):
         return {nivel_de(mv): _pontos_mm(mv).mean(axis=0) for mv in getattr(o, "volumes", []) or []
