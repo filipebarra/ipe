@@ -32,6 +32,8 @@ DB_NAME = "dicomviewer.sqlite"
 STORAGE_NAME = "Storage"
 DEFAULT_ID = "default"
 DEFAULT_NAME = "Banco deste computador"
+CENTRAL_ID = "central"            # 0.99.28: no modo cliente, o servidor do grupo aparece como um local
+CENTRAL_NAME = "Servidor central"
 
 
 @dataclass(frozen=True)
@@ -77,7 +79,11 @@ class Location:
 
     def kind_label(self) -> str:
         return {"default": "Este computador", "external": "Disco externo",
-                "network": "Pasta de rede"}.get(self.kind, "Pasta")
+                "network": "Pasta de rede", "central": "Servidor do grupo"}.get(self.kind, "Pasta")
+
+    @property
+    def is_central(self) -> bool:
+        return self.id == CENTRAL_ID
 
     def size_mb(self) -> float:
         """Quanto o local ocupa (só o que foi copiado para dentro dele)."""
@@ -176,9 +182,22 @@ def default_location(paths) -> Location:
     return Location(DEFAULT_ID, DEFAULT_NAME, Path(paths.data), "default")
 
 
+def central_location(settings, paths) -> Location | None:
+    """O servidor do grupo, quando este computador é cliente (os arquivos abertos ficam no cache)."""
+    if str(settings.get("central.mode", "local") or "local") != "client":
+        return None
+    url = str(settings.get("central.url", "") or "")
+    return Location(CENTRAL_ID, CENTRAL_NAME + (f" ({url.split('://')[-1]})" if url else ""),
+                    Path(paths.data) / "CacheCentral", "central")
+
+
 def all_locations(settings, paths) -> list[Location]:
-    """O banco deste computador primeiro, depois os outros na ordem em que foram adicionados."""
+    """O banco deste computador primeiro, depois os outros na ordem em que foram adicionados.
+    No modo cliente, o servidor do grupo vem antes de todos."""
     out = [default_location(paths)]
+    c = central_location(settings, paths)
+    if c is not None:
+        out.insert(0, c)
     for d in _raw(settings):
         p = Path(d["path"])
         out.append(Location(str(d.get("id") or p.name), str(d.get("name") or p.name), p,

@@ -3,6 +3,18 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.28 — personal bank on the server or on this computer
+- **Client mode**: the Locations panel shows the **Central server** and **This computer's database**; the
+  local one opens without a network and works as a case bank.
+- **Right click ▸ Bank**: copy or move from the server to this computer, and send from here to the server
+  (to my bank or to the shared one). Reports, measurements, annotations and key images go along.
+- **Exams I import go to "my bank on this computer"** (not uploaded) or to my bank on the server
+  (uploaded already marked).
+- **Send a whole database to the server** (migrating a computer that became a client); the administrator
+  sends each exam to its owner's bank.
+- **The server enforces the bank**: another user's personal exam does not show up in searches, DICOMweb or requests.
+- Changing the usage mode warns what happens to the exams.
+
 ## 0.99.27 — personal and shared database
 - Locations ▸ Database: everything I see, my database, shared, shared with me; the administrator also sees
   each user's database. "Database" column in the list.

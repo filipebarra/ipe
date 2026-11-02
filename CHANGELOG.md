@@ -3,6 +3,18 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.28 — banco pessoal no servidor ou neste computador
+- **Modo cliente**: o painel Locais mostra o **Servidor central** e o **Banco deste computador**; o banco
+  daqui abre sem rede e serve de banco de casos.
+- **Botão direito ▸ Banco**: copiar ou mover do servidor para este computador, e enviar daqui ao servidor
+  (no meu banco ou no compartilhado). Laudos, medidas, anotações e imagens-chave vão junto.
+- **Exames que eu importo vão para "o meu banco neste computador"** (não sobem) ou para o meu banco no
+  servidor (sobem já marcados).
+- **Enviar um banco inteiro ao servidor** (migração do computador que virou cliente); o administrador
+  manda cada exame para o banco do dono.
+- **O servidor confere o banco**: exame pessoal de outro não aparece na busca, no DICOMweb nem nos pedidos.
+- Trocar o modo de uso avisa o que muda com os exames.
+
 ## 0.99.27 — banco pessoal e compartilhado
 - **Locais ▸ Banco**: tudo o que vejo, meu banco, compartilhado e compartilhados comigo; o administrador
   vê também o banco de cada usuário. Coluna **Banco** na lista.

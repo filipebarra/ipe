@@ -139,3 +139,32 @@ def sessao_sem_senha(auth, settings):
                     pass
                 return s
     return None
+
+
+def aviso_da_troca(antes: str, depois: str, donos: dict | None = None) -> str:
+    """0.99.28: o que acontece com os exames quando o modo muda (texto para confirmar; "" = nada a avisar).
+
+    Nenhuma troca apaga ou copia exame: o banco deste computador fica onde está; só muda quem vê o quê.
+    """
+    if antes == depois:
+        return ""
+    donos = {k: v for k, v in (donos or {}).items() if v}
+    partes = []
+    if depois == "um" and donos and antes in ("varios", "servidor"):
+        quem = ", ".join(sorted(donos)[:5]) + ("…" if len(donos) > 5 else "")
+        partes.append(f"Os {sum(donos.values())} exame(s) dos bancos pessoais ({quem}) passam a aparecer para quem "
+                      "usar este computador. A marca continua: voltando a “várias pessoas”, eles voltam a ser "
+                      "pessoais.")
+    if antes == "um" and depois in ("varios", "servidor"):
+        partes.append("Os exames que já estão aqui ficam no compartilhado. Cada um põe no banco pessoal pelo "
+                      "botão direito ▸ Banco.")
+    if depois == "cliente":
+        partes.append("O banco deste computador continua aqui: aparece em Locais ▸ Banco deste computador, abre "
+                      "sem o servidor e pode ser enviado a ele (botão direito no local ▸ Enviar este banco ao "
+                      "servidor central).")
+    if antes == "cliente":
+        partes.append("Os exames que estão no meu banco deste computador continuam aqui. O cache do servidor não "
+                      "entra no banco: o que só estava no servidor continua lá.")
+    if antes == "servidor" and depois != "servidor":
+        partes.append("Os outros computadores do grupo deixam de conectar neste.")
+    return "\n\n".join(partes)

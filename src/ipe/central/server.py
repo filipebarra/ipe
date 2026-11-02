@@ -27,7 +27,7 @@ from ipe.auth.backend import AuthError, LocalAuth
 from ipe.auth.permissions import permissions_for
 from ipe.auth.session import UserSession
 from ipe.central import codec, dicomweb as DW
-from ipe.central.rpc import RPC_METHODS, SERVER_STORAGE_ARG
+from ipe.central.rpc import POR_EXAME, RPC_METHODS, SERVER_STORAGE_ARG
 
 log = logging.getLogger(__name__)
 TOKEN_IDLE_S = 12 * 3600
@@ -175,6 +175,31 @@ class CentralServer:
             rid = args[0] if args else kwargs.get("report_id")
             status = (args[2] if len(args) > 2 else kwargs.get("status", "final"))
             return self.repo.sign_report(rid, s.full_name or s.username, status)
+        # 0.99.28: o banco pessoal vale também no servidor — exame de outro banco não sai daqui
+        alvo = ""
+        if method in POR_EXAME:
+            alvo = str(args[0] if args else kwargs.get("study_uid", "") or "")
+        elif method == "save_report":
+            alvo = str(((args[0] if args else kwargs.get("data")) or {}).get("study_uid", ""))
+        elif method == "save_annotation":
+            alvo = str(kwargs.get("study_uid", ""))
+        if alvo and not self.pode_ver(s, alvo):
+            raise PermissionError("o exame está no banco pessoal de outro usuário")
+        if method == "set_study_scope":
+            return self.mudar_banco(s, *args, **kwargs)
+        if method == "search_studies":              # "todos" e o banco de outro: só o administrador
+            v = self._visao(s)
+            b = str(kwargs.get("banco", args[5] if len(args) > 5 else "visivel") or "visivel")
+            if v is not None and not v.admin and (b == "todos" or b.startswith("usuario:")):
+                args = list(args[:5])
+                kwargs["banco"] = "visivel"
+        if method == "retirar_do_servidor":
+            return self.retirar(s, alvo)
+        if method == "receber_dados_do_exame":     # o banco do exame não muda por aqui (só por set_study_scope)
+            pac = args[0] if args else kwargs.get("pacote_", {})
+            if pac.get("study_uid") and not self.pode_ver(s, pac["study_uid"]):
+                raise PermissionError("o exame está no banco pessoal de outro usuário")
+            return self.repo.receber_dados_do_exame(pac, escopo=False)
         if method in SERVER_STORAGE_ARG:
             args = [args[0], self.storage] if args else []
             kwargs.pop("storage_root", None)
@@ -182,15 +207,78 @@ class CentralServer:
         with com_visao(s):                    # 0.99.26: o cliente enxerga o que ele vê, não o que a tela do servidor vê
             return getattr(self.repo, method)(*args, **kwargs)
 
+    # ------------------------------------------------------------------ banco pessoal (0.99.28)
+    @staticmethod
+    def _visao(s):
+        from ipe.auth import visibilidade as V
+        with V.com_visao(s):
+            return V.visao_atual()
+
+    def pode_ver(self, s: UserSession, study_uid: str) -> bool:
+        """O dono, quem ele escolheu, o compartilhado — e o administrador (decisão dele)."""
+        from ipe.auth import visibilidade as V
+        v = self._visao(s)
+        if v is None or v.admin:
+            return True
+        info = self.repo.study_info(study_uid)
+        return info is None or V.visivel(info, v)
+
+    def mudar_banco(self, s: UserSession, study_uids, dono: str = "", visivel_para: str = "") -> int:
+        """As mesmas regras do botão direito ▸ Banco: o dono mexe no que é dele; tirar do compartilhado
+        pede a permissão de configurar; passar para o banco de outro só o administrador."""
+        v = self._visao(s)
+        dono = (dono or "").strip()
+        if v is not None and not v.admin and dono and dono.lower() != v.usuario.lower():
+            raise PermissionError("só o administrador põe exame no banco de outro usuário")
+        ok = []
+        for uid in study_uids or []:
+            info = self.repo.study_info(uid)
+            if info is None:
+                continue
+            atual = (info.get("dono") or "").lower()
+            if v is None or v.admin or atual == v.usuario.lower() or (not atual and (not dono or s.can("configure"))):
+                ok.append(uid)
+        n = self.repo.set_study_scope(ok, dono, visivel_para) if ok else 0
+        if n:
+            self.repo.audit("moveu_banco", f"{n} exame(s) para o " + (f"banco pessoal de {dono}" if dono
+                            else "compartilhado") + " (pelo servidor)", user=s.username,
+                            study_uid=ok[0] if len(ok) == 1 else "")
+        return n
+
+    def retirar(self, s: UserSession, study_uid: str) -> int:
+        """Tira do servidor um exame pessoal que o dono levou para o computador dele."""
+        v = self._visao(s)
+        info = self.repo.study_info(study_uid)
+        if info is None:
+            return 0
+        if v is not None and not v.admin and (info.get("dono") or "").lower() != v.usuario.lower():
+            raise PermissionError("só o dono (ou o administrador) tira o exame pessoal do servidor")
+        if v is not None and not v.admin and not info.get("dono"):
+            raise PermissionError("exame do compartilhado: tirar do servidor pede a permissão de apagar")
+        n = self.repo.delete_study(study_uid, self.storage)
+        self.repo.audit("retirou_do_servidor", f"levado para o computador de {s.username}", user=s.username,
+                        study_uid=study_uid)
+        return n
+
     # ------------------------------------------------------------------ STOW
-    def store(self, parts: list[bytes], s: UserSession) -> dict:
+    def store(self, parts: list[bytes], s: UserSession, banco: str = "") -> dict:
+        """STOW. `banco` = "meu": os exames **novos** já entram no banco pessoal de quem mandou (0.99.28)."""
         from ipe.importer.scanner import Importer
         from ipe.importer.thumbnails import generate_thumbnails
         tmp = Path(tempfile.mkdtemp(prefix="dv_stow_"))
         try:
+            uids = set()
             for i, data in enumerate(parts):
                 (tmp / f"{i:06d}.dcm").write_bytes(data)
+                if banco == "meu":
+                    uids.add(_study_uid_de(tmp / f"{i:06d}.dcm"))
+            uids.discard("")
+            ja = set(self.repo.study_uids_present(list(uids))) if uids else set()
             r = Importer(self.db, self.storage).import_paths([tmp])
+            if banco == "meu" and s.username:
+                novos = sorted(uids - ja)
+                if novos:
+                    self.repo.set_study_scope(novos, s.username, "")
             try:
                 generate_thumbnails(self.repo, r.new_series)
             except Exception:  # noqa: BLE001
@@ -321,18 +409,23 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._error(403, "seu perfil não permite importar")
             boundary = DW.boundary_of(self.headers.get("Content-Type", ""))
             parts = DW.split_multipart(self._body(), boundary)
-            return self._json(200, c.store(parts, s), raw=True)
+            banco = (self.headers.get("X-Ipe-Banco", "") or "").strip().lower()
+            return self._json(200, c.store(parts, s, banco=banco), raw=True)
         if not s.can("view"):
             return self._error(403, "sem permissão")
+        if len(seg) >= 2 and seg[0] == "studies" and not c.pode_ver(s, seg[1]):
+            return self._error(404, "nada encontrado")        # 0.99.28: exame do banco pessoal de outro
         # QIDO-RS
         if seg == ["studies"]:
             first = lambda k: (q.get(k) or [""])[0]
             text = first("PatientName").replace("*", "") or first("PatientID") or first("AccessionNumber")
             date = first("StudyDate")
             d_from, _, d_to = date.partition("-")
-            rows = c.repo.search_studies(text=text, modality=first("ModalitiesInStudy"),
-                                         date_from=d_from, date_to=d_to or d_from if date else "",
-                                         limit=int(first("limit") or 500))
+            from ipe.auth.visibilidade import com_visao
+            with com_visao(s):                # 0.99.28: a busca vê o que quem pede vê
+                rows = c.repo.search_studies(text=text, modality=first("ModalitiesInStudy"),
+                                             date_from=d_from, date_to=d_to or d_from if date else "",
+                                             limit=int(first("limit") or 500))
             if first("StudyInstanceUID"):
                 rows = [r for r in rows if r.study_uid == first("StudyInstanceUID")]
             return self._send(200, json.dumps([DW.study_json(r) for r in rows]).encode(), "application/dicom+json")
@@ -364,6 +457,15 @@ class _Handler(BaseHTTPRequestHandler):
         self.end_headers()
         for chunk in DW.multipart_iter(files, boundary):
             self.wfile.write(chunk)
+
+
+def _study_uid_de(path) -> str:
+    try:
+        import pydicom
+        return str(pydicom.dcmread(str(path), stop_before_pixels=True, specific_tags=["StudyInstanceUID"],
+                                   force=True).get("StudyInstanceUID", "") or "")
+    except Exception:  # noqa: BLE001
+        return ""
 
 
 def _multipart_length(files, boundary: str) -> int:

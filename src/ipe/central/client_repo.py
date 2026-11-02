@@ -33,6 +33,7 @@ class ClientRepository:
         self.settings = settings
         self._upload_lock = threading.Lock()
         self.on_upload_done = None           # callback(texto)
+        self._banco_pendente: dict[str, tuple[str, str]] = {}   # 0.99.28: banco de exame que ainda vai subir
 
     # ------------------------------------------------------------------ roteamento
     def __getattr__(self, name: str):
@@ -59,6 +60,18 @@ class ClientRepository:
         except RemoteError as e:
             log.warning("auditoria no servidor falhou (%s); gravando no cache", e)
             self.local.audit(action, detail, user=user or self.client.username, study_uid=study_uid)
+
+    def set_study_scope(self, study_uids, dono: str = "", visivel_para: str = "") -> int:
+        """0.99.28: no servidor (que confere as regras). Exame que ainda não subiu guarda o banco para o envio."""
+        uids = list(study_uids or [])
+        for u in uids:
+            self._banco_pendente[u] = (dono or "", visivel_para or "")
+        n = self.client.rpc("set_study_scope", uids, dono, visivel_para)
+        try:
+            self.local.set_study_scope(uids, dono, visivel_para)        # o cache mostra igual
+        except Exception:  # noqa: BLE001
+            pass
+        return n
 
     def key_images(self, study_uid: str) -> list[dict]:
         """Do servidor, com o caminho do arquivo no cache local."""
@@ -206,12 +219,19 @@ class ClientRepository:
         def work():
             with self._upload_lock:
                 try:
-                    have = set(self.client.rpc("sop_uids_for_study", study_uid) or [])
+                    try:
+                        have = set(self.client.rpc("sop_uids_for_study", study_uid) or [])
+                    except RemoteError:
+                        have = set()
                     files = self.local.files_with_sops(study_uid)
                     todo = [p for sop, p in files if sop not in have and Path(p).exists()]
+                    pend = self._banco_pendente.pop(study_uid, None)
                     if not todo:
                         return
-                    res = self.client.store(todo)
+                    meu = bool(pend and pend[0] and pend[0].lower() == (self.client.username or "").lower())
+                    res = self.client.store(todo, banco="meu" if meu else "")
+                    if pend and (pend[1] or (pend[0] and not meu)):
+                        self.client.rpc("set_study_scope", [study_uid], pend[0], pend[1])
                     msg = f"{res['sent']} imagem(ns) enviadas ao servidor central."
                 except Exception as e:  # noqa: BLE001
                     log.exception("envio ao servidor central")

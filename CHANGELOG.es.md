@@ -3,6 +3,18 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.28 — banco personal en el servidor o en este equipo
+- **Modo cliente**: el panel Ubicaciones muestra el **Servidor central** y el **Banco de este equipo**; el
+  local abre sin red y sirve de banco de casos.
+- **Clic derecho ▸ Banco**: copiar o mover del servidor a este equipo, y enviar de aquí al servidor (a mi
+  banco o al compartido). Informes, medidas, anotaciones e imágenes clave van juntos.
+- **Los estudios que importo van a "mi banco en este equipo"** (no se suben) o a mi banco en el servidor
+  (se suben ya marcados).
+- **Enviar un banco entero al servidor** (migración del equipo que pasó a cliente); el administrador
+  envía cada estudio al banco de su dueño.
+- **El servidor controla el banco**: el estudio personal de otro no aparece en búsquedas, DICOMweb ni pedidos.
+- Cambiar el modo de uso avisa qué pasa con los estudios.
+
 ## 0.99.27 — base personal y compartida
 - Ubicaciones ▸ Base: todo lo que veo, mi base, compartida y compartidas conmigo; el administrador ve
   también la base de cada usuario. Columna "Base" en la lista.

@@ -23,6 +23,8 @@ ACTIONS = {"login": "Entrou", "logout": "Saiu", "abrir": "Abriu exame", "exporta
            "importar": "Importou", "upload": "Enviou ao servidor",
            "abriu_exame_pessoal": "Abriu exame pessoal de outro", "viu_banco_de": "Abriu o banco pessoal de",
            "moveu_banco": "Mudou o banco do exame", "transferiu_banco": "Passou um banco pessoal",
+           "trouxe_do_servidor": "Trouxe exames do servidor", "enviou_ao_servidor": "Enviou exames ao servidor",
+           "retirou_do_servidor": "Tirou exame do servidor (levado para o computador)",
            "login_pelo_sistema": "Entrou pela conta do sistema"}
 
 

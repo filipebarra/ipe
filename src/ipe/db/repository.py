@@ -368,6 +368,21 @@ class Repository:
                 n += 1
         return n
 
+    # ------------------------------------------------------------------ dados do exame (0.99.28)
+    def dados_do_exame(self, study_uid: str) -> dict:
+        """Laudos, medidas, imagens-chave… do exame, para levar junto com as imagens (db/pacote.py)."""
+        from ipe.db import pacote
+        return pacote.exportar(self.db, study_uid)
+
+    def receber_dados_do_exame(self, pacote_: dict, escopo: bool = True) -> dict:
+        from ipe.db import pacote
+        return pacote.importar(self.db, pacote_, escopo=escopo)
+
+    def nomes_de_usuarios(self) -> list[str]:
+        """Usuários ativos (só o nome), para "Compartilhar com…" — não precisa da permissão de usuários."""
+        with self.db.session() as s:
+            return sorted(s.scalars(select(User.username).where(User.active.is_(True))), key=str.lower)
+
     def find_study_uids(self, *, accession: str = "", study_uid: str = "",
                         patient_id: str = "") -> list[str]:
         """Usado pela chamada externa (--accession etc.)."""

@@ -19,7 +19,7 @@ from ipe.ui.tabelas import colunas_ajustaveis
 
 # ícone de cada tipo de local (os do próprio sistema, para ficar igual ao Windows/Linux do usuário)
 ICON = {"default": QStyle.SP_ComputerIcon, "external": QStyle.SP_DriveHDIcon,
-        "network": QStyle.SP_DriveNetIcon, "folder": QStyle.SP_DirIcon}
+        "network": QStyle.SP_DriveNetIcon, "folder": QStyle.SP_DirIcon, "central": QStyle.SP_DriveNetIcon}
 
 
 class LocationsPanel(QWidget):
@@ -31,6 +31,7 @@ class LocationsPanel(QWidget):
     add_requested = Signal()               # pediu para acrescentar um local
     rescan_requested = Signal(str)         # id do local: procurar exames novos na pasta
     banco_chosen = Signal(str)             # 0.99.27: visivel | meu | compartilhado | comigo | usuario:<nome>
+    enviar_ao_servidor_requested = Signal(str)   # 0.99.28: id do local cujo banco vai para o servidor central
 
     def __init__(self, settings, paths, repo=None, parent=None):
         super().__init__(parent)
@@ -238,7 +239,15 @@ class LocationsPanel(QWidget):
             return
         m = QMenu(self)
         m.addAction("Usar este local").triggered.connect(lambda: self._clicked(it, 0))
+        if loc.is_central:
+            m.exec(self.tree.viewport().mapToGlobal(pos))
+            return
         m.addAction("Abrir a pasta").triggered.connect(lambda: self._open_folder(loc))
+        if self._cliente():
+            a = m.addAction("Enviar este banco ao servidor central…")
+            a.setToolTip("Leva os exames deste local (com laudos, medidas e anotações) para o servidor do grupo. "
+                         "Nada é apagado daqui.")
+            a.triggered.connect(lambda: self.enviar_ao_servidor_requested.emit(loc.id))
         m.addSeparator()
         if not loc.is_default:
             m.addAction("Renomear…").triggered.connect(lambda: self._rename(loc))
@@ -260,7 +269,13 @@ class LocationsPanel(QWidget):
         m.addAction("Mostrar este banco").triggered.connect(lambda: self.banco_chosen.emit(chave))
         novos = m.addMenu("Exames que eu importo ou baixo vão para")
         atual = str(self.settings.get(B.CHAVE_NOVOS, "compartilhado") or "compartilhado") if self.settings else ""
-        for valor, nome in (("compartilhado", "o compartilhado"), ("meu", "o meu banco")):
+        opcoes = [("compartilhado", "o compartilhado"), ("meu", "o meu banco")]
+        if self._cliente():                   # 0.99.28: o banco pessoal pode ficar no servidor ou aqui
+            opcoes = [("compartilhado", "o compartilhado (no servidor)"), ("meu", "o meu banco no servidor"),
+                      ("computador", "o meu banco neste computador")]
+        elif atual == "computador":
+            atual = "meu"
+        for valor, nome in opcoes:
             a = novos.addAction(nome, lambda val=valor: self._novos(val))
             a.setCheckable(True)
             a.setChecked(atual == valor)
@@ -273,6 +288,9 @@ class LocationsPanel(QWidget):
                 if u["active"] and u["username"].lower() != de.lower():
                     sub.addAction(u["username"], lambda n=u["username"]: self.transferir(de, n))
         return m
+
+    def _cliente(self) -> bool:
+        return self.settings is not None and str(self.settings.get("central.mode", "local") or "") == "client"
 
     def _novos(self, valor: str) -> None:
         from ipe.db import banco as B

@@ -120,8 +120,9 @@ class RemoteClient:
                 r.close()
         return self._retry(call)
 
-    def store(self, files: list[str | Path], progress=None, batch_mb: int = 64) -> dict:
-        """STOW-RS em lotes; devolve o total recebido e os estudos."""
+    def store(self, files: list[str | Path], progress=None, batch_mb: int = 64, banco: str = "") -> dict:
+        """STOW-RS em lotes; devolve o total recebido e os estudos. `banco="meu"`: exame novo entra no
+        banco pessoal de quem manda (0.99.28)."""
         done, studies, errors = 0, set(), 0
         batch: list[Path] = []
         size = 0
@@ -133,7 +134,10 @@ class RemoteClient:
             boundary = DW.new_boundary()
             body = b"".join(DW.multipart_iter(batch, boundary))
             ctype = f'multipart/related; type="application/dicom"; boundary={boundary}'
-            with self._open("/dicomweb/studies", body, {"Content-Type": ctype}, "POST",
+            h = {"Content-Type": ctype}
+            if banco:
+                h["X-Ipe-Banco"] = banco
+            with self._open("/dicomweb/studies", body, h, "POST",
                             timeout=max(self.timeout, 300)) as r:
                 res = json.loads(r.read())
             done += len(batch)

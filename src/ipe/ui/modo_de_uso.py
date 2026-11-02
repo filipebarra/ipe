@@ -196,7 +196,20 @@ class ModoDeUsoDialog(QDialog):
             verificar_tls=self.cb_tls.isChecked() if m == "cliente" else None)
         return True
 
+    def aviso(self) -> str:
+        """0.99.28: o que acontece com os exames nesta troca de modo."""
+        donos = {}
+        try:
+            donos = self.repo.donos_de_exames() if self.repo is not None else {}
+        except Exception:  # noqa: BLE001
+            donos = {}
+        return MODO.aviso_da_troca(MODO.modo_atual(self.settings), self.escolhido(), donos)
+
     def _ok(self) -> None:
+        aviso = "" if self.primeiro_uso else self.aviso()
+        if aviso and QMessageBox.question(self, "Modo de uso", aviso + "\n\nTrocar o modo?",
+                                          QMessageBox.Yes | QMessageBox.No) != QMessageBox.Yes:
+            return
         if not self.aplicar():
             return
         if self.reabrir and not self.primeiro_uso:

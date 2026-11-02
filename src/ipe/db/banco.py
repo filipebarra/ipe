@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 AVISO_LOCAL = ("No mesmo computador, “pessoal” esconde o exame dentro do programa, mas os arquivos continuam "
                "na pasta do banco: quem abrir a pasta pelo sistema vê as imagens.")
-CHAVE_NOVOS = "browser.novos_no_banco"          # "compartilhado" | "meu" (preferência de cada usuário)
+CHAVE_NOVOS = "browser.novos_no_banco"          # "compartilhado" | "meu" | "computador" (cada usuário)
 BANCOS = {"visivel": "Tudo o que vejo", "meu": "Meu banco", "compartilhado": "Compartilhado",
           "comigo": "Compartilhados comigo"}
 
@@ -52,7 +52,16 @@ def dono_dos_novos(settings) -> str:
         escolha = str(settings.get(CHAVE_NOVOS, "compartilhado") or "compartilhado")
     except Exception:  # noqa: BLE001
         escolha = "compartilhado"
-    return v.usuario if escolha == "meu" else ""
+    return v.usuario if escolha in ("meu", "computador") else ""
+
+
+def fica_neste_computador(settings) -> bool:
+    """0.99.28, modo cliente: o que eu importo vai para o meu banco **neste computador** (não sobe)."""
+    try:
+        return (str(settings.get("central.mode", "local") or "") == "client"
+                and str(settings.get(CHAVE_NOVOS, "") or "") == "computador")
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def marcar_novos(repo, study_uids, dono: str) -> int:

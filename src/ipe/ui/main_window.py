@@ -47,8 +47,15 @@ class MainWindow(QMainWindow):
         from ipe.core import locations as LOC
         # local ativo: o banco deste computador ou a pasta escolhida (HD externo, rede…)
         self.location = LOC.current(settings, paths)
+        if getattr(repo, "remote", False):      # 0.99.28: modo cliente abre sempre no servidor do grupo
+            self.location = LOC.central_location(settings, paths) or self.location
+            LOC.set_current(settings, self.location.id)
+        elif self.location.is_central:
+            self.location = LOC.default_location(paths)
         self.db = db or Database(paths.database if self.location.is_default else self.location.database)
         self.repo = repo or Repository(self.db)
+        # o servidor do grupo (cache + RPC), para voltar a ele depois de abrir um banco deste computador
+        self._central = (self.db, self.repo, storage) if getattr(self.repo, "remote", False) else None
         self.auth = auth
         self.storage = Path(storage) if storage is not None else (
             paths.storage if self.location.is_default else self.location.storage)
@@ -76,6 +83,7 @@ class MainWindow(QMainWindow):
         self.tabs.setDocumentMode(True)
         self.tabs.tabCloseRequested.connect(self._close_tab)
         self.browser = Browser(self.repo, self.storage, settings=settings)
+        self.browser.acoes_extras_banco = self.acoes_do_servidor          # 0.99.28
         self.browser.open_study.connect(self.open_from_browser)
         self.browser.compare_studies.connect(self.open_comparison)
         self.browser.open_series.connect(self.open_study)
@@ -172,6 +180,7 @@ class MainWindow(QMainWindow):
         self.locations.rescan_requested.connect(self.rescan_location)
         self.locations.pacs_chosen.connect(self.open_pacs_node)
         self.locations.banco_chosen.connect(self.escolher_banco)                 # 0.99.27
+        self.locations.enviar_ao_servidor_requested.connect(self.enviar_local_ao_servidor)   # 0.99.28
         self.browser.status_message.connect(lambda t: self.statusBar().showMessage(t, 10000))
         self.locations.move_default_requested.connect(self.move_default_database)
         self.browser.series_changed.connect(self._series_changed)
@@ -2298,6 +2307,8 @@ class MainWindow(QMainWindow):
         loc = LOC.find(self.settings, self.paths, str(loc_id))
         if loc is None or loc.id == self.location.id:
             return False
+        if loc.is_central and self._central is None:
+            return False
         if not loc.online():
             QMessageBox.information(self, "Local fora do ar",
                                     f"A pasta não está acessível agora:\n{loc.path}")
@@ -2318,6 +2329,16 @@ class MainWindow(QMainWindow):
             self.tabs.removeTab(i)
         self.cache.clear()
         antigo = self.db
+        if loc.is_central:                      # 0.99.28: de volta ao servidor do grupo
+            cdb, crepo, cstorage = self._central
+            self.location = loc
+            LOC.set_current(self.settings, loc.id)
+            self.settings.save()
+            self._use_database(cdb, cstorage, Path(cstorage).parent / "Lixeira", repo=crepo)
+            self.statusBar().showMessage(f"Local: {loc.name}", 6000)
+            if antigo is not None and antigo is not cdb:
+                antigo.close()
+            return True
         try:
             db = Database(self.paths.database if loc.is_default else loc.database)
         except Exception as e:  # noqa: BLE001
@@ -2329,14 +2350,14 @@ class MainWindow(QMainWindow):
         self._use_database(db, self.paths.storage if loc.is_default else loc.storage,
                            (self.paths.data if loc.is_default else loc.path) / "Lixeira")
         self.statusBar().showMessage(f"Local: {loc.name}", 6000)
-        if antigo is not None and antigo is not db:
+        if antigo is not None and antigo is not db and (self._central is None or antigo is not self._central[0]):
             antigo.close()
         return True
 
-    def _use_database(self, db, storage, trash_root) -> None:
+    def _use_database(self, db, storage, trash_root, repo=None) -> None:
         """Passa a usar este banco: religa a lista, a rede, o PACS, a automação e a sincronização."""
         self.db = db
-        self.repo = Repository(db)
+        self.repo = repo if repo is not None else Repository(db)
         self.storage = Path(storage)
         self.storage.mkdir(parents=True, exist_ok=True)
         self.browser.set_source(self.repo, self.storage)
@@ -2448,6 +2469,12 @@ class MainWindow(QMainWindow):
         if loc is None or not loc.online():
             QMessageBox.information(self, "Local", "O local de destino não está acessível agora.")
             return
+        if loc.is_central:                       # 0.99.28: daqui para o servidor do grupo
+            self.enviar_ao_servidor(study_uids)
+            return
+        if self.location.is_central:             # 0.99.28: do servidor para um banco deste computador
+            self.trazer_do_servidor(study_uids, loc)
+            return
         arquivos: list[Path] = []
         for uid in study_uids:
             arquivos += [Path(f) for f in self.repo.files_for_study(uid)]
@@ -2482,6 +2509,180 @@ class MainWindow(QMainWindow):
                 alvo.close()
         self.statusBar().showMessage(
             f"{res.added} imagem(ns) copiada(s) para “{loc.name}”; {res.duplicates} já existiam.", 10000)
+
+    # ------------------------------------------------------------ servidor ⇄ este computador (0.99.28)
+    def _em_segundo_plano(self, titulo: str, fn):
+        """Roda fn(progress, cancel) numa linha à parte, com barra de progresso; devolve o resultado."""
+        import threading
+
+        from PySide6.QtCore import QObject, Signal as _Sig
+
+        class _B(QObject):
+            prog = _Sig(int, int, str)
+        b = _B()
+        dlg = QProgressDialog(titulo + "…", "Cancelar", 0, 0, self)
+        dlg.setWindowTitle(titulo)
+        dlg.setWindowModality(Qt.WindowModal)
+        dlg.setMinimumDuration(300)
+        parar = threading.Event()
+        dlg.canceled.connect(parar.set)
+        b.prog.connect(lambda i, n, _t: (dlg.setMaximum(n), dlg.setValue(i),
+                                         dlg.setLabelText(f"{titulo}… exame {i + 1} de {n}")))
+        estado: dict = {}
+
+        def trabalho():
+            try:
+                estado["res"] = fn(b.prog.emit, parar.is_set)
+            except Exception as e:  # noqa: BLE001
+                log.exception(titulo)
+                estado["res"] = e
+        th = threading.Thread(target=trabalho, daemon=True)
+        th.start()
+        while th.is_alive():
+            QApplication.processEvents()
+            th.join(0.03)
+        QApplication.processEvents()
+        dlg.close()
+        return estado.get("res")
+
+    def _fim_da_transferencia(self, titulo: str, res, verbo: str) -> None:
+        if isinstance(res, Exception) or res is None:
+            QMessageBox.warning(self, titulo, f"Não foi possível terminar:\n{res}")
+            return
+        texto = res.resumo(verbo)
+        self.statusBar().showMessage(texto, 15000)
+        if res.recusados or res.erros:
+            QMessageBox.information(self, titulo, texto)
+        self.browser.refresh()
+        self.locations.rebuild()
+
+    def trazer_do_servidor(self, study_uids: list[str], loc=None, mover: bool = False):
+        """Do servidor do grupo para o banco deste computador (ou outro local), no meu banco pessoal."""
+        from ipe.auth import session as S
+        from ipe.central import transferir as T
+        from ipe.core import locations as LOC
+        if self._central is None:
+            return None
+        loc = loc or LOC.default_location(self.paths)
+        cliente = self._central[1]
+        destino = Database(self.paths.database if loc.is_default else loc.database)
+        storage = self.paths.storage if loc.is_default else loc.storage
+        titulo = "Mover para este computador" if mover else "Copiar para este computador"
+        try:
+            res = self._em_segundo_plano(titulo, lambda prog, cancel: T.trazer(
+                cliente, list(study_uids), destino, storage, S.get().username, mover=mover,
+                progress=prog, cancel=cancel))
+        finally:
+            destino.close()
+        try:
+            S.audit(self.repo, "trouxe_do_servidor", f"{getattr(res, 'exames', 0)} exame(s) para {loc.name}"
+                    + (" (tirados do servidor)" if mover else ""))
+        except Exception:  # noqa: BLE001
+            pass
+        self._fim_da_transferencia(titulo, res, "no " + loc.name)
+        return res
+
+    def _perguntar_banco_do_envio(self, n: int, como_estao: bool = False):
+        """Compartilhado ou o meu banco no servidor? None = cancelou. `como_estao` (administrador):
+        cada exame no banco em que estava aqui."""
+        caixa = QMessageBox(self)
+        caixa.setWindowTitle("Enviar ao servidor central")
+        caixa.setText(f"Enviar {n} exame(s) ao servidor do grupo, com laudos, medidas e anotações.\n\n"
+                      "Em qual banco do servidor eles ficam?")
+        b_meu = caixa.addButton("No meu banco (pessoal)", QMessageBox.AcceptRole)
+        b_comp = caixa.addButton("No compartilhado", QMessageBox.AcceptRole)
+        b_igual = caixa.addButton("Como estão aqui", QMessageBox.AcceptRole) if como_estao else None
+        caixa.addButton("Cancelar", QMessageBox.RejectRole)
+        caixa.exec()
+        if b_igual is not None and caixa.clickedButton() is b_igual:
+            return "como_estao"
+        if caixa.clickedButton() is b_meu:
+            return True
+        if caixa.clickedButton() is b_comp:
+            return False
+        return None
+
+    def enviar_ao_servidor(self, study_uids: list[str], origem=None, meu: bool | None = None):
+        """De um banco deste computador (ou do local aberto) para o servidor do grupo."""
+        from ipe.auth import session as S
+        from ipe.central import transferir as T
+        if self._central is None:
+            return None
+        origem = origem or self.repo
+        if getattr(origem, "remote", False):
+            return None
+        if meu is None:
+            meu = self._perguntar_banco_do_envio(len(study_uids))
+            if meu is None:
+                return None
+        client = self._central[1].client
+        res = self._em_segundo_plano("Enviar ao servidor central", lambda prog, cancel: T.enviar(
+            client, origem, list(study_uids), meu, S.get().username, progress=prog, cancel=cancel))
+        try:
+            S.audit(self._central[1], "enviou_ao_servidor", f"{getattr(res, 'exames', 0)} exame(s) para o "
+                    + ("banco de cada dono" if meu == "como_estao" else "banco pessoal" if meu else "compartilhado"))
+        except Exception:  # noqa: BLE001
+            pass
+        self._fim_da_transferencia("Enviar ao servidor central", res, "no servidor")
+        return res
+
+    def enviar_local_ao_servidor(self, loc_id: str):
+        """Locais ▸ botão direito ▸ Enviar este banco ao servidor central (migração do banco local)."""
+        from ipe.core import locations as LOC
+        loc = LOC.find(self.settings, self.paths, str(loc_id))
+        if loc is None or loc.is_central or self._central is None or not loc.online():
+            return None
+        db = self.db if loc.id == self.location.id else Database(self.paths.database if loc.is_default
+                                                                 else loc.database)
+        try:
+            from ipe.auth import visibilidade as V
+            repo = Repository(db)
+            v = V.visao_atual()
+            admin = v is None or v.admin            # o administrador leva o banco inteiro; os outros, o que veem
+            uids = [r.study_uid for r in repo.search_studies(limit=10_000_000,
+                                                             banco="todos" if admin else "visivel")]
+            if not uids:
+                QMessageBox.information(self, "Enviar ao servidor central", f"“{loc.name}” não tem exames.")
+                return None
+            meu = self._perguntar_banco_do_envio(len(uids), como_estao=admin)
+            if meu is None:
+                return None
+            return self.enviar_ao_servidor(uids, origem=repo, meu=meu)
+        finally:
+            if db is not self.db:
+                db.close()
+
+    def _novos_para_este_computador(self, uids) -> set:
+        """Importados no modo cliente com "o meu banco neste computador": do cache para o banco daqui."""
+        from ipe.auth import session as S
+        from ipe.central import transferir as T
+        destino = Database(self.paths.database)
+        try:
+            res = T.do_cache_para_este_computador(self._central[1], sorted(uids), destino, self.paths.storage,
+                                                  S.get().username)
+        finally:
+            destino.close()
+        if res.erros:
+            log.warning("importados para este computador: %s", res.erros)
+        return set(res.feitos)
+
+    def acoes_do_servidor(self, sub, rows) -> None:
+        """Botão direito ▸ Banco, no modo cliente: levar exames entre o servidor e este computador."""
+        from ipe.auth import visibilidade as V
+        if self._central is None or not rows:
+            return
+        uids = [r.study_uid for r in rows]
+        sub.addSeparator()
+        if self.location.is_central:
+            sub.addAction("Copiar para este computador", lambda: self.trazer_do_servidor(uids))
+            v = V.visao_atual()
+            a = sub.addAction("Mover para este computador (sai do servidor)",
+                              lambda: self.trazer_do_servidor(uids, mover=True))
+            a.setEnabled(v is None or v.admin or all((r.dono or "").lower() == v.usuario.lower() for r in rows))
+            a.setToolTip("Para o banco pessoal que funciona sem rede. Só o dono (ou o administrador) tira o "
+                         "exame do servidor.")
+        else:
+            sub.addAction("Enviar ao servidor central…", lambda: self.enviar_ao_servidor(uids))
 
     def add_location(self) -> None:
         """Acrescenta uma pasta como local: HD externo, pasta de rede ou outra pasta do PC."""
@@ -2971,11 +3172,16 @@ class MainWindow(QMainWindow):
             self._import_dialog.close()
             self._import_dialog = None
         from ipe.db import banco as B                    # 0.99.27: "Exames que eu trago vão para"
-        B.marcar_novos(self.repo, getattr(result, "new_studies", set()) or set(), B.dono_dos_novos(self.settings))
+        novos = set(getattr(result, "new_studies", set()) or set())
+        aqui: set = set()
+        if novos and self._central is not None and self.repo is self._central[1] and B.fica_neste_computador(self.settings):
+            aqui = self._novos_para_este_computador(novos)        # 0.99.28: não sobem ao servidor
+        B.marcar_novos(self.repo, novos - aqui, B.dono_dos_novos(self.settings))
         self.browser.refresh()
-        self.statusBar().showMessage(result.summary(), 15000)
+        self.statusBar().showMessage(result.summary() + (f" {len(aqui)} exame(s) no meu banco deste computador."
+                                                         if aqui else ""), 15000)
         from ipe.central.client_repo import upload_if_client
-        for uid in getattr(result, "studies", set()) or set():
+        for uid in (getattr(result, "studies", set()) or set()) - aqui:
             upload_if_client(self.repo, uid)
         try:                       # 0.99.1: implante e segmentação automáticos também na importação
             self.auto.cad_ia_importados(result)

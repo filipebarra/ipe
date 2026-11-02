@@ -671,9 +671,22 @@ class Browser(QWidget):
         a.setEnabled(pode and (meus or v.admin))
         if v.admin:
             outros = sub.addMenu("Passar para o banco de")
-            for u in self.repo.users():
-                if u["active"] and u["username"].lower() != eu:
-                    outros.addAction(u["username"], lambda n=u["username"]: self.mover_banco(uids, n, ""))
+            for n in self._nomes_de_usuarios():
+                if n.lower() != eu:
+                    outros.addAction(n, lambda n=n: self.mover_banco(uids, n, ""))
+        extra = getattr(self, "acoes_extras_banco", None)       # 0.99.28: servidor ⇄ este computador
+        if extra is not None:
+            extra(sub, rows)
+
+    def _nomes_de_usuarios(self) -> list[str]:
+        """Os usuários ativos (no modo cliente vem do servidor, sem pedir a permissão de usuários)."""
+        try:
+            return list(self.repo.nomes_de_usuarios())
+        except Exception:  # noqa: BLE001
+            try:
+                return [u["username"] for u in self.repo.users() if u["active"]]
+            except Exception:  # noqa: BLE001
+                return []
 
     def mover_banco(self, uids, dono: str, visivel_para: str = "") -> int:
         from ipe.auth import session as S
@@ -694,7 +707,7 @@ class Browser(QWidget):
         from ipe.ui.visivel_para import EscolherUsuarios
         v = V.visao_atual()
         dono = rows[0].dono or (v.usuario if v else "")
-        nomes = [u["username"] for u in self.repo.users() if u["active"] and u["username"].lower() != dono.lower()]
+        nomes = [n for n in self._nomes_de_usuarios() if n.lower() != dono.lower()]
         d = EscolherUsuarios(nomes, V.lista(rows[0].visivel_para), self)
         if d.exec():
             self.mover_banco([r.study_uid for r in rows], dono, ",".join(d.escolhidos()))

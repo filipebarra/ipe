@@ -1208,6 +1208,17 @@ Com várias pessoas (ou servidor), o painel **Locais** ganha o grupo **Banco**: 
 - **Atenção**: no mesmo computador, "pessoal" esconde o exame **dentro do programa**, mas os arquivos continuam na pasta do banco — quem abrir a pasta pelo sistema vê as imagens. Sigilo de verdade só no modo servidor.
 - A coluna **Banco** da lista (Colunas ▾) mostra de que banco é cada exame.
 
+### Banco pessoal no servidor ou neste computador
+
+No **modo cliente** o painel **Locais** mostra o **Servidor central** (onde a janela abre) e o **Banco deste computador**. Um clique troca: o banco deste computador abre **sem o servidor** — sem internet, intranet ou VPN — e serve de banco de casos.
+
+- **Botão direito no exame ▸ Banco**, olhando o servidor: *Copiar para este computador* (fica nos dois) e *Mover para este computador* (sai do servidor — só o dono ou o administrador; exame com cadeado fica copiado). Olhando este computador: *Enviar ao servidor central…*, no seu banco pessoal ou no compartilhado.
+- **Laudos, medidas, anotações, imagens-chave, comentários, etiquetas e o diagnóstico vão junto**, sem apagar o que já existe do outro lado. Ficam de fora as lesões acompanhadas (são do paciente), as listas de casos e os filmes.
+- **Exames que eu importo ou baixo vão para** ganha, no modo cliente, *o meu banco neste computador*: o que você importa vai direto para cá e **não sobe** ao servidor. *O meu banco no servidor* sobe já marcado como seu. (O que vem do PACS no modo cliente vai para o servidor.)
+- **Levar um banco inteiro ao servidor** (o computador que passou a ser cliente): botão direito no local (este computador, um HD externo…) **▸ Enviar este banco ao servidor central…**. O administrador pode mandar *como estão*: cada exame no banco do dono. Nada é apagado daqui.
+- **O servidor confere tudo**: exame do banco pessoal de outro não aparece na busca (nem pelo DICOMweb) e não é entregue a quem pede; tirar do compartilhado pede a permissão de configurar; pôr no banco de outro, só o administrador.
+- **Trocar o modo de uso** não apaga nem copia exame: o programa avisa o que muda (por exemplo, de "várias pessoas" para "só eu", os exames pessoais passam a aparecer para quem usar o computador — e voltam a ser pessoais se voltar).
+
 ## Usuários e permissões
 
 Botão **Usuários**. Quatro perfis de fábrica — Administrador, Médico, Residente e Técnico — e a tabela de permissões de cada perfil é editável pelo administrador.

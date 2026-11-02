@@ -38,6 +38,19 @@ RPC_METHODS: dict[str, str] = {
     "users": "users", "user_count": "users", "save_user": "users", "set_password": "users",
     "delete_user": "users", "access_log": "users", "set_app_setting": "users", "get_app_setting": "",
     "audit": "",
+    # 0.99.28: banco pessoal × compartilhado no servidor (as regras de quem pode o quê ficam no servidor)
+    "set_study_scope": "view", "donos_de_exames": "users", "transferir_banco": "users",
+    "nomes_de_usuarios": "", "dados_do_exame": "view", "receber_dados_do_exame": "import",
+    "retirar_do_servidor": "view",
+}
+
+# 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame
+# (o dono, quem ele escolheu, o compartilhado ou o administrador)
+POR_EXAME = {
+    "study_info", "series_for_study", "other_studies_same_patient", "files_for_study", "sop_uids_for_study",
+    "comments", "mark_opened", "key_images", "key_image_set", "toggle_key_image", "count_annotations",
+    "series_groups", "save_series_group", "reports", "lists_of_study", "set_locked", "delete_study",
+    "dados_do_exame", "retirar_do_servidor",
 }
 
 # métodos cujo argumento de caminho é do servidor (o cliente não manda)

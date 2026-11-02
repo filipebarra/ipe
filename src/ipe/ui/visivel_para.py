@@ -81,7 +81,11 @@ class VisivelPara(QWidget):
             return []
         try:
             eu = (self.dono or (self.visao.usuario if self.visao else "")).lower()
-            return [u["username"] for u in self.repo.users() if u["active"] and u["username"].lower() != eu]
+            try:
+                nomes = list(self.repo.nomes_de_usuarios())
+            except Exception:  # noqa: BLE001
+                nomes = [u["username"] for u in self.repo.users() if u["active"]]
+            return [n for n in nomes if n.lower() != eu]
         except Exception:  # noqa: BLE001
             return []
 
