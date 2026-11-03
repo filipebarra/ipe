@@ -90,7 +90,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: pacotes
-      - name: Notas (a entrada do CHANGELOG.en.md desta versão — 0.99.33: o release sai em inglês)
+      - name: Notas (a entrada do CHANGELOG.en.md desta versão; desde a 0.99.33 o release sai em inglês)
         id: n
         run: |
           V=$(python3 -c "import re;print(re.search(r'__version__ = \"(.+?)\"', open('src/ipe/__init__.py').read()).group(1))")
