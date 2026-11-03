@@ -392,8 +392,16 @@ class TemplatesDialog(QDialog):
 
 
 # ======================================================================== janela do laudo
+def _soltar(repo, study_uid: str) -> None:
+    try:
+        repo.leitura_terminar(study_uid)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 class ReportWindow(QWidget):
     saved = Signal(str)            # study_uid
+    assinado = Signal(str)         # study_uid (0.99.31)
 
     def __init__(self, repo, study_uid: str, settings=None, tab=None, parent=None):
         super().__init__(parent, Qt.Window)
@@ -510,7 +518,12 @@ class ReportWindow(QWidget):
         lay.addLayout(opts)
         lay.addLayout(chk)
         lay.addLayout(btns)
+        self.so_leitura = ""                 # 0.99.31: quem está laudando (quando não sou eu)
         self.load()
+        self._comecar_leitura()
+        # janela destruída sem fechar (a aba do exame fechou): solta a trava do mesmo jeito
+        self.destroyed.connect(lambda *_a, r=repo, u=study_uid, me=self.__dict__: (
+            None if me.get("so_leitura") else _soltar(r, u)))
 
     # ------------------------------------------------------------ utilidades
     def _setting(self, key: str, default=None):
@@ -579,7 +592,67 @@ class ReportWindow(QWidget):
             return
         self.load(self.versions.currentData())
 
+    # ------------------------------------------------------------ trava de leitura (0.99.31, onda A1)
+    def _comecar_leitura(self) -> None:
+        """No servidor central, quem abre o laudo vira "quem está laudando" até fechar."""
+        from PySide6.QtCore import QTimer
+        try:
+            r = self.repo.leitura_comecar(self.study_uid) or {"ok": True}
+        except Exception:  # noqa: BLE001
+            r = {"ok": True}
+        if not r.get("ok"):
+            if self.perguntar_leitura(r) == "assumir":
+                try:
+                    self.repo.leitura_comecar(self.study_uid, True)
+                except Exception:  # noqa: BLE001
+                    pass
+            else:
+                self.so_leitura = f"{r.get('de', '?')} está laudando este exame desde {r.get('desde', '?')}"
+        self._update_state()
+        if not self.so_leitura and getattr(self.repo, "remote", False):
+            self._t_leitura = QTimer(self)
+            self._t_leitura.setInterval(120_000)
+            self._t_leitura.timeout.connect(self._manter_leitura)
+            self._t_leitura.start()
+
+    def perguntar_leitura(self, r: dict) -> str:
+        caixa = QMessageBox(self)
+        caixa.setWindowTitle("Laudo em andamento")
+        caixa.setText(f"{r.get('de', 'Outro médico')} está laudando este exame desde {r.get('desde', '?')}.")
+        caixa.setInformativeText("Abrir só para ler, ou assumir o laudo? Assumir fica no registro de acesso, e "
+                                 "o outro não consegue mais gravar.")
+        b_ler = caixa.addButton("Só ler", QMessageBox.RejectRole)
+        caixa.addButton("Assumir o laudo", QMessageBox.AcceptRole)
+        caixa.setDefaultButton(b_ler)
+        caixa.exec()
+        return "ler" if caixa.clickedButton() is b_ler else "assumir"
+
+    def _manter_leitura(self) -> None:
+        try:
+            self.repo.leitura_manter([self.study_uid])
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _terminar_leitura(self) -> None:
+        t = getattr(self, "_t_leitura", None)
+        if t is not None:
+            t.stop()
+        if self.so_leitura:
+            return
+        try:
+            self.repo.leitura_terminar(self.study_uid)
+        except Exception:  # noqa: BLE001
+            pass
+
     def _update_state(self) -> None:
+        if getattr(self, "so_leitura", ""):
+            for w in (self.editor, self.title):
+                w.setReadOnly(True)
+            for w in (self.birads, self.b_save, self.b_sign):
+                w.setEnabled(False)
+            self.b_amend.setVisible(False)
+            self.status.setText(f"Só leitura: {self.so_leitura}.")
+            return
         final = self.report.get("status") in ("final", "amended")
         self.editor.setReadOnly(final)
         self.title.setReadOnly(final)
@@ -711,7 +784,7 @@ class ReportWindow(QWidget):
                 "fields": self.birads.fields(), "author": auth.get().full_name or auth.get().username}
 
     def save_draft(self, notify: bool = False) -> bool:
-        if self.report.get("status") in ("final", "amended"):
+        if self.report.get("status") in ("final", "amended") or getattr(self, "so_leitura", ""):
             return True
         if not auth.require("report", self, "escrever laudos"):
             return False
@@ -836,6 +909,15 @@ class ReportWindow(QWidget):
         self.load(rep["id"])
         self.status.setText("Laudo assinado. " + "; ".join(msgs))
         self.saved.emit(self.study_uid)
+        self.assinado.emit(self.study_uid)
+        if self._setting("viewer.fechar_ao_assinar", False):     # 0.99.31 (onda A8)
+            from PySide6.QtCore import QTimer
+            from PySide6.QtWidgets import QApplication
+            for w in QApplication.topLevelWidgets():
+                if hasattr(w, "fechar_exame") and hasattr(w, "detached"):
+                    QTimer.singleShot(0, lambda w=w, u=self.study_uid: w.fechar_exame(u, "laudo assinado"))
+                    break
+            QTimer.singleShot(0, self.close)
 
     def store_dicom(self, rep: dict) -> int:
         from ipe.reporting import dicom_out as D
@@ -887,6 +969,7 @@ class ReportWindow(QWidget):
 
     def closeEvent(self, e) -> None:  # noqa: N802
         if self._dirty and self.report.get("status") == "draft" and self.editor.toPlainText().strip():
-            if auth.can("report"):
+            if auth.can("report") and not self.so_leitura:
                 self.save_draft()
+        self._terminar_leitura()
         super().closeEvent(e)

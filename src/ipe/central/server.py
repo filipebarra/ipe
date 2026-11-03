@@ -52,6 +52,8 @@ class CentralServer:
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
         self.on_import = None            # chamado com a lista de estudos recebidos por STOW
+        from ipe.central.leituras import Leituras
+        self.leituras = Leituras()       # 0.99.31: quem está laudando cada exame
 
     # ------------------------------------------------------------------ ciclo de vida
     @property
@@ -165,6 +167,32 @@ class CentralServer:
             raise PermissionError(f"método não permitido: {method}")
         if need and not s.can(need):
             raise PermissionError(f"seu perfil não permite ({need})")
+        # 0.99.31 (onda A1): trava de leitura do laudo
+        if method == "leitura_comecar":
+            uid = args[0] if args else kwargs.get("study_uid", "")
+            forcar = bool(args[1] if len(args) > 1 else kwargs.get("forcar", False))
+            if not self.pode_ver(s, uid):
+                raise PermissionError("o exame está no banco pessoal de outro usuário")
+            r = self.leituras.comecar(uid, s.username, s.full_name, forcar)
+            if r.get("assumiu_de"):
+                self.repo.audit("assumiu_laudo", f"o laudo estava com {r['assumiu_de']}", user=s.username,
+                                study_uid=uid, host=client_host)
+            return r
+        if method == "leitura_manter":
+            return self.leituras.manter(args[0] if args else kwargs.get("study_uids", []), s.username)
+        if method == "leitura_terminar":
+            return self.leituras.terminar(args[0] if args else kwargs.get("study_uid", ""), s.username)
+        if method == "leituras_ativas":
+            return self.leituras.ativas()
+        if method in ("save_report", "sign_report", "delete_report"):
+            if method == "save_report":
+                uid = str(((args[0] if args else kwargs.get("data")) or {}).get("study_uid", ""))
+            else:
+                rep = self.repo.report(args[0] if args else kwargs.get("report_id"))
+                uid = (rep or {}).get("study_uid", "")
+            motivo = self.leituras.bloqueia(uid, s.username) if uid else ""
+            if motivo:
+                raise PermissionError(motivo + " (para gravar, abra o laudo e escolha assumir)")
         if method == "audit":
             action = args[0] if args else kwargs.get("action", "")
             detail = args[1] if len(args) > 1 else kwargs.get("detail", "")
@@ -183,6 +211,8 @@ class CentralServer:
             alvo = str(((args[0] if args else kwargs.get("data")) or {}).get("study_uid", ""))
         elif method == "save_annotation":
             alvo = str(kwargs.get("study_uid", ""))
+        elif method == "delete_instance" and args:
+            alvo = self.repo.study_of_sop(str(args[0]))
         if alvo and not self.pode_ver(s, alvo):
             raise PermissionError("o exame está no banco pessoal de outro usuário")
         if method in POR_LISTA and (args or kwargs.get("list_id") is not None):

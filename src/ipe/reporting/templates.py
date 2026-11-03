@@ -302,6 +302,51 @@ Relatório:
 
 IMPRESSÃO:
 """},
+    # ------------------------------------------------------------ 0.99.31 (onda A9): OIT
+    {"id": "rx_oit", "name": "Radiografia de tórax — Classificação OIT (pneumoconioses)",
+     "modalities": ["CR", "DX"], "keywords": ["oit", "ilo", "pneumoconiose", "silicose", "asbestose",
+                                             "ocupacional", "poeira"],
+     "text": """RADIOGRAFIA DE TÓRAX — CLASSIFICAÇÃO RADIOLÓGICA DA OIT (ILO 2011/2022)
+
+Data do exame: {data_exame}
+Comparação: {comparacao}
+
+1. QUALIDADE TÉCNICA: [ 1 boa | 2 aceitável | 3 baixa qualidade | 4 inaceitável ]
+   Comentário sobre a qualidade:
+
+2A. ALGUMA ANORMALIDADE DE PARÊNQUIMA CONSISTENTE COM PNEUMOCONIOSE? [ sim | não ]
+
+2B. PEQUENAS OPACIDADES
+   a) Forma e tamanho — primária: [ p | q | r | s | t | u ]   secundária: [ p | q | r | s | t | u ]
+   b) Zonas: direita [ superior | média | inferior ]   esquerda [ superior | média | inferior ]
+   c) Profusão (escala de 12 pontos): [ 0/- | 0/0 | 0/1 | 1/0 | 1/1 | 1/2 | 2/1 | 2/2 | 2/3 | 3/2 | 3/3 | 3/+ ]
+
+2C. GRANDES OPACIDADES: [ 0 | A | B | C ]
+
+3A. ALGUMA ANORMALIDADE PLEURAL CONSISTENTE COM PNEUMOCONIOSE? [ sim | não ]
+
+3B. PLACAS PLEURAIS
+   Local (parede de perfil, de frente, diafragma, outros) e calcificação: direita [ ] esquerda [ ]
+   Extensão (parede de perfil): [ 1 até 1/4 | 2 de 1/4 a 1/2 | 3 mais de 1/2 da parede ]
+   Largura (só placas de perfil, mínimo 3 mm): [ a 3–5 mm | b 5–10 mm | c mais de 10 mm ]
+
+3C. OBLITERAÇÃO DO SEIO COSTOFRÊNICO: direita [ ] esquerda [ ]
+
+3D. ESPESSAMENTO PLEURAL DIFUSO
+   Local e calcificação: direita [ ] esquerda [ ]
+   Extensão e largura: como em 3B.
+
+4A. OUTRAS ANORMALIDADES? [ sim | não ]
+
+4B. SÍMBOLOS: [ aa at ax bu ca cg cn co cp cv di ef em es fr hi ho id ih kl me pa pb pi px ra rp tb od ]
+   Comentários:
+
+IMPRESSÃO:
+Classificação OIT: profusão ___ ; forma/tamanho ___ ; grandes opacidades ___ ; pleura ___ .
+
+Leitura conforme a Classificação Internacional de Radiografias de Pneumoconioses da OIT, comparada com as
+radiografias-padrão. Este modelo não substitui o formulário oficial de leitura.
+"""},
 ]
 
 

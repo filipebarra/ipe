@@ -39,7 +39,7 @@ CREDITOS: tuple[Credito, ...] = (
     Credito("Python", "a linguagem do programa", "PSF License", "https://www.python.org"),
     Credito("Qt / PySide6", "a interface: janelas, quadros, menus, rede local",
             "LGPL-3.0 (ou GPL-2.0/3.0)", "https://www.qt.io/qt-for-python",
-            pacotes=("PySide6",), modulos=("PySide6",)),
+            pacotes=("PySide6",), modulos=("PySide6", "shiboken6")),
     Credito("pydicom", "leitura e gravação dos arquivos DICOM", "MIT",
             "https://github.com/pydicom/pydicom", pacotes=("pydicom",), modulos=("pydicom",)),
     Credito("pynetdicom", "rede DICOM: C-ECHO, C-FIND, C-MOVE, C-GET, C-STORE, impressora DICOM", "MIT",

@@ -478,3 +478,40 @@ def tic_analysis(times: list[float], values: list[float]) -> dict:
     else:
         out["summary"] = f"Realce inicial {initial:.0f}% ({out['initial_class']})"
     return out
+
+
+# ---------------------------------------------------------------------- perfil de intensidade (0.99.31)
+def perfil(pixels: np.ndarray, pontos: list[Point], spacing: tuple[float, float] | None = None,
+           passo_px: float = 0.5) -> tuple[np.ndarray, np.ndarray]:
+    """Valores ao longo de uma régua ou polilinha (interpolação bilinear), a cada `passo_px` pixel.
+    Devolve (distância em mm — ou px sem espaçamento —, valor). Onda A4 (ideia da Eden): mostra a
+    transição densitométrica e a parede de uma lesão, que a intensidade num ponto só não mostra."""
+    rs, cs = spacing or (1.0, 1.0)
+    h, w = pixels.shape[:2]
+    xs: list[float] = []
+    ys: list[float] = []
+    ds: list[float] = []
+    acum = 0.0
+    for (x0, y0), (x1, y1) in zip(pontos[:-1], pontos[1:]):
+        seg_px = math.hypot(x1 - x0, y1 - y0)
+        n = max(1, int(math.ceil(seg_px / passo_px)))
+        seg_mm = math.hypot((x1 - x0) * cs, (y1 - y0) * rs)
+        for i in range(n + (1 if (x1, y1) == tuple(pontos[-1]) else 0)):
+            t = i / n
+            xs.append(x0 + (x1 - x0) * t)
+            ys.append(y0 + (y1 - y0) * t)
+            ds.append(acum + seg_mm * t)
+        acum += seg_mm
+    if not xs:
+        return np.zeros(0), np.zeros(0)
+    x = np.clip(np.asarray(xs) - 0.5, 0, w - 1)        # o ponto (x, y) da tela é o centro do pixel em x-0.5
+    y = np.clip(np.asarray(ys) - 0.5, 0, h - 1)
+    x0 = np.floor(x).astype(int)
+    y0 = np.floor(y).astype(int)
+    x1 = np.minimum(x0 + 1, w - 1)
+    y1 = np.minimum(y0 + 1, h - 1)
+    fx, fy = x - x0, y - y0
+    p = pixels.astype(np.float64)
+    v = (p[y0, x0] * (1 - fx) * (1 - fy) + p[y0, x1] * fx * (1 - fy)
+         + p[y1, x0] * (1 - fx) * fy + p[y1, x1] * fx * fy)
+    return np.asarray(ds), v

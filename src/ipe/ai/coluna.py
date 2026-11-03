@@ -824,6 +824,12 @@ def _faixa_z(repo, series_uid: str) -> tuple[float, float] | None:
     if not inst:
         return None
     zs = []
+    # 0.99.31: a ordem que o banco devolve não é a da posição (a importação é em paralelo): as pontas
+    # são as de menor e maior z, não a primeira e a última da lista
+    com_z = [(p[2], it) for it in inst for p in [_numeros(it.get("position"))] if len(p) >= 3]
+    if com_z:
+        com_z.sort(key=lambda x: x[0])
+        inst = [x[1] for x in com_z]
     for it in (inst[0], inst[len(inst) // 2], inst[-1]):
         pos, ori = _numeros(it.get("position")), _numeros(it.get("orientation"))
         if len(pos) < 3:

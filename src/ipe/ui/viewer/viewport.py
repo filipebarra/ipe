@@ -2918,6 +2918,14 @@ class Viewport(AnnotationMixin, QWidget):
         cap.triggered.connect(self.guardar_janela_atual)
         menu.addAction(cap)
 
+    def abrir_perfil(self, ann):
+        """Gráfico do valor ao longo da régua/polilinha (0.99.31)."""
+        from ipe.ui.viewer.perfil import PerfilDialog
+        d = PerfilDialog(self, ann, self.window())
+        self._perfis = [x for x in getattr(self, "_perfis", []) if x is not None] + [d]
+        d.show()
+        return d
+
     def show_context_menu(self, global_pos, local_pos: QPointF | None = None) -> None:
         self.build_context_menu(local_pos).exec(global_pos)
 
@@ -2951,6 +2959,10 @@ class Viewport(AnnotationMixin, QWidget):
                     a_ref = QAction("Usar como ROI de referência (as outras mostram % dela)", menu)
                     a_ref.triggered.connect(lambda: self.marcar_referencia(target))
                 menu.addAction(a_ref)
+            if target.kind in ("line", "polyline") and self._img is not None and not self._img.is_color:
+                a_perf = QAction("Perfil de intensidade…", menu)          # 0.99.31 (onda A4)
+                a_perf.triggered.connect(lambda: self.abrir_perfil(target))
+                menu.addAction(a_perf)
             if target.kind == "tic":
                 a_tic = QAction("Mostrar curva tempo-intensidade…", menu)
                 a_tic.triggered.connect(lambda: self.sig.tic_requested.emit(self, target))
@@ -2961,6 +2973,26 @@ class Viewport(AnnotationMixin, QWidget):
             for i, text in self.annotation_summary()[:40]:
                 act = nav.addAction(text)
                 act.triggered.connect(lambda _=False, k=i: self.go_to(k))
+        if self.frames and not self.frames[0].is_virtual and self.mpr_plane is None and self.render3d is None:
+            tab = self.parentWidget()
+            while tab is not None and not hasattr(tab, "apagar_imagem"):
+                tab = tab.parentWidget()
+            if tab is not None and len(self.frames) > 1:       # 0.99.31 (onda A7)
+                a_apagar = QAction("Apagar esta imagem…", menu)
+                a_apagar.triggered.connect(lambda: tab.apagar_imagem(self))
+                from ipe.auth import session as _S
+                a_apagar.setEnabled(_S.can("delete"))
+                menu.addAction(a_apagar)
+        if (self.mpr_plane is not None or self.render3d is not None) and (self.modality or "").upper() == "CT":
+            tab = self.parentWidget()
+            while tab is not None and not hasattr(tab, "alternar_mesa"):
+                tab = tab.parentWidget()
+            if tab is not None:                               # 0.99.31 (onda A5)
+                a_mesa = QAction("Tirar a mesa da TC (MPR e 3D)", menu, checkable=True,
+                                 checked=bool(self.settings.get("viewer.tirar_mesa", False))
+                                 if self.settings is not None else False)
+                a_mesa.toggled.connect(tab.alternar_mesa)
+                menu.addAction(a_mesa)
         if self.mpr_plane is not None:
             n = len(self.frames)
             a_all = QAction(f"Salvar a reconstrução como série nova ({self.mpr_plane.name}, {n} imagens)", menu)

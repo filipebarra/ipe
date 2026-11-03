@@ -3,6 +3,18 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.31 — wave A (ideas from Weasis ViewerHub and Eden)
+- **Report in progress** on the central server: whoever opens the report holds it; the next one chooses
+  read-only or take over (logged), and the server refuses saving a report you do not hold.
+- **IHE IID opening** (`/IHEInvokeImageDisplay`, `requestType`) and filters in the link and the API:
+  most recent exams, modalities, period, description; several IDs and UIDs.
+- **Encrypted ipe:// link** (`c=`): no patient data in sight, built with the token, valid for 24 h.
+- **Intensity profile** along a ruler or polyline, with a chart.
+- **Remove the CT table** in MPR and 3D.
+- **Exam history** on right click; **delete a single image**, logged.
+- **Close the exam automatically** when the report is signed or after idle time.
+- **ILO report template** (pneumoconiosis).
+
 ## 0.99.30 — three-level settings
 - **Display and mammography protocols, breast dynamics layouts, sheet templates, report templates and
   case lists** can now be service-wide, shared with chosen users, or personal.

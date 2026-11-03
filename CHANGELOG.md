@@ -3,6 +3,18 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.31 — onda A (ideias do Weasis ViewerHub e da Eden)
+- **Laudo em andamento** no servidor central: quem abre o laudo fica com ele; o próximo escolhe só ler
+  ou assumir (registrado), e o servidor recusa gravar laudo de quem não está com ele.
+- **Abertura IHE IID** (`/IHEInvokeImageDisplay`, `requestType`) e filtros no link e na API:
+  exames mais recentes, modalidades, período, descrição; vários IDs e UIDs.
+- **Link ipe:// cifrado** (`c=`): sem dado do paciente à vista, montado com o token, vale 24 h.
+- **Perfil de intensidade** ao longo de uma régua ou polilinha, com gráfico.
+- **Tirar a mesa da TC** no MPR e no 3D.
+- **Histórico do exame** no botão direito; **apagar uma imagem só**, com registro.
+- **Fechar o exame sozinho** ao assinar o laudo ou depois de um tempo parado.
+- **Modelo de laudo OIT** (pneumoconioses).
+
 ## 0.99.30 — configurações em três níveis
 - **Protocolos de exibição e de mamografia, layouts da dinâmica, modelos de folha, modelos de laudo e
   listas de casos** passam a ser do serviço, compartilhados com escolhidos ou pessoais.

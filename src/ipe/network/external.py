@@ -27,13 +27,21 @@ log = logging.getLogger(__name__)
 #: botões do RIS e atalhos que já existem não quebram.
 SCHEME = "ipe"
 SCHEMES = ("ipe", "dicomviewer")
-SAFE = re.compile(r"^[A-Za-z0-9.\-_^ ,*]{1,128}$")
+SAFE = re.compile(r"^[A-Za-z0-9.\-_^ ,*:+]{1,512}$")
 PARAMS = {  # nome no link/HTTP -> chave interna
     "accession": "accession", "studyuid": "study_uid", "study_uid": "study_uid",
     "patientid": "patient_id", "patient_id": "patient_id", "node": "node", "layout": "layout",
     "janela": "janela", "window": "janela", "modo": "janela",
+    # 0.99.31 (onda A2): os nomes do perfil IHE Invoke Image Display e os filtros do Weasis ViewerHub
+    "accessionnumber": "accession", "requesttype": "tipo",
+    "mostrecentresults": "recentes", "recentes": "recentes",
+    "modalitiesinstudy": "modalidades", "modalidades": "modalidades",
+    "lowerdatetime": "data_de", "data_de": "data_de", "upperdatetime": "data_ate", "data_ate": "data_ate",
+    "containsindescription": "descricao", "descricao": "descricao",
 }
-COMMANDS = {"open", "retrieve"}
+#: parâmetros do IHE IID que o programa aceita e não usa (não viram erro)
+IGNORADOS = {"viewertype", "diagnosticquality", "keyimagesonly"}
+COMMANDS = {"open", "retrieve", "iheinvokeimagedisplay"}
 # `janela=` decide, **nesta chamada**, se abre o programa inteiro ou só o visualizador. Sem o
 # parâmetro vale a configuração de Rede. Assim a estação do médico segue abrindo o programa e a
 # chamada do RIS para a sala de exame pede só o visualizador, sem trocar configuração nenhuma.
@@ -45,20 +53,46 @@ class ExternalError(ValueError):
     pass
 
 
+def _junta(vals: list[str]) -> str:
+    """IHE IID: o parâmetro pode vir repetido ou com vírgulas (vários exames, vários IDs)."""
+    return ",".join(x.strip() for v in vals for x in unquote(v).split(",") if x.strip())
+
+
 def payload_from_query(command: str, query: dict[str, list[str]]) -> dict:
     command = command.strip("/").lower() or "open"
     if command not in COMMANDS:
         raise ExternalError(f"comando não aceito: {command}")
+    if command == "iheinvokeimagedisplay":          # IHE IID: abre (requestType diz paciente ou exame)
+        command = "open"
     out: dict = {"command": command}
+    cifrado = (query.get("c") or [""])[0]
+    if cifrado:                                      # 0.99.31: link cifrado — a janela abre com o token
+        out["cifrado"] = unquote(cifrado).strip()
+        return out
     for k, vals in query.items():
         key = PARAMS.get(k.lower())
         if key is None or not vals:
+            if k.lower() not in IGNORADOS and k.lower() not in ("token", "c"):
+                log.debug("parâmetro ignorado na chamada externa: %s", k)
             continue
-        v = unquote(vals[0]).strip()
+        v = _junta(vals) if key in ("study_uid", "patient_id", "accession", "modalidades") else unquote(vals[0]).strip()
         if not v:
             continue
         if not SAFE.match(v):
             raise ExternalError(f"valor inválido em {k}")
+        if key == "patient_id":                      # IHE: 123^^^EMISSOR — o emissor não é usado
+            v = ",".join(x.split("^^^")[0].strip() for x in v.split(",") if x.split("^^^")[0].strip())
+        if key == "recentes":
+            if not v.isdigit():
+                raise ExternalError(f"{k}={v}: use um número")
+        if key in ("data_de", "data_ate"):
+            v = re.sub(r"[^0-9]", "", v)[:8]
+            if len(v) != 8:
+                raise ExternalError(f"{k}: use AAAAMMDD ou AAAA-MM-DD")
+        if key == "tipo":
+            v = v.upper()
+            if v not in ("PATIENT", "STUDY"):
+                raise ExternalError("requestType: use PATIENT ou STUDY")
         if key == "janela":
             # Valor que eu não entendo não vira silêncio: quem chamou precisa saber que o pedido
             # dele não foi atendido, senão descobre pelo exame abrindo na janela errada.
@@ -70,6 +104,40 @@ def payload_from_query(command: str, query: dict[str, list[str]]) -> dict:
     if not any(out.get(k) for k in ("accession", "study_uid", "patient_id")):
         raise ExternalError("informe accession, studyuid ou patientid")
     return out
+
+
+def tem_filtro(pedido: dict) -> bool:
+    return any(pedido.get(k) for k in ("recentes", "modalidades", "data_de", "data_ate", "descricao"))
+
+
+def _sem_acento(t: str) -> str:
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFD", t or "") if unicodedata.category(c) != "Mn").lower()
+
+
+def filtrar_estudos(estudos: list[dict], pedido: dict) -> list[dict]:
+    """Os filtros do pedido (IHE IID / ViewerHub) sobre exames {study_date, modalities, description},
+    do mais recente para o mais antigo. Sem `recentes`, vêm todos os que passam."""
+    mods = {m.strip().upper() for m in str(pedido.get("modalidades", "") or "").split(",") if m.strip()}
+    de, ate = str(pedido.get("data_de", "") or ""), str(pedido.get("data_ate", "") or "")
+    desc = _sem_acento(str(pedido.get("descricao", "") or ""))
+    out = []
+    for e in estudos:
+        data = str(e.get("study_date", "") or "")
+        if de and (not data or data < de):
+            continue
+        if ate and (not data or data > ate):
+            continue
+        if mods:
+            tem = {m.strip().upper() for m in re.split(r"[\\/,]", str(e.get("modalities", "") or "")) if m.strip()}
+            if not (tem & mods):
+                continue
+        if desc and desc not in _sem_acento(str(e.get("description", "") or "")):
+            continue
+        out.append(e)
+    out.sort(key=lambda e: (str(e.get("study_date", "") or ""), str(e.get("study_time", "") or "")), reverse=True)
+    n = int(pedido.get("recentes") or 0)
+    return out[:n] if n > 0 else out
 
 
 def parse_url(url: str) -> dict:
@@ -173,6 +241,8 @@ class HttpApi(QObject):
             log.warning("API HTTP: token inválido de %s", ip)
             return "401 Unauthorized", {"ok": False, "erro": "token inválido"}
         path = parts.path.rstrip("/")
+        if path.lower() in ("/iheinvokeimagedisplay", "/display"):     # 0.99.31: IHE IID e o /display do ViewerHub
+            path = "/api/iheinvokeimagedisplay"
         if path == "/api/status":
             return "200 OK", {"ok": True, "status": self.handler({"command": "status"})}
         if path.startswith("/api/"):

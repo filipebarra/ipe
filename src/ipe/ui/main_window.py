@@ -36,6 +36,28 @@ from ipe.ui.viewer.viewer_tab import LAYOUTS, ViewerTab
 log = logging.getLogger(__name__)
 
 
+#: último clique/tecla/roda no programa (0.99.31, "fechar o exame depois de parado"). Um filtro só no
+#: QApplication, para todas as janelas: um por janela deixaria cada evento passar por todos eles.
+_USO_GLOBAL = [time.monotonic()]
+
+
+def _instalar_uso() -> None:
+    from PySide6.QtCore import QEvent, QObject
+    app = QApplication.instance()
+    if app is None or getattr(app, "_ipe_filtro_uso", None) is not None:
+        return
+    tipos = frozenset((QEvent.MouseButtonPress, QEvent.KeyPress, QEvent.Wheel))
+
+    class _Uso(QObject):
+        def eventFilter(self, obj, e):  # noqa: N802
+            if e.type() in tipos:          # o movimento do mouse custaria caro
+                _USO_GLOBAL[0] = time.monotonic()
+            return False
+    f = _Uso(app)
+    app.installEventFilter(f)
+    app._ipe_filtro_uso = f
+
+
 class MainWindow(QMainWindow):
     upload_message = Signal(str)            # modo cliente: envio ao servidor central terminou
 
@@ -208,6 +230,7 @@ class MainWindow(QMainWindow):
         self._update_status()
         self.apply_permissions()
         self.upload_message.connect(lambda m: (self.statusBar().showMessage(m, 10000), self.browser.refresh()))
+        self._ligar_parado()                     # 0.99.31 (onda A8): fechar os exames depois de parado
 
     # ------------------------------------------------------------ menus
     def _build_menus(self, janela=None, restrito: bool = False) -> None:
@@ -737,6 +760,100 @@ class MainWindow(QMainWindow):
                 pass
         self.browser.set_banco(banco)
 
+    # ------------------------------------------------------------ fechar o exame sozinho (0.99.31, onda A8)
+    def fechar_exame(self, study_uid: str, motivo: str = "") -> int:
+        """Fecha as abas (em qualquer monitor) que mostram o exame. Devolve quantas fechou."""
+        n = 0
+        for t in list(self.all_viewer_tabs()):
+            if study_uid in getattr(t, "study_order", []):
+                self.fechar_aba(t)
+                n += 1
+        if n:
+            self.statusBar().showMessage(f"Exame fechado ({motivo})." if motivo else "Exame fechado.", 10000)
+        return n
+
+    def _conferir_parado(self) -> int:
+        """Sem mexer no mouse nem no teclado por N minutos: fecha os exames abertos (o rascunho do laudo
+        aberto é salvo ao fechar). Evita o exame de um paciente ficar na tela para o próximo."""
+        minutos = int(self.settings.get("viewer.fechar_parado_min", 0) or 0)
+        if minutos <= 0:
+            return 0
+        if time.monotonic() - getattr(self, "_ultimo_uso", time.monotonic()) < minutos * 60:
+            return 0
+        abas = list(self.all_viewer_tabs())
+        if not abas:
+            return 0
+        for w in list(self.__dict__.get("_report_windows", {}).values()):
+            try:
+                w.close()
+            except RuntimeError:
+                pass
+        for t in abas:
+            self.fechar_aba(t)
+        self.statusBar().showMessage(f"{len(abas)} exame(s) fechado(s) depois de {minutos} min parado.", 30000)
+        try:
+            from ipe.auth import session as S
+            S.audit(self.repo, "fechou_por_inatividade", f"{len(abas)} aba(s), {minutos} min")
+        except Exception:  # noqa: BLE001
+            pass
+        return len(abas)
+
+    def _ligar_parado(self) -> None:
+        _instalar_uso()
+        self._t_parado = QTimer(self)
+        self._t_parado.setInterval(30_000)
+        self._t_parado.timeout.connect(self._conferir_parado)
+        self._t_parado.start()
+
+    @property
+    def _ultimo_uso(self) -> float:
+        return max(_USO_GLOBAL[0], getattr(self, "_ultimo_uso_local", 0.0))
+
+    @_ultimo_uso.setter
+    def _ultimo_uso(self, t: float) -> None:
+        self._ultimo_uso_local = t
+        _USO_GLOBAL[0] = t
+
+    def abrir_fechar_sozinho(self):
+        """Configurações ▸ Visualizador ▸ Fechar o exame sozinho…"""
+        from PySide6.QtWidgets import QCheckBox, QDialog, QDialogButtonBox, QFormLayout, QSpinBox
+        d = QDialog(self)
+        d.setWindowTitle("Fechar o exame sozinho")
+        f = QFormLayout(d)
+        cb = QCheckBox("Ao assinar o laudo, fechar o exame (e a janela do laudo)")
+        cb.setChecked(bool(self.settings.get("viewer.fechar_ao_assinar", False)))
+        sp = QSpinBox(minimum=0, maximum=240, suffix=" min", specialValueText="nunca")
+        sp.setValue(int(self.settings.get("viewer.fechar_parado_min", 0) or 0))
+        f.addRow(QLabel("Fechar o exame quando terminar evita que o próximo paciente seja olhado (ou laudado) "
+                        "com o anterior ainda na tela."))
+        f.addRow(cb)
+        f.addRow("Fechar os exames abertos depois de parado:", sp)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.accepted.connect(d.accept)
+        bb.rejected.connect(d.reject)
+        f.addRow(bb)
+        d._cb, d._sp = cb, sp
+        if d.exec():
+            self.settings.set("viewer.fechar_ao_assinar", cb.isChecked())
+            self.settings.set("viewer.fechar_parado_min", sp.value())
+            self.settings.save()
+        return d
+
+    def avisar_laudo_em_andamento(self, study_uid: str) -> str:
+        """0.99.31 (onda A1): no modo cliente, abrir um exame que outro médico está laudando avisa."""
+        if not getattr(self.repo, "remote", False):
+            return ""
+        try:
+            x = (self.repo.leituras_ativas() or {}).get(study_uid)
+        except Exception:  # noqa: BLE001
+            return ""
+        from ipe.auth import session as S
+        if not x or x.get("usuario", "").lower() == S.get().username.lower():
+            return ""
+        texto = f"{x.get('nome') or x.get('usuario')} está laudando este exame desde {x.get('desde')}."
+        self.statusBar().showMessage(texto, 20000)
+        return texto
+
     def registrar_abertura_alheia(self, study_uid: str) -> str:
         """0.99.27: o administrador abriu um exame do banco pessoal de outro — fica no registro de acesso.
         Devolve o dono ("" quando não é o caso)."""
@@ -1262,6 +1379,7 @@ class MainWindow(QMainWindow):
                 tab.show_series(series_uids)
             return
         self.registrar_abertura_alheia(study_uid)
+        self.avisar_laudo_em_andamento(study_uid)
         # monitores com papel "viewer" (fora o da janela principal)
         # Monitor marcado como viewer é viewer. A única exceção é o computador de uma tela só,
         # em que o único viewer é a tela da janela principal: ali o exame vira aba, como sempre
@@ -1827,7 +1945,11 @@ class MainWindow(QMainWindow):
 
     def handle_external(self, args: dict) -> str:
         """Chamada externa (linha de comando ou outra instância). Devolve mensagem."""
-        if args.get("source") == "link" and not self.link_permitido(args):
+        if args.get("cifrado"):                     # 0.99.31: link cifrado com o token da API (onda A3)
+            args = self._abrir_link_cifrado(args)
+            if args is None:
+                return "recusado"
+        elif args.get("source") == "link" and not self.link_permitido(args):
             return "recusado"
         if not self.so_viewer_do_pedido(args):
             self.trazer_para_a_frente()
@@ -1842,13 +1964,11 @@ class MainWindow(QMainWindow):
         if args.get("paths"):
             self.import_dropped([Path(p) for p in args["paths"]])
             return "importando"
-        uids = self.repo.find_study_uids(accession=args.get("accession", ""),
-                                         study_uid=args.get("study_uid", ""),
-                                         patient_id=args.get("patient_id", ""))
+        uids = self.exames_do_pedido(args)
         if uids:
             if command == "retrieve":
                 return "ja_no_banco"
-            for uid in uids[: 1 if args.get("patient_id") else 4]:
+            for uid in uids:
                 self.abrir_exame_do_pedido(uid, so_viewer)
             return "aberto"
         what = args.get("accession") or args.get("study_uid") or args.get("patient_id")
@@ -1857,8 +1977,10 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Estudo não encontrado no banco local: {what}", 8000)
             return "nao_encontrado"
         self.statusBar().showMessage(f"Buscando {what} em {', '.join(n['name'] for n in nodes)}…", 8000)
-        filters = {"accession": args.get("accession", ""), "study_uid": args.get("study_uid", ""),
-                   "patient_id": args.get("patient_id", "")}
+        prim = lambda k: str(args.get(k, "") or "").split(",")[0].strip()  # noqa: E731
+        filters = {"accession": prim("accession"),
+                   "study_uid": "\\".join(x.strip() for x in str(args.get("study_uid", "") or "").split(",") if x.strip()),
+                   "patient_id": prim("patient_id")}      # 0.99.31: vários UIDs viram a lista do C-FIND
         open_after = command == "open"
 
         def found(res, err) -> None:
@@ -1869,7 +1991,13 @@ class MainWindow(QMainWindow):
                 self.statusBar().showMessage(f"Estudo {what} não encontrado nos nós. {errs}", 12000)
                 return
             rows.sort(key=lambda r: (r["study_date"], r["study_time"]), reverse=True)
-            for r in rows[: 1 if args.get("patient_id") else 4]:
+            from ipe.network.external import filtrar_estudos, tem_filtro
+            if tem_filtro(args):                    # 0.99.31: os filtros do IHE IID valem no PACS também
+                rows = filtrar_estudos(rows, args)
+                if not rows:
+                    self.statusBar().showMessage(f"{what}: nenhum exame no PACS passou nos filtros do pedido.", 12000)
+                    return
+            for r in rows[: self._quantos_do_pedido(args)]:
                 node = self.repo.node(r["node_id"])
                 label = f"{r['patient_name']} — {r['study_date']} {r['modalities']} {r['description']}"
                 self.__dict__.setdefault("_janela_do_pedido", {})[r["study_uid"]] = so_viewer
@@ -1879,6 +2007,52 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Baixando {what} de {rows[0]['node_name']}…", 8000)
         self.net.search(nodes, None, filters, found)
         return "buscando"
+
+    MAX_DO_PEDIDO = 4
+
+    def _quantos_do_pedido(self, args: dict) -> int:
+        """Exames que uma chamada abre: `mostRecentResults` (até 4); sem ele, pelo paciente abre o mais
+        recente e por exame/accession abre os pedidos (até 4)."""
+        n = int(args.get("recentes") or 0)
+        if n > 0:
+            return min(n, self.MAX_DO_PEDIDO)
+        if args.get("patient_id") and not args.get("study_uid") and not args.get("accession"):
+            from ipe.network.external import tem_filtro
+            return self.MAX_DO_PEDIDO if tem_filtro(args) else 1
+        return self.MAX_DO_PEDIDO
+
+    def exames_do_pedido(self, args: dict) -> list[str]:
+        """Os exames do banco que a chamada pede (0.99.31: vários IDs/UIDs, IHE IID e os filtros)."""
+        from ipe.network.external import filtrar_estudos, tem_filtro
+        uids: list[str] = []
+        def lista(k):
+            return [x for x in str(args.get(k, "") or "").split(",") if x.strip()]
+        for st in lista("study_uid"):
+            uids += self.repo.find_study_uids(study_uid=st.strip())
+        for acc in lista("accession"):
+            uids += self.repo.find_study_uids(accession=acc.strip())
+        if not uids or args.get("tipo") == "PATIENT":
+            for pid in lista("patient_id"):
+                uids += self.repo.find_study_uids(patient_id=pid.strip())
+        uids = list(dict.fromkeys(uids))
+        if tem_filtro(args) and uids:
+            infos = [i for i in (self.repo.study_info(u) for u in uids) if i]
+            uids = [i["study_uid"] for i in filtrar_estudos(infos, args)]
+        return uids[: self._quantos_do_pedido(args)]
+
+    def _abrir_link_cifrado(self, args: dict) -> dict | None:
+        from ipe.network import link_cifrado as LC
+        from ipe.network.external import ExternalError, payload_from_query
+        token = (self.settings.get("dicom", {}) or {}).get("http_token", "")
+        try:
+            q = LC.abrir(args["cifrado"], token)
+            novo = payload_from_query(args.get("command", "open"), q)
+        except (LC.LinkInvalido, ExternalError) as e:
+            log.warning("Link cifrado recusado: %s", e)
+            self.statusBar().showMessage(f"Link ipe:// cifrado recusado: {e}", 12000)
+            return None
+        novo["source"] = args.get("source", "link")
+        return novo
 
     def _search_nodes(self, name: str) -> list[dict]:
         nodes = [n for n in self.repo.nodes(only_active=True) if n["kind"] in NODES.CONSULTA]

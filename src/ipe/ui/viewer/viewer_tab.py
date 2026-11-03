@@ -3334,11 +3334,65 @@ class ViewerTab(OncoMixin, QWidget):
                 QMessageBox.information(self, "MPR", str(e))
             return None
         dlg.close()
+        if bool(self.settings.get("viewer.tirar_mesa", False)) and (src.modality or "").upper() == "CT":
+            vol = self.tirar_a_mesa(vol)                    # 0.99.31 (onda A5)
         # mantém só o volume atual na memória — o protocolo que pede duas fases guarda as duas,
         # para a etapa de 4 MIPs (2 fases × 2 metades) não montar cada fase duas vezes
         manter = {k: v for k, v in self._volumes.items() if k.startswith("etapa:")} if chave.startswith("etapa:") else {}
         self._volumes = dict(list(manter.items())[-1:]) | {chave: vol}
         return vol
+
+    def tirar_a_mesa(self, vol):
+        """O volume do MPR/3D sem a mesa da TC (imaging/mesa.py). A série original não muda."""
+        from ipe.imaging import mesa
+        try:
+            dados, mexeu = mesa.tirar_a_mesa(vol.data, vol.dx, vol.dy, vol.dz)
+        except Exception:  # noqa: BLE001
+            log.exception("tirar a mesa")
+            return vol
+        if mexeu:
+            vol.data = dados
+            vol.warnings.append("mesa da TC retirada (só no MPR e no 3D)")
+        return vol
+
+    def apagar_imagem(self, vp) -> bool:
+        """0.99.31 (onda A7): apaga só a imagem do quadro (botão direito ▸ Apagar esta imagem…)."""
+        from ipe.auth import session as S
+        if vp is None or not vp.frames or vp.frames[0].is_virtual:
+            return False
+        if not S.require("delete", self, "apagar imagens"):
+            return False
+        f = vp.frames[vp.index]
+        n_mesmo = sum(1 for x in vp.frames if x.sop_uid == f.sop_uid)
+        extra = f" (o arquivo tem {n_mesmo} quadros; todos saem)" if n_mesmo > 1 else ""
+        if self.perguntar_apagar_imagem(f"Apagar esta imagem (nº {f.instance_number}){extra}?\n\n"
+                                        "Medidas e imagem-chave dela saem junto. O arquivo só é apagado se "
+                                        "estiver no armazenamento do programa; fica no registro de acesso.") is False:
+            return False
+        try:
+            self.repo.delete_instance(f.sop_uid, getattr(self, "storage_root", None))
+        except Exception as e:  # noqa: BLE001
+            QMessageBox.information(self, "Apagar imagem", str(e).split(": ", 1)[-1] if "Error:" in str(e) else str(e))
+            return False
+        S.audit(self.repo, "apagou_imagem", f"imagem nº {f.instance_number} — {f.sop_uid}", study_uid=vp.study_uid)
+        i = vp.index
+        restantes = [x for x in vp.frames if x.sop_uid != f.sop_uid]
+        vp.frames[:] = restantes
+        vp.index = min(i, len(restantes) - 1)
+        vp.go_to(vp.index)
+        self.status_message.emit(f"Imagem nº {f.instance_number} apagada.")
+        return True
+
+    def perguntar_apagar_imagem(self, texto: str) -> bool:
+        return QMessageBox.question(self, "Apagar imagem", texto) == QMessageBox.Yes
+
+    def alternar_mesa(self, on: bool) -> None:
+        """Liga/desliga "Tirar a mesa da TC" e remonta os volumes na próxima vez."""
+        self.settings.set("viewer.tirar_mesa", bool(on))
+        self.settings.save()
+        self._volumes = {}
+        self.status_message.emit(("Mesa da TC: retirada" if on else "Mesa da TC: mostrada")
+                                 + " nos próximos volumes montados — feche e abra o MPR/3D para valer agora.")
 
     # ------------------------------------------------------------ mapas da dinâmica
     def _mapa_do_quadro(self, vp) -> tuple | None:
@@ -4933,13 +4987,19 @@ class ViewerTab(OncoMixin, QWidget):
         caminho = getattr(o, "caminho", "") if o is not None else ""
         abas = [self]
         from PySide6.QtWidgets import QApplication
-        for w in QApplication.topLevelWidgets():
+        # a janela principal **desta** aba (com várias janelas vivas — testes, outra sessão —, a primeira
+        # da lista podia ser outra)
+        for w in [self.window(), *QApplication.topLevelWidgets()]:
             f = getattr(w, "all_viewer_tabs", None)
-            if callable(f):
-                try:
-                    abas += [t for t in f() if t is not self]
-                except Exception:  # noqa: BLE001
-                    log.exception("abas abertas")
+            if not callable(f):
+                continue
+            try:
+                todas = list(f())
+            except Exception:  # noqa: BLE001
+                log.exception("abas abertas")
+                continue
+            if self in todas or w is self.window():
+                abas += [t for t in todas if t is not self]
                 break
         for t in abas:
             objs = getattr(t, "overlay_objects", None)

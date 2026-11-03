@@ -86,6 +86,8 @@ class ConfigNiveisDialog(QDialog):
         tab.setEditTriggers(QAbstractItemView.NoEditTriggers)
         tab.horizontalHeader().setStretchLastSection(True)
         tab.verticalHeader().setVisible(False)
+        from ipe.ui.tabelas import colunas_ajustaveis
+        colunas_ajustaveis(tab)
         tab.setColumnWidth(0, 360)
         tab.setColumnWidth(1, 180)
         self.tabelas[chave] = tab

@@ -411,7 +411,8 @@ def test_ajustar_muda_todas_as_abas_e_tira_a_copia_repetida(env, tmp_path, monke
         # a outra tela: outra aba com a sua cópia
         outra = SimpleNamespace(overlay_objects=[COL.objeto_do_seg(col.caminho, uid)], viewports=[],
                                 _apply_overlays=lambda: None)
-        monkeypatch.setattr(MainWindow, "all_viewer_tabs", lambda self: [tab, outra])
+        # só nesta janela (na classe, as janelas de outros testes ainda vivas também mudariam)
+        monkeypatch.setattr(w, "all_viewer_tabs", lambda: [tab, outra])
         dlg = tab.abrir_numeracao_coluna(vp, None)
         dlg.c_ls.setCurrentIndex(2)                                   # L5 sacralizada (parcial)
         assert dlg.aplicar()

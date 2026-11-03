@@ -84,6 +84,7 @@ Botões: **+ Lista**, **+ Pasta**, **▶ Modo reunião**. Botão direito na árv
 
 - **Adicionar comentário** escreve uma nota no exame, que aparece na lista.
 - O **cadeado** protege o exame: ele não entra na limpeza automática e não pode ser apagado enquanto estiver protegido.
+- **Histórico do exame…** (botão direito no exame) mostra quem fez o quê **neste** exame — abriu, baixou, exportou, enviou, imprimiu, mudou de banco, apagou imagem, assumiu o laudo — e quando os laudos foram criados e assinados.
 
 ## Botões da tela inicial
 
@@ -202,6 +203,8 @@ O botão **Medidas** abre uma janela com tudo o que foi medido no exame: série,
 - A ferramenta **Selecionar** edita o que já existe: clique escolhe, arrastar move, arrastar a ponta redimensiona, Delete apaga.
 - **Editar lesão…** (ou duplo clique numa linha de segmentação) reabre a segmentação com o limiar e o mamilo que você usou (capítulo 6).
 - As medidas saem para planilha (CSV/Excel) e para DICOM SR.
+- **Perfil de intensidade**: botão direito numa régua ou polilinha ▸ *Perfil de intensidade…* mostra o gráfico do valor (HU na TC) ao longo da linha, em mm, com mínimo, máximo e média — a transição de densidade, a parede de uma lesão, o realce de um vaso. O gráfico acompanha a linha quando ela é mexida, e *Copiar valores* leva a tabela para a planilha.
+- **Apagar esta imagem…** (botão direito no quadro) tira só aquela imagem do exame — a duplicada, a captura errada. Pede a permissão de apagar, é recusado em exame com cadeado e na última imagem da série, leva junto as medidas e a imagem-chave dela e fica no registro de acesso.
 
 ### Régua 3D, incerteza e ROI de referência
 
@@ -241,6 +244,7 @@ K (sugestão) marca e desmarca a imagem do quadro como imagem-chave; Shift+K mos
 - Espessura (slab) na barra do MPR, com média, MIP ou MinIP.
 - MPR curvo (clique os pontos ao longo de um vaso) e 3D (renderização de volume, com cortes, escultura e exportação de malha STL/GLB/3MF).
 - O plano reconstruído sai sempre na convenção de leitura — axial com anterior em cima e esquerda do paciente à direita — mesmo quando a aquisição foi sagital.
+- **Tirar a mesa da TC**: botão direito no MPR ou no 3D de uma TC ▸ *Tirar a mesa da TC (MPR e 3D)*. O programa acha o corpo (o que passa pelo meio do volume) e apaga o que está fora dele, corte a corte — a mesa sai, os pulmões e as vias aéreas ficam. Vale para os volumes montados dali em diante (feche e abra o MPR/3D); a série original não muda.
 
 > **O volume é montado na memória.** Em Configurações ▸ Sistema ▸ Desempenho há um teto; acima dele o programa pergunta antes de montar. O 3D roda na CPU, e o detalhe (lado do volume) também se ajusta ali.
 
@@ -654,8 +658,31 @@ Valem igualmente no link e na API. Na linha de comando, o mesmo parâmetro apare
 | node | --node | onde buscar se o exame não estiver no banco: nome exato do nó ou AE title exato. Sem isto, busca em todos os nós marcados como "usar na busca" |
 | janela (ou window, modo) | --janela | viewer = só o visualizador nesta chamada; completo = o programa inteiro. Sem o parâmetro, vale a configuração de Rede |
 | token | — | só na API HTTP; obrigatório |
+| requestType | — | IHE IID: PATIENT (os exames do paciente) ou STUDY (os exames pedidos) |
+| accessionNumber, studyUID, patientID | — | os nomes do IHE IID; vários valores separados por vírgula (ou o parâmetro repetido); patientID aceita `123^^^EMISSOR` |
+| mostRecentResults (ou recentes) | — | quantos exames abrir, dos mais recentes (até 4) |
+| modalitiesInStudy (ou modalidades) | — | só exames com estas modalidades: `CT,MR` |
+| lowerDateTime / upperDateTime (ou data_de / data_ate) | — | período: `2025-01-01` ou `20250101` |
+| containsInDescription (ou descricao) | — | só exames cuja descrição contém o texto (sem diferença de acento e maiúscula) |
+| c | — | link cifrado (abaixo) |
 
 Valor que o programa não entende é recusado com motivo ("janela=minimizado: use viewer ou completo"), em vez de ser ignorado em silêncio.
+
+### IHE Invoke Image Display
+
+O programa entende o perfil **IHE IID** (o mesmo que o Weasis ViewerHub): `GET http://…:8042/IHEInvokeImageDisplay?requestType=PATIENT&patientID=123&mostRecentResults=2&modalitiesInStudy=CT&token=…` (ou `/display`). Pelo paciente sem filtro abre o exame mais recente; com filtro, os que passam (até 4). Os filtros valem também quando o exame é buscado no PACS. Parâmetros do IID que o programa não usa (viewerType, diagnosticQuality, keyImagesOnly) são aceitos e ignorados.
+
+### Link cifrado
+
+O link comum leva o ID do paciente em texto aberto — e o link fica no histórico do navegador. O **link cifrado** é `ipe://open?c=…`: nada do paciente à vista, só quem tem o **token da API** consegue montar, abre direto (como o link com token) e **vale 24 horas**. Para montar: **Rede ▸ Chamada externa ▸ Montar link cifrado…**, ou `ipe-cli link-cifrado "accession=123&node=PACS"`. O RIS monta igual, com HMAC-SHA256 (biblioteca padrão de qualquer linguagem):
+
+```
+chave = SHA256(token);  kc = HMAC(chave, "ipe-cifra");  ks = HMAC(chave, "ipe-selo")
+texto = "accession=123&t=<segundos desde 1970>"
+nonce = 16 bytes aleatórios;  fluxo = HMAC(kc, nonce + i em 4 bytes) para i = 0, 1, 2…
+cifrado = texto XOR fluxo;  selo = HMAC(ks, nonce + cifrado)[:16]
+c = base64url(nonce + cifrado + selo), sem "="
+```
 
 ## O que acontece com o pedido
 
@@ -836,7 +863,7 @@ O pior vem primeiro. **Mostrar: Só os com problema** filtra; as séries aparece
 
 Botão **Laudo** na tela inicial, ou botão direito no exame → **Laudo…**.
 
-1. Escolha um **Modelo:** e clique **Aplicar modelo**. São 17 de fábrica — mamografia (rastreamento, diagnóstica, tomossíntese, CEM), US de mamas, RM de mamas, crânio, abdome e pelve, TC de crânio, tórax, angio-TEP, abdome e oncológica, PET-FDG, PET-PSMA e laudo livre. Eles preenchem sozinhos campos como paciente, idade, data, comparação e medidas.
+1. Escolha um **Modelo:** e clique **Aplicar modelo**. São 18 de fábrica — mamografia (rastreamento, diagnóstica, tomossíntese, CEM), US de mamas, RM de mamas, crânio, abdome e pelve, TC de crânio, tórax, angio-TEP, abdome e oncológica, PET-FDG, PET-PSMA, radiografia de tórax pela **Classificação da OIT** (pneumoconioses: qualidade, pequenas e grandes opacidades com a profusão na escala de 12 pontos, pleura e símbolos) e laudo livre. Eles preenchem sozinhos campos como paciente, idade, data, comparação e medidas.
 2. Escreva o texto. O menu **Inserir ▾** traz para dentro do laudo o que o programa já mediu: medidas do exame, acompanhamento de lesões, segmentações (volume, SUV, TMTV/TLG, distância ao mamilo), curvas tempo-intensidade, comparação com anteriores, composição mamária e achados de CAD/IA.
 3. No painel **BI-RADS**, à direita, monte os achados (mama, tipo, descritores, tamanho, localização, distância do mamilo, evolução, categoria) e a conduta; **Levar ao texto do laudo** escreve tudo no corpo.
 4. Finalize: **Salvar rascunho**, **Salvar PDF…** ou **Assinar e liberar**.
@@ -844,6 +871,14 @@ Botão **Laudo** na tela inicial, ou botão direito no exame → **Laudo…**.
 No rodapé dá para incluir as imagens-chave no PDF, guardar o PDF no exame (como série DICOM) e guardar DICOM SR. Laudo assinado não muda: cria-se uma retificação, que vira um laudo novo e guarda o anterior. Assinar exige a permissão *Assinar (liberar) laudos*.
 
 Os modelos se editam em **Modelos…** (nome, modalidades, palavras-chave, BI-RADS e o texto com campos automáticos entre chaves). Há *Restaurar os de fábrica*.
+
+## Laudo em andamento (servidor central)
+
+No modo cliente, quem abre o laudo de um exame passa a ser **quem está laudando**, até fechar a janela do laudo. Outro médico que abrir o laudo do mesmo exame é avisado ("Dra. Ana está laudando este exame desde 10:05") e escolhe **Só ler** (a janela abre sem poder gravar) ou **Assumir o laudo** (fica no registro de acesso, e o primeiro não grava mais). Quem só abre as imagens vê o aviso na barra de status. O servidor recusa gravar ou assinar o laudo de quem não está com ele. Se o computador de quem laudava travar, a trava cai sozinha em 10 minutos.
+
+## Fechar o exame sozinho
+
+**Configurações ▸ Visualizador ▸ Fechar o exame sozinho…**: fechar o exame (e a janela do laudo) ao **assinar o laudo**, e/ou fechar os exames abertos depois de **N minutos sem mexer** no mouse e no teclado (o rascunho do laudo é salvo antes). Evita que o próximo paciente seja olhado — ou laudado — com o anterior ainda na tela.
 
 # Filme e impressão
 

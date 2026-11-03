@@ -1163,6 +1163,14 @@ class Browser(QWidget):
         self.refresh()
         self.select_study(uid)
 
+    def historico(self, row):
+        from ipe.ui.historico_exame import HistoricoDialog
+        nome = "" if getattr(self.model, "anonymize", False) else (row.patient_name or "")
+        d = HistoricoDialog(self.repo, row.study_uid, f"{nome} {row.description or ''}".strip(), self)
+        d.show()
+        self._historicos = [d]
+        return d
+
     def select_study(self, study_uid: str) -> None:
         """Volta a selecionar um exame na tabela (depois de um refresh)."""
         for r in range(self.proxy.rowCount()):
@@ -1395,6 +1403,10 @@ class Browser(QWidget):
         a_com.triggered.connect(self._add_comment)
         a_com.setEnabled(len(rows) == 1)
         menu.addAction(a_com)
+        a_hist = QAction("Histórico do exame…", menu)          # 0.99.31 (onda A6)
+        a_hist.triggered.connect(lambda: self.historico(rows[0]))
+        a_hist.setEnabled(len(rows) == 1)
+        menu.addAction(a_hist)
         node = self.tree.node(self.current_list)
         if node is not None and node["kind"] != "folder":
             a = QAction("Editar caso (nome, história, resposta)…" if node["kind"] != "smart"

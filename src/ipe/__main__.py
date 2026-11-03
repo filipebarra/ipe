@@ -59,6 +59,10 @@ def _parser() -> argparse.ArgumentParser:
     add_parsers(sub)
     s = sub.add_parser("sample", help="gerar exames sintéticos de teste")
     s.add_argument("folder")
+    lc = sub.add_parser("link-cifrado", help="monta um link ipe:// cifrado com o token da API (0.99.31)")
+    lc.add_argument("query", help='o que vai no link, ex.: "accession=123&node=PACS"')
+    lc.add_argument("--comando", default="open", choices=["open", "retrieve"])
+    lc.add_argument("--token", default="", help="o token da API (padrão: o deste computador)")
     m = sub.add_parser("set-mode", help="quem usa este computador (usado pelo instalador)")
     m.add_argument("mode", choices=["single", "multi"])
     sub.add_parser("info", help="mostrar caminhos")
@@ -120,6 +124,17 @@ def main(argv: list[str] | None = None) -> int:
         generate_thumbnails(Repository(db), r.new_series)
         print(r.summary())
         return 0 if not r.errors else 1
+
+    if args.cmd == "link-cifrado":
+        from ipe.core.config import Settings, get_paths
+        from ipe.network import link_cifrado as LC
+        token = args.token or (Settings(get_paths().settings_file).get("dicom", {}) or {}).get("http_token", "")
+        try:
+            print(f"ipe://{args.comando}?c={LC.montar(args.query, token)}")
+        except LC.LinkInvalido as e:
+            print(f"Erro: {e}", file=sys.stderr)
+            return 1
+        return 0
 
     if args.cmd == "server":
         from ipe.central.headless import run_server

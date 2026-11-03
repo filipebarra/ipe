@@ -26,6 +26,8 @@ ACTIONS = {"login": "Entrou", "logout": "Saiu", "abrir": "Abriu exame", "exporta
            "trouxe_do_servidor": "Trouxe exames do servidor", "enviou_ao_servidor": "Enviou exames ao servidor",
            "retirou_do_servidor": "Tirou exame do servidor (levado para o computador)",
            "escopo_da_lista": "Mudou quem vê uma lista", "escopo_de_config": "Mudou quem vê uma configuração",
+           "assumiu_laudo": "Assumiu o laudo de outro", "apagou_imagem": "Apagou imagem",
+           "fechou_por_inatividade": "Exames fechados por inatividade", "laudo_assinado": "Laudo assinado",
            "login_pelo_sistema": "Entrou pela conta do sistema"}
 
 

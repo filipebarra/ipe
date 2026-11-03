@@ -46,6 +46,9 @@ RPC_METHODS: dict[str, str] = {
     "itens_de_config": "", "salvar_itens_de_config": "", "adotar_itens_de_config": "",
     "escopo_de_item_de_config": "",
     "escopo_da_lista": "case_lists",
+    # 0.99.31: trava de leitura do laudo (tratada no próprio servidor)
+    "leitura_comecar": "view", "leitura_manter": "view", "leitura_terminar": "view", "leituras_ativas": "view",
+    "historico_do_exame": "view", "delete_instance": "delete",
 }
 
 # 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame
@@ -54,7 +57,7 @@ POR_EXAME = {
     "study_info", "series_for_study", "other_studies_same_patient", "files_for_study", "sop_uids_for_study",
     "comments", "mark_opened", "key_images", "key_image_set", "toggle_key_image", "count_annotations",
     "series_groups", "save_series_group", "reports", "lists_of_study", "set_locked", "delete_study",
-    "dados_do_exame", "retirar_do_servidor",
+    "dados_do_exame", "retirar_do_servidor", "historico_do_exame",
 }
 
 # 0.99.30: o primeiro argumento é a lista de casos; o servidor confere se quem pede enxerga a lista
@@ -65,4 +68,4 @@ POR_LISTA = {
 }
 
 # métodos cujo argumento de caminho é do servidor (o cliente não manda)
-SERVER_STORAGE_ARG = {"delete_study"}
+SERVER_STORAGE_ARG = {"delete_study", "delete_instance"}

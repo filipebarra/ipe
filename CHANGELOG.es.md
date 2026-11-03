@@ -3,6 +3,18 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.31 — ola A (ideas de Weasis ViewerHub y de Eden)
+- **Informe en curso** en el servidor central: quien abre el informe lo tiene; el siguiente elige solo
+  leer o asumir (registrado), y el servidor rechaza grabar el informe de quien no lo tiene.
+- **Apertura IHE IID** (`/IHEInvokeImageDisplay`, `requestType`) y filtros en el enlace y la API:
+  estudios más recientes, modalidades, período, descripción; varios IDs y UIDs.
+- **Enlace ipe:// cifrado** (`c=`): sin datos del paciente a la vista, hecho con el token, vale 24 h.
+- **Perfil de intensidad** a lo largo de una regla o polilínea, con gráfico.
+- **Quitar la mesa de la TC** en MPR y 3D.
+- **Historial del estudio** en el clic derecho; **borrar una sola imagen**, con registro.
+- **Cerrar el estudio solo** al firmar el informe o tras un tiempo inactivo.
+- **Modelo de informe OIT** (neumoconiosis).
+
 ## 0.99.30 — configuraciones en tres niveles
 - **Protocolos de visualización y de mamografía, layouts de la dinámica, modelos de hoja, modelos de
   informe y listas de casos** pasan a ser del servicio, compartidos con elegidos o personales.

@@ -85,6 +85,15 @@ class ClientRepository:
         self.remove_cached(study_uid)
         return n
 
+    def delete_instance(self, sop_uid: str, storage_root=None) -> int:
+        """0.99.31: apaga a imagem no servidor (precisa da permissão) e no cache."""
+        n = self.client.rpc("delete_instance", sop_uid)
+        try:
+            self.local.delete_instance(sop_uid, self.storage)
+        except Exception:  # noqa: BLE001
+            pass
+        return n
+
     def remove_cached(self, study_uid: str) -> None:
         if self.is_cached(study_uid):
             self.local.delete_study(study_uid, self.storage)

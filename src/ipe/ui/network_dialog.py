@@ -401,6 +401,12 @@ class NetworkDialog(QDialog):
                                  "token no link (…&token=<o token acima>) ele abre direto; sem o token, vale "
                                  "esta escolha. Ponha o token no link do RIS para ele não perguntar.")
         f.addRow("Link ipe:// sem o token:", self.link_sem)
+        # 0.99.31 (onda A3): link cifrado — sem o ID do paciente à vista, montado com o token
+        b_cif = QPushButton("Montar link cifrado…")
+        b_cif.setToolTip("Monta um ipe://open?c=… a partir de accession=…, patientid=… etc. Só quem tem o token "
+                         "consegue montar; vale 24 horas; abre direto. O RIS monta igual (guia, Chamada externa).")
+        b_cif.clicked.connect(self._montar_link_cifrado)
+        f.addRow("", b_cif)
         f.addRow(self.remote)
         f.addRow("IPs permitidos:", self.ips)
         f.addRow(QLabel("<b>Impressora DICOM (receber filmes das modalidades)</b>"))
@@ -427,6 +433,22 @@ class NetworkDialog(QDialog):
         f.addRow(QLabel("<i>O tempo é estimado pela velocidade medida em downloads anteriores de cada nó "
                         "(veja “Testar rede” no cadastro do nó).</i>"))
         return w
+
+    def _montar_link_cifrado(self) -> str:
+        from PySide6.QtWidgets import QInputDialog, QMessageBox
+        from ipe.network import link_cifrado as LC
+        q, ok = QInputDialog.getText(self, "Link cifrado", "O que vai no link (como na query do link comum):",
+                                     text="accession=")
+        if not ok or not q.strip():
+            return ""
+        try:
+            link = f"ipe://open?c={LC.montar(q.strip(), self.token.text())}"
+        except LC.LinkInvalido as e:
+            QMessageBox.warning(self, "Link cifrado", str(e))
+            return ""
+        QGuiApplication.clipboard().setText(link)
+        QMessageBox.information(self, "Link cifrado", f"Copiado (vale 24 horas):\n\n{link}")
+        return link
 
     def _abrir_impressao(self) -> None:
         from ipe.ui.print_settings import PrintSettingsDialog

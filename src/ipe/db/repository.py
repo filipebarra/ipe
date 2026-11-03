@@ -91,6 +91,11 @@ class SeriesRow:
     body_part: str = ""          # (0018,0015) BodyPartExamined — a região, para a barra do visualizador (0.99.12)
 
 
+#: modelos de fábrica que chegaram depois da marca "report_templates_vistos" (0.99.31): quem já tinha a
+#: lista gravada recebe só estes; os de antes, que ele tenha apagado, não voltam
+MODELOS_NOVOS = frozenset({"rx_oit"})
+
+
 def _filtro_de_banco(q, banco: str, visao):
     """A parte do filtro de banco que o SQL resolve (o resto, exato, em `_no_banco`)."""
     if visao is None or banco == "todos":
@@ -306,6 +311,56 @@ class Repository:
             except OSError as e:
                 log.warning("Não foi possível apagar %s: %s", f, e)
         return removed
+
+    def delete_instance(self, sop_uid: str, storage_root: Path) -> int:
+        """0.99.31 (onda A7): apaga uma imagem só (um arquivo). Mesmas regras do apagar série: exame com
+        cadeado é recusado, e a última imagem da série pede apagar a série. Medidas e imagem-chave dela
+        vão junto; o arquivo só sai do disco se estiver no Storage. Devolve 1 se apagou o arquivo."""
+        with self.db.session() as s:
+            ins = s.scalar(select(Instance).where(Instance.sop_uid == sop_uid))
+            if ins is None:
+                return 0
+            se = ins.series
+            st = se.study
+            if st.locked:
+                raise PermissionError("Exame protegido (cadeado). Desbloqueie antes de apagar.")
+            if len(se.instances) <= 1:
+                raise PermissionError("Esta é a única imagem da série. Apague a série.")
+            arquivo = Path(ins.file_path) if ins.in_storage else None
+            for model in (KeyImage, AnnotationRecord):
+                for row in s.scalars(select(model).where(model.sop_uid == sop_uid)):
+                    s.delete(row)
+            s.delete(ins)
+        if arquivo is None:
+            return 0
+        try:
+            if Path(storage_root).resolve() in arquivo.resolve().parents and arquivo.exists():
+                arquivo.unlink()
+                return 1
+        except OSError as e:
+            log.warning("Não foi possível apagar %s: %s", arquivo, e)
+        return 0
+
+    def study_of_sop(self, sop_uid: str) -> str:
+        with self.db.session() as s:
+            return s.scalar(select(Study.study_uid).join(Series, Series.study_fk == Study.id)
+                            .join(Instance, Instance.series_fk == Series.id).where(Instance.sop_uid == sop_uid)) or ""
+
+    def historico_do_exame(self, study_uid: str, limit: int = 500) -> list[dict]:
+        """0.99.31 (onda A6): o que aconteceu com o exame — o registro de acesso dele e os laudos
+        (criado, assinado), do mais recente para o mais antigo."""
+        out = [{"at": a["at"], "user": a["user"], "action": a["action"], "detail": a["detail"], "host": a["host"]}
+               for a in self.access_log(limit=limit, study_uid=study_uid)]
+        with self.db.session() as s:
+            for r in s.scalars(select(Report).where(Report.study_uid == study_uid)):
+                if r.created_at:
+                    out.append({"at": r.created_at, "user": r.author or "", "action": "laudo_criado",
+                                "detail": r.title or "", "host": ""})
+                if r.signed_at:
+                    out.append({"at": r.signed_at, "user": r.signed_by or "", "action": "laudo_assinado",
+                                "detail": f"{r.title or ''} ({r.status})", "host": ""})
+        out.sort(key=lambda x: x["at"] or datetime.min, reverse=True)
+        return out[:limit]
 
     def series_by_description(self, names: list, limit: int = 500) -> list[dict]:
         """Séries cuja descrição é uma das dadas (comparação sem caixa). Usado pelo filme da AW."""
@@ -1911,13 +1966,45 @@ class Repository:
         t = self.get_app_setting("report_templates", None)
         if not (isinstance(t, list) and t):
             return default_templates()
+        # 0.99.31: modelo de fábrica novo (ex.: OIT) entra uma vez na lista de quem já editou a dele;
+        # o que ele apagar depois não volta (fica em "report_templates_vistos")
+        vistos = self.get_app_setting("report_templates_vistos", None)
+        fabrica = default_templates()
+        if not isinstance(vistos, list):
+            vistos = [x.get("id") for x in fabrica if x.get("id") not in MODELOS_NOVOS]
+        ids = {x.get("id") for x in t}
+        novos = [x for x in fabrica if x.get("id") not in ids and x.get("id") not in vistos]
+        if novos:
+            t = list(t) + [{**x, "dono": "", "visivel_para": ""} for x in novos]
+            self.set_app_setting("report_templates", t)
+        if novos or len(vistos) != len(fabrica):
+            self.set_app_setting("report_templates_vistos", [x.get("id") for x in fabrica])
         return [{k: v for k, v in x.items() if k not in itens.CAMPOS}
                 for x in itens.visiveis("report_templates", t, V.visao_atual())]
 
     def save_report_templates(self, templates: list[dict]) -> list[str]:
         from ipe.core import itens
         from ipe.reporting.templates import default_templates
-        return itens.gravar(self, "report_templates", list(templates or []), default_templates())
+        fabrica = default_templates()
+        avisos = itens.gravar(self, "report_templates", list(templates or []), fabrica)
+        # quem grava já viu todos os de fábrica: o que ele tirou não volta (0.99.31)
+        self.set_app_setting("report_templates_vistos", [x.get("id") for x in fabrica])
+        return avisos
+
+    # ------------------------------------------------------------------ trava de leitura (0.99.31)
+    # Num computador só não há outro médico laudando ao mesmo tempo: a trava é do servidor central
+    # (central/leituras.py). Aqui as chamadas respondem "pode".
+    def leitura_comecar(self, study_uid: str, forcar: bool = False) -> dict:
+        return {"ok": True}
+
+    def leitura_manter(self, study_uids) -> int:
+        return 0
+
+    def leitura_terminar(self, study_uid: str) -> bool:
+        return True
+
+    def leituras_ativas(self) -> dict:
+        return {}
 
     # ------------------------------------------------------------------ configurações em três níveis (0.99.30)
     def itens_de_config(self, chave: str, gerenciar: bool = False):
