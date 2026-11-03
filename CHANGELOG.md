@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.34 — correções: banco em inglês e cancelar as IAs
+- **Banco vazio em inglês**: o filtro de modalidade "Todas" virava "All" e a busca procurava a
+  modalidade "All". Corrigido para todas as listas suspensas: a tela mostra traduzido e o programa lê o
+  original. Também valiam só em português: as permissões dos menus (importar, exportar, configurar) e a
+  aba certa ao abrir uma página de Configurações.
+- **Tarefas de IA que não cancelavam**: a segmentação pedida no visualizador era apagada ao fechar o
+  exame, mas a tarefa ficava "rodando" para sempre, o exame "ocupado" (nenhuma outra IA rodava) e o
+  Cancelar não fazia nada. Agora ela continua com o exame fechado e grava o resultado; o Cancelar
+  sempre fecha a tarefa (à força, se o trabalho não parar em 15 s) e solta o exame.
+
 ## 0.99.33 — inglês como padrão
 - O programa e o README passam a ter o **inglês** como padrão; português e espanhol continuam.
 - O **instalador** do Windows pergunta o idioma na primeira tela (inglês marcado) e o grava para o

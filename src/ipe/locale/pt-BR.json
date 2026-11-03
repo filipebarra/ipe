@@ -4487,7 +4487,10 @@
   "manual",
   "conferindo na segunda sagital",
   "iniciando o TotalSegmentator",
-  "Todas as janelas de configuração"
+  "Todas as janelas de configuração",
+  "interrompida (a janela que a rodava foi fechada)",
+  "cancelada (o trabalho não respondeu e foi encerrado)",
+  "cancelada"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

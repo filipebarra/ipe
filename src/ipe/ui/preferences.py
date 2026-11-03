@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from ipe.core.config import DEFAULT_SETTINGS
 from ipe.core.sysinfo import auto_cache_mb, auto_volume_mb, total_ram_mb
+from ipe.ui.qt_i18n import mesmo
 from ipe.ui.monitors import ROLES, identify_screens, screen_key, screen_label
 from ipe.ui.viewer.actions import ACTIONS, shortcut_for
 from ipe.ui.viewer.viewer_tab import LAYOUTS, ViewerTab
@@ -120,7 +121,7 @@ class PreferencesDialog(QDialog):
         from ipe.auth import session as S
         if not S.can("configure"):          # do computador: só quem configura
             for i in range(tabs.count()):
-                if tabs.tabText(i) in ("Monitores", "Desempenho"):
+                if any(mesmo(tabs.tabText(i), a) for a in ("Monitores", "Desempenho")):
                     tabs.setTabEnabled(i, False)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel |
                               QDialogButtonBox.RestoreDefaults)
@@ -142,7 +143,7 @@ class PreferencesDialog(QDialog):
         titulo, aba, secoes = PAGINAS[self.pagina]
         self.setWindowTitle(f"Configurações — {titulo}")
         for i in range(self.tabs.count()):
-            if self.tabs.tabText(i) == aba:
+            if mesmo(self.tabs.tabText(i), aba):
                 self.tabs.setCurrentIndex(i)
                 break
         self.tabs.tabBar().hide()
@@ -150,8 +151,8 @@ class PreferencesDialog(QDialog):
         if secoes:
             pagina = self.tabs.currentWidget()
             for g in pagina.findChildren(QGroupBox):
-                if g.title() in SECOES_DA_GERAL:
-                    g.setVisible(g.title() in secoes)
+                if any(mesmo(g.title(), x) for x in SECOES_DA_GERAL):
+                    g.setVisible(any(mesmo(g.title(), x) for x in secoes))
             self.resize(620, 360)
         # "Restaurar padrões" volta **tudo** aos de fábrica: numa janela de um assunto só, não
         bb.button(QDialogButtonBox.RestoreDefaults).hide()

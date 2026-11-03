@@ -38,6 +38,8 @@ class Tarefa:
     mensagem: str = ""
     cancelar_fn: object = field(default=None, repr=False)   # callable() que pede o cancelamento
     cancelar_pedido: bool = False
+    cancelar_em: float = 0.0          # quando o Cancelar foi apertado (0.99.34)
+    liberar_fn: object = field(default=None, repr=False)    # callable() que solta o exame à força
 
     @property
     def ativa(self) -> bool:
@@ -86,6 +88,13 @@ class Registro:
             if mensagem is not None:
                 t.mensagem = mensagem
 
+    def ao_liberar(self, tid: int | None, fn) -> None:
+        """O que fazer se a tarefa não responder ao Cancelar (soltar o exame, matar o processo)."""
+        with self._lock:
+            t = self._t.get(tid) if tid is not None else None
+            if t is not None:
+                t.liberar_fn = fn
+
     def ao_cancelar(self, tid: int | None, fn) -> None:
         with self._lock:
             t = self._t.get(tid) if tid is not None else None
@@ -116,21 +125,56 @@ class Registro:
         return "IA: " + ", ".join(partes)
 
     # ------------------------------------------------------------------ cancelar
+    #: segundos que a tarefa tem para parar depois do Cancelar; passou disso, ela é fechada à força
+    ESPERA_CANCELAR = 15.0
+
     def cancelar(self, tid: int) -> bool:
+        """0.99.34, relato dele: *"não consigo cancelar. os botões de cancelar a escolhida ou todos não
+        estão funcionando"*. Antes, quando o trabalho já não existia (a aba do exame tinha fechado), o
+        pedido de cancelar dava erro calado e a tarefa ficava "rodando" para sempre. Agora: sem quem
+        cancele, ou se cancelar der erro, fecha na hora; se o trabalho não parar em 15 s, `conferir()`
+        fecha e solta o exame."""
         with self._lock:
             t = self._t.get(tid)
             if t is None or not t.ativa:
                 return False
             t.cancelar_pedido = True
+            t.cancelar_em = time.time()
             fn = t.cancelar_fn
             if t.estado == FILA:
                 t.estado, t.fim, t.mensagem = CANCELADO, time.time(), "cancelada antes de começar"
+        ok = fn is not None
         if fn is not None:
             try:
                 fn()
             except Exception:  # noqa: BLE001
-                pass
+                ok = False
+        if not ok:
+            self._forcar(tid, "cancelada")
         return True
+
+    def _forcar(self, tid: int, mensagem: str) -> None:
+        with self._lock:
+            t = self._t.get(tid)
+            if t is None or not t.ativa:
+                return
+            t.estado, t.fim, t.mensagem, t.etapa = CANCELADO, time.time(), mensagem, ""
+            liberar = t.liberar_fn
+        if liberar is not None:
+            try:
+                liberar()
+            except Exception:  # noqa: BLE001
+                pass
+
+    def conferir(self, agora: float | None = None) -> int:
+        """Fecha as tarefas que pediram para cancelar e não pararam (chamado a cada segundo pela janela
+        Tarefas de IA e pela barra de status). Devolve quantas fechou."""
+        agora = time.time() if agora is None else agora
+        presas = [t.id for t in self.ativas() if t.cancelar_pedido and t.cancelar_em
+                  and agora - t.cancelar_em >= self.ESPERA_CANCELAR]
+        for tid in presas:
+            self._forcar(tid, "cancelada (o trabalho não respondeu e foi encerrado)")
+        return len(presas)
 
     def cancelar_todas(self) -> int:
         return sum(1 for t in self.ativas() if self.cancelar(t.id))

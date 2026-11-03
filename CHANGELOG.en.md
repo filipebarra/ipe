@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.34 — fixes: database in English and cancelling AIs
+- **Empty database in English**: the "All" modality filter was searching for a modality called "All".
+  Fixed for every drop-down list: the screen shows the translation and the program reads the original.
+  Menu permissions (import, export, configure) and opening the right Settings page also only worked in
+  Portuguese; fixed.
+- **AI tasks that would not cancel**: a segmentation started in the viewer was destroyed when the study
+  was closed, but the task stayed "running" forever, the study stayed "busy" (no other AI could run)
+  and Cancel did nothing. It now keeps running with the study closed and saves its result; Cancel always
+  closes the task (forcibly, if the job does not stop within 15 s) and releases the study.
+
 ## 0.99.33 — English by default
 - The program and the README now default to **English**; Portuguese and Spanish are still available.
 - The Windows **installer** asks for the language on its first screen (English selected) and saves it

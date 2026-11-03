@@ -986,8 +986,9 @@ class MainWindow(QMainWindow):
             menu = a.menu()
             if menu is None:
                 continue
+            from ipe.core.i18n import original
             for act in menu.actions():
-                t = act.text()
+                t = original(act.text()).replace("&", "")     # 0.99.34: em inglês também (era "Import…")
                 if t.startswith("Importar") and "lista" not in t:
                     act.setEnabled(cur.can("import"))
                 elif t.startswith(("Configurar nós", "Automação", "Configurar servidor central")):
@@ -1070,7 +1071,8 @@ class MainWindow(QMainWindow):
         dlg = PreferencesDialog(self.settings, self)
         if tab:
             for i in range(dlg.tabs.count()):
-                if dlg.tabs.tabText(i) == tab:
+                from ipe.ui.qt_i18n import mesmo
+                if mesmo(dlg.tabs.tabText(i), tab):
                     dlg.tabs.setCurrentIndex(i)
         if dlg.exec():
             self._preferencias_salvas()
@@ -1378,6 +1380,7 @@ class MainWindow(QMainWindow):
     def _update_status(self) -> None:
         try:
             from ipe.ai import tarefas as TA
+            TA.REGISTRO.conferir()                     # 0.99.34: fecha as que não pararam ao cancelar
             txt = TA.REGISTRO.resumo()
             lab = getattr(self, "ia_label", None)
             if lab is not None:

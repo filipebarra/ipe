@@ -76,6 +76,12 @@ class TarefasIADialog(QDialog):
 
     # ------------------------------------------------------------------ tela
     def atualizar(self) -> None:
+        TA.REGISTRO.conferir()
+        try:
+            from ipe.ui.segmentacao import _limpar_mortas
+            _limpar_mortas()
+        except Exception:  # noqa: BLE001
+            pass
         tarefas = TA.REGISTRO.tarefas()
         escolhida = self.escolhida()
         agora = time.time()
@@ -104,12 +110,17 @@ class TarefasIADialog(QDialog):
     def _botoes(self) -> None:
         tid = self.escolhida()
         t = next((x for x in TA.REGISTRO.tarefas() if x.id == tid), None)
-        self.b_cancelar.setEnabled(bool(t and t.ativa))
+        ativas = TA.REGISTRO.ativas()
+        self.b_cancelar.setEnabled(bool(t and t.ativa) or (t is None and len(ativas) == 1))
         self.b_todas.setEnabled(bool(TA.REGISTRO.ativas()))
 
     # ------------------------------------------------------------------ ações
     def cancelar_escolhida(self) -> bool:
         tid = self.escolhida()
+        if tid is None:
+            # 0.99.34: com uma só ativa, não precisa escolher a linha antes
+            ativas = TA.REGISTRO.ativas()
+            tid = ativas[0].id if len(ativas) == 1 else None
         ok = tid is not None and TA.REGISTRO.cancelar(tid)
         self.atualizar()
         return ok

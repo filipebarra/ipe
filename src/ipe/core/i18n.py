@@ -111,6 +111,7 @@ def load(lang: str) -> None:
         _state["missing"] = set()
         _state["strings"] = {}
         _state["patterns"] = []
+        _state["reverso"] = None
         if not lang or lang == BASE_LANG:
             return
         data: dict = {}
@@ -247,6 +248,30 @@ def save_user(lang: str, mapping: dict) -> Path | None:
     if lang == current():
         load(lang)
     return path
+
+
+def original(texto: str) -> str:
+    """O texto em português que, traduzido, deu este (0.99.34). Para o código que decide pelo texto de
+    um menu ou botão funcionar com a tela traduzida. Sem tradução conhecida, devolve o próprio texto."""
+    if not isinstance(texto, str) or not texto or _state["lang"] == BASE_LANG:
+        return texto
+    with _lock:
+        rev = _state.get("reverso")
+        if rev is None:
+            rev = {}
+            for src, dst in _state["strings"].items():
+                rev.setdefault(dst, src)
+            for src, dst in _state["cache"].items():
+                if isinstance(dst, str):
+                    rev.setdefault(dst, src)
+            _state["reverso"] = rev
+    if texto in rev:
+        return rev[texto]
+    with _lock:                                  # traduzido depois que o índice foi montado
+        for src, dst in _state["cache"].items():
+            if dst == texto:
+                return src
+    return texto
 
 
 def system_language() -> str:

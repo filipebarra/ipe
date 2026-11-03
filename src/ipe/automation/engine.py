@@ -444,6 +444,12 @@ class AutomationEngine(QObject):
         TA.REGISTRO.mudar(tid, TA.PREPARANDO, etapa=f"série {serie[-8:]}")
         TA.REGISTRO.ao_cancelar(tid, cancelar)
 
+        def liberar():                 # 0.99.34: não parou em 15 s depois do Cancelar
+            cancelar()
+            TS.EM_CURSO.discard(study_uid)
+            QTimer.singleShot(0, self._seg_proximo)
+        TA.REGISTRO.ao_liberar(tid, liberar)
+
         def etapa(linha: str) -> None:
             if linha.startswith("ETAPA "):
                 TA.REGISTRO.mudar(tid, etapa=linha[6:])

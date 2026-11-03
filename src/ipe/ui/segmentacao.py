@@ -23,7 +23,32 @@ log = logging.getLogger(__name__)
 _rodando: list = []            # a segmentação em curso (e a referência que a mantém viva)
 
 
+def _valido(obj) -> bool:
+    """O objeto do Qt ainda existe (não foi apagado junto com a janela que o criou)?"""
+    if obj is None:
+        return False
+    try:
+        import shiboken6
+        return shiboken6.isValid(obj)
+    except Exception:  # noqa: BLE001
+        return True
+
+
+def _limpar_mortas() -> None:
+    """Tira da lista as segmentações cujo objeto o Qt já apagou (0.99.34) e libera o exame delas: antes,
+    uma segmentação perdida deixava o programa "ocupado" para sempre — nenhuma outra IA rodava."""
+    from ipe.ai import tarefas as TA
+    for s in list(_rodando):
+        if not _valido(s):
+            _rodando.remove(s)
+            uid = getattr(s, "_study_uid", "")
+            TS.EM_CURSO.discard(uid)
+            TA.REGISTRO.mudar(getattr(s, "tarefa", None), TA.ERRO, etapa="",
+                              mensagem="interrompida (a janela que a rodava foi fechada)")
+
+
 def ocupado() -> bool:
+    _limpar_mortas()
     return bool(_rodando) or bool(TS.EM_CURSO)
 
 
@@ -82,11 +107,17 @@ class Segmentacao(QObject):
 
     def __init__(self, janela, repo, settings, storage_root, study_uid: str, series_uid: str,
                  cache=None, simular: bool = False, tipo: str = "abdome"):
-        super().__init__(janela)
+        # 0.99.34, relato dele: *"fechei o exame e quando abri novamente já se passaram 30 minutos e a
+        # segmentação ainda não acabou. não consigo cancelar"*. A segmentação era filha da aba do exame:
+        # fechar o exame apagava ela e o processo, mas a tarefa ficava "rodando" e o exame "ocupado", e o
+        # Cancelar chamava um objeto que já não existia. Agora ela pertence ao programa: continua rodando
+        # com o exame fechado e grava o resultado no exame do mesmo jeito.
+        super().__init__(QApplication.instance() or janela)
         if cache is None:
             from ipe.imaging.series import FrameCache
             cache = FrameCache(256)
-        self.janela, self.repo, self.storage = janela, repo, storage_root
+        self._janela, self.repo, self.storage = janela, repo, storage_root
+        self._study_uid = study_uid
         self.trabalho = TS.Trabalho(repo, cache, settings, study_uid, series_uid, simular=simular)
         self.tipo = tipo                         # "abdome" (órgãos) | "coluna" (níveis, 0.99.2)
         if tipo == "coluna":
@@ -116,7 +147,7 @@ class Segmentacao(QObject):
                        "neuro": "Índices do crânio (IA)",
                        "linfonodos": "Níveis linfonodais (IA)"}.get(tipo, "Segmentar órgãos")
         self.proc: QProcess | None = None
-        self.dlg: QProgressDialog | None = None
+        self._dlg: QProgressDialog | None = None
         self.etapa = "preparando"
         self.fase = "principal"                  # "conferencia": a segunda sagital da coluna (0.99.5)
         self._primeira: dict | None = None
@@ -126,6 +157,25 @@ class Segmentacao(QObject):
         self._timer = QTimer(self)
         self._timer.setInterval(1000)
         self._timer.timeout.connect(self._atualizar)
+
+    # ------------------------------------------------------------ janela e progresso (podem sumir)
+    @property
+    def janela(self):
+        """A janela de onde veio o pedido; se ela fechou, a janela ativa do programa (ou nenhuma)."""
+        if _valido(self._janela):
+            return self._janela
+        return QApplication.activeWindow()
+
+    def janela_viva(self) -> bool:
+        return _valido(self._janela)
+
+    @property
+    def dlg(self):
+        return self._dlg if _valido(self._dlg) else None
+
+    @dlg.setter
+    def dlg(self, valor) -> None:
+        self._dlg = valor
 
     # ------------------------------------------------------------ começo
     def iniciar(self) -> bool:
@@ -152,6 +202,8 @@ class Segmentacao(QObject):
         self.tarefa = TA.REGISTRO.nova(self.titulo, self.trabalho.study_uid,
                                        f"{info.get('patient_name', '')} {info.get('description', '')}".strip(),
                                        "manual", TA.PREPARANDO, cancelar=self.cancelar).id
+        eu = self
+        TA.REGISTRO.ao_liberar(self.tarefa, lambda: _liberar(eu))
         self.dlg = QProgressDialog("Montando o volume da série…", "Cancelar", 0, 0, self.janela)
         self.dlg.setWindowTitle(self.titulo)
         self.dlg.setWindowModality(Qt.NonModal)          # dá para continuar lendo enquanto roda
@@ -229,10 +281,14 @@ class Segmentacao(QObject):
 
     def cancelar(self) -> None:
         self.cancelado = True
-        if self.proc is not None and self.proc.state() != QProcess.NotRunning:
-            self.proc.kill()
-        elif self.proc is None:
-            pass                                    # ainda montando o volume: o progresso devolve False
+        self.trabalho.cancelado = True
+        proc = self.proc if _valido(self.proc) else None
+        if proc is not None and proc.state() != QProcess.NotRunning:
+            proc.kill()                             # _processo_terminou fecha a tarefa como cancelada
+        elif proc is None and self.inicio:
+            # o processo já não existe e ninguém vai avisar o fim: fecha aqui
+            self._fim(None, "Segmentação cancelada.")
+        # (ainda montando o volume: o progresso devolve False e o _lancar fecha)
 
     def _erro_processo(self, err) -> None:
         if err == QProcess.FailedToStart and self.fase == "ancora":
@@ -503,7 +559,13 @@ class Segmentacao(QObject):
         self._fim(saida, msg)
 
     def _fim(self, saida, msg: str) -> None:
-        self._timer.stop()
+        if getattr(self, "_terminado", False):
+            return
+        self._terminado = True
+        try:
+            self._timer.stop()
+        except RuntimeError:
+            pass
         self.trabalho.limpar()
         if self.dlg is not None:
             self.dlg.blockSignals(True)
@@ -515,7 +577,24 @@ class Segmentacao(QObject):
         from ipe.ai import tarefas as TA
         estado = TA.PRONTO if saida is not None else (TA.CANCELADO if self.cancelado else TA.ERRO)
         TA.REGISTRO.mudar(getattr(self, "tarefa", None), estado, etapa="", mensagem=msg)
-        self.terminou.emit(saida, msg)
+        try:
+            self.terminou.emit(saida, msg)
+        except RuntimeError:                         # a aba que pediu já fechou: o resultado já está gravado
+            log.info("segmentação terminou com a aba fechada: %s", msg)
+
+
+def _liberar(seg) -> None:
+    """Chamado pela janela Tarefas de IA quando a tarefa não responde ao Cancelar: solta o exame."""
+    if seg in _rodando:
+        _rodando.remove(seg)
+    TS.EM_CURSO.discard(getattr(seg, "_study_uid", ""))
+    try:
+        seg.cancelado = True
+        seg.trabalho.cancelado = True
+        if _valido(seg.proc) and seg.proc.state() != QProcess.NotRunning:
+            seg.proc.kill()
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def carregar_na_aba(tab, saida: dict) -> None:

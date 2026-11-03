@@ -5125,8 +5125,24 @@ class ViewerTab(OncoMixin, QWidget):
             return None
         seg = Segmentacao(self, self.repo, self.settings, storage, vp.study_uid or self.study_uid,
                           f.series_uid, cache=self.cache, simular=simular, tipo=tipo)
+        net, repo, settings = getattr(self, "net", None), self.repo, self.settings
 
         def pronto(saida, msg):
+            if not seg.janela_viva():
+                # 0.99.34: o exame foi fechado enquanto rodava. O resultado já está gravado no exame
+                # (aparece ao abrir de novo); só falta mandar aos destinos de CAD/IA.
+                if saida is not None and tipo in ("abdome", "coluna") and net is not None:
+                    try:
+                        from ipe.ai import coluna as COL
+                        from ipe.ai import totalseg as TS
+                        from ipe.automation import destinos as DEST
+                        destinos = (COL.config(settings, COL.CHAVE_DESTINOS) if tipo == "coluna"
+                                    else TS.config(settings, TS.CHAVE_DESTINOS))
+                        DEST.enviar(net, repo, seg.trabalho.study_uid, saida.get("series"), destinos,
+                                    "Níveis da coluna" if tipo == "coluna" else "Órgãos abdominais")
+                    except Exception:  # noqa: BLE001
+                        log.exception("enviar a segmentação aos destinos (exame fechado)")
+                return
             if saida is not None and tipo == "cefalometria":
                 carregar_na_aba(self, saida)
                 self.status_message.emit(msg)

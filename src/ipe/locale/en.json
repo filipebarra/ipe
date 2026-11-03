@@ -5945,5 +5945,8 @@
  "⚙ {}": "⚙ {}",
  "IA: {} rodando": "AI: {} running",
  "{} rodando": "{} running",
- "{} na fila": "{} queued"
+ "{} na fila": "{} queued",
+ "interrompida (a janela que a rodava foi fechada)": "interrupted (the window running it was closed)",
+ "cancelada (o trabalho não respondeu e foi encerrado)": "cancelled (the job did not respond and was stopped)",
+ "cancelada": "cancelled"
 }

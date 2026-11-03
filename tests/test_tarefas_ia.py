@@ -160,3 +160,80 @@ def test_janelas_de_configuracao_diminuem_e_maximizam(env):
         assert d.windowFlags() & Qt.WindowMaximizeButtonHint
     from PySide6.QtWidgets import QMessageBox
     assert not janelas.com_maximizar(QMessageBox())
+
+
+# ---------------------------------------------------------------------- 0.99.34: cancelar sempre funciona
+def test_cancelar_sem_resposta_fecha_na_hora_ou_depois_de_15s():
+    soltos = []
+    a = TA.REGISTRO.nova("Órgãos abdominais", "1.1", "x", estado=TA.RODANDO, cancelar=lambda: 1 / 0)
+    TA.REGISTRO.ao_liberar(a.id, lambda: soltos.append("a"))
+    assert TA.REGISTRO.cancelar(a.id)                    # deu erro ao cancelar: fecha já
+    t = next(x for x in TA.REGISTRO.tarefas() if x.id == a.id)
+    assert t.estado == TA.CANCELADO and soltos == ["a"]
+    b = TA.REGISTRO.nova("Níveis da coluna", "1.2", "y", estado=TA.RODANDO, cancelar=lambda: None)
+    TA.REGISTRO.ao_liberar(b.id, lambda: soltos.append("b"))
+    assert TA.REGISTRO.cancelar(b.id)                    # pediu, o trabalho não parou...
+    assert next(x for x in TA.REGISTRO.tarefas() if x.id == b.id).ativa
+    assert TA.REGISTRO.conferir() == 0
+    assert TA.REGISTRO.conferir(time.time() + TA.REGISTRO.ESPERA_CANCELAR + 1) == 1   # ...15 s depois
+    t = next(x for x in TA.REGISTRO.tarefas() if x.id == b.id)
+    assert t.estado == TA.CANCELADO and "não respondeu" in t.mensagem and soltos == ["a", "b"]
+    c = TA.REGISTRO.nova("Sem cancelar", "1.3", "z", estado=TA.RODANDO)          # ninguém para avisar
+    assert TA.REGISTRO.cancelar(c.id)
+    assert next(x for x in TA.REGISTRO.tarefas() if x.id == c.id).estado == TA.CANCELADO
+
+
+def _seg_rodando(env, tmp_path, monkeypatch):
+    """Uma segmentação "rodando", pedida de uma aba (QWidget) que depois é fechada."""
+    from PySide6.QtWidgets import QWidget
+    from ipe.ui import segmentacao as SG
+    QApplication.instance() or QApplication([])
+    paths, _db, repo = env
+    uid, series = _exame_ct(env, tmp_path)
+    serie = next(iter(series.values()))
+    monkeypatch.setattr(TS, "instalado", lambda *_a: True)
+    monkeypatch.setattr(SG.Segmentacao, "_lancar", lambda self: setattr(self, "inicio", 1.0) or True)
+    aba = QWidget()
+    seg = SG.Segmentacao(aba, repo, _settings(paths), paths.storage, uid, serie, simular=True)
+    assert seg.iniciar() and SG.ocupado()
+    return SG, seg, aba, uid
+
+
+def test_fechar_o_exame_nao_mata_a_segmentacao_e_cancelar_funciona(env, tmp_path, monkeypatch):
+    import shiboken6
+    SG, seg, aba, uid = _seg_rodando(env, tmp_path, monkeypatch)
+    assert seg.parent() is QApplication.instance()       # não é mais filha da aba
+    shiboken6.delete(aba)                                 # fechou o exame (a janela de progresso foi junto)
+    QApplication.processEvents()
+    assert shiboken6.isValid(seg) and seg.dlg is None and not seg.janela_viva()
+    from ipe.ui.tarefas_ia import TarefasIADialog
+    d = TarefasIADialog()
+    assert d.b_cancelar.isEnabled()                       # uma só ativa: nem precisa escolher a linha
+    assert d.cancelar_escolhida()
+    t = next(x for x in TA.REGISTRO.tarefas() if x.id == seg.tarefa)
+    assert t.estado == TA.CANCELADO
+    assert not SG.ocupado() and uid not in TS.EM_CURSO    # o exame foi solto: as outras IAs rodam
+    d.close()
+
+
+def test_segmentacao_apagada_solta_o_exame(env, tmp_path, monkeypatch):
+    """Se o objeto sumir mesmo assim, a próxima conferência solta o exame e marca a tarefa."""
+    import shiboken6
+    SG, seg, aba, uid = _seg_rodando(env, tmp_path, monkeypatch)
+    tid = seg.tarefa
+    shiboken6.delete(seg)
+    assert not SG.ocupado() and uid not in TS.EM_CURSO
+    t = next(x for x in TA.REGISTRO.tarefas() if x.id == tid)
+    assert t.estado == TA.ERRO and "fechada" in t.mensagem
+    aba.close()
+
+
+def test_cancelar_todas_com_a_aba_fechada(env, tmp_path, monkeypatch):
+    import shiboken6
+    SG, seg, aba, uid = _seg_rodando(env, tmp_path, monkeypatch)
+    TA.REGISTRO.nova("Órgãos abdominais", "9.9", "fila")
+    shiboken6.delete(aba)
+    from ipe.ui.tarefas_ia import TarefasIADialog
+    d = TarefasIADialog()
+    assert d.cancelar_todas() == 2 and not TA.REGISTRO.ativas() and not SG.ocupado()
+    d.close()

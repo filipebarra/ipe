@@ -121,7 +121,20 @@ b = QPushButton("Salvar"); assert b.text() == "Save", b.text()
 b.setText("Fechar"); assert b.text() == "Close", b.text()
 b.setToolTip("Salvar"); assert b.toolTip() == "Save", b.toolTip()
 c = QComboBox(); c.addItem("Fechar"); c.addItems(["Salvar"])
-assert c.itemText(0) == "Close" and c.itemText(1) == "Save", (c.itemText(0), c.itemText(1))
+# 0.99.34: a tela mostra traduzido; o código lê o original
+import ipe.core.i18n as I_
+tela = [c.model().index(i, 0).data() for i in range(2)]
+assert tela == ["Close", "Save"], tela
+assert c.itemText(0) == "Fechar" and c.currentText() == "Fechar", (c.itemText(0), c.currentText())
+assert c.findText("Salvar") == 1
+c.setCurrentText("Salvar"); assert c.currentIndex() == 1 and c.currentText() == "Salvar"
+c.insertItem(0, "Todas"); assert c.model().index(0, 0).data() == "All" and c.itemText(0) == "Todas"
+c.setItemText(2, "Fechar"); assert c.itemText(2) == "Fechar" and c.model().index(2, 0).data() == "Close"
+ed = QComboBox(); ed.setEditable(True); ed.addItems(["Fechar"]); ed.setEditText("texto livre")
+assert ed.currentText() == "texto livre"
+from ipe.ui.qt_i18n import mesmo
+assert I_.original("Close") == "Fechar" and I_.original("xyz não traduzido") == "xyz não traduzido"
+assert mesmo("Close", "Fechar") and mesmo("Fechar", "Fechar") and not mesmo("Save", "Fechar")
 t = QTabWidget(); t.addTab(QWidget(), "Fechar"); assert t.tabText(0) == "Close", t.tabText(0)
 a = QAction("Salvar"); assert a.text() == "Save", a.text()
 w = QWidget(); w.setWindowTitle("Fechar"); assert w.windowTitle() == "Close", w.windowTitle()
@@ -188,3 +201,64 @@ def test_primeira_abertura_sugere_ingles(tmp_path, monkeypatch):
     s = Settings(tmp_path / "settings.json")
     assert A._choose_language(s) == "en" and visto["lang"] == "en" and s.get("language") == "en"
     assert A._choose_language(s) == "en"            # gravado: não pergunta de novo
+
+
+_BANCO_EM_INGLES = r'''
+import os, sys
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ["DICOMVIEWER_HOME"] = sys.argv[2]
+sys.path.insert(0, sys.argv[1])
+from ipe.core import i18n
+i18n.load("en")
+from ipe.ui.qt_i18n import install
+install()
+from PySide6.QtWidgets import QApplication
+app = QApplication([])
+from ipe.core.config import get_paths, Settings
+from ipe.core.sample_data import make_sample_data
+from ipe.db.repository import Repository
+from ipe.db.session import Database
+from ipe.importer.scanner import Importer
+paths = get_paths()
+db = Database(paths.database)
+repo = Repository(db)
+make_sample_data(sys.argv[3])
+Importer(db, paths.storage).import_paths([sys.argv[3]])
+n = len(repo.search_studies())
+assert n > 0
+from ipe.ui.main_window import MainWindow
+w = MainWindow(paths, Settings(paths.settings_file), repo=repo, db=db)
+b = w.browser
+b.refresh()
+assert b.model.rowCount() == n, (b.model.rowCount(), n, b.modality.currentText())
+assert b.modality.model().index(0, 0).data() == "All"
+# visualizador em inglês (muitas listas suspensas)
+for r in repo.search_studies()[:3]:
+    w.open_study(r.study_uid)
+    QApplication.processEvents()
+assert len(list(w.all_viewer_tabs())) >= 1
+# permissões dos menus valem em inglês (o código decide pelo texto original)
+from ipe.auth import session as S
+from ipe.core.i18n import original
+acoes = [x for a in w.menuBar().actions() if a.menu() for x in a.menu().actions()]
+imp = [x for x in acoes if original(x.text()).replace("&", "").startswith("Importar")]
+assert imp and imp[0].text() != original(imp[0].text()), [x.text() for x in imp]
+# página de Configurações em inglês: abre a aba certa
+from ipe.ui.preferences import PreferencesDialog, PAGINAS
+for pg in ("idioma", "mouse", "cad_ia"):
+    d = PreferencesDialog(Settings(paths.settings_file), None, pagina=pg)
+    _t, aba, _s = PAGINAS[pg]
+    assert d.tabs.tabText(d.tabs.currentIndex()) == i18n.tr(aba), (pg, d.tabs.tabText(d.tabs.currentIndex()))
+print("ok", n, flush=True)
+os._exit(0)                      # sem fechar a janela: o "Sair do programa?" ficaria esperando
+'''
+
+
+def test_banco_nao_fica_vazio_em_ingles(tmp_path):
+    """0.99.34, relato dele: em inglês o banco aparecia vazio ("Todas" virava "All" no filtro)."""
+    script = tmp_path / "banco_en.py"
+    script.write_text(_BANCO_EM_INGLES, encoding="utf-8")
+    r = subprocess.run([sys.executable, str(script), str(SRC), str(tmp_path / "home"), str(tmp_path / "s")],
+                       capture_output=True, text=True, timeout=300)
+    assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-3000:]
+    assert "ok" in r.stdout
