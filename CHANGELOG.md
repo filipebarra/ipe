@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.37 — difusão em qualquer RM
+- Botão **Difusão** (e em Aplicações): **mapa ADC** a partir dos valores de b da série (regressão em
+  todos os b marcados), gravado como série de RM do exame em ×10⁻⁶ mm²/s, com limiar de ruído e R²
+  mínimo; **DWI sintética** num b escolhido, marcada como sintética; **ADC numa ROI**, com o ADC do
+  aparelho e o sinal de cada b lado a lado, e a frase para o laudo.
+- O b sai do arquivo (padrão, GE, Siemens, Philips); na GE anonimizada o b0 é deduzido; sem b no
+  arquivo, digita-se. Avisos antes de calcular: só um b, sem b0, b baixo, cortes incompletos, TE diferente.
+- Conferido no acervo: no crânio o ADC é o do aparelho (razão 1,0002).
+
 ## 0.99.36 — fim do plano do modo de uso
 - **Regras de automação com dono**: buscas agendadas, anteriores, roteamento, dinâmica pronta e gestão
   automática ganham *Visível para* (Todos / Só eu / com escolhidos) e a coluna na lista; aba própria em

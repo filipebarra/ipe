@@ -1176,6 +1176,11 @@ class ViewerTab(OncoMixin, QWidget):
         abd.setIcon(icon("measure"))
         abd.setIconText("Órgãos")
         self._button(tb, abd, menu_abd, app="abdome")
+        # difusão (0.99.37, pedido dele: em todas as RM, não só na mama)
+        dwi = self._act("difusao.abrir", "Difusão: ADC, DWI sintética e ADC na ROI", self.abrir_difusao)
+        dwi.setIcon(icon("measure"))
+        dwi.setIconText("Difusão")
+        self._button(tb, dwi, None, app="difusao")
         self._montar_bloco_de_aplicacoes(tb)
         self._button(tb, self._plain("Mais", "more", "Mais opções"), more, instant=True)
 
@@ -5108,6 +5113,11 @@ class ViewerTab(OncoMixin, QWidget):
             from PySide6.QtWidgets import QApplication
             QApplication.clipboard().setText(texto)
             self.status_message.emit("Sem laudo aberto: a frase foi copiada.")
+
+    def abrir_difusao(self):
+        """O painel da difusão (0.99.37): ADC, DWI sintética e a tabela por ROI."""
+        from ipe.ui.viewer.difusao_painel import abrir
+        return abrir(self)
 
     def abrir_tarefas_ia(self):
         """A janela "Tarefas de IA" (0.99.32): uma só para o programa todo."""

@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.37 — diffusion on any MR
+- **Diffusion** button (also under Applications): **ADC map** from the series' b-values (regression over
+  all checked b), saved as an MR series of the study in ×10⁻⁶ mm²/s, with a noise threshold and minimum
+  R²; **synthetic DWI** at a chosen b, labelled as synthetic; **ADC in an ROI**, with the scanner's ADC
+  and the signal at each b side by side, and the sentence for the report.
+- The b-value comes from the file (standard, GE, Siemens, Philips); on anonymized GE series the b0 is
+  inferred; with no b in the file, it can be typed. Warnings before computing: single b, no b0, low b,
+  incomplete slices, different TE.
+- Checked on the archive: on the brain the ADC matches the scanner's (ratio 1.0002).
+
 ## 0.99.36 — usage-mode plan completed
 - **Automation rules with an owner**: scheduled queries, priors, routing, dynamic preparation and
   automatic management get *Visible to* (Everyone / Only me / chosen users) and a column in the list;

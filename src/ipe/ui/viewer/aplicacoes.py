@@ -62,6 +62,7 @@ TIPOS: dict[str, tuple[str, str]] = {
               "CUBE|SPACE|VISTA|FIESTA|CISS|DRIVE|3D T2|T2 3D|T23D|3DT2"),
     "dinamica": ("Série dinâmica (contraste em fases)",
                  "DYN|DYNAMIC|DINAM|DINAMICO|DINAMICA|DCE|VIBRANT|THRIVE|DISCO|PERFUS|PERFUSION"),
+    "difusao": ("Difusão (DWI, ADC)", "DWI|DIFUS|DIFUSAO|DIFFUSION|DIFF|TRACE|TRACEW|ADC|EADC|DTI|EPI DIFF"),
     "volume": ("Volume (TC/RM/PET com muitos cortes)", ""),
 }
 
@@ -179,6 +180,8 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
               descricao="Medidas guiadas: MRPI e MRPI 2.0, índice de Evans, ângulo calosal"),
     Aplicacao("linfonodos", "Linfonodos", frozenset({"CT"}), ((frozenset({"pescoco"}), frozenset()),),
               descricao="Mapa dos níveis linfonodais cervicais (I a VII) e o nível da lesão segmentada"),
+    Aplicacao("difusao", "Difusão", frozenset({"MR"}), ((frozenset(), frozenset({"difusao"})),),
+              descricao="Mapa ADC dos valores de b, DWI sintética e ADC numa ROI (qualquer RM)"),
     Aplicacao("abdome", "Órgãos abdominais", frozenset({"CT", "MR"}),
               ((frozenset({"abdome", "pelve"}), frozenset()),),
               descricao="Segmentação dos órgãos abdominais (IA): máscaras e tabela de volumes no exame"),

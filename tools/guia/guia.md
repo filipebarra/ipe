@@ -528,6 +528,19 @@ Botão **Números do exame…** no painel da dinâmica. Ele mede sobre a máscar
 
 Em **Automação ▸ Dinâmica pronta** dá para mandar o programa, assim que um exame chega e bate com a regra, detectar as fases e decodificar os quadros em segundo plano — o exame abre instantâneo. Nada é gravado como série e nada é enviado.
 
+## Difusão (ADC) em qualquer RM
+
+Botão **Difusão** na barra (aparece na RM que tem uma série de difusão — DWI, DIFUSAO, TRACE… — e está em **Aplicações** nas outras). Abre um painel que não é modal: dá para desenhar no quadro com ele aberto.
+
+- **Série de difusão**: a do exame, escolhida sozinha pela descrição; as outras RM ficam na lista, porque nem todo aparelho escreve "DWI".
+- **Valores de b**: lidos do arquivo — o padrão (0018,9087) e os lugares próprios de cada fabricante (GE (0043,1039), Siemens, Philips). Uma caixa por b: desmarque o b que não quer no ajuste. Quando o arquivo não diz o b, digite-os na ordem em que se repetem em cada corte (ex.: *0, 1000*). Na série da GE anonimizada, que perde o privado, a imagem sem b numa série em que as outras têm b > 0 é o b0 — o painel avisa que deduziu.
+- **Avisos antes de calcular**: só um b; sem b0; maior b abaixo de 500; cortes sem todos os b; TE diferente entre os b; mais de uma imagem por b no mesmo corte.
+- **Calcular e gravar o ADC**: regressão de ln(S) contra b em todos os b marcados (com dois b, é ln(S0/Sb)/b). Unidade **×10⁻⁶ mm²/s**, a mesma do ADC da GE. Pixel com sinal do b0 abaixo do *limiar de ruído* (5% do percentil 99, de fábrica) fica 0; com três b ou mais, o pixel com ajuste pior que o *R² mínimo* (0,25) também. O mapa é gravado como série de RM do exame ("ADC (Ipê) · b0-1000"), com a geometria da DWI — sincroniza, mede com as ROIs de sempre (o valor do pixel é o ADC), vai para o filme, para a exportação e para o PACS — e abre no quadro ativo.
+- **DWI sintética**: S(b) = S0·e^(−ADC·b) num b escolhido (50 a 5000), gravada como "DWI sintética b1500 (Ipê)". É uma imagem calculada: não use para calcular ADC.
+- **Medir a ROI selecionada**: desenhe uma ROI (elipse, retângulo ou polígono) num quadro com a difusão, o ADC daqui ou o do aparelho; a tabela traz, para a mesma ROI, o **ADC daqui**, o **ADC do aparelho** (quando o exame tem) e o **sinal em cada b**: média, DP, mediana, mínimo e máximo. **Mandar ao laudo** leva a frase com a média, o DP e o mínimo.
+
+**Conferido no acervo** (16 séries de cinco aparelhos GE, b0 e b1000 ou b750): no crânio o ADC daqui é o do aparelho (razão 1,0002, diferença mediana 0). Na mama a diferença é de ruído (mediana de 120 a 330 × 10⁻⁶ mm²/s): o aparelho calcula a mama com médias e direções que não grava na série DWI, e o Pioneer zera 94% da imagem. Por isso a tabela mostra os dois.
+
 ## Séries dinâmicas: juntar e separar
 
 Dois problemas opostos, no mesmo lugar — Configurações ▸ Protocolos de exame ▸ **Dinâmicos**:

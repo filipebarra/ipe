@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.37 — difusión en cualquier RM
+- Botón **Difusión** (y en Aplicaciones): **mapa ADC** a partir de los valores de b de la serie (regresión
+  en todos los b marcados), guardado como serie de RM del estudio en ×10⁻⁶ mm²/s, con umbral de ruido y
+  R² mínimo; **DWI sintética** en un b elegido, marcada como sintética; **ADC en una ROI**, con el ADC del
+  equipo y la señal de cada b lado a lado, y la frase para el informe.
+- El b sale del archivo (estándar, GE, Siemens, Philips); en la GE anonimizada se deduce el b0; sin b en
+  el archivo, se escribe. Avisos antes de calcular: un solo b, sin b0, b bajo, cortes incompletos, TE distinto.
+- Verificado en el acervo: en el cráneo el ADC es el del equipo (razón 1,0002).
+
 ## 0.99.36 — fin del plan del modo de uso
 - **Reglas de automatización con dueño**: búsquedas programadas, anteriores, enrutamiento, dinámica lista
   y gestión automática ganan *Visible para* (Todos / Solo yo / con elegidos) y la columna en la lista;
