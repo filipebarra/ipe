@@ -58,6 +58,12 @@ class RegraGestaoDialog(QDialog):
         hn.addWidget(self.e_nome, 1)
         hn.addWidget(self.k_ativa)
         topo.addRow("Nome:", hn)
+        # 0.99.36: quem vê a regra (some no modo "só eu")
+        from ipe.ui.visivel_para import VisivelPara
+        self.visivel = VisivelPara(self.regra if self.regra.get("id") else None, repo,
+                                   getattr(net, "settings", None), self)
+        if not self.visivel.isHidden():
+            topo.addRow("Visível para:", self.visivel)
         lay.addLayout(topo)
 
         nos = [n for n in repo.nodes(only_active=True) if n.get("kind", "dimse") == "dimse"]
@@ -257,6 +263,8 @@ class RegraGestaoDialog(QDialog):
             QMessageBox.information(self, "Regra", "Marque pelo menos um dia da semana.")
             return
         self.regra.update({"name": self.e_nome.text().strip(), "active": self.k_ativa.isChecked(), "config": cfg})
+        if not self.visivel.isHidden():
+            self.regra.update(self.visivel.valor())
         self.accept()
 
 
@@ -359,7 +367,8 @@ class PainelAutomatico(QWidget):
         return self.net.repo
 
     def regras(self) -> list[dict]:
-        return self.repo.rules(GA.TIPO)
+        # 0.99.36: as do serviço, as suas e as compartilhadas com quem está logado (o administrador, todas)
+        return self.repo.rules(GA.TIPO, visiveis=True, gerenciar=True)
 
     def _destino_txt(self, cfg) -> str:
         no = self.repo.node((cfg.get("destino") or {}).get("node_id"))
@@ -511,8 +520,13 @@ class PainelAutomatico(QWidget):
         if regra is None:
             return None
         from ipe.ui.print_settings import nome_de_copia
+        from ipe.auth import visibilidade as V
         copia = {"kind": GA.TIPO, "name": nome_de_copia(regra["name"], [r["name"] for r in self.regras()]),
-                 "active": False, "config": {k: v for k, v in regra["config"].items() if not k.startswith("_")}}
+                 "active": False, "config": {k: v for k, v in regra["config"].items()
+                                             if not k.startswith("_") and k not in ("dono", "visivel_para")},
+                 **V.padrao_novo()}                       # a cópia é de quem copiou
+        if V.visao_atual() is None:
+            copia.pop("dono"), copia.pop("visivel_para")
         return self._gravar(copia)
 
     def excluir(self) -> None:

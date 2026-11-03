@@ -3,6 +3,21 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.36 — fin del plan del modo de uso
+- **Reglas de automatización con dueño**: búsquedas programadas, anteriores, enrutamiento, dinámica lista
+  y gestión automática ganan *Visible para* (Todos / Solo yo / con elegidos) y la columna en la lista;
+  pestaña propia en Configuración personal y compartida, con *Copiar para mí*. Todas siguen corriendo.
+- **Adónde van los estudios bajados por la automatización**: a la base compartida (antes iban a la de
+  quien estuviera conectado); la búsqueda personal puede enviarlos a la base del dueño. El **anterior**
+  va a la misma base del estudio actual.
+- **Referencias** de la cefalometría y de los índices craneales: solo mías o de todos en esta computadora.
+- **Llamada externa** (RIS, enlace, API) ya no abre la base personal de otro usuario (el administrador
+  sí, con registro).
+- **Las listas de casos viajan** con los estudios entre esta computadora y el servidor central (carpeta,
+  lista, nombre amigable, historia, respuesta y notas, sin duplicar).
+- **Modo cliente**: el estudio nuevo bajado del PACS respeta "mi base en esta computadora".
+- Corrección: guardar la configuración de una regla sin el dueño ya no borra el dueño.
+
 ## 0.99.35 — traducción revisada
 - **Textos que quedaban en portugués** en el programa en inglés o español: unos 650 textos nuevos
   traducidos, entre ellos las pantallas y mensajes de las IAs (CAD/IA, segmentación, columna,

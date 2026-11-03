@@ -227,8 +227,10 @@ class PriorsPanel(QWidget):
             return
         net = self.tab.net
         node = self.tab.repo.node(e["node_id"])
+        from ipe.db import banco as B             # 0.99.36: o anterior herda o banco do exame aberto
         net.retrieve(node, None, uid, f"Anterior: {e.get('study_date', '')} {e.get('modalities', '')} "
-                                      f"{e.get('description', '')}")
+                                      f"{e.get('description', '')}",
+                     banco=B.banco_de(self.tab.repo.study_info(self.tab.study_uid)))
         self._compare_after.add(uid)
         self.status.setText("Baixando; o exame entra na comparação quando terminar.")
         self.render()

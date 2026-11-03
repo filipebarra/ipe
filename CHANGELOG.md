@@ -3,6 +3,21 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.36 — fim do plano do modo de uso
+- **Regras de automação com dono**: buscas agendadas, anteriores, roteamento, dinâmica pronta e gestão
+  automática ganham *Visível para* (Todos / Só eu / com escolhidos) e a coluna na lista; aba própria em
+  Configurações pessoais e compartilhadas, com *Copiar para mim*. Todas continuam rodando.
+- **Para onde vão os exames baixados pela automação**: para o compartilhado (antes iam para o banco de
+  quem estivesse logado); a busca pessoal pode mandar para o banco do dono. O **anterior** vai para o
+  mesmo banco do exame atual.
+- **Referências** da cefalometria e dos índices do crânio: só minhas ou de todos deste computador.
+- **Chamada externa** (RIS, link, API) não abre mais o banco pessoal de outro usuário (o administrador
+  abre, com registro).
+- **Listas de casos vão junto** com os exames entre este computador e o servidor central (pasta, lista,
+  nome amigável, história, resposta e notas, sem duplicar).
+- **Modo cliente**: o exame novo baixado do PACS respeita "o meu banco neste computador".
+- Correção: gravar a configuração de uma regra sem o dono não apaga mais o dono.
+
 ## 0.99.35 — tradução revisada
 - **Textos que ficavam em português** no programa em inglês ou espanhol: cerca de 650 textos novos
   traduzidos, entre eles as telas e mensagens das IAs (CAD/IA, segmentação, coluna, cefalometria,

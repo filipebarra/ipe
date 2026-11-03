@@ -143,9 +143,13 @@ class AutomationEngine(QObject):
             new = [r for r in rows if local.get(r["study_uid"], 0) < max(1, r["num_images"] or 1)]
             new = new[: int(cfg.get("max_studies", 50))]
             if cfg.get("action", "download") == "download":
+                # 0.99.36: o que a regra baixa vai para o compartilhado; para o banco do dono, se a
+                # regra pessoal pedir (antes ia para o banco de quem estivesse logado)
+                dono = rule.get("dono", "") if cfg.get("banco_do_dono") else ""
                 for r in new:
                     job = self.net.retrieve(self.repo.node(r["node_id"]), ident, r["study_uid"],
-                                            f"{rule['name']}: {r['patient_name']} {r['modalities']} {r['description']}")
+                                            f"{rule['name']}: {r['patient_name']} {r['modalities']} {r['description']}",
+                                            banco=(dono, ""))
                     self._job_tags[job.id] = {"list": cfg.get("add_to_list"), "unread": True}
             msg = f"{len(rows)} encontrado(s), {len(new)} novo(s)" + (f"; {'; '.join(errors)}" if errors else "")
             self.repo.add_job_run("query", rule["name"], "error" if errors and not rows else "ok",
@@ -698,9 +702,12 @@ class AutomationEngine(QObject):
             chosen = select_priors(rule["config"], current, rows, date.today())
             local = self.repo.instance_counts([r["study_uid"] for r in chosen])
             todo = [r for r in chosen if local.get(r["study_uid"], 0) < max(1, r["num_images"] or 1)]
+            from ipe.db import banco as B
+            herda = B.banco_de(info)              # 0.99.36: o anterior vai para o banco do exame atual
             for r in todo:
                 job = self.net.retrieve(self.repo.node(r["node_id"]), None, r["study_uid"],
-                                        f"Anterior (pré-busca): {r['study_date']} {r['modalities']} {r['description']}")
+                                        f"Anterior (pré-busca): {r['study_date']} {r['modalities']} {r['description']}",
+                                        banco=herda)
                 self._job_tags[job.id] = {"prefetch": True, "was_new": r["study_uid"] not in local}
             self.repo.add_job_run("prior", rule["name"], "ok", len(todo),
                                   f"{info.get('patient_name', '')}: {len(chosen)} anterior(es), {len(todo)} a baixar",

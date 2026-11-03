@@ -1973,6 +1973,7 @@ class MainWindow(QMainWindow):
         self.tabs.removeTab(index)
         if isinstance(w, ViewerTab):
             self.discard_tab(w)
+            QTimer.singleShot(0, self._levar_pendentes_para_este_computador)   # 0.99.36
         else:
             w.setParent(self)                     # fica viva e escondida, para reabrir depois
             w.hide()
@@ -2006,6 +2007,12 @@ class MainWindow(QMainWindow):
             for uid in uids:
                 self.abrir_exame_do_pedido(uid, so_viewer)
             return "aberto"
+        if getattr(self, "_pedido_escondidos", 0):
+            # está neste computador, no banco pessoal de outro: não abre, e não busca no PACS (baixar de
+            # novo abriria o mesmo exame por outra porta)
+            self.statusBar().showMessage("O exame pedido está no banco pessoal de outro usuário: só ele (ou o "
+                                         "administrador) abre.", 12000)
+            return "sem_permissao"
         what = args.get("accession") or args.get("study_uid") or args.get("patient_id")
         nodes = self._search_nodes(args.get("node", ""))
         if not what or not nodes:
@@ -2070,10 +2077,36 @@ class MainWindow(QMainWindow):
             for pid in lista("patient_id"):
                 uids += self.repo.find_study_uids(patient_id=pid.strip())
         uids = list(dict.fromkeys(uids))
+        uids = self._so_os_que_vejo(uids)
         if tem_filtro(args) and uids:
             infos = [i for i in (self.repo.study_info(u) for u in uids) if i]
             uids = [i["study_uid"] for i in filtrar_estudos(infos, args)]
         return uids[: self._quantos_do_pedido(args)]
+
+    def _so_os_que_vejo(self, uids: list[str]) -> list[str]:
+        """0.99.36: a chamada externa (RIS, link, API) abria qualquer exame do computador, inclusive o
+        banco pessoal de outro usuário. Agora vale a mesma regra da lista: quem está logado abre os do
+        serviço, os seus e os compartilhados com ele; o administrador abre todos (fica no registro de
+        acesso, como pela lista). `self._pedido_escondidos` diz quantos ficaram de fora."""
+        from ipe.auth import visibilidade as V
+        self._pedido_escondidos = 0
+        v = V.visao_atual()
+        if v is None or v.admin:
+            return uids
+        vejo = []
+        for u in uids:
+            try:
+                info = self.repo.study_info(u)      # no modo cliente o servidor recusa o de outro
+            except Exception:  # noqa: BLE001
+                info = None
+            if info is not None and V.visivel(info, v):
+                vejo.append(u)
+            else:
+                self._pedido_escondidos += 1
+        if self._pedido_escondidos:
+            log.info("Chamada externa: %d exame(s) do banco pessoal de outro usuário ficaram de fora",
+                     self._pedido_escondidos)
+        return vejo
 
     def _abrir_link_cifrado(self, args: dict) -> dict | None:
         from ipe.network import link_cifrado as LC
@@ -3179,8 +3212,10 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Concluído: {job.label} — {job.message}", 8000)
             if job.kind == "retrieve":
                 from ipe.central.client_repo import upload_if_client
+                aqui = self._baixados_para_este_computador(job)
                 for uid in job.study_uids:
-                    upload_if_client(self.repo, uid)
+                    if uid not in aqui:
+                        upload_if_client(self.repo, uid)
             if job.kind == "retrieve":
                 self._learn_network(job)
                 for uid in job.study_uids:
@@ -3193,6 +3228,43 @@ class MainWindow(QMainWindow):
                 # banco: no modo "só visualizador", sem passar pelo banco de dados.
                 self.abrir_exame_do_pedido(job.study_uids[0])
         self._update_net_label()
+
+    def _baixados_para_este_computador(self, job) -> set:
+        """0.99.36, modo cliente com "o meu banco neste computador": o exame **novo** baixado do PACS não
+        sobe ao servidor — vai para o banco deste computador, como a importação (0.99.28). Exame aberto
+        numa aba só muda de lugar quando a aba fechar (os arquivos estão em uso pelo visualizador)."""
+        from ipe.db import banco as B
+        if not getattr(job, "novo", False) or self._central is None or self.repo is not self._central[1] \
+                or not B.fica_neste_computador(self.settings):
+            return set()
+        uids = set(job.study_uids)
+        abertos = {u for u in uids for t in self.all_viewer_tabs() if u in getattr(t, "study_order", [])}
+        if job.open_after and not job.opened:
+            abertos |= uids                      # vai abrir agora
+        pend = self.__dict__.setdefault("_pendentes_este_computador", set())
+        pend |= abertos
+        feitos = self._novos_para_este_computador(uids - abertos) if uids - abertos else set()
+        if feitos:
+            self.browser.refresh()
+            self.statusBar().showMessage(f"{len(feitos)} exame(s) baixado(s) para o meu banco deste computador.",
+                                         10000)
+        return feitos | abertos
+
+    def _levar_pendentes_para_este_computador(self) -> None:
+        """Depois de fechar uma aba: os baixados que esperavam a aba fechar vão para este computador."""
+        pend = self.__dict__.get("_pendentes_este_computador") or set()
+        if not pend or self._central is None:
+            return
+        abertos = {u for u in pend for t in self.all_viewer_tabs() if u in getattr(t, "study_order", [])}
+        prontos = pend - abertos
+        if not prontos:
+            return
+        pend -= prontos
+        try:
+            self._novos_para_este_computador(prontos)
+        except Exception:  # noqa: BLE001
+            log.exception("levar para este computador")
+        self.browser.refresh()
 
     def _learn_network(self, job) -> None:
         """Aprende a velocidade do nó com o download que acabou (MB/s e MB por imagem)."""

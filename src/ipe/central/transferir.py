@@ -29,15 +29,33 @@ class Resultado:
     recusados: list[str] = field(default_factory=list)       # exames que o servidor não deixou mexer
     erros: list[str] = field(default_factory=list)
     feitos: list[str] = field(default_factory=list)          # exames que chegaram ao destino
+    listas: str = ""                     # 0.99.36: o resumo das listas de casos que foram junto
 
     def resumo(self, verbo: str) -> str:
         t = f"{self.exames} exame(s) {verbo} ({self.imagens} imagem(ns)"
         t += f", {self.dados} registro(s) de laudos, medidas e anotações)." if self.dados else ")."
+        if self.listas:
+            t += f" Listas: {self.listas}."
         if self.recusados:
             t += f" {len(self.recusados)} ficaram de fora (banco de outro usuário ou sem permissão)."
         if self.erros:
             t += f" {len(self.erros)} com erro: " + "; ".join(self.erros[:3])
         return t
+
+
+def _levar_listas(origem, destino, res: Resultado) -> None:
+    """As listas de casos vão junto com os exames que chegaram (0.99.36, `caselists/viagem.py`)."""
+    if not res.feitos:
+        return
+    from ipe.caselists import viagem as VG
+    try:
+        lv = VG.levar(destino, VG.pertencimentos(origem, res.feitos), res.feitos)
+    except Exception as e:  # noqa: BLE001
+        log.exception("levar as listas de casos")
+        res.erros.append(f"listas de casos: {e}")
+        return
+    res.listas = lv.resumo()
+    res.erros += lv.avisos
 
 
 def _importar_arquivos(db, storage, arquivos):
@@ -96,6 +114,7 @@ def trazer(cliente, uids, destino_db, destino_storage, dono: str, mover: bool = 
         except Exception as e:  # noqa: BLE001
             log.exception("trazer do servidor")
             res.erros.append(str(e))
+    _levar_listas(cliente, destino, res)
     return res
 
 
@@ -163,4 +182,6 @@ def enviar(client, origem, uids, meu, usuario: str, progress=None, cancel=None) 
         except Exception as e:  # noqa: BLE001
             log.exception("enviar ao servidor")
             res.erros.append(str(e))
+    from ipe.caselists.viagem import PeloServidor
+    _levar_listas(origem, PeloServidor(client), res)
     return res

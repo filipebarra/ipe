@@ -435,6 +435,20 @@ class CefalometriaPainel(QDialog):
         for k in M.ORDEM:
             campos[k] = QLineEdit(refs.get(k, ""))
             form.addRow(M.NOMES[k], campos[k])
+        # 0.99.36: com usuários, as referências podem ser só suas ou de todos deste computador
+        from PySide6.QtWidgets import QComboBox
+        alcance = None
+        if self.settings is not None and getattr(self.settings, "user", None) is not None:
+            from ipe.auth import visibilidade as V
+            alcance = QComboBox()
+            alcance.addItem("Só para mim", "eu")
+            alcance.addItem("Todos deste computador (do serviço)", "todos")
+            alcance.model().item(1).setEnabled(V.pode("configure"))
+            alcance.setCurrentIndex(0 if self.settings.tem_pessoal(M.CHAVE_REFERENCIAS) or not V.pode("configure")
+                                    else 1)
+            alcance.setToolTip("Só para mim: as suas, por cima das do computador. Todos: muda as do computador "
+                               "(pede a permissão de configurar) e apaga a sua versão pessoal.")
+            form.addRow("Vale para:", alcance)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel | QDialogButtonBox.RestoreDefaults)
         bb.accepted.connect(dlg.accept)
         bb.rejected.connect(dlg.reject)
@@ -443,14 +457,30 @@ class CefalometriaPainel(QDialog):
         form.addRow(bb)
         if dlg.exec() != QDialog.Accepted:
             return False
-        self.salvar_referencias({k: c.text().strip() for k, c in campos.items()})
+        self.salvar_referencias({k: c.text().strip() for k, c in campos.items()},
+                                alcance.currentData() if alcance is not None else "eu")
         return True
 
-    def salvar_referencias(self, novas: dict) -> None:
+    def salvar_referencias(self, novas: dict, alcance: str = "eu") -> None:
         if self.settings is not None:
             M = self.D.modulo
             diferentes = {k: v for k, v in novas.items() if v != M.REFERENCIAS.get(k)}
-            self.settings.set(M.CHAVE_REFERENCIAS, diferentes)
+            if alcance == "todos" and getattr(self.settings, "user", None) is not None:
+                self.settings.set_do_computador(M.CHAVE_REFERENCIAS, diferentes)
+            elif getattr(self.settings, "user", None) is not None:
+                # só a diferença para as do computador fica pessoal (o resto continua seguindo as dele)
+                base = {**M.REFERENCIAS, **(self.settings.do_computador(M.CHAVE_REFERENCIAS, {}) or {})}
+                meus = {k: v for k, v in novas.items() if v != base.get(k)}
+                if meus:
+                    self.settings.set(M.CHAVE_REFERENCIAS, meus)
+                else:
+                    self.settings.tirar_pessoal(M.CHAVE_REFERENCIAS)
+            else:
+                self.settings.set(M.CHAVE_REFERENCIAS, diferentes)
+            try:
+                self.settings.save()
+            except Exception:  # noqa: BLE001
+                pass
         self._encher()
 
     def texto(self) -> str:

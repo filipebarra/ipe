@@ -71,7 +71,29 @@ def _ident_combo(repo, current) -> QComboBox:
     return c
 
 
+def _visivel(dlg, form, repo=None) -> None:
+    """0.99.36: "Visível para" em toda regra de automação (Todos / Só eu / com escolhidos). Some no
+    modo "só eu"."""
+    from ipe.ui.visivel_para import VisivelPara
+    pai = dlg.parent()
+    repo = repo if repo is not None else getattr(pai, "repo", None)
+    settings = getattr(getattr(pai, "main", None), "settings", None)
+    regra = dlg.rule if dlg.rule.get("id") else None
+    dlg.visivel = VisivelPara(regra, repo, settings, dlg)
+    lab = QLabel("Visível para:")
+    form.addRow(lab, dlg.visivel)
+    lab.setVisible(not dlg.visivel.isHidden())
+
+
+def _com_dono(dlg, rule: dict) -> dict:
+    w = getattr(dlg, "visivel", None)
+    if w is not None and not w.isHidden():
+        rule.update(w.valor())
+    return rule
+
+
 def _ok_cancel(dlg, form) -> None:
+    _visivel(dlg, form, getattr(dlg, "repo", None))
     bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
     bb.accepted.connect(dlg.accept)
     bb.rejected.connect(dlg.reject)
@@ -82,6 +104,7 @@ def _ok_cancel(dlg, form) -> None:
 class QueryRuleDialog(QDialog):
     def __init__(self, repo, rule: dict | None, parent=None):
         super().__init__(parent)
+        self.repo = repo
         self.setWindowTitle("Busca agendada")
         self.rule = copy.deepcopy(rule) if rule else {"kind": "query", "name": "", "active": True,
                                                         "config": copy.deepcopy(DEFAULT_QUERY)}
@@ -155,9 +178,15 @@ class QueryRuleDialog(QDialog):
                        ("Uma vez em:", self.once), ("Dias da semana:", days_w), ("Ação:", self.action),
                        ("Pôr na lista:", self.to_list), ("Máximo de exames por vez:", self.max)):
             f.addRow(lab, w) if not isinstance(w, (QHBoxLayout,)) else f.addRow(lab, w)
+        # 0.99.36: busca pessoal pode pôr o que baixa no banco pessoal de quem é a regra
+        self.banco_dono = QCheckBox("Exames novos baixados por esta busca vão para o banco pessoal do dono "
+                                    "da regra (sem marcar: compartilhado)")
+        self.banco_dono.setChecked(bool(c.get("banco_do_dono", False)))
+        f.addRow("", self.banco_dono)
         f.addRow(QLabel("<i>Só baixa o que ainda não está no computador. As buscas rodam com o "
                         "programa aberto (ou minimizado na bandeja).</i>"))
         _ok_cancel(self, f)
+        self.banco_dono.setVisible(not self.visivel.isHidden())
 
     def result_rule(self) -> dict:
         c = self.rule["config"]
@@ -182,11 +211,12 @@ class QueryRuleDialog(QDialog):
         c["action"] = self.action.currentData()
         c["add_to_list"] = self.to_list.currentData()
         c["max_studies"] = self.max.value()
+        c["banco_do_dono"] = self.banco_dono.isChecked() and not self.banco_dono.isHidden()
         self.rule["name"] = self.name.text().strip() or "Busca agendada"
         self.rule["active"] = self.active.isChecked()
         from datetime import datetime
         self.rule["next_run"] = next_run(c["schedule"], datetime.now())
-        return self.rule
+        return _com_dono(self, self.rule)
 
 
 class PriorRuleDialog(QDialog):
@@ -226,7 +256,7 @@ class PriorRuleDialog(QDialog):
                                     "count": self.count.value(), "years": self.years.value(),
                                     "keywords": [k.strip() for k in self.kw.text().split(",") if k.strip()],
                                     "on_receive": self.on_recv.isChecked(), "on_open": self.on_open.isChecked()})
-        return self.rule
+        return _com_dono(self, self.rule)
 
 
 class DinamicaRuleDialog(QDialog):
@@ -258,12 +288,13 @@ class DinamicaRuleDialog(QDialog):
         self.rule["config"].update({
             "modalities": [m.strip().upper() for m in self.mods.text().split(",") if m.strip()],
             "description_contains": self.desc.text().strip()})
-        return self.rule
+        return _com_dono(self, self.rule)
 
 
 class RouteRuleDialog(QDialog):
     def __init__(self, repo, rule: dict | None, parent=None):
         super().__init__(parent)
+        self.repo = repo
         self.setWindowTitle("Regra de roteamento")
         self.rule = copy.deepcopy(rule) if rule else {"kind": "route", "name": "", "active": True,
                                                         "config": copy.deepcopy(DEFAULT_ROUTE)}
@@ -294,7 +325,7 @@ class RouteRuleDialog(QDialog):
             "description_contains": self.desc.text().strip(),
             "origins": [o for o, cb in (("received", self.recv), ("retrieved", self.retr)) if cb.isChecked()],
             "node_id": self.node.currentData(), "identity_id": self.ident.currentData()})
-        return self.rule
+        return _com_dono(self, self.rule)
 
 
 # ---------------------------------------------------------------------------
@@ -364,8 +395,13 @@ class AutomationDialog(QDialog):
         self._fill_rules(kind)
         return w
 
+    def _com_usuarios(self) -> bool:
+        from ipe.auth import visibilidade as V
+        return V.modo_com_usuarios(getattr(self.main, "settings", None))
+
     def _fill_rules(self, kind: str) -> None:
-        rules = self.repo.rules(kind)
+        # 0.99.36: cada um vê as do serviço, as suas e as compartilhadas com ele (o administrador, todas)
+        rules = self.repo.rules(kind, visiveis=True, gerenciar=True)
         nodes = {n["id"]: n["name"] for n in self.repo.nodes()}
         rows = []
         for r in rules:
@@ -390,13 +426,25 @@ class AutomationDialog(QDialog):
                              c.get("description_contains", ""),
                              ", ".join({"received": "recebidos", "retrieved": "baixados"}[o] for o in c.get("origins", [])),
                              nodes.get(c.get("node_id"), "?"), on])
-        _fill(getattr(self, f"t_{kind}"), rows, [r["id"] for r in rules])
+        t = getattr(self, f"t_{kind}")
+        if self._com_usuarios():
+            from ipe.auth import visibilidade as V
+            if t.columnCount() == len(self.HEADERS[kind]):
+                t.setColumnCount(len(self.HEADERS[kind]) + 1)
+                t.setHorizontalHeaderLabels(self.HEADERS[kind] + ["Visível para"])
+            for row, r in zip(rows, rules):
+                row.append(V.rotulo(r))
+        _fill(t, rows, [r["id"] for r in rules])
 
     def _edit(self, kind: str, new: bool = False) -> None:
         rid = None if new else _selected_id(getattr(self, f"t_{kind}"))
         if not new and rid is None:
             return
         rule = self.repo.rule(rid) if rid else None
+        if rule is not None and not self._pode_mexer(rule):
+            QMessageBox.information(self, "Automação", f"A regra “{rule['name']}” é de {rule['dono']}: só ele (ou o "
+                                    "administrador) muda.")
+            return
         dlg = {"query": lambda: QueryRuleDialog(self.repo, rule, self),
                "prior": lambda: PriorRuleDialog(rule, self),
                "route": lambda: RouteRuleDialog(self.repo, rule, self),
@@ -409,8 +457,18 @@ class AutomationDialog(QDialog):
             self.repo.save_rule(r)
             self._fill_rules(kind)
 
+    def _pode_mexer(self, rule: dict) -> bool:
+        from ipe.auth import visibilidade as V
+        v = V.visao_atual()
+        dono = (rule.get("dono") or "").lower()
+        return v is None or v.admin or not dono or dono == v.usuario.lower()
+
     def _delete(self, kind: str) -> None:
         rid = _selected_id(getattr(self, f"t_{kind}"))
+        r = self.repo.rule(rid) if rid else None
+        if r is not None and not self._pode_mexer(r):
+            QMessageBox.information(self, "Automação", f"A regra “{r['name']}” é de {r['dono']}.")
+            return
         if rid and QMessageBox.question(self, "Excluir", "Excluir esta regra?") == QMessageBox.Yes:
             self.repo.delete_rule(rid)
             self._fill_rules(kind)
@@ -418,7 +476,7 @@ class AutomationDialog(QDialog):
     def _toggle(self, kind: str) -> None:
         rid = _selected_id(getattr(self, f"t_{kind}"))
         r = self.repo.rule(rid) if rid else None
-        if r is None:
+        if r is None or not self._pode_mexer(r):
             return
         from datetime import datetime
         upd = {"id": rid, "active": not r["active"]}

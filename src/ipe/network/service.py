@@ -44,6 +44,8 @@ class Job:
     opened: bool = False            # já foi aberto (streaming)
     destino: str = ""               # moveto: AE para onde o nó manda
     dono_destino: str = ""          # 0.99.27: exame novo baixado vai para o banco pessoal de quem pediu
+    visivel_destino: str = ""       # 0.99.36: e com quem ele é compartilhado (anterior herda do exame atual)
+    novo: bool = False              # 0.99.36: o exame não estava no banco quando o download começou
     id: int = field(default_factory=lambda: next(_ids))
     status: str = "waiting"
     done: int = 0
@@ -374,7 +376,10 @@ class NetworkService(QObject):
     # ------------------------------------------------------------ transferências
     def retrieve(self, node: dict, identity: dict | None, study_uid: str, label: str,
                  series_uids: list[str] | None = None, open_after: bool = False,
-                 stream: bool = False) -> Job:
+                 stream: bool = False, banco: tuple[str, str] | None = None) -> Job:
+        """`banco`: (dono, visível para) do exame novo. None = a escolha de quem está logado ("Exames
+        que eu importo ou baixo vão para"); a automação passa o banco da regra ou o do exame de origem
+        (0.99.36)."""
         for j in self.jobs:          # não repete um download que já está na fila
             if j.active and j.kind == "retrieve" and j.study_uids == [study_uid] \
                     and j.series_uids == series_uids:
@@ -385,7 +390,12 @@ class NetworkService(QObject):
         try:
             from ipe.db import banco as B
             if self.repo.study_info(study_uid) is None:
-                job.dono_destino = B.dono_dos_novos(self.settings)
+                job.novo = True
+                if banco is None:
+                    job.dono_destino = B.dono_dos_novos(self.settings)
+                else:
+                    job.dono_destino = (banco[0] or "").strip()
+                    job.visivel_destino = (banco[1] or "").strip() if job.dono_destino else ""
         except Exception:  # noqa: BLE001
             log.exception("banco do exame baixado")
         self._submit(job)
@@ -561,7 +571,7 @@ class NetworkService(QObject):
                 job.status, job.message = "done", res or "Concluído"
                 if job.kind == "retrieve" and job.dono_destino:
                     from ipe.db import banco as B
-                    B.marcar_novos(self.repo, job.study_uids, job.dono_destino)
+                    B.marcar_novos(self.repo, job.study_uids, job.dono_destino, job.visivel_destino)
             self.job_changed.emit(job)
             self.job_finished.emit(job)
         self.run_async(work, done, self.transfer_pool)

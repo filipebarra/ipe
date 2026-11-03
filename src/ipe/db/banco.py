@@ -64,12 +64,13 @@ def fica_neste_computador(settings) -> bool:
         return False
 
 
-def marcar_novos(repo, study_uids, dono: str) -> int:
-    """Põe os exames **novos** no banco pessoal de `dono` (nada a fazer para o compartilhado)."""
+def marcar_novos(repo, study_uids, dono: str, visivel_para: str = "") -> int:
+    """Põe os exames **novos** no banco pessoal de `dono` (nada a fazer para o compartilhado);
+    `visivel_para`: também compartilhado com esses (0.99.36: o anterior herda do exame atual)."""
     if not dono or not study_uids or repo is None:
         return 0
     try:
-        n = repo.set_study_scope(list(study_uids), dono, "")
+        n = repo.set_study_scope(list(study_uids), dono, visivel_para or "")
         log.info("%d exame(s) novo(s) no banco pessoal de %s", n, dono)
         return n
     except Exception:  # noqa: BLE001
@@ -100,3 +101,9 @@ def rotulo_do_banco(row, visao=None) -> str:
     if v is not None and dono.lower() == v.usuario.lower():
         return "Meu" + (" + " + ", ".join(outros) if outros else "")
     return f"de {dono}" + (" + " + ", ".join(outros) if outros else "")
+
+
+def banco_de(info: dict | None) -> tuple[str, str]:
+    """(dono, visível para) de um exame — o que um anterior baixado por causa dele herda (0.99.36)."""
+    info = info or {}
+    return str(info.get("dono") or ""), str(info.get("visivel_para") or "")

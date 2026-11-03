@@ -1505,15 +1505,48 @@ class Repository:
                 s.delete(g)
 
     # ------------------------------------------------------- automação
-    def rules(self, kind: str | None = None) -> list[dict]:
+    def rules(self, kind: str | None = None, visiveis: bool = False, gerenciar: bool = False) -> list[dict]:
+        """As regras de automação. Quem trabalha pela máquina (o motor da automação) recebe todas; a
+        tela pede `visiveis=True` (0.99.36): as do serviço, as suas e as compartilhadas com quem está
+        logado; `gerenciar` = o administrador vê as de todos. O dono mora no JSON da regra."""
         import json
         with self.db.session() as s:
             q = select(AutomationRule).order_by(AutomationRule.id)
             if kind:
                 q = q.where(AutomationRule.kind == kind)
-            return [{"id": r.id, "kind": r.kind, "name": r.name, "active": r.active,
-                     "config": json.loads(r.config or "{}"), "last_run": r.last_run, "next_run": r.next_run}
-                    for r in s.scalars(q)]
+            out = []
+            for r in s.scalars(q):
+                cfg = json.loads(r.config or "{}")
+                out.append({"id": r.id, "kind": r.kind, "name": r.name, "active": r.active, "config": cfg,
+                            "last_run": r.last_run, "next_run": r.next_run,
+                            "dono": str(cfg.get("dono", "") or ""),
+                            "visivel_para": str(cfg.get("visivel_para", "") or "")})
+        if visiveis:
+            from ipe.auth import visibilidade as V
+            out = V.filtrar(out, gerenciar=gerenciar)
+        return out
+
+    def escopo_da_regra(self, rule_id: int, dono: str = "", visivel_para: str = "") -> None:
+        """Quem vê a regra de automação (0.99.36), com as mesmas regras das listas e dos nós: o dono ou o
+        administrador mudam; pôr para todos ou tirar de todos pede configurar; passar para outro, só o
+        administrador."""
+        from ipe.auth import visibilidade as V
+        r = self.rule(rule_id)
+        if r is None:
+            raise PermissionError("regra não encontrada")
+        v = V.visao_atual()
+        dono = (dono or "").strip()
+        if v is not None and not v.admin:
+            atual = r["dono"].lower()
+            if atual not in ("", v.usuario.lower()):
+                raise PermissionError("a regra é de outro usuário")
+            if dono and dono.lower() != v.usuario.lower():
+                raise PermissionError("só o administrador passa uma regra para outro usuário")
+            if (not atual or not dono) and not V.pode("configure"):
+                raise PermissionError("mexer numa regra de todos pede a permissão de configurar")
+        cfg = dict(r["config"])
+        cfg["dono"], cfg["visivel_para"] = dono, (visivel_para or "").strip() if dono else ""
+        self.save_rule({"id": rule_id, "config": cfg})
 
     def rule(self, rule_id: int) -> dict | None:
         return next((r for r in self.rules() if r["id"] == rule_id), None)
@@ -1529,7 +1562,20 @@ class Repository:
                 if k in data:
                     setattr(r, k, data[k])
             if "config" in data:
-                r.config = json.dumps(data["config"], ensure_ascii=False)
+                cfg = dict(data["config"] or {})
+                antes = json.loads(r.config or "{}") if r.config else {}
+                for k in ("dono", "visivel_para"):          # 0.99.36: o dono mora no JSON da regra
+                    if k in data:
+                        cfg[k] = data[k] or ""
+                    elif k not in cfg and k in antes:       # quem grava a configuração sem o dono não o apaga
+                        cfg[k] = antes[k]
+                r.config = json.dumps(cfg, ensure_ascii=False)
+            elif "dono" in data or "visivel_para" in data:
+                cfg = json.loads(r.config or "{}")
+                for k in ("dono", "visivel_para"):
+                    if k in data:
+                        cfg[k] = data[k] or ""
+                r.config = json.dumps(cfg, ensure_ascii=False)
             s.flush()
             return r.id
 

@@ -3,6 +3,21 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.36 — usage-mode plan completed
+- **Automation rules with an owner**: scheduled queries, priors, routing, dynamic preparation and
+  automatic management get *Visible to* (Everyone / Only me / chosen users) and a column in the list;
+  their own tab in personal and shared settings, with *Copy for me*. All of them still run.
+- **Where automation downloads go**: to the shared database (they used to go to the bank of whoever was
+  logged in); a personal query can send them to its owner's bank. A **prior** goes to the same bank as
+  the current study.
+- **References** for cephalometry and skull indices: mine only, or for everyone on this computer.
+- **External calls** (RIS, link, API) no longer open another user's personal studies (the administrator
+  can, and it is logged).
+- **Case lists travel** with studies between this computer and the central server (folder, list,
+  friendly name, history, answer and notes, without duplicates).
+- **Client mode**: a new study downloaded from the PACS follows "my bank on this computer".
+- Fix: saving a rule's configuration without the owner no longer erases the owner.
+
 ## 0.99.35 — translation review
 - **Texts that stayed in Portuguese** in the English or Spanish program: about 650 new texts translated,
   including the AI screens and messages (CAD/AI, segmentation, spine, cephalometry, lymph nodes, skull

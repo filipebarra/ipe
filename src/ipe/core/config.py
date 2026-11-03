@@ -196,7 +196,14 @@ USER_KEYS = ("viewer", "shortcuts", "hanging_protocols", "mg_protocols", "browse
 MACHINE_EXCEPTIONS = ("viewer.close_to_tray", "viewer.autostart")
 
 
+#: 0.99.36: chaves de fora dos grupos de USER_KEYS que também são de cada usuário (com a do computador
+#: por baixo): as Referências que vão entre parênteses no texto da cefalometria e dos índices do crânio
+USER_DOTTED = ("cefalo.referencias", "neuro.referencias")
+
+
 def is_user_key(dotted: str) -> bool:
+    if dotted in USER_DOTTED:
+        return True
     if dotted.split(".")[0] not in USER_KEYS:
         return False
     return not any(dotted == m or dotted.startswith(m + ".") for m in MACHINE_EXCEPTIONS)
@@ -387,6 +394,25 @@ class Settings:
                 return v
         found, v = _get(self.data, dotted)
         return v if found else default
+
+    def do_computador(self, dotted: str, default: Any = None) -> Any:
+        """O valor deste computador (o padrão de quem não tem o seu), sem a camada do usuário."""
+        found, v = _get(self.data, dotted)
+        return v if found else default
+
+    def set_do_computador(self, dotted: str, value: Any) -> None:
+        """Grava para todos deste computador (0.99.36): o valor da máquina, sem passar pela camada do
+        usuário — e tira a versão pessoal de quem gravou, para ele passar a ver a de todos."""
+        _set(self.data, dotted, value)
+        if self.user is not None and is_user_key(dotted):
+            _del(self.user, dotted)
+
+    def tem_pessoal(self, dotted: str) -> bool:
+        return self.user is not None and is_user_key(dotted) and _get(self.user, dotted)[0]
+
+    def tirar_pessoal(self, dotted: str) -> None:
+        if self.user is not None:
+            _del(self.user, dotted)
 
     def set(self, dotted: str, value: Any) -> None:
         if self.itens is not None and dotted in _CHAVES_ITENS:

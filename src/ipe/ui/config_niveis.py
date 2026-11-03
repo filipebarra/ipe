@@ -25,7 +25,13 @@ from ipe.core import itens as IT
 #: preferências que são de cada usuário (core/config.USER_KEYS), com o nome da tela
 PREFERENCIAS = [("shortcuts", "Atalhos de teclado"), ("viewer.mouse", "Mouse"),
                 ("viewer.wl_presets", "Presets de janela"), ("viewer.wl_presets_mod", "Presets por modalidade"),
-                ("browser.columns", "Colunas da lista de exames")]
+                ("browser.columns", "Colunas da lista de exames"),
+                ("cefalo.referencias", "Referências da cefalometria"),          # 0.99.36
+                ("neuro.referencias", "Referências dos índices do crânio")]
+
+#: 0.99.36: as regras de automação (buscas agendadas, anteriores, roteamento, dinâmica pronta, gestão)
+TIPOS_DE_REGRA = {"query": "Busca agendada", "prior": "Anteriores", "route": "Roteamento",
+                  "dinamica": "Dinâmica pronta", "gestao": "Gestão automática"}
 
 
 def base_de(chave: str, settings):
@@ -68,6 +74,7 @@ class ConfigNiveisDialog(QDialog):
         for chave, (_campo, titulo) in IT.CHAVES.items():
             self.abas.addTab(self._aba(chave), titulo)
         self.abas.addTab(self._aba("listas"), "Listas de casos")
+        self.abas.addTab(self._aba("automacao"), "Regras de automação")
         self.abas.addTab(self._aba_preferencias(), "Preferências")
         bb = QDialogButtonBox(QDialogButtonBox.Close)
         bb.rejected.connect(self.reject)
@@ -137,6 +144,11 @@ class ConfigNiveisDialog(QDialog):
     def itens(self, chave: str) -> list[dict]:
         if chave == "listas":
             return [d for d in self.repo.case_list_tree(gerenciar=True)]
+        if chave == "automacao":
+            try:
+                return list(self.repo.rules(visiveis=True, gerenciar=True))
+            except Exception:  # noqa: BLE001  (modo cliente: a automação é de cada computador)
+                return []
         v = self.repo.itens_de_config(chave, gerenciar=True)
         if v is None:
             v = [{**x, "dono": "", "visivel_para": ""} for x in base_de(chave, self.settings)]
@@ -149,7 +161,12 @@ class ConfigNiveisDialog(QDialog):
         for x in lista:
             r = tab.rowCount()
             tab.insertRow(r)
-            nome = x.get("name") if chave == "listas" else IT.nome_de(chave, x)
+            if chave == "listas":
+                nome = x.get("name")
+            elif chave == "automacao":
+                nome = f"{TIPOS_DE_REGRA.get(x.get('kind'), x.get('kind'))}: {x.get('name')}"
+            else:
+                nome = IT.nome_de(chave, x)
             if chave == "listas" and x.get("kind") == "folder":
                 nome = "📁 " + nome
             it = QTableWidgetItem(nome)
@@ -174,6 +191,8 @@ class ConfigNiveisDialog(QDialog):
         try:
             if chave == "listas":
                 self.repo.escopo_da_lista(x["id"], dono, vp)
+            elif chave == "automacao":
+                self.repo.escopo_da_regra(x["id"], dono, vp)
             else:
                 self.repo.escopo_de_item_de_config(chave, IT.nome_de(chave, x), x.get("dono", ""), dono, vp,
                                                    base=self._base(chave))
@@ -184,7 +203,7 @@ class ConfigNiveisDialog(QDialog):
         return True
 
     def _depois(self, chave: str) -> None:
-        if chave != "listas" and getattr(self.settings, "itens", None) is not None:
+        if chave not in ("listas", "automacao") and getattr(self.settings, "itens", None) is not None:
             self.settings.itens.limpar()
         self.recarregar(chave)
         try:
@@ -219,6 +238,15 @@ class ConfigNiveisDialog(QDialog):
         x = self._escolhido(chave)
         if x is None:
             return False
+        if chave == "automacao":                  # a cópia nasce pausada, para não rodar duas vezes
+            if self.visao is None:
+                return False
+            cfg = {k: v for k, v in (x.get("config") or {}).items()
+                   if not k.startswith("_") and k not in ("dono", "visivel_para")}
+            self.repo.save_rule({"kind": x["kind"], "name": f"{x['name']} (minha)", "active": False,
+                                 "config": cfg, "dono": self.visao.usuario, "visivel_para": ""})
+            self._depois(chave)
+            return True
         try:
             self.repo.escopo_de_item_de_config(chave, IT.nome_de(chave, x), x.get("dono", ""), copiar=True,
                                                base=self._base(chave))
