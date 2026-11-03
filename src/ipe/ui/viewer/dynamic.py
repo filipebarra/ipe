@@ -113,8 +113,17 @@ class DynamicDialog(QDialog):
         self.c_motion = QCheckBox("Corrigir movimento entre as fases (translação 3D)")
         self.c_motion.setChecked(bool(prev.get("motion", False)))
         self.c_motion.setToolTip("Estima o deslocamento de cada fase em relação à pré-contraste e alinha "
-                                 "antes de calcular mapas e curvas. Não corrige rotação nem deformação.")
+                                 "antes de calcular mapas e curvas. A rotação entra com a opção abaixo; "
+                                 "deformação não é corrigida.")
         f.addRow(self.c_motion)
+        self.c_rigido = QCheckBox("Incluir rotação (registro rígido, mais lento)")
+        self.c_rigido.setChecked(bool(prev.get("motion_rigido", False)))
+        self.c_rigido.setToolTip("Além da translação, procura a rotação de cada fase (até uns 40 s por "
+                                 "fase). Só reamostra em 3D a fase que girou 0,75° ou mais; nas RM de "
+                                 "mama medidas a rotação entre as fases não passou de 0,5°.")
+        self.c_rigido.setEnabled(self.c_motion.isChecked())
+        self.c_motion.toggled.connect(self.c_rigido.setEnabled)
+        f.addRow(self.c_rigido)
         self.c_layout = QComboBox()
         lista = DC.nomes(tab.settings)
         for label in lista:
@@ -234,7 +243,9 @@ class DynamicDialog(QDialog):
                 "noise_pct": self.s_noise.value(), "relative": bool(self.c_units.currentData()),
                 "threshold_all": self.c_thr_all.isChecked(), "layout": self.c_layout.currentIndex(),
                 "layout_nome": self.c_layout.currentText(),
-                "motion": self.c_motion.isChecked(), "rapido_pct": self.s_rapido.value(),
+                "motion": self.c_motion.isChecked(),
+                "motion_rigido": self.c_motion.isChecked() and self.c_rigido.isChecked(),
+                "rapido_pct": self.s_rapido.value(),
                 "tardio_pct": self.s_tardio.value(), "sinal_min_pct": self.s_sinal.value(),
                 "uids": self.checked()}
 
@@ -702,6 +713,9 @@ class DynamicSession:
         rs, cs = mp.pixel_spacing or (1.0, 1.0)
         pl = mp.plane("msi")
         worst = max(np.linalg.norm([dz * pl.step_mm, dy * rs, dx * cs]) for dz, dy, dx in mp.shifts)
+        rot = mp.rotacao_maxima
+        if rot:
+            return f"<br>movimento corrigido (máx. {worst:.1f} mm e {rot:.1f}°)"
         return f"<br>movimento corrigido (máx. {worst:.1f} mm)"
 
     def is_dyn(self, vp) -> bool:

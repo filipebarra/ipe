@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.39 — rigid motion correction in the dynamic study
+- In the **Dynamic** window (and in the dynamic editor under Settings), **Include rotation**: besides
+  translation, rigid registration of each phase onto the pre-contrast; a phase rotated 0.75° or more is
+  resampled in 3D before the maps, the curves and the lesion capture. The panel title shows the largest
+  displacement and rotation corrected.
+- Measured first on the archive: in 6 breast MRIs (11 phases) the rotation between phases was 0–0.5° and
+  the translation under 1.3 mm — so the option is off by default and, below the threshold, the phase keeps
+  the translation only (no resampling blur).
+
 ## 0.99.38 — rigid registration between studies
 - **Align automatically with the other study** now performs **rigid** registration (3D rotation and
   translation), with correlation (same sequence) or mutual information (other modality or sequence),

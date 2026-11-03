@@ -6721,5 +6721,9 @@
  "{} · registrada em {}": "{} · registered on {}",
  "Exames alinhados: rotação {}, deslocamento {} ({} {} → {}, qualidade {}). Os quadros agora rolam juntos.": "Studies aligned: rotation {}, offset {} ({} {} → {}, quality {}). The viewports now scroll together.",
  "O outro exame está girado {}° em relação a este. Rolando juntos, os cortes não coincidem por inteiro.\n\nGravar o outro exame no plano deste (série nova no outro exame, com a geometria deste)? Aí os dois andam juntos corte a corte.": "The other study is rotated {}° relative to this one. Scrolling together, the slices do not fully match.\n\nSave the other study in this study's plane (new series in the other study, with this study's geometry)? Then both move together slice by slice.",
- "O outro exame foi gravado no plano deste (série nova) e os dois andam juntos corte a corte.": "The other study was saved in this study's plane (new series) and both move together slice by slice."
+ "O outro exame foi gravado no plano deste (série nova) e os dois andam juntos corte a corte.": "The other study was saved in this study's plane (new series) and both move together slice by slice.",
+ "Incluir rotação (registro rígido, mais lento)": "Include rotation (rigid registration, slower)",
+ "Além da translação, procura a rotação de cada fase (até uns 40 s por fase). Só reamostra em 3D a fase que girou 0,75° ou mais; nas RM de mama medidas a rotação entre as fases não passou de 0,5°.": "Besides translation, searches for the rotation of each phase (up to about 40 s per phase). Only a phase rotated 0.75° or more is resampled in 3D; in the breast MRIs measured, rotation between phases did not exceed 0.5°.",
+ "Estima o deslocamento de cada fase em relação à pré-contraste e alinha antes de calcular mapas e curvas. A rotação entra com a opção abaixo; deformação não é corrigida.": "Estimates the shift of each phase relative to the pre-contrast one and aligns it before computing maps and curves. Rotation is handled by the option below; deformation is not corrected.",
+ "<br>movimento corrigido (máx. {} mm e {}°)": "<br>motion corrected (max. {} mm and {}°)"
 }

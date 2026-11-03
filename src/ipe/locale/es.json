@@ -6721,5 +6721,9 @@
  "{} · registrada em {}": "{} · registrada en {}",
  "Exames alinhados: rotação {}, deslocamento {} ({} {} → {}, qualidade {}). Os quadros agora rolam juntos.": "Estudios alineados: rotación {}, desplazamiento {} ({} {} → {}, calidad {}). Los cuadros ahora se desplazan juntos.",
  "O outro exame está girado {}° em relação a este. Rolando juntos, os cortes não coincidem por inteiro.\n\nGravar o outro exame no plano deste (série nova no outro exame, com a geometria deste)? Aí os dois andam juntos corte a corte.": "El otro estudio está girado {}° respecto a este. Al desplazarse juntos, los cortes no coinciden por completo.\n\n¿Guardar el otro estudio en el plano de este (serie nueva en el otro estudio, con la geometría de este)? Así los dos avanzan juntos corte a corte.",
- "O outro exame foi gravado no plano deste (série nova) e os dois andam juntos corte a corte.": "El otro estudio se guardó en el plano de este (serie nueva) y los dos avanzan juntos corte a corte."
+ "O outro exame foi gravado no plano deste (série nova) e os dois andam juntos corte a corte.": "El otro estudio se guardó en el plano de este (serie nueva) y los dos avanzan juntos corte a corte.",
+ "Incluir rotação (registro rígido, mais lento)": "Incluir rotación (registro rígido, más lento)",
+ "Além da translação, procura a rotação de cada fase (até uns 40 s por fase). Só reamostra em 3D a fase que girou 0,75° ou mais; nas RM de mama medidas a rotação entre as fases não passou de 0,5°.": "Además de la traslación, busca la rotación de cada fase (hasta unos 40 s por fase). Solo remuestrea en 3D la fase que giró 0,75° o más; en las RM de mama medidas la rotación entre fases no pasó de 0,5°.",
+ "Estima o deslocamento de cada fase em relação à pré-contraste e alinha antes de calcular mapas e curvas. A rotação entra com a opção abaixo; deformação não é corrigida.": "Estima el desplazamiento de cada fase respecto a la precontraste y la alinea antes de calcular mapas y curvas. La rotación se corrige con la opción de abajo; la deformación no se corrige.",
+ "<br>movimento corrigido (máx. {} mm e {}°)": "<br>movimiento corregido (máx. {} mm y {}°)"
 }

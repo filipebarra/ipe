@@ -71,6 +71,7 @@ FABRICA: list[dict] = [
 PARAMETROS_FABRICA: dict = {
     "pre": 0, "threshold_pct": 50.0, "threshold_all": False, "noise_pct": 5.0, "rapido_pct": 100.0,
     "tardio_pct": 10.0, "sinal_min_pct": 10.0, "relative": True, "motion": False,
+    "motion_rigido": False,
 }
 
 

@@ -69,6 +69,9 @@ class DinamicaMamaEditor(QWidget):
         self.c_motion = QCheckBox("Corrigir movimento entre as fases (translação 3D)")
         self.c_motion.setChecked(bool(p["motion"]))
         f.addRow(self.c_motion)
+        self.c_rigido = QCheckBox("Incluir rotação (registro rígido, mais lento)")
+        self.c_rigido.setChecked(bool(p.get("motion_rigido", False)))
+        f.addRow(self.c_rigido)
         self.s_pre = QSpinBox(minimum=1, maximum=20)
         self.s_pre.setValue(int(p.get("pre", 0)) + 1)
         self.s_pre.setToolTip("Qual fase é a pré-contraste (quase sempre a 1ª). A inicial e a tardia "
@@ -76,6 +79,7 @@ class DinamicaMamaEditor(QWidget):
         f.addRow("Fase pré-contraste:", self.s_pre)
         self.c_padrao = QComboBox()
         f.addRow("Layout que abre:", self.c_padrao)
+        self.c_motion.toggled.connect(self._habilitar_parametros)
         self.c_origem.currentIndexChanged.connect(self._habilitar_parametros)
 
         # ------------------------------------------------ layouts
@@ -180,13 +184,16 @@ class DinamicaMamaEditor(QWidget):
         for w in (self.s_thr, self.c_thr_all, self.s_noise, self.s_rapido, self.s_tardio, self.s_sinal,
                   self.c_units, self.c_motion, self.s_pre):
             w.setEnabled(proprios)
+        self.c_rigido.setEnabled(proprios and self.c_motion.isChecked())
 
     def parametros(self) -> dict:
         return {"pre": self.s_pre.value() - 1, "threshold_pct": self.s_thr.value(),
                 "threshold_all": self.c_thr_all.isChecked(), "noise_pct": self.s_noise.value(),
                 "rapido_pct": self.s_rapido.value(), "tardio_pct": self.s_tardio.value(),
                 "sinal_min_pct": self.s_sinal.value(), "relative": bool(self.c_units.currentData()),
-                "motion": self.c_motion.isChecked(), "layout_nome": self.c_padrao.currentText()}
+                "motion": self.c_motion.isChecked(),
+                "motion_rigido": self.c_motion.isChecked() and self.c_rigido.isChecked(),
+                "layout_nome": self.c_padrao.currentText()}
 
     def _encher_padrao(self, escolhido: str) -> None:
         self.c_padrao.blockSignals(True)

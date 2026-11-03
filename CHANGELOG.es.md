@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.39 — corrección de movimiento rígida en el estudio dinámico
+- En la ventana de la **Dinámica** (y en el editor de la dinámica en Configuración), **Incluir rotación**:
+  además de la traslación, el registro rígido de cada fase sobre la precontraste; la fase que giró 0,75° o
+  más se remuestrea en 3D antes de los mapas, las curvas y la captura de la lesión. El título del panel
+  muestra el mayor desplazamiento y la mayor rotación corregidos.
+- Medido antes en el archivo: en 6 RM de mama (11 fases) la rotación entre fases quedó entre 0 y 0,5° y
+  la traslación por debajo de 1,3 mm; por eso la opción viene desactivada y, por debajo del umbral, la
+  fase queda solo con la traslación (sin el suavizado del remuestreo).
+
 ## 0.99.38 — registro rígido entre estudios
 - **Alinear automáticamente con el otro estudio** pasa a hacer el registro **rígido** (rotación y
   traslación en 3D), con correlación (misma secuencia) o información mutua (otra modalidad o secuencia),

@@ -4459,7 +4459,8 @@ class ViewerTab(OncoMixin, QWidget):
         dlg = None
         progress = None
         if params.get("motion"):
-            dlg = QProgressDialog("Corrigindo movimento entre as fases…", "Cancelar", 0, len(dset.phases), self)
+            n_passos = len(dset.phases) * (2 if params.get("motion_rigido") else 1)
+            dlg = QProgressDialog("Corrigindo movimento entre as fases…", "Cancelar", 0, n_passos, self)
             dlg.setWindowTitle("Dinâmica")
             dlg.setWindowModality(Qt.WindowModal)
             dlg.setMinimumDuration(0)
@@ -4473,7 +4474,8 @@ class ViewerTab(OncoMixin, QWidget):
             maps = DynamicMaps(dset, self.cache, pre=params["pre"], early=params["early"], late=params["late"],
                                threshold_pct=params["threshold_pct"], noise_pct=params["noise_pct"],
                                relative=params["relative"], threshold_all=params["threshold_all"],
-                               motion=bool(params.get("motion")), progress=progress,
+                               motion=("rigido" if params.get("motion_rigido") else bool(params.get("motion"))),
+                               progress=progress,
                                rapido_pct=params.get("rapido_pct", 100.0),
                                tardio_pct=params.get("tardio_pct", 10.0),
                                sinal_min_pct=params.get("sinal_min_pct", 10.0))

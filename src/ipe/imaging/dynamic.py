@@ -45,6 +45,11 @@ MAPS: dict[str, tuple[str, str, str, str, str]] = {
 #: mapas que são subtração (janela simétrica do sinal, sem limiar)
 SUBTRACOES = ("sub", "mipt", "medt")
 MASKED = -1.0
+#: rotação (graus) a partir da qual a correção rígida reamostra a fase em 3D. No acervo (6 RM de mama,
+#: 11 fases, 0.99.39) a rotação entre as fases ficou entre 0 e 0,5° — o passo mais fino da busca —,
+#: então abaixo disso a fase fica só na translação (sem a suavização da reamostragem 3D).
+LIMIAR_ROTACAO = 0.75
+TEMPO_RIGIDO = 40.0       # s por fase, no máximo
 
 # Classes do mapa cinético, na ordem do valor do pixel (0 = sem cor).
 CLASSES = ["sem cor", "médio/persistente", "médio/platô", "médio/washout",
@@ -218,6 +223,11 @@ class DynamicMaps:
         self.header = {"Modality": first.header.get("Modality", "MR") or "MR"}
         # deslocamento (cortes, linhas, colunas) de cada fase em relação à pré-contraste
         self.shifts: list[tuple[float, float, float]] = [(0.0, 0.0, 0.0)] * len(dset.phases)
+        # 0.99.39 (plano AW M3): com motion="rigido", a fase que girou ≥ LIMIAR_ROTACAO ganha uma
+        # matriz (índices da pré → índices da fase) e é reamostrada em 3D; as outras ficam na translação.
+        self.motion_modo = "rigido" if motion == "rigido" else ("translacao" if motion else "")
+        self.matrizes: dict[int, np.ndarray] = {}
+        self.rotacoes: list[float] = [0.0] * len(dset.phases)
         if motion:
             self.estimate_motion(progress)
 
@@ -249,16 +259,119 @@ class DynamicMaps:
             (dz, dy, dx), _score = phase_shift(ref, self._small_volume(i, zs, f))
             s = (dz * m, dy * f, dx * f)
             shifts.append(tuple(0.0 if abs(v) < 0.3 else float(v) for v in s))
+        matrizes, rotacoes = {}, [0.0] * total
+        if len(shifts) == total and self.motion_modo == "rigido":
+            r = self._estimar_rigido(shifts, progress)
+            if r is None:
+                shifts = []
+            else:
+                matrizes, rotacoes = r
         if len(shifts) == total:
             self.shifts = shifts
+            self.matrizes, self.rotacoes = matrizes, rotacoes
             self._stacks.clear()
             self._maps.clear()
             self._windows.clear()
+            self._vol_fase = None
         return self.shifts
+
+    def _espacamento(self) -> tuple[float, float, float]:
+        """(dx, dy, dz) em mm: coluna, linha e corte."""
+        rs, cs = self.pixel_spacing or (1.0, 1.0)
+        ref = self.dset.phases[self.pre]
+        dz = 1.0
+        try:
+            if len(ref) > 1 and ref[0].position is not None and ref[1].position is not None:
+                dz = float(np.linalg.norm(np.asarray(ref[1].position, float) - np.asarray(ref[0].position, float))) or 1.0
+        except (TypeError, ValueError):
+            pass
+        return float(cs), float(rs), dz
+
+    def _volume_reduzido(self, i: int, f: int):
+        """A fase inteira (todos os cortes), reduzida f vezes no plano, numa geometria própria
+        (origem 0, eixos da grade): os dois volumes comparados têm a mesma, então a rotação achada
+        vale direto nos índices."""
+        from ipe.imaging.volume import Volume
+        ph = self.dset.phases[i]
+        dx, dy, dz = self._espacamento()
+        def ler(k):
+            px = self.cache.get(ph[min(k, len(ph) - 1)]).pixels
+            return (px if px.ndim == 2 and px.shape == self.shape else np.zeros(self.shape, np.float32))[::f, ::f]
+        dados = np.stack([ler(k).astype(np.float32) for k in range(self.n)])
+        return Volume(data=dados, origin=np.zeros(3), row_dir=np.array([1.0, 0, 0]), col_dir=np.array([0, 1.0, 0]),
+                      slice_vec=np.array([0, 0, dz]), dx=dx * f, dy=dy * f, window=None, source_path="")
+
+    def _estimar_rigido(self, shifts, progress=None):
+        """Registro rígido (rotação + translação) de cada fase sobre a pré, partindo da translação já
+        achada. Devolve (matrizes, rotações) ou None se cancelado."""
+        from ipe.imaging import registro_rigido as RR
+        dx, dy, dz = self._espacamento()
+        f = max(1, int(np.ceil(max(self.shape) / 256)))
+        A = self._volume_reduzido(self.pre, f)
+        S = np.diag([dx, dy, dz, 1.0])
+        Si = np.linalg.inv(S)
+        matrizes, rotacoes = {}, [0.0] * len(self.dset.phases)
+        total = len(self.dset.phases)
+        for i in range(total):
+            if i == self.pre:
+                continue
+            if progress and progress(total + i, 2 * total) is False:
+                return None
+            sz, sy, sx = shifts[i]
+            try:
+                r = RR.registrar(A, self._volume_reduzido(i, f), "ncc",
+                                 inicio=(0.0, 0.0, 0.0, sx * dx, sy * dy, sz * dz), tempo_max=TEMPO_RIGIDO)
+            except Exception as e:  # noqa: BLE001
+                log.warning("registro rígido da fase %d: %s", i, e)
+                continue
+            rotacoes[i] = float(r.rotacao_total)
+            if r.rotacao_total >= LIMIAR_ROTACAO:
+                matrizes[i] = Si @ r.M @ S
+                t = r.translacao
+                shifts[i] = (float(t[2] / dz), float(t[1] / dy), float(t[0] / dx))
+        return matrizes, rotacoes
+
+    def _fase_girada(self, i: int, k: int) -> np.ndarray:
+        """Corte k da pré, tirado da fase i girada: trilinear nos cortes vizinhos que a rotação toca."""
+        M = self.matrizes[i]
+        ph = self.dset.phases[i]
+        h, w = self.shape
+        J, I = np.meshgrid(np.arange(h, dtype=np.float64), np.arange(w, dtype=np.float64), indexing="ij")
+        ii = M[0, 0] * I + M[0, 1] * J + M[0, 2] * k + M[0, 3]
+        jj = M[1, 0] * I + M[1, 1] * J + M[1, 2] * k + M[1, 3]
+        kk = M[2, 0] * I + M[2, 1] * J + M[2, 2] * k + M[2, 3]
+        nz = len(ph)
+        fora = (kk < -0.5) | (kk > nz - 0.5) | (ii < -0.5) | (ii > w - 0.5) | (jj < -0.5) | (jj > h - 0.5)
+        ii, jj, kk = np.clip(ii, 0, w - 1), np.clip(jj, 0, h - 1), np.clip(kk, 0, nz - 1)
+        z0 = int(np.floor(kk.min()))
+        z1 = min(int(np.floor(kk.max())) + 1, nz - 1)
+
+        def ler(z):
+            px = self.cache.get(ph[z]).pixels
+            return px.astype(np.float32, copy=False) if px.ndim == 2 and px.shape == self.shape \
+                else np.zeros(self.shape, np.float32)
+        bloco = np.stack([ler(z) for z in range(z0, z1 + 1)])
+        kl = kk - z0
+        i0, j0, k0 = np.floor(ii).astype(int), np.floor(jj).astype(int), np.floor(kl).astype(int)
+        i1, j1 = np.minimum(i0 + 1, w - 1), np.minimum(j0 + 1, h - 1)
+        k1 = np.minimum(k0 + 1, bloco.shape[0] - 1)
+        fi, fj, fk = ii - i0, jj - j0, kl - k0
+
+        def plano(kz):
+            return ((bloco[kz, j0, i0] * (1 - fi) + bloco[kz, j0, i1] * fi) * (1 - fj)
+                    + (bloco[kz, j1, i0] * (1 - fi) + bloco[kz, j1, i1] * fi) * fj)
+        out = plano(k0) * (1 - fk) + plano(k1) * fk
+        out[fora] = 0.0
+        return out.astype(np.float32)
 
     @property
     def motion_corrected(self) -> bool:
-        return any(any(v) for v in self.shifts)
+        return any(any(v) for v in self.shifts) or bool(self.matrizes)
+
+    @property
+    def rotacao_maxima(self) -> float:
+        """Maior rotação corrigida (graus); 0 se nenhuma fase passou do limiar."""
+        return max((self.rotacoes[i] for i in self.matrizes), default=0.0)
 
     # ------------------------------------------------------------ dados
     @property
@@ -277,7 +390,10 @@ class DynamicMaps:
             if px.ndim != 2 or px.shape != self.shape:
                 return np.zeros(self.shape, np.float32)
             return px.astype(np.float32, copy=False)
-        for ph, (dz, dy, dx) in zip(self.dset.phases, self.shifts):
+        for idx, (ph, (dz, dy, dx)) in enumerate(zip(self.dset.phases, self.shifts)):
+            if idx in self.matrizes:
+                imgs.append(self._fase_girada(idx, k))
+                continue
             if not (dz or dy or dx):
                 imgs.append(read(ph, k))
                 continue

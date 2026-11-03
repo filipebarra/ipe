@@ -453,7 +453,8 @@ Botão **Dinâmica** na barra. A janela de parâmetros mostra as séries que ele
 | Realce mínimo (%) | abaixo disso o voxel não entra no mapa cinético |
 | Rápido (%) / Tardio (±%) | os limiares das seis classes: médio 50–100%, rápido acima; persistente / platô / washout pela variação da tardia |
 | Sinal mínimo do tecido (%) | máscara: pré-contraste de pelo menos N% do sinal de referência |
-| Corrigir movimento | registro por translação 3D entre as fases (a rotação fica para o registro entre exames) |
+| Corrigir movimento | registro por translação 3D entre as fases |
+| Incluir rotação | registro rígido (rotação + translação) de cada fase sobre a pré, mais lento (até uns 40 s por fase); só reamostra em 3D a fase que girou 0,75° ou mais — nas RM de mama do acervo a rotação entre as fases não passou de 0,5°, e aí fica a translação |
 | Disposição | quais mapas vão para quais quadros |
 
 Os valores ficam guardados: o próximo exame abre com os últimos que você usou.
