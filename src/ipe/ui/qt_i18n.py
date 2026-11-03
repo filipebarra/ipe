@@ -40,6 +40,9 @@ _TEXT_METHODS = {
     "QMenu": ("setTitle",),
     "QDockWidget": ("setWindowTitle",),
     "QFileDialog": ("setLabelText",),
+    # 0.99.35: a barra de status e os avisos da bandeja são desenhados pelo Qt (C++), sem passar por aqui
+    "QStatusBar": ("showMessage",),
+    "QSystemTrayIcon": ("setToolTip",),
 }
 # métodos com texto em posições específicas: classe -> {método: (índices dos argumentos de texto)}
 _TEXT_ARGS = {
@@ -55,6 +58,7 @@ _TEXT_ARGS = {
     "QInputDialog": {"setLabelText": (0,), "setOkButtonText": (0,), "setCancelButtonText": (0,)},
     "QAction": {"setText": (0,), "setToolTip": (0,), "setIconText": (0,), "setStatusTip": (0,),
                 "setWhatsThis": (0,)},
+    "QSystemTrayIcon": {"showMessage": (0, 1)},
 }
 # métodos que recebem uma lista de textos
 _TEXT_LISTS = {"QTreeWidget": ("setHeaderLabels",), "QTableWidget": ("setHorizontalHeaderLabels",
@@ -64,6 +68,7 @@ _STATICS = {
     "QMessageBox": {"information": (1, 2), "warning": (1, 2), "critical": (1, 2), "question": (1, 2),
                     "about": (1, 2)},
     "QInputDialog": {"getText": (1, 2), "getInt": (1, 2), "getDouble": (1, 2), "getItem": (1, 2)},
+    "QToolTip": {"showText": (1,)},
     "QFileDialog": {"getSaveFileName": (1, 3, 4), "getOpenFileName": (1, 3, 4),
                     "getOpenFileNames": (1, 3, 4), "getExistingDirectory": (1,)},
 }

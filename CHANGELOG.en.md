@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.35 — translation review
+- **Texts that stayed in Portuguese** in the English or Spanish program: about 650 new texts translated,
+  including the AI screens and messages (CAD/AI, segmentation, spine, cephalometry, lymph nodes, skull
+  indices, implant, AI tasks), automatic management and the program's closing message.
+- The status bar, tray notices and hand-drawn tooltips are now translated.
+- Sentences assembled at run time (with numbers, names and steps inside) and multi-line texts are
+  translated piece by piece; names such as "Abdominal segmentation" used to come out half translated.
+- Checked by opening the program in English and Spanish and going through menus, buttons, Settings
+  windows and the AIs.
+
 ## 0.99.34 — fixes: database in English and cancelling AIs
 - **Empty database in English**: the "All" modality filter was searching for a modality called "All".
   Fixed for every drop-down list: the screen shows the translation and the program reads the original.

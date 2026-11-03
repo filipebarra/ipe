@@ -132,6 +132,10 @@ c.insertItem(0, "Todas"); assert c.model().index(0, 0).data() == "All" and c.ite
 c.setItemText(2, "Fechar"); assert c.itemText(2) == "Fechar" and c.model().index(2, 0).data() == "Close"
 ed = QComboBox(); ed.setEditable(True); ed.addItems(["Fechar"]); ed.setEditText("texto livre")
 assert ed.currentText() == "texto livre"
+# 0.99.35: barra de status, texto de várias linhas e pedaço dentro de frase montada
+from PySide6.QtWidgets import QStatusBar
+sb = QStatusBar(); sb.showMessage("Fechar"); assert sb.currentMessage() == "Close", sb.currentMessage()
+assert I_.tr("Fechar\n   Salvar") == "Close\n   Save", I_.tr("Fechar\n   Salvar")
 from ipe.ui.qt_i18n import mesmo
 assert I_.original("Close") == "Fechar" and I_.original("xyz não traduzido") == "xyz não traduzido"
 assert mesmo("Close", "Fechar") and mesmo("Fechar", "Fechar") and not mesmo("Save", "Fechar")
@@ -243,6 +247,17 @@ from ipe.core.i18n import original
 acoes = [x for a in w.menuBar().actions() if a.menu() for x in a.menu().actions()]
 imp = [x for x in acoes if original(x.text()).replace("&", "").startswith("Importar")]
 assert imp and imp[0].text() != original(imp[0].text()), [x.text() for x in imp]
+# mensagem de encerramento traduzida por inteiro
+from PySide6.QtWidgets import QMessageBox
+vistos = {}
+def _exec(self):
+    vistos["t"], vistos["i"] = self.text(), self.informativeText()
+    vistos["b"] = [b.text() for b in self.buttons()]
+    return 0
+QMessageBox.exec = _exec
+w._confirmar_saida()
+assert vistos["t"] == "Close Ipê?" and vistos["i"].startswith("While the program is closed"), vistos
+assert "Close" in vistos["b"] and "Cancel" in vistos["b"], vistos
 # página de Configurações em inglês: abre a aba certa
 from ipe.ui.preferences import PreferencesDialog, PAGINAS
 for pg in ("idioma", "mouse", "cad_ia"):

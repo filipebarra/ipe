@@ -3260,13 +3260,19 @@ class MainWindow(QMainWindow):
         if not self.settings.get("ui.confirmar_sair", True):
             return True
         caixa = QMessageBox(QMessageBox.Question, APP_NAME, "Fechar o Ipê?", parent=self)
+        # 0.99.35: frases inteiras (a montada em pedaços não era traduzida)
+        from ipe.core.i18n import tr
         servicos = []
         if any(getattr(s, "running", False) for s in getattr(self.net, "print_servers", []) or []):
-            servicos.append("o servidor de impressão")
+            servicos.append(tr("o servidor de impressão"))
         if getattr(self.net, "active_jobs", None) and self.net.active_jobs():
-            servicos.append("os downloads/envios em andamento")
-        caixa.setInformativeText("Enquanto o programa estiver fechado, o nó DICOM não recebe exames"
-                                 + (" e param " + " e ".join(servicos) if servicos else "") + ".")
+            servicos.append(tr("os downloads e envios em andamento"))
+        if servicos:
+            lista = ", ".join(servicos)
+            caixa.setInformativeText(f"Enquanto o programa estiver fechado, o nó DICOM não recebe exames. "
+                                     f"Também param: {lista}.")
+        else:
+            caixa.setInformativeText("Enquanto o programa estiver fechado, o nó DICOM não recebe exames.")
         sim = caixa.addButton("Fechar", QMessageBox.AcceptRole)
         nao = caixa.addButton("Cancelar", QMessageBox.RejectRole)
         caixa.setDefaultButton(nao)                    # Enter por engano não fecha

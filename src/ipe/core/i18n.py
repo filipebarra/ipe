@@ -112,6 +112,7 @@ def load(lang: str) -> None:
         _state["strings"] = {}
         _state["patterns"] = []
         _state["reverso"] = None
+        _state["valores"] = None
         if not lang or lang == BASE_LANG:
             return
         data: dict = {}
@@ -147,6 +148,8 @@ def tr(text):
     if hit is not None:
         return hit
     out = _state["strings"].get(text)
+    if out is None and ("\n" in text or "<br" in text):
+        out = _match_lines(text)
     if out is None:
         out = _match_pattern(text)
     if out is None:
@@ -173,9 +176,73 @@ def _match_pattern(text: str) -> str | None:
             continue
         out, groups = dst, list(m.groups())
         for g in groups:
-            out = out.replace("{}", g, 1)
+            out = out.replace("{}", _parte(g), 1)
         return out
     return None
+
+
+_LINHAS = re.compile(r"(\n|<br>|<br/>|<br />)")
+
+
+def _match_lines(text: str) -> str | None:
+    """Texto de várias linhas (ou separado por <br>) em que cada linha se traduz sozinha ("Segmentação
+    abdominal\n   só à mão"): traduz linha a linha. 0.99.35: antes um padrão genérico ("Segmentação {}")
+    pegava o texto inteiro e saía "Segmentation abdominal\n   só à mão"."""
+    pedacos = _LINHAS.split(text)
+    out, algum = [], False
+    for i, linha in enumerate(pedacos):
+        nu = linha.strip()
+        if i % 2 or not nu:
+            out.append(linha)
+            continue
+        t = _state["strings"].get(nu)
+        if t is None:
+            t = _match_tag(nu) or _match_pattern(nu)
+        if t is None:
+            if nu in _valores():               # já está no idioma (pedaço traduzido antes)
+                t = nu
+            elif not any(c.isalpha() for c in nu) or not any(c.islower() for c in nu):
+                t = nu                         # números, siglas, nomes de série em maiúsculas
+            else:
+                _state.setdefault("missing_atoms", set()).add(nu)
+                return None
+        else:
+            algum = True
+        out.append(linha.replace(nu, t))
+    return "".join(out) if algum else None
+
+
+def _valores() -> set:
+    v = _state.get("valores")
+    if v is None:
+        v = _state["valores"] = set(_state["strings"].values())
+    return v
+
+
+def _parte(g: str) -> str:
+    """Um pedaço que entrou numa frase montada ("Segmentando: " + etapa): traduz se for um texto
+    conhecido (0.99.35; antes ia em português no meio da frase traduzida)."""
+    if not g or not any(c.isalpha() for c in g):
+        return g
+    t = _state["strings"].get(g)
+    if t is not None:
+        return t
+    nu = g.strip()
+    if nu != g:
+        t = _state["strings"].get(nu)
+        if t is not None:
+            return g.replace(nu, t)
+    prof = _state.get("prof", 0)
+    if prof >= 3 or len(g) < 3:
+        return g
+    if g in _valores():
+        return g
+    _state["prof"] = prof + 1
+    try:
+        t = tr(g)                               # o pedaço também pode ser uma frase montada
+    finally:
+        _state["prof"] = prof
+    return t
 
 
 def _match_tag(text: str) -> str | None:

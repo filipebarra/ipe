@@ -3,6 +3,17 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.35 — tradução revisada
+- **Textos que ficavam em português** no programa em inglês ou espanhol: cerca de 650 textos novos
+  traduzidos, entre eles as telas e mensagens das IAs (CAD/IA, segmentação, coluna, cefalometria,
+  linfonodos, índices do crânio, implante, Tarefas de IA), a gestão automática e a mensagem de
+  encerramento do programa.
+- A barra de status, os avisos da bandeja e as dicas desenhadas à mão passam a ser traduzidos.
+- Frases montadas na hora (com números, nomes e etapas no meio) e textos de várias linhas são
+  traduzidos por partes; antes, nomes como "Segmentação abdominal" saíam pela metade.
+- Conferido abrindo o programa em inglês e em espanhol e passando por menus, botões, janelas de
+  Configurações e as IAs.
+
 ## 0.99.34 — correções: banco em inglês e cancelar as IAs
 - **Banco vazio em inglês**: o filtro de modalidade "Todas" virava "All" e a busca procurava a
   modalidade "All". Corrigido para todas as listas suspensas: a tela mostra traduzido e o programa lê o
