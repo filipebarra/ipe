@@ -18,6 +18,7 @@
   ipe server --create-admin admin   cria o primeiro administrador
   ipe config [chave [valor]]   ver ou mudar configurações (servidor sem janela)
   ipe node list|add|remove     nós DICOM pela linha de comando
+  ipe set-language en|pt-BR|es idioma do programa (o instalador usa)
 """
 
 from __future__ import annotations
@@ -65,6 +66,8 @@ def _parser() -> argparse.ArgumentParser:
     lc.add_argument("--token", default="", help="o token da API (padrão: o deste computador)")
     m = sub.add_parser("set-mode", help="quem usa este computador (usado pelo instalador)")
     m.add_argument("mode", choices=["single", "multi"])
+    lg = sub.add_parser("set-language", help="idioma do programa: en, pt-BR ou es (usado pelo instalador)")
+    lg.add_argument("lang")
     sub.add_parser("info", help="mostrar caminhos")
     return p
 
@@ -97,6 +100,19 @@ def main(argv: list[str] | None = None) -> int:
         s.set("auth.modo_confirmado", True)      # o instalador já perguntou: o primeiro uso não pergunta de novo
         s.save()
         print(f"Modo de acesso: {args.mode}")
+        return 0
+
+    if args.cmd == "set-language":
+        from ipe.core import i18n
+        from ipe.core.config import Settings, get_paths
+        lang = i18n.normalize(args.lang)
+        if not lang:
+            print(f"Unknown language: {args.lang} (use en, pt-BR or es)", file=sys.stderr)
+            return 2
+        s = Settings(get_paths().settings_file)
+        s.set("language", lang)
+        s.save()
+        print(f"Language: {lang}")
         return 0
 
     if args.cmd == "register-url":

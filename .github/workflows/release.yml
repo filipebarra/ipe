@@ -90,7 +90,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: pacotes
-      - name: Notas (a entrada do CHANGELOG desta versão)
+      - name: Notas (a entrada do CHANGELOG.en.md desta versão — 0.99.33: o release sai em inglês)
         id: n
         run: |
           V=$(python3 -c "import re;print(re.search(r'__version__ = \"(.+?)\"', open('src/ipe/__init__.py').read()).group(1))")
@@ -99,18 +99,22 @@ jobs:
           import sys
           v = sys.argv[1]
           linhas, dentro = [], False
-          for l in open("CHANGELOG.md", encoding="utf-8"):
+          for l in open("CHANGELOG.en.md", encoding="utf-8"):
               if l.startswith("## "):
                   if dentro:
                       break
                   dentro = l[3:].strip().startswith(v)
               if dentro:
                   linhas.append(l)
-          print("".join(linhas) or f"Versão {v}.")
-          print("\n---\n**Windows:** o instalador põe o programa no perfil do usuário, sem administrador. "
-                "O executável ainda não é assinado: o Windows pode mostrar o aviso do SmartScreen "
-                "(\"Mais informações\" ▸ \"Executar assim mesmo\").\n\n**Linux:** descompacte e rode `Ipe/Ipe`.\n\n"
-                "A segmentação (TotalSegmentator) se instala à parte, pelo `instalar_segmentacao`.")
+          print("".join(linhas) or f"Version {v}.")
+          print("\n---\n**Windows:** the installer puts the program in the user profile, without administrator "
+                "rights, and asks for the language (English by default; Portuguese and Spanish also available). "
+                "The executable is not signed yet: Windows may show the SmartScreen warning "
+                "(\"More info\" ▸ \"Run anyway\").\n\n**Linux:** extract and run `Ipe/Ipe`; on first launch it asks "
+                "for the language, with English selected.\n\n"
+                "Organ segmentation (TotalSegmentator) is installed separately, with `instalar_segmentacao`.\n\n"
+                "*Notas em português: [CHANGELOG.md](https://github.com/filipebarra/ipe/blob/main/CHANGELOG.md) · "
+                "Notas en español: [CHANGELOG.es.md](https://github.com/filipebarra/ipe/blob/main/CHANGELOG.es.md)*")
           PY
       - name: Publicar
         env:

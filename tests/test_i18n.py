@@ -92,10 +92,11 @@ def test_arquivo_do_usuario_vale_mais_e_cria_idioma_novo(tmp_path):
     assert i18n.tr("Fechar") == "Fermer"
 
 
-def test_available_comeca_pelo_portugues():
+def test_available_comeca_pelo_ingles():
+    """0.99.33: o inglês é o padrão e vem primeiro; português e espanhol logo depois."""
     codigos = [c for c, _n in i18n.available()]
-    assert codigos[0] == i18n.BASE_LANG
-    assert "en" in codigos and "es" in codigos
+    assert codigos[:3] == ["en", "pt-BR", "es"]
+    assert i18n.DEFAULT_LANG == "en" and i18n.BASE_LANG == "pt-BR"
     assert i18n.language_name("en") == "English"
 
 
@@ -147,3 +148,43 @@ def test_qt_i18n_traduz_os_textos_da_tela(tmp_path):
                        timeout=120)
     assert r.returncode == 0, r.stdout + r.stderr
     assert "ok" in r.stdout
+
+
+def test_normalize():
+    for x, y in (("en", "en"), ("en_US", "en"), ("EN-gb", "en"), ("pt", "pt-BR"), ("pt_BR", "pt-BR"),
+                 ("Português (Brasil)", "pt-BR"), ("es", "es"), ("es-MX", "es"), ("Español", "es"),
+                 ("xx", ""), ("", "")):
+        assert i18n.normalize(x) == y, x
+
+
+def test_set_language_pela_linha_de_comando(tmp_path, monkeypatch):
+    """O instalador grava o idioma escolhido: a primeira abertura não pergunta de novo."""
+    import json
+    from ipe.__main__ import main
+    monkeypatch.setenv("IPE_HOME", str(tmp_path))
+    assert main(["set-language", "es"]) == 0
+    from ipe.core.config import get_paths
+    dados = json.loads(get_paths().settings_file.read_text(encoding="utf-8"))
+    assert dados["language"] == "es"
+    assert main(["set-language", "pt_BR"]) == 0
+    assert json.loads(get_paths().settings_file.read_text(encoding="utf-8"))["language"] == "pt-BR"
+    assert main(["set-language", "klingon"]) == 2
+
+
+def test_primeira_abertura_sugere_ingles(tmp_path, monkeypatch):
+    """Sem idioma gravado (pacote portátil), a pergunta vem com o inglês marcado, mesmo num Windows em
+    português."""
+    from PySide6.QtWidgets import QApplication, QComboBox, QDialog
+    QApplication.instance() or QApplication([])
+    from ipe import app as A
+    from ipe.core.config import Settings
+    monkeypatch.setattr(i18n, "system_language", lambda: "pt-BR")
+    visto = {}
+
+    def exec_(self):
+        visto["lang"] = self.findChild(QComboBox).currentData()
+        return 1
+    monkeypatch.setattr(QDialog, "exec", exec_)
+    s = Settings(tmp_path / "settings.json")
+    assert A._choose_language(s) == "en" and visto["lang"] == "en" and s.get("language") == "en"
+    assert A._choose_language(s) == "en"            # gravado: não pergunta de novo

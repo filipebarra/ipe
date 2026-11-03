@@ -1,7 +1,16 @@
 # Histórico de versões do Ipê
 
-*O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
+*O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
+
+## 0.99.33 — inglês como padrão
+- O programa e o README passam a ter o **inglês** como padrão; português e espanhol continuam.
+- O **instalador** do Windows pergunta o idioma na primeira tela (inglês marcado) e o grava para o
+  programa; `instalar.bat` e `instalar.sh` também perguntam. A versão portátil pergunta ao abrir, com o
+  inglês marcado. Quem já usava continua no idioma escolhido.
+- Novo comando `ipe set-language en|pt-BR|es`.
+- README: `README.md` em inglês (agora completo), `README.pt-BR.md` em português, `README.es.md`.
+- As notas dos releases no GitHub saem em inglês.
 
 ## 0.99.32 — acompanhar as IAs
 - **Tarefas de IA**: andamento (fila, montando, rodando, gravando, pronto, erro) e **cancelar**, também das

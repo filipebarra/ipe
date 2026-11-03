@@ -1,7 +1,16 @@
 # Ipê release history
 
-*The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
+*The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
+
+## 0.99.33 — English by default
+- The program and the README now default to **English**; Portuguese and Spanish are still available.
+- The Windows **installer** asks for the language on its first screen (English selected) and saves it
+  for the program; `instalar.bat` and `instalar.sh` ask too. The portable package asks on first launch,
+  with English selected. Existing users keep the language they chose.
+- New command `ipe set-language en|pt-BR|es`.
+- README: `README.md` in English (now complete), `README.pt-BR.md` in Portuguese, `README.es.md`.
+- GitHub release notes are now in English.
 
 ## 0.99.32 — following the AIs
 - **AI tasks**: progress (queued, building, running, saving, done, error) and **cancel**, also for the ones

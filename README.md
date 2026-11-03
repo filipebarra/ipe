@@ -1,127 +1,136 @@
 # Ipê
 
-**Visualizador DICOM para pesquisa e ensino**, em Python (PySide6), para Windows e Linux. Nasceu numa
-estação de laudo de imagem da mama e cresceu para cobrir TC, RM, PET/CT, medicina nuclear,
-ultrassom e radiografia, com rede DICOM, filmes, impressão e laudo.
+**DICOM viewer for research and teaching**, written in Python (PySide6), for Windows and Linux. It
+started as a breast-imaging reading station and grew to cover CT, MR, PET/CT, nuclear medicine,
+ultrasound and radiography, with DICOM networking, films, printing and reporting.
 
-> **Não destinado a uso diagnóstico.** O Ipê não é dispositivo médico registrado na ANVISA nem em
-> outra agência. Não use as imagens, medidas ou resultados dele para laudar, decidir conduta ou
-> tratar pacientes.
+> **Not intended for diagnostic use.** Ipê is not a medical device registered with ANVISA or any
+> other agency. Do not use its images, measurements or results to report studies, decide care or
+> treat patients.
 
-*Outros idiomas: [English](README.en.md) · [Español](README.es.md) · Histórico de versões:
-[CHANGELOG.md](CHANGELOG.md)*
+*Other languages: [Português](README.pt-BR.md) · [Español](README.es.md) · Release history:
+[CHANGELOG.en.md](CHANGELOG.en.md)*
 
-## Por que Ipê?
+The program opens in **English** by default. The installer asks for the language (English,
+Portuguese or Spanish), and it can be changed later in Settings ▸ System ▸ Language.
 
-Em Brasília, no meio da seca, os ipês florescem e a paisagem muda. E há uma coincidência: *ipê* está
-em Fil**ipe**. O Ipê foi criado por um radiologista de mama que, como muitos colegas, migrou para o
-macOS por causa do OsiriX e do Horos, e sempre quis um programa completo para Windows e Linux. Ele é
-escrito com a ajuda do Claude (Anthropic), que trabalha como programador sênior a partir dos pedidos
-do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
-[Leia a história completa](HISTORIA.md) · [Créditos e licenças](CREDITOS.md)
+## Why Ipê?
 
----
-
-## Funções
-
-### Banco de exames
-- Banco local (SQLite): paciente → exame → série → imagem, com miniaturas e busca por nome, ID,
-  accession ou descrição (vários termos com `|`), modalidade e período.
-- Importação de pastas, CD/DVD, ZIP e arquivos soltos, inclusive arrastando para a janela; em
-  segundo plano, sem duplicar. Copiar para o armazenamento ou só referenciar.
-- Vários locais de exames (HD externo, pasta de rede), comentários, listas de casos e listas
-  inteligentes, exame protegido, ocultar e apagar séries.
-- Anonimizar cópias de exames; corrigir tags gravando cópia (o original nunca é alterado).
-- Compressão sem perda, com conferência pixel a pixel, e relatório do acervo.
-
-### Visualizador
-- Vários layouts de quadros, vários monitores tratados como **uma** estação, memória de layout por
-  monitor e protocolos de exibição.
-- Janela/nível, zoom, pan, cine, inverter, girar, espelhar, lupa, filtros de nitidez e suavização,
-  escalas de cores editáveis.
-- Sincronização automática (mesmo ponto do paciente) ou manual, por modalidade; cursor 3D e linhas
-  de corte.
-- Anotações da tela em quatro níveis (completa, parcial 1, parcial 2, ausente), configuráveis.
-- Ctrl+C copia o quadro como está na tela, em alta resolução.
-- Exames anteriores na tira de miniaturas; clique num quadro vazio para escolher a série.
-- Barra que se arruma pelo exame: as aplicações (dinâmica, 3D, MN…) aparecem só quando servem ao
-  exame aberto; o botão Aplicações lista todas, e cada uma pode ficar sempre, nunca ou automática.
-- Menu Configurações com um submenu por assunto e uma janela por item.
-
-### Reconstruções e 3D
-- MPR ortogonal, oblíquo e curvo; MIP/MinIP/média em espessura (slab); salvar reconstrução como série.
-- Volume rendering, superfície, recorte e escultura; fusão PET/CT.
-- Exportar malha 3D em STL, OBJ, PLY, GLB e 3MF.
-- Cardíaco 4D e subtração digital (DSA).
-
-### Medidas
-- Régua, polilinha, ângulo, Cobb, ROIs (elipse, retângulo, mão livre) com média e desvio, texto,
-  seta, curva; calibração manual por imagem ou série.
-- Ultrassom calibrado pela região do arquivo, imagem a imagem.
-- Painel com todas as medidas do exame; exportar para planilha e gravar como DICOM SR.
-- Segmentação 3D por crescimento de região, com volume e três eixos perpendiculares.
-- Medidas guiadas (Índices): MRPI e MRPI 2.0, índice de Evans e ângulo calosal, com conferência
-  do plano e da espessura do corte.
-- Índices do crânio automáticos (SynthSeg): Evans, 3º ventrículo, ângulo calosal e volumes dos
-  hipocampos, em RM de qualquer sequência ou TC.
-- Níveis linfonodais cervicais na TC (mapa I a VII em qualquer plano; a lesão segmentada ganha o nível).
-- Cefalometria do cavum na TC, automática (TotalSegmentator) ou à mão: área mínima da via aérea
-  perpendicular ao eixo, palato mole, espaço aéreo posterior, hioide e língua, no formato do laudo.
-
-### Mama
-- Mamografia e tomossíntese: protocolo por etapas, distribuição entre monitores, enquadramento da
-  mama, quadrantes, incidência certa pelo rótulo do aparelho, 2D sintetizada, implante, indicador
-  de profundidade da tomossíntese.
-- Densidade mamária por três métodos, com a máscara à vista.
-- RM dinâmica: mapas MSI, PEI, SER e mapa cinético de 6 cores (estilo CADstream), em qualquer
-  plano; layouts configuráveis; medida da lesão com angiovolume e padrões cinéticos; distância da
-  lesão à pele, ao mamilo e ao peitoral.
-
-### Medicina nuclear
-- Leitura NM multi-frame (detectores, fases, janelas de energia), ANT/POST e média geométrica com
-  janela comum.
-- ROIs e curvas atividade-tempo, renograma, esvaziamento gástrico, DISIDA, salivares, DMSA,
-  paratireoide, captação de tireoide e trânsito, com correção de decaimento. O programa devolve
-  números; não interpreta.
-
-### Oncologia e IA
-- Lesões acompanhadas entre exames; objetos de CAD/IA (SEG, GSPS, SR, RTSTRUCT) que ligam e desligam.
-- Segmentação de órgãos abdominais com TotalSegmentator (opcional, instalado à parte) e
-  identificação de vértebras e discos.
-
-### Rede DICOM
-- Nó DICOM (C-ECHO, C-FIND, C-MOVE, C-GET, C-STORE) e cliente DICOMweb (QIDO, WADO, STOW).
-- Busca no PACS, download por série, abrir enquanto baixa, pré-busca de anteriores.
-- Automação: roteamento, buscas agendadas, regras por modalidade; Gestão DICOM (conferir se os
-  exames das modalidades chegaram ao PACS e enviar o que falta).
-- Chamada externa por link `ipe://`, linha de comando ou API HTTP local, inclusive abrindo só o
-  visualizador.
-
-### Filmes, impressão e laudo
-- Compositor de filmes; impressão em impressora comum, PDF e impressora DICOM.
-- O programa como impressora DICOM: recebe filmes das modalidades, identifica o paciente e
-  encaminha por regras.
-- Laudo com modelos (TC, MG, RM, PET) e BI-RADS, em PDF, DICOM PDF e SR.
-- Exportação em DICOM, JPG/PNG e um visualizador completo em HTML, com anonimização.
-
-### Usuários e idiomas
-- Um usuário ou vários, com perfis e permissões; servidor central opcional.
-- Português, inglês e espanhol, com editor de traduções para outros idiomas.
+In Brasília, in the middle of the dry season, the ipê trees bloom and the landscape changes. And
+there is a coincidence: *ipê* is in Fil**ipe**. Ipê was created by a breast radiologist who, like many
+colleagues, moved to macOS because of OsiriX and Horos, and always wanted a complete program for
+Windows and Linux. It is written with the help of Claude (Anthropic), working as a senior programmer
+on the author's requests, and it exists thanks to open-source DICOM, computing and AI libraries.
+[Read the full story](HISTORIA.en.md) · [Credits and licenses](CREDITOS.md)
 
 ---
 
-## Instalação
+## Features
 
-### Windows — instalador
-O instalador `Ipe-<versão>-instalador.exe` (e o pacote portátil `.zip`) instala no perfil do
-usuário, sem pedir administrador. Para gerá-lo a partir do código, veja
-[installer/LEIAME.md](installer/LEIAME.md).
+### Study database
+- Local database (SQLite): patient → study → series → image, with thumbnails and search by name, ID,
+  accession or description (several terms with `|`), modality and date range.
+- Import from folders, CD/DVD, ZIP and loose files, including drag and drop onto the window; in the
+  background, without duplicates. Copy into storage or just reference the files.
+- Several study locations (external drive, network folder), comments, case lists and smart lists,
+  protected studies, hiding and deleting series.
+- Marks for studies that already have AI results (✦) or an AI running (⚙).
+- Anonymize copies of studies; fix tags by writing a copy (the original is never changed).
+- Lossless compression, checked pixel by pixel, and an archive report.
 
-### Windows — a partir do código
-1. Instale o **Python 3.12** em <https://www.python.org/downloads/>, marcando **"Add python.exe to
+### Viewer
+- Many viewport layouts, several monitors treated as **one** workstation, layout memory per monitor
+  and hanging protocols.
+- Window/level, zoom, pan, cine, invert, rotate, flip, magnifier, sharpening and smoothing filters,
+  editable color scales.
+- Automatic (same point in the patient) or manual synchronization, per modality; 3D cursor and
+  reference lines.
+- On-screen annotations in four levels (full, partial 1, partial 2, none), configurable.
+- Ctrl+C copies the viewport as shown, in high resolution.
+- Prior studies in the thumbnail strip; click an empty viewport to choose the series.
+- A toolbar that adapts to the study: applications (dynamic, 3D, NM…) appear only when they suit the
+  open study; the Applications button lists all of them, and each can be always, never or automatic.
+- Settings menu with a submenu per topic and one window per item.
+
+### Reconstructions and 3D
+- Orthogonal, oblique and curved MPR; MIP/MinIP/average slabs; save a reconstruction as a series.
+- Volume rendering, surface, cropping and sculpting; PET/CT fusion.
+- Export 3D meshes as STL, OBJ, PLY, GLB and 3MF.
+- 4D cardiac and digital subtraction (DSA).
+
+### Measurements
+- Ruler, polyline, angle, Cobb, ROIs (ellipse, rectangle, freehand) with mean and SD, text, arrow,
+  curve; manual calibration per image or series.
+- Ultrasound calibrated by the file's region, image by image.
+- Panel with all measurements of the study; export to a spreadsheet and save as DICOM SR.
+- 3D region-growing segmentation, with volume and three perpendicular axes.
+- Guided measurements (Indices): MRPI and MRPI 2.0, Evans index and callosal angle, with checks of
+  the plane and slice thickness.
+- Automatic skull indices (SynthSeg): Evans, third ventricle, callosal angle and hippocampal
+  volumes, on MR of any sequence or CT.
+- Cervical lymph node levels on CT (map of levels I to VII in any plane; a segmented lesion gets its
+  level).
+- Nasopharynx cephalometry on CT, automatic (TotalSegmentator) or manual: minimum airway area
+  perpendicular to the axis, soft palate, posterior airway space, hyoid and tongue, in report format.
+
+### Breast
+- Mammography and tomosynthesis: step-by-step protocol, distribution across monitors, breast
+  framing, quadrants, correct view from the device label, synthesized 2D, implant, tomosynthesis
+  depth indicator.
+- Breast density by three methods, with the mask shown.
+- Dynamic MR: MSI, PEI, SER maps and a 6-color kinetic map (CADstream style), in any plane;
+  configurable layouts; lesion measurement with angiovolume and kinetic patterns; lesion distance to
+  skin, nipple and pectoralis.
+
+### Nuclear medicine
+- Multi-frame NM reading (detectors, phases, energy windows), ANT/POST and geometric mean with a
+  shared window.
+- ROIs and time-activity curves, renogram, gastric emptying, HIDA, salivary glands, DMSA,
+  parathyroid, thyroid uptake and transit, with decay correction. The program returns numbers; it
+  does not interpret them.
+
+### Oncology and AI
+- Lesions tracked across studies; CAD/AI objects (SEG, GSPS, SR, RTSTRUCT) that can be switched on
+  and off.
+- Abdominal organ segmentation with TotalSegmentator (optional, installed separately) and
+  identification of vertebrae and discs.
+- AI tasks window: progress of every AI (including the ones that run automatically when a study
+  arrives), with cancel.
+
+### DICOM networking
+- DICOM node (C-ECHO, C-FIND, C-MOVE, C-GET, C-STORE) and DICOMweb client (QIDO, WADO, STOW).
+- PACS search, download by series, open while downloading, prefetch of priors.
+- Automation: routing, scheduled queries, rules by modality; DICOM management (check that studies
+  from the modalities reached the PACS and send what is missing).
+- External calls by `ipe://` link, command line or local HTTP API, including opening only the
+  viewer.
+
+### Films, printing and reporting
+- Film composer; printing to an ordinary printer, PDF and DICOM printer.
+- The program as a DICOM printer: receives films from modalities, identifies the patient and
+  forwards them by rules.
+- Reports with templates (CT, MG, MR, PET) and BI-RADS, as PDF, DICOM PDF and SR.
+- Export as DICOM, JPG/PNG and a complete HTML viewer, with anonymization.
+
+### Users and languages
+- One user or several, with profiles and permissions; optional central server.
+- English, Portuguese and Spanish, with a translation editor for other languages.
+
+---
+
+## Installation
+
+### Windows — installer
+The `Ipe-<version>-instalador.exe` installer (and the portable `.zip` package) installs into the
+user profile, without asking for administrator rights. Its first screen asks for the language, with
+English selected. To build it from source, see [installer/LEIAME.md](installer/LEIAME.md).
+
+### Windows — from source
+1. Install **Python 3.12** from <https://www.python.org/downloads/>, ticking **"Add python.exe to
    PATH"**.
-2. Dê dois cliques em `instalar.bat` (só na primeira vez; baixa cerca de 300 MB de bibliotecas).
-3. Dê dois cliques em `executar.bat`.
+2. Double-click `instalar.bat` (first time only; it asks for the language and downloads about
+   300 MB of libraries).
+3. Double-click `executar.bat`.
 
 ### Linux
 ```bash
@@ -129,62 +138,64 @@ usuário, sem pedir administrador. Para gerá-lo a partir do código, veja
 ./executar.sh
 ```
 
-Para testar sem exames reais: **Ajuda ▸ Gerar exames de teste (fantomas)**.
+To try it without real studies: **Help ▸ Generate test studies (phantoms)**.
 
-A segmentação de órgãos (TotalSegmentator) é opcional e se instala à parte, com
+Organ segmentation (TotalSegmentator) is optional and installed separately, with
 `instalar_segmentacao.bat` / `instalar_segmentacao.sh`.
 
 ---
 
-## Linha de comando
+## Command line
 
-No Windows, use `.venv\Scripts\ipe.exe` (ou `ipe-cli.exe`, no programa instalado). No Linux,
+On Windows, use `.venv\Scripts\ipe.exe` (or `ipe-cli.exe` in the installed program). On Linux,
 `.venv/bin/ipe`.
 
 ```
-ipe                                    abre a interface
-ipe open --accession 123456            abre o exame pelo accession
-ipe open --study-uid 1.2.3...          abre pelo StudyInstanceUID
-ipe open --patient-id ABC              abre o exame mais recente do paciente
-ipe open --accession 123 --node PACS   se não estiver no banco, busca no nó, baixa e abre
-ipe open --accession 123 --janela viewer   abre só o visualizador
-ipe open C:\pasta\exame                importa a pasta e abre os exames
-ipe "ipe://open?accession=123"         o mesmo, pelo link
-ipe import D:\ --reference             importa sem copiar (só referencia)
-ipe retrieve --accession 123           só baixa do PACS
-ipe sample C:\temp\fantomas            gera exames sintéticos de teste
-ipe info                               mostra onde ficam banco, arquivos e configurações
-ipe register-url                       registra os links ipe:// e dicomviewer://
-ipe server                             servidor central sem janela
+ipe                                    opens the interface
+ipe open --accession 123456            opens the study by accession
+ipe open --study-uid 1.2.3...          opens by StudyInstanceUID
+ipe open --patient-id ABC              opens the patient's most recent study
+ipe open --accession 123 --node PACS   if not in the database, queries the node, downloads and opens
+ipe open --accession 123 --janela viewer   opens only the viewer
+ipe open C:\folder\study               imports the folder and opens the studies
+ipe "ipe://open?accession=123"         the same, by link
+ipe import D:\ --reference             imports without copying (reference only)
+ipe retrieve --accession 123           only downloads from the PACS
+ipe sample C:\temp\phantoms            generates synthetic test studies
+ipe info                               shows where the database, files and settings are
+ipe set-language en                    program language: en, pt-BR or es
+ipe register-url                       registers the ipe:// and dicomviewer:// links
+ipe server                             headless central server
 ```
 
-## Onde ficam os dados
+## Where the data lives
 
-`ipe info` mostra os caminhos. No Windows ficam em `%LOCALAPPDATA%\DicomViewer` (o nome antigo do
-programa, mantido para quem atualiza): banco `dicomviewer.sqlite`, pasta `Storage\` com os
-arquivos DICOM, `Impressoes\`, `settings.json` e logs. A variável de ambiente `IPE_HOME` (ou a
-antiga `DICOMVIEWER_HOME`) troca a pasta — útil para manter um banco por projeto de pesquisa.
+`ipe info` shows the paths. On Windows they are in `%LOCALAPPDATA%\DicomViewer` (the program's old
+name, kept for those who upgrade): the `dicomviewer.sqlite` database, the `Storage\` folder with the
+DICOM files, `Impressoes\`, `settings.json` and logs. The `IPE_HOME` environment variable (or the old
+`DICOMVIEWER_HOME`) changes the folder — useful to keep one database per research project.
 
-## Para quem vem do DicomViewer
+## Coming from DicomViewer
 
-Até a versão 0.99.10 o programa se chamava **DicomViewer**. Continuam valendo: a pasta de dados, o
-AE de fábrica `DICOMVIEWER`, os links `dicomviewer://`, `python -m dicomviewer` e os atalhos antigos.
-O instalador novo atualiza o antigo no lugar.
+Up to version 0.99.10 the program was called **DicomViewer**. These still work: the data folder, the
+factory AE title `DICOMVIEWER`, `dicomviewer://` links, `python -m dicomviewer` and the old
+shortcuts. The new installer upgrades the old one in place.
 
-## Desenvolvimento
+## Development
 
-- Código em `src/ipe/` (`core`, `db`, `importer`, `imaging`, `network`, `printing`, `reporting`,
-  `ui`, `ai`, `automation`, `central`, `exporter`, `caselists`); testes em `tests/`; ferramentas de
-  tradução e do guia em `tools/`.
-- Testes: `python -m pytest` (ou `testar.bat`). Os testes geram exames sintéticos.
-- **Nunca envie exames reais, capturas de tela com dados de paciente nem bancos para o
-  repositório.**
-- Guia do usuário em PDF: `docs/Ipe-guia-do-usuario.pdf` (F1 no programa).
+- Code in `src/ipe/` (`core`, `db`, `importer`, `imaging`, `network`, `printing`, `reporting`, `ui`,
+  `ai`, `automation`, `central`, `exporter`, `caselists`); tests in `tests/`; translation and guide
+  tools in `tools/`. The source strings are in Portuguese (they are the keys of the translation
+  files in `src/ipe/locale/`).
+- Tests: `python -m pytest` (or `testar.bat`). The tests generate synthetic studies.
+- **Never commit real studies, screenshots with patient data or databases to the repository.**
+- User guide as PDF: `docs/Ipe-guia-do-usuario.pdf` (F1 in the program; in Portuguese).
 
-## Licença
+## License
 
-[GPL-3.0-or-later](LICENSE). Pode usar, estudar, modificar e redistribuir; quem redistribuir uma
-versão modificada tem de publicar o código dela sob a mesma licença. © Filipe Ramos Barra.
+[GPL-3.0-or-later](LICENSE). You may use, study, modify and redistribute it; anyone who
+redistributes a modified version must publish its source under the same license. © Filipe Ramos
+Barra.
 
-As bibliotecas e os modelos que o Ipê usa, com as licenças e os links, estão em
-[CREDITOS.md](CREDITOS.md) (e no programa, em Ajuda ▸ Sobre o Ipê ▸ Créditos e licenças).
+The libraries and models Ipê uses, with licenses and links, are listed in
+[CREDITOS.md](CREDITOS.md) (and in the program, under Help ▸ About Ipê ▸ Credits and licenses).

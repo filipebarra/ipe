@@ -727,6 +727,10 @@ Só GET é aceito. Todo valor passa por uma peneira de caracteres e tamanho; tud
 
 O pacote traz dois executáveis: `Ipe.exe` (o de janela) e `ipe-cli.exe` (o de console) — no Windows, um programa de janela não tem saída padrão, então os comandos que respondem texto precisam do segundo. Na versão portátil (ZIP), tudo funciona igual, menos o link `ipe://`, que não vem registrado — rode `ipe-cli register-url` uma vez.
 
+### Idioma
+
+Desde a 0.99.33 o padrão é o **inglês**. O instalador do Windows pergunta o idioma na primeira tela (inglês, português ou espanhol, com o inglês marcado) e grava a escolha para o programa; os scripts `instalar.bat` e `instalar.sh` perguntam o mesmo. A versão portátil pergunta na primeira vez que abre. Depois, **Configurações ▸ Sistema ▸ Idioma** muda, e pela linha de comando: `ipe-cli set-language pt-BR` (ou `en`, `es`). Quem já usava o programa continua no idioma que tinha escolhido.
+
 # Rede DICOM, PACS e automação
 
 ## Nós e recebimento

@@ -1,5 +1,6 @@
 """O empacotamento: receita do PyInstaller, instalador e o que o programa precisa saber
 sobre estar empacotado. Roda em qualquer máquina — não empacota nada, confere a receita."""
+import re
 import struct
 from pathlib import Path
 
@@ -314,3 +315,22 @@ def test_o_log_diz_a_versao_ao_abrir():
     texto = (RAIZ / "src" / "ipe" / "app.py").read_text(encoding="utf-8")
     assert "Ipê %s" in texto and "__version__" in texto
     assert "empacotado" in texto and "código" in texto
+
+
+def test_instalador_pergunta_o_idioma_com_ingles_padrao():
+    """0.99.33: inglês primeiro (o padrão), a tela de idioma sempre aparece e a escolha vai para o programa."""
+    iss = _texto("ipe.iss")
+    langs = iss.split("[Languages]")[1].split("[")[0]
+    nomes = [l.split('"')[1] for l in langs.splitlines() if l.startswith("Name:")]
+    assert nomes == ["english", "brazilianportuguese", "spanish"]
+    assert "ShowLanguageDialog=yes" in iss and "LanguageDetectionMethod=none" in iss
+    for code, nome in (("en", "english"), ("pt-BR", "brazilianportuguese"), ("es", "spanish")):
+        assert f'Parameters: "set-language {code}"; Flags: runhidden waituntilterminated; Languages: {nome}' in iss
+    # todo texto próprio existe nos três idiomas
+    msgs = [l.split("=")[0] for l in iss.split("[CustomMessages]")[1].split("\n[")[0].splitlines() if "=" in l]
+    chaves = {m.split(".", 1)[1] for m in msgs}
+    for c in chaves:
+        assert all(f"{n}.{c}" in msgs for n in nomes), c
+    for c in re.findall(r"\{cm:(\w+)\}|CustomMessage\('(\w+)'\)", iss):
+        assert (c[0] or c[1]) in chaves
+    assert "set-language" in (RAIZ / "instalar.sh").read_text() and "set-language" in (RAIZ / "instalar.bat").read_text()

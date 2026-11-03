@@ -22,7 +22,10 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-BASE_LANG = "pt-BR"
+BASE_LANG = "pt-BR"            # a língua do código-fonte (as chaves dos arquivos de tradução)
+#: 0.99.33: o idioma que o programa usa quando ninguém escolheu (o instalador pergunta, com ele marcado)
+DEFAULT_LANG = "en"
+SUPPORTED = ("en", "pt-BR", "es")
 LANGUAGE_NAMES = {"pt-BR": "Português (Brasil)", "en": "English", "es": "Español", "fr": "Français",
                   "de": "Deutsch", "it": "Italiano"}
 _lock = threading.RLock()
@@ -47,15 +50,35 @@ def language_name(code: str) -> str:
     return LANGUAGE_NAMES.get(code, code)
 
 
+def normalize(code: str) -> str:
+    """"pt", "pt_BR", "PT-br", "português" → "pt-BR"; "en-US" → "en"; desconhecido → ""."""
+    c = (code or "").strip().replace("_", "-").lower()
+    if not c:
+        return ""
+    for k, nome in LANGUAGE_NAMES.items():
+        if c in (k.lower(), nome.lower()):
+            return k
+    curto = c.split("-")[0].split(" ")[0]
+    if curto in ("pt", "portugues", "português", "portuguese"):
+        return "pt-BR"
+    if curto in ("en", "english", "ingles", "inglês"):
+        return "en"
+    if curto in ("es", "espanol", "español", "spanish", "espanhol"):
+        return "es"
+    return curto if curto in LANGUAGE_NAMES else ""
+
+
 def available() -> list[tuple[str, str]]:
-    """(código, nome) dos idiomas com arquivo (de fábrica ou do usuário), com o português primeiro."""
+    """(código, nome) dos idiomas com arquivo (de fábrica ou do usuário): inglês, português, espanhol e
+    depois os outros."""
     codes = {BASE_LANG}
     for d in (bundled_dir(), user_dir()):
         if d and Path(d).is_dir():
             for f in Path(d).glob("*.json"):
                 if f.stem not in ("pt-BR", "template"):
                     codes.add(f.stem)
-    ordered = [BASE_LANG] + sorted(c for c in codes if c != BASE_LANG)
+    primeiro = [c for c in SUPPORTED if c in codes or c == BASE_LANG]
+    ordered = primeiro + sorted(c for c in codes if c not in primeiro)
     return [(c, language_name(c)) for c in ordered]
 
 

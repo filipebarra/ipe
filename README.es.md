@@ -7,8 +7,11 @@ ecografía y radiografía, con red DICOM, placas, impresión e informe.
 > **No destinado a uso diagnóstico.** Ipê no es un dispositivo médico registrado. No use sus
 > imágenes, medidas o resultados para informar estudios, decidir conductas ni tratar pacientes.
 
-*Otros idiomas: [Português](README.md) · [English](README.en.md) · Historial de versiones:
+*Otros idiomas: [English](README.md) · [Português](README.pt-BR.md) · Historial de versiones:
 [CHANGELOG.es.md](CHANGELOG.es.md)*
+
+El programa abre en **inglés** por defecto. El instalador pregunta el idioma (inglés, portugués o
+español), y se puede cambiar después en Configuración ▸ Sistema ▸ Idioma.
 
 ## ¿Por qué Ipê?
 

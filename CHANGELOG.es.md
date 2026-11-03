@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.33 — inglés por defecto
+- El programa y el README pasan a tener el **inglés** por defecto; el portugués y el español siguen.
+- El **instalador** de Windows pregunta el idioma en la primera pantalla (inglés marcado) y lo guarda
+  para el programa; `instalar.bat` e `instalar.sh` también preguntan. La versión portátil pregunta al
+  abrir, con el inglés marcado. Quien ya lo usaba sigue en el idioma elegido.
+- Nuevo comando `ipe set-language en|pt-BR|es`.
+- README: `README.md` en inglés (ahora completo), `README.pt-BR.md` en portugués, `README.es.md`.
+- Las notas de los releases en GitHub salen en inglés.
+
 ## 0.99.32 — seguir las IAs
 - **Tareas de IA**: avance (en cola, armando, ejecutando, grabando, listo, error) y **cancelar**, también de
   las que corren solas al llegar el estudio. Desde el botón Aplicaciones, el menú Ver y el aviso "⚙ IA: …"

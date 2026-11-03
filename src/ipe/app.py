@@ -152,29 +152,31 @@ def _install_translator(app: QApplication, lang: str = "pt-BR") -> None:
 
 
 def _choose_language(settings) -> str:
-    """Idioma do programa. Na primeira vez, pergunta (com o idioma do sistema já escolhido)."""
+    """Idioma do programa. Na primeira vez, pergunta, com o inglês já escolhido (0.99.33; antes era o
+    idioma do sistema). O instalador do Windows e os scripts instalar.* já perguntam e gravam; esta
+    pergunta fica para quem abre o pacote portátil."""
     from ipe.core import i18n
     lang = settings.get("language", "")
     if lang:
         return lang
     from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QLabel, QVBoxLayout
     options = i18n.available()
-    guess = i18n.system_language() or i18n.BASE_LANG
+    guess = i18n.DEFAULT_LANG
     dlg = QDialog()
-    dlg.setWindowTitle("Idioma / Language / Idioma")
+    dlg.setWindowTitle("Language / Idioma")
     combo = QComboBox()
     for code, name in options:
         combo.addItem(name, code)
     combo.setCurrentIndex(max(0, combo.findData(guess)))
     lay = QVBoxLayout(dlg)
-    lay.addWidget(QLabel("Escolha o idioma do programa.\nChoose the language.  ·  Elija el idioma.\n"
-                         "(Preferências → Idioma muda depois.)"))
+    lay.addWidget(QLabel("Choose the program language.\nEscolha o idioma.  ·  Elija el idioma.\n"
+                         "(You can change it later in Settings ▸ System ▸ Language.)"))
     lay.addWidget(combo)
     bb = QDialogButtonBox(QDialogButtonBox.Ok)
     bb.accepted.connect(dlg.accept)
     lay.addWidget(bb)
     dlg.exec()
-    lang = combo.currentData() or i18n.BASE_LANG
+    lang = combo.currentData() or i18n.DEFAULT_LANG
     settings.set("language", lang)
     settings.save()
     return lang
