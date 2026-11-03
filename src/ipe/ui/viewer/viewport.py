@@ -122,6 +122,7 @@ class ViewportSignals(QObject):
     anotacoes_requested = Signal(str)           # nível de anotação escolhido no botão direito (0.99.9)
     copy_requested = Signal(object)             # "Copiar imagem" no botão direito (0.99.9)
     segment_requested = Signal(object, float, float)   # viewport, ponto clicado (px da imagem)
+    pincel = Signal(object, float, float, str)  # viewport, ponto (px da imagem), "ini" | "meio" | "fim" (0.99.40)
     annotation_picked = Signal(object, object)  # viewport, medida escolhida (ou None)
     reflines_toggled = Signal(bool)             # mostrar/ocultar as linhas de corte das outras séries
     phase_changed = Signal(object)              # o quadro trocou de fase da dinâmica
@@ -1422,6 +1423,7 @@ class Viewport(AnnotationMixin, QWidget):
                 self._draw_posbar(p)
             if self._loupe is not None:
                 self._draw_loupe(p, q)
+            self._desenhar_pincel(p)
         elif self.frames:
             p.setPen(QColor(220, 80, 80))
             p.drawText(self.rect(), Qt.AlignCenter, "Não foi possível ler esta imagem")
@@ -1990,6 +1992,30 @@ class Viewport(AnnotationMixin, QWidget):
         p.drawImage(QRectF(tl, br), q)
         p.restore()
 
+    #: raio do pincel de estruturas (mm), posto pelo painel Estruturas (0.99.40); 0 = sem círculo
+    pincel_raio_mm: float = 0.0
+    _pincel_pos = None
+
+    def _desenhar_pincel(self, p: QPainter) -> None:
+        """O círculo do pincel de estruturas em volta do mouse, do tamanho que ele pinta."""
+        if self.left_tool != "pincel" or not self.pincel_raio_mm or self._pincel_pos is None \
+                or self._capturando or not self.underMouse():
+            return
+        sp = self._spacing()
+        if not sp:
+            return
+        ip = self.widget_to_image(self._pincel_pos)
+        borda = self.image_to_widget(QPointF(ip.x() + self.pincel_raio_mm / float(sp[1]), ip.y()))
+        r = math.hypot(borda.x() - self._pincel_pos.x(), borda.y() - self._pincel_pos.y())
+        p.save()
+        p.setRenderHint(QPainter.Antialiasing, True)
+        p.setBrush(Qt.NoBrush)
+        p.setPen(QPen(QColor(0, 0, 0, 180), 3))
+        p.drawEllipse(self._pincel_pos, r, r)
+        p.setPen(QPen(QColor(255, 120, 120) if getattr(self, "pincel_apaga", False) else QColor(255, 255, 255), 1.5))
+        p.drawEllipse(self._pincel_pos, r, r)
+        p.restore()
+
     def _draw_loupe(self, p: QPainter, q: QImage) -> None:
         """Lupa circular: a imagem em resolução original, aumentada em volta do cursor."""
         from PySide6.QtGui import QPainterPath
@@ -2246,6 +2272,9 @@ class Viewport(AnnotationMixin, QWidget):
         if hot is None and tool == "oblique" and self._img is not None:
             ip = self.widget_to_image(pos)
             self._obl_draft = [ip, ip]
+        if hot is None and tool == "pincel" and self._img is not None:
+            ip = self.widget_to_image(pos)
+            self.sig.pincel.emit(self, ip.x(), ip.y(), "ini")
 
     # ---------------------------------------------- teclas que emprestam o botão esquerdo
     # A ferramenta é emprestada **enquanto a tecla está apertada**; a da barra não muda. Qual
@@ -2424,6 +2453,9 @@ class Viewport(AnnotationMixin, QWidget):
             self._acc_tecla = 0.0
             self.setCursor(Qt.ArrowCursor)
         if pr is None:
+            if self.left_tool == "pincel":
+                self._pincel_pos = pos
+                self.update()
             self._annot_hover(pos)
             if self.fusion is not None and self._img is not None:
                 ip = self.widget_to_image(pos)
@@ -2440,6 +2472,13 @@ class Viewport(AnnotationMixin, QWidget):
                 self._hover = hot
                 self.setCursor(Qt.PointingHandCursor if hot else Qt.ArrowCursor)
                 self.update()
+            return
+        if not pr["hot"] and pr["tool"] == "pincel":
+            pr["moved"] = True
+            self._pincel_pos = pos
+            if self._img is not None:
+                ip = self.widget_to_image(pos)
+                self.sig.pincel.emit(self, ip.x(), ip.y(), "meio")
             return
         max_px = self.settings.get("viewer.click_max_px", 4)
         if not pr["moved"] and (pos - pr["pos"]).manhattanLength() <= max_px:
@@ -2540,6 +2579,11 @@ class Viewport(AnnotationMixin, QWidget):
                 self.sig.film_requested.emit(self)
             return
         if not pr["hot"] and pr["tool"] == "cross":
+            return
+        if not pr["hot"] and pr["tool"] == "pincel":
+            if self._img is not None:
+                ip = self.widget_to_image(pos)
+                self.sig.pincel.emit(self, ip.x(), ip.y(), "fim")
             return
         if not pr["hot"] and pr["tool"] == "grow":
             # Clique de segmentar: sai no soltar. Sem limite de tempo de propósito — mirar numa

@@ -1107,6 +1107,22 @@ O botão **CAD/IA** reúne o que outro programa escreveu sobre o exame: SEG (seg
 
 Clicar no botão mostra ou oculta todos. A escolha fica guardada por tipo: se você desligou as segmentações de uma IA, elas nascem ocultas nos próximos exames — e as anotações que o técnico deixou no aparelho continuam aparecendo. Quando algo nasce oculto, a barra de estado avisa quantos estão escondidos.
 
+## Estruturas: editar máscaras (SEG / RTSTRUCT)
+
+Botão **3D** ▸ *Estruturas: editar máscaras* (ou o menu do botão **CAD/IA**). Abre uma janela, ao lado do visualizador, para **corrigir e organizar** as máscaras do exame — a lesão que a segmentação 3D ou a captura da dinâmica pegou com um vaso junto, o órgão que a IA contornou mal — e gravá-las no exame.
+
+- **Série de referência**: a do quadro ativo quando a janela abre. As estruturas são guardadas na grade dela, mas aparecem em **todas as séries e planos** do exame, e o pincel pinta em qualquer quadro do exame, no plano que está na tela (inclusive MPR).
+- **Lista**: para cada estrutura, *Ver* (mostrar/ocultar; duplo clique muda a cor), nome (editável), tipo (lesão, órgão, outro), volume em mL, *Travada* e de onde veio. Embaixo, os números da escolhida: volume, voxels, cortes, os três eixos, média ± desvio, mínimo, máximo e quantas ilhas separadas ela tem.
+- **Nova** cria uma estrutura vazia; **Importar do exame** traz uma lesão guardada, um segmento de SEG (inclusive os da IA: órgãos, cefalometria, implante), um contorno de RTSTRUCT — ou todos. Enquanto a cópia é editada, o original sai da tela; volta ao fechar.
+- **Pincel / Borracha** (botão esquerdo; o direito continua com zoom/pan): o círculo em volta do mouse é o tamanho do pincel (*Raio*, em mm). Por padrão é um disco no plano da tela (só o corte que se vê); **Esfera 3D** pinta também os cortes vizinhos. **Só na faixa do clique ±** pinta só os voxels de intensidade parecida com a do ponto onde o traço começa (a faixa é em % da faixa de intensidades da série): o pincel não sai da lesão para a gordura. O pincel nunca pinta por cima de uma estrutura **travada** — trave o órgão e pinte a lesão encostada nele.
+- **Corrigir a estrutura escolhida**: **Crescer / Encolher** (margem em mm, numa bola com o espaçamento real; *só nos cortes* não passa para o corte de cima e de baixo); **Só a maior ilha** e **Tirar ilhas menores que** N mL; **Preencher buracos** (corte a corte); **Interpolar cortes** — desenhe a cada 3 ou 4 cortes e os cortes vazios entre dois desenhados saem pela forma intermediária; **Aparar fora de** (tira os voxels com intensidade fora da faixa); **Unir com / Subtrair / Cruzar com** outra estrutura cria uma nova (por exemplo, *lesão menos necrose*). **Desfazer** e **Refazer** (Ctrl+Z / Ctrl+Y), por estrutura.
+- **Gravar SEG**: todas as estruturas numa série *Estruturas (Ipe)* do exame, como DICOM SEG (máscara voxel a voxel, com o tipo de cada uma: lesão ou órgão). Vai ao PACS junto com o exame e abre no 3D Slicer e em outros visualizadores — e volta a aparecer aqui, pelo botão CAD/IA.
+- **Gravar RTSTRUCT**: os contornos de radioterapia, corte a corte, que o sistema de planejamento lê direto. O contorno segue a borda dos pixels (preenchido pelos centros, como os planejadores fazem, dá a mesma máscara); um buraco vira um segundo contorno dentro do primeiro. Lesão sai como GTV, órgão como ORGAN.
+- **Atualizar a lesão guardada**: para a estrutura que veio de uma lesão segmentada, a medida passa a ter a máscara, o volume e os eixos corrigidos — e é esse volume que o acompanhamento de lesões usa.
+- **Mandar ao laudo**: uma linha por estrutura, com o volume e os eixos.
+
+Ao fechar com estruturas alteradas e não gravadas, a janela pergunta se grava como SEG.
+
 > **Desenho gravado no pixel não é overlay.** Quando a IA grava o resultado como uma série de imagens novas, não há como desligá-lo: o caminho é **Ocultar** a série pelo botão direito na lista de séries.
 
 ## Fusão

@@ -127,13 +127,16 @@ def build_seg(vol, segments: list[tuple], src_path: str, frames=None, series_num
 
     seg_items, per_frame, planes = [], [], []
     used_refs: dict[str, str] = {}
-    for n, (res, label, color) in enumerate(segments, 1):
+    for n, item in enumerate(segments, 1):
+        res, label, color = item[:3]
+        # 0.99.40: o 4º elemento, quando vem, é o tipo da estrutura ("órgão" = anatomia; o resto = lesão)
+        anat = anatomia if len(item) < 4 else item[3] == "órgão"
         s = Dataset()
         s.SegmentNumber = n
         s.SegmentLabel = (label or f"Segmento {n}")[:64]
         s.SegmentAlgorithmType = algoritmo[0]
         s.SegmentAlgorithmName = algoritmo[1][:64]
-        if anatomia:
+        if anat:
             s.SegmentedPropertyCategoryCodeSequence = Sequence([_code("123037004", "SCT", "Anatomical Structure")])
             s.SegmentedPropertyTypeCodeSequence = Sequence([_code("113343008", "SCT", "Organ")])
         else:

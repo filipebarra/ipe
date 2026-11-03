@@ -116,18 +116,18 @@ class RepoAnnotationStore:
 
 
 MEASURE_TOOLS = ("pick", "measure", "polyline", "angle", "cobb", "height", "ellipse", "rect", "polygon",
-                 "probe", "ruler3d", "tic", "grow", "ctr", "spine", "calibration", "text", "arrow", "pencil")
+                 "probe", "ruler3d", "tic", "grow", "pincel", "ctr", "spine", "calibration", "text", "arrow", "pencil")
 VOLUME = {"CT", "MR", "PT", "NM"}     # modalidades que empilham cortes: 3D, MPR e fusão
 TOOL_ICONS = {"measure": "measure", "ruler3d": "measure", "oblique": "mpr", "curve": "mpr", "rotplane": "mpr",
               "quadzoom": "quad", "loupe": "loupe",
-              "grow": "segment", "pick": "pick"}
+              "grow": "segment", "pick": "pick", "pincel": "pencil"}
 TOOL_SHORT = {"film": "Filme", "wl": "Janela", "zoom": "Zoom", "pan": "Pan", "scroll": "Rolar", "measure": "Régua",
               "polyline": "Polilinha", "angle": "Ângulo", "cobb": "Cobb", "ellipse": "Elipse",
               "rect": "Retângulo", "polygon": "Polígono", "probe": "Intensidade", "ruler3d": "Régua 3D", "height": "Altura",
               "ctr": "ICT", "spine": "Coluna", "tic": "Curva", "calibration": "Calibrar",
               "arrow": "Seta", "text": "Texto", "pencil": "Lápis", "cross": "Cursor 3D",
               "oblique": "Oblíquo", "curve": "Curvo", "quadzoom": "Quadrante", "loupe": "Lupa",
-              "grow": "Segmentar", "pick": "Selecionar"}
+              "grow": "Segmentar", "pick": "Selecionar", "pincel": "Pincel"}
 
 
 NON_IMAGE = {"SR", "KO", "PR", "REG", "SEG", "RTSTRUCT", "RTPLAN", "DOC"}
@@ -898,6 +898,9 @@ class ViewerTab(OncoMixin, QWidget):
         menu3d.addSeparator()
         menu3d.addAction(self.tool_actions["curve"])
         menu3d.addAction(self.tool_actions["grow"])
+        est = self._act("estruturas.abrir", "Estruturas: editar máscaras (SEG / RTSTRUCT)",
+                        lambda: self.abrir_estruturas())
+        menu3d.addAction(est)
         tm = QAction("Resumo das segmentações (TMTV / TLG)…", self)
         tm.triggered.connect(self.show_tmtv)
         menu3d.addAction(tm)
@@ -1898,8 +1901,7 @@ class ViewerTab(OncoMixin, QWidget):
             QApplication.processEvents()
             return not prog.wasCanceled()
         try:
-            r = RR.registrar(va, vb, metrica, progresso=andar, tempo_max=float(
-                self.settings.get("viewer.registro_tempo_max", 90) if self.settings is not None else 90))
+            r = RR.registrar(va, vb, metrica, progresso=andar, tempo_max=90.0)   # o botão Cancelar para antes
         except InterruptedError:
             self.status_message.emit("Registro interrompido.")
             return False
@@ -3065,6 +3067,7 @@ class ViewerTab(OncoMixin, QWidget):
         vp.sig.numeracao_requested.connect(self.abrir_numeracao_coluna)
         vp.sig.lesion_requested.connect(self.choose_lesion_for)
         vp.sig.segment_requested.connect(self.segment_at)
+        vp.sig.pincel.connect(self.pincel_estruturas)
         vp.sig.status_message.connect(self.status_message)
         vp.sig.enquadre_pendente.connect(self._enquadre_pendente)
         vp.sig.histogram_requested.connect(self.show_histogram)
@@ -5211,6 +5214,24 @@ class ViewerTab(OncoMixin, QWidget):
             from PySide6.QtWidgets import QApplication
             QApplication.clipboard().setText(texto)
             self.status_message.emit("Sem laudo aberto: a frase foi copiada.")
+
+    def abrir_estruturas(self, vp=None):
+        """O painel Estruturas (0.99.40): editar, organizar e gravar máscaras (SEG / RTSTRUCT)."""
+        from ipe.ui.viewer.estruturas_painel import abrir
+        return abrir(self, vp or self.active)
+
+    def pincel_estruturas(self, vp, u: float, v: float, etapa: str) -> None:
+        painel = getattr(self, "_estruturas", None)
+        try:
+            import shiboken6
+            vivo = painel is not None and shiboken6.isValid(painel) and painel.isVisible()
+        except Exception:  # noqa: BLE001
+            vivo = painel is not None
+        if not vivo:
+            if etapa == "ini":
+                self.status_message.emit("Pincel: abra o painel Estruturas (3D ▸ Estruturas) para escolher o que pintar.")
+            return
+        painel.pincel(vp, u, v, etapa)
 
     def abrir_difusao(self):
         """O painel da difusão (0.99.37): ADC, DWI sintética e a tabela por ROI."""

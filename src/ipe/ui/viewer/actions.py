@@ -116,6 +116,7 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("linfonodos.auto", "Mapa dos níveis linfonodais (IA)", "Medidas"),
     ("abdome.auto", "Segmentar órgãos abdominais (IA)", "Medidas"),
     ("difusao.abrir", "Difusão: ADC, DWI sintética e ADC na ROI", "Medidas"),
+    ("estruturas.abrir", "Estruturas: editar máscaras (SEG / RTSTRUCT)", "Medidas"),
 ]
 
 # Forma histórica (id, nome, atalho padrão, grupo), que o resto do programa e os testes usam.

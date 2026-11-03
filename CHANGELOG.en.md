@@ -3,6 +3,21 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.40 — structures: edit masks and save SEG / RTSTRUCT
+- New **Structures** window (3D button, or CAD/AI): list of the study's masks with name, color, type
+  (lesion, organ, other), volume, *locked* and source; imports saved lesions, SEG segments (including the
+  AI ones) and RTSTRUCT contours.
+- **Brush and eraser** on any viewport and plane of the study (disc in the plane or 3D sphere, radius in
+  mm, option to paint only within the clicked intensity range, never over locked structures).
+- **Grow / shrink** in mm, **largest island only**, **remove small islands**, **fill holes**,
+  **interpolate the slices** between two drawn ones, **trim by range**, **merge / subtract / intersect**;
+  undo and redo.
+- **Save SEG** (with each segment's type) and **save RTSTRUCT** (contours along the pixel edges, holes as
+  inner contours); **update the saved lesion** with the corrected mask and volume; send the volumes to
+  the report.
+- Measured on the archive: the AI SEGs (abdominal organs, cephalometry, implant) are imported, corrected
+  and written as RTSTRUCT in under 1 s per structure.
+
 ## 0.99.39 — rigid motion correction in the dynamic study
 - In the **Dynamic** window (and in the dynamic editor under Settings), **Include rotation**: besides
   translation, rigid registration of each phase onto the pre-contrast; a phase rotated 0.75° or more is

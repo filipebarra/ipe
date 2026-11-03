@@ -169,6 +169,9 @@ class MaskVolume:
         return res
 
     def _fatia(self, pos, row, col, normal, rs, cs, h, w):
+        rapido = self._fatia_alinhada(pos, row, col, rs, cs, h, w)
+        if rapido is not False:
+            return rapido
         cant = self.cantos()
         d = (cant - pos) @ normal
         if d.min() > 0 or d.max() < 0:
@@ -193,6 +196,38 @@ class MaskVolume:
         if not m.any():
             return None
         return x0, y0, MaskFrame(m, self.color, self.label)
+
+
+def _fatia_alinhada(self, pos, row, col, rs, cs, h, w):
+    """Atalho (0.99.40) para o caso comum: o quadro está na mesma grade da máscara (a série de origem, no
+    plano da aquisição) — o corte é uma fatia do próprio volume, sem calcular a posição de cada pixel.
+    Devolve False quando não se aplica (o caminho geral resolve)."""
+    m = self.matriz
+    ni, nj = float(np.linalg.norm(m[:, 0])), float(np.linalg.norm(m[:, 1]))
+    if abs(ni - cs) > 1e-4 * cs or abs(nj - rs) > 1e-4 * rs:
+        return False
+    if float(m[:, 0] @ row) / ni < 0.99999 or float(m[:, 1] @ col) / nj < 0.99999:
+        return False
+    d = self.origem - pos
+    u0, v0 = float(d @ row) / cs, float(d @ col) / rs
+    kf = float((self._inv @ (pos - self.origem))[2])
+    x0, y0, k = int(round(u0)), int(round(v0)), int(np.rint(kf))
+    if abs(u0 - x0) > 1e-3 or abs(v0 - y0) > 1e-3:
+        return False
+    nz, ny, nx = self.mascara.shape
+    if not 0 <= k < nz:
+        return None
+    a0, b0 = max(0, -x0), max(0, -y0)                 # o que fica para fora da imagem à esquerda / em cima
+    a1, b1 = min(nx, w - x0), min(ny, h - y0)
+    if a0 >= a1 or b0 >= b1:
+        return None
+    sub = self.mascara[k, b0:b1, a0:a1]
+    if not sub.any():
+        return None
+    return x0 + a0, y0 + b0, MaskFrame(sub.copy(), self.color, self.label)
+
+
+MaskVolume._fatia_alinhada = _fatia_alinhada
 
 
 @dataclass

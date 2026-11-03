@@ -61,6 +61,7 @@ TOOLS = {
     "quadzoom": "Zoom por quadrante (cada clique: próximo quadrante)",
     "loupe": "Lupa (segure o botão; roda muda o aumento)",
     "grow": "Segmentar 3D (clique na lesão: volume, SUV, TLG)",
+    "pincel": "Pincel de estruturas (pinta ou apaga a máscara; painel Estruturas)",
     "film": "Enviar ao filme (clique na imagem)",
     "pick": "Selecionar medida (clique para escolher; arraste as pontas para editar)",
 }
@@ -72,7 +73,7 @@ CLICK_TOOLS = {"cross", "film", "oblique", "curve", "quadzoom", "loupe", "grow"}
 # nos dois casos — o que muda é onde ela está.
 FERRAMENTAS_DE_MEDIDA = ("pick", "measure", "polyline", "angle", "cobb", "ellipse", "rect",
                          "polygon", "probe", "ruler3d", "height", "ctr", "spine", "tic", "calibration",
-                         "grow", "arrow", "text", "pencil")
+                         "grow", "pincel", "arrow", "text", "pencil")
 
 
 def ferramentas_divididas() -> tuple[dict, dict]:

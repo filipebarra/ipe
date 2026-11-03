@@ -3,6 +3,21 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.40 — estruturas: editar máscaras e gravar SEG / RTSTRUCT
+- Nova janela **Estruturas** (botão 3D, ou CAD/IA): lista das máscaras do exame com nome, cor, tipo
+  (lesão, órgão, outro), volume, *travada* e origem; importa lesões guardadas, segmentos de SEG (inclusive
+  os das IAs) e contornos de RTSTRUCT.
+- **Pincel e borracha** em qualquer quadro e plano do exame (disco no plano ou esfera 3D, raio em mm,
+  opção de pintar só na faixa de intensidade do clique, sem passar por cima das estruturas travadas).
+- **Crescer / encolher** em mm, **só a maior ilha**, **tirar ilhas pequenas**, **preencher buracos**,
+  **interpolar os cortes** entre dois desenhados, **aparar pela faixa**, **unir / subtrair / cruzar**;
+  desfazer e refazer.
+- **Gravar SEG** (com o tipo de cada segmento) e **gravar RTSTRUCT** (contornos pela borda dos pixels,
+  buracos como contorno interno); **atualizar a lesão guardada** com a máscara e o volume corrigidos;
+  mandar os volumes ao laudo.
+- Medido no acervo: as SEG das IAs (órgãos abdominais, cefalometria, implante) entram, são corrigidas e
+  saem como RTSTRUCT em menos de 1 s por estrutura.
+
 ## 0.99.39 — correção de movimento rígida na dinâmica
 - Na janela da **Dinâmica** (e no editor da dinâmica em Configurações), **Incluir rotação**: além da
   translação, o registro rígido de cada fase sobre a pré-contraste; a fase que girou 0,75° ou mais é

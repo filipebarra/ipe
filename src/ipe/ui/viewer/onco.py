@@ -340,6 +340,8 @@ class OncoMixin:
         rl.triggered.connect(self._reload_overlays)
         m.addSeparator()
         m.addAction(self.tool_actions["grow"])
+        est = m.addAction("Estruturas: editar máscaras (SEG / RTSTRUCT)…")
+        est.triggered.connect(lambda: self.abrir_estruturas())
         pet = m.addAction("Resumo das segmentações (TMTV / TLG)…")
         pet.triggered.connect(self.show_tmtv)
 
