@@ -64,6 +64,7 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("series.next", "Próxima série no quadro", "Séries"),
     ("key.toggle", "Marcar/desmarcar imagem-chave", "Imagens-chave"),
     ("key.show", "Mostrar imagens-chave", "Imagens-chave"),
+    ("key.gravar", "Gravar imagens-chave e anotações no exame (KO + GSPS)", "Imagens-chave"),
     ("tool.quadzoom", "Ferramenta: zoom por quadrante (clique no quadro vai para o próximo)", "Imagem"),
     ("mg.quad_next", "Zoom por quadrante: próximo quadrante", "Imagem"),
     ("mg.quad_prev", "Zoom por quadrante: quadrante anterior", "Imagem"),

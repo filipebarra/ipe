@@ -226,7 +226,8 @@ def _write_full_viewer(repo, entries: list[_Entry], dest: Path, anon: bool, prog
         for si, s in enumerate(e.series):
             _check(cancel)
             sid = f"e{e.n:02d}s{si + 1:03d}"
-            anns = repo.annotations_for_series([s["series_uid"]])
+            from ipe.imaging.measure import e_rascunho
+            anns = [a for a in repo.annotations_for_series([s["series_uid"]]) if not e_rascunho(a)]
             try:
                 meta = write_series(s, sid, vdir, anns, keys, tick, cancel)
                 write_thumb(s, vdir / "dados" / f"{sid}_thumb.jpg")

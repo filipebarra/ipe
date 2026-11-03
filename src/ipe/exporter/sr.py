@@ -100,9 +100,10 @@ def build_sr(repo, study_uid: str, series_uids: list[str] | None = None, suv_fac
     """Monta o SR com as medidas do estudo (ou só destas séries). Devolve (dataset, nº de medidas)."""
     from ipe.imaging.series import build_frames, read_frame
     series = [s for s in repo.series_for_study(study_uid) if not series_uids or s.series_uid in series_uids]
-    anns = repo.annotations_for_series([s.series_uid for s in series])
+    anns = [a for a in repo.annotations_for_series([s.series_uid for s in series]) if not M.e_rascunho(a)]
     if not anns:
         return None, 0
+    todas = [M.Annotation.from_record(r) for r in anns]
     items, first_ds = [], None
     frames_by_series = {}
     for a in anns:
@@ -124,7 +125,9 @@ def build_sr(repo, study_uid: str, series_uids: list[str] | None = None, suv_fac
         if not pts:
             continue
         img = read_frame(f)
-        sp = img.pixel_spacing
+        # 0.99.41: a mesma escala do quadro (calibração à mão, região do ultrassom), não só a tag
+        from ipe.exporter.ko_gsps import escala
+        sp = escala(M.Annotation.from_record(a), ds, todas) or img.pixel_spacing
         modality = str(ds.get("Modality", ""))
         unit_v = "HU" if modality == "CT" else "1"
         sc = lambda: _scoord(kind, pts, ref)  # noqa: E731

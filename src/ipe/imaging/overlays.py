@@ -411,6 +411,8 @@ def parse_gsps(ds) -> OverlayObject:
     obj = OverlayObject(str(ds.get("SOPInstanceUID", "")), "GSPS",
                         str(ds.get("ContentLabel", "") or ds.get("ContentDescription", "") or "Anotações"),
                         (255, 230, 80), study_uid=str(ds.get("StudyInstanceUID", "")))
+    obj.quando = (str(ds.get("PresentationCreationDate", "") or ds.get("ContentDate", "") or "")
+                  + str(ds.get("PresentationCreationTime", "") or ds.get("ContentTime", "") or ""))
     series_refs = []
     for rs in ds.get("ReferencedSeriesSequence", []) or []:
         for ri in rs.get("ReferencedImageSequence", []) or []:

@@ -3,6 +3,19 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.41 — imágenes clave y anotaciones en DICOM; medida borrador
+- **Guardar imágenes clave y anotaciones en el estudio** (botón Clave): las imágenes clave salen como
+  **KO** y las medidas, flechas y textos como **GSPS**, con el número de cada medida al lado; van al PACS
+  con el estudio y se abren en otros visores.
+- El **KO que llega** marca las imágenes clave aquí; con varios **GSPS de otros sistemas**, aparece solo
+  el más reciente; **Traer las medidas para editar** (botón CAD/IA) convierte las medidas de un SR o GSPS
+  externo en medidas de Ipê.
+- **Medida borrador** (botón derecho ▸ Borrador, o preferencia para toda medida nueva): discontinua, no va
+  al SR, al GSPS, al informe, a la planilla ni al seguimiento.
+- Corregido: el **SR** de las medidas usaba solo el tamaño del píxel de la etiqueta — la medida calibrada a
+  mano o en la ecografía salía en píxeles. Ahora usa la misma escala de la pantalla (verificado en el
+  archivo: 10, 20 y 50 mm).
+
 ## 0.99.40 — estructuras: editar máscaras y guardar SEG / RTSTRUCT
 - Nueva ventana **Estructuras** (botón 3D, o CAD/IA): lista de las máscaras del estudio con nombre,
   color, tipo (lesión, órgano, otro), volumen, *bloqueada* y origen; importa lesiones guardadas,

@@ -81,6 +81,9 @@ def ferramentas_divididas() -> tuple[dict, dict]:
     medidas = {k: TOOLS[k] for k in FERRAMENTAS_DE_MEDIDA if k in TOOLS}
     mouse = {k: v for k, v in TOOLS.items() if k not in medidas}
     return mouse, medidas
+#: medidas que podem ser rascunho (0.99.41): as que viram número; calibração e coluna não
+RASCUNHAVEIS = {"line", "polyline", "angle", "cobb", "ellipse", "rect", "polygon", "probe", "height", "ctr",
+                "arrow", "text", "pencil", "tic", "ponto3d"}
 # ferramenta do botão esquerdo -> tipo de anotação
 ANNOT_TOOLS = {"measure": "line", "polyline": "polyline", "angle": "angle", "cobb": "cobb",
                "ellipse": "ellipse", "rect": "rect", "polygon": "polygon", "probe": "probe", "ruler3d": "ponto3d",
@@ -346,6 +349,17 @@ class AnnotationMixin:
     def roi_de_referencia(self) -> Annotation | None:
         return next((a for a in self.annotations if (a.meta or {}).get("referencia")), None)
 
+    def marcar_rascunho(self, ann: Annotation, on: bool) -> None:
+        """Rascunho ↔ medida que vale (0.99.41). O rascunho fica tracejado e não sai do Ipê."""
+        meta = dict(ann.meta or {})
+        if on:
+            meta["rascunho"] = True
+        else:
+            meta.pop("rascunho", None)
+        ann.meta = meta
+        self._store("save", ann)
+        self.update()
+
     def marcar_referencia(self, ann: Annotation | None) -> None:
         """Faz de `ann` a ROI de referência da série (None desliga). Só uma por série."""
         for a in self.annotations:
@@ -557,6 +571,8 @@ class AnnotationMixin:
         a = Annotation(kind, self.frame_key(), pts, study_uid=self.study_uid,
                        series_uid=(f.series_uid if f is not None and f.series_uid else self.series_uid),
                        done=False)
+        if kind in RASCUNHAVEIS and self.settings is not None and self.settings.get("viewer.medidas_rascunho", False):
+            a.meta["rascunho"] = True          # 0.99.41: a preferência faz a medida nova nascer rascunho
         self.annotations.append(a)
         return a
 
@@ -773,6 +789,8 @@ class AnnotationMixin:
             color = SELECTED_COLOR if a is self.selected else base
             pen = QPen(color)
             pen.setWidth(2)
+            if M.e_rascunho(a):
+                pen.setStyle(Qt.DashLine)      # rascunho: tracejado, não sai em nada (0.99.41)
             p.setPen(pen)
             p.setBrush(Qt.NoBrush)
             pts = [self.image_to_widget(QPointF(*q)) for q in a.points]

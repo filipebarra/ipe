@@ -199,7 +199,7 @@ Botão **Sincronizar**. A seta ao lado abre as opções: Automática no mesmo es
 - A medida de semelhança é escolhida sozinha: **correlação** para a mesma modalidade e a mesma sequência; **informação mútua** para modalidades ou sequências diferentes (TC × RM, T1 × T2, PET × TC). A barra de status diz a rotação, o deslocamento e a qualidade (boa, razoável, fraca).
 - Os quadros passam a rolar juntos pelo deslocamento do centro. Quando o outro exame está **girado 1° ou mais**, o programa oferece **gravá-lo no plano deste**: uma série nova no outro exame ("… · registrada em <data>"), com a geometria e o Frame of Reference deste — aí os dois andam juntos corte a corte, e o cursor 3D, as linhas de referência e as ROIs caem no mesmo lugar. Os arquivos originais não mudam.
 - O registro (a matriz inteira) fica guardado para os dois exames; ajustar à mão com **Alt+rodinha** volta a valer só a translação.
-- Leva de 5 a 15 s em CPU (para sozinho em 90 s com o melhor achado, `viewer.registro_tempo_max`). Rígido quer dizer o mesmo formato: serve bem para crânio, coluna e ossos; mama e abdome deformam entre exames, e o resultado nesses é aproximado.
+- Leva de 5 a 15 s em CPU (para sozinho em 90 s com o melhor achado; o botão Cancelar para antes). Rígido quer dizer o mesmo formato: serve bem para crânio, coluna e ossos; mama e abdome deformam entre exames, e o resultado nesses é aproximado.
 - **Conferido no acervo**: numa RM de crânio 3D real, com rotação e translação conhecidas aplicadas, o registro acertou com erro médio de 0,4 mm (máximo 0,5 mm) em 6 s; duas sequências da mesma sessão (FLAIR e SWAN) deram 0,5° e 1,6 mm.
 
 ## Medidas
@@ -209,6 +209,7 @@ O botão **Medidas** abre uma janela com tudo o que foi medido no exame: série,
 - A ferramenta **Selecionar** edita o que já existe: clique escolhe, arrastar move, arrastar a ponta redimensiona, Delete apaga.
 - **Editar lesão…** (ou duplo clique numa linha de segmentação) reabre a segmentação com o limiar e o mamilo que você usou (capítulo 6).
 - As medidas saem para planilha (CSV/Excel) e para DICOM SR.
+- **Rascunho**: botão direito na medida ▸ *Rascunho*. A medida fica **tracejada**, na tela e no banco, mas **não sai**: não vai ao SR, ao GSPS, ao laudo, à planilha, ao visualizador exportado nem ao acompanhamento de lesões. Desmarcar faz dela uma medida que vale. Em Configurações ▸ Visualizador ▸ Texto e marcas sobre a imagem, *Medidas novas começam como rascunho* faz toda medida nascer assim (as que viram número; calibração e coluna não).
 - **Perfil de intensidade**: botão direito numa régua ou polilinha ▸ *Perfil de intensidade…* mostra o gráfico do valor (HU na TC) ao longo da linha, em mm, com mínimo, máximo e média — a transição de densidade, a parede de uma lesão, o realce de um vaso. O gráfico acompanha a linha quando ela é mexida, e *Copiar valores* leva a tabela para a planilha.
 - **Apagar esta imagem…** (botão direito no quadro) tira só aquela imagem do exame — a duplicada, a captura errada. Pede a permissão de apagar, é recusado em exame com cadeado e na última imagem da série, leva junto as medidas e a imagem-chave dela e fica no registro de acesso.
 
@@ -242,6 +243,12 @@ Para calibrar à mão: ferramenta **Linha de calibração**, trace sobre uma dis
 ## Imagens-chave
 
 K (sugestão) marca e desmarca a imagem do quadro como imagem-chave; Shift+K mostra só as marcadas. Elas entram no laudo em PDF e no filme com um clique.
+
+**Gravar no exame (KO + GSPS).** Botão **Chave** ▸ *Gravar imagens-chave e anotações no exame*: as imagens-chave viram um objeto DICOM **KO** (Key Object Selection, "Of Interest") e as medidas, setas e textos viram um **GSPS** (estado de apresentação), com o número de cada medida escrito ao lado — calculado com a mesma escala da tela (calibração à mão, região do ultrassom, tag). Os dois ficam no exame, vão ao PACS junto com ele e abrem em outros visualizadores (Weasis, OHIF, a estação do aparelho). Medida **rascunho** fica de fora.
+
+- **KO que chega no exame** (de outro sistema, ou o nosso de volta do PACS) marca as imagens-chave aqui, uma vez: desmarcar depois não as traz de volta.
+- **GSPS de outros sistemas**: com mais de um no mesmo exame, aparece só o mais recente; os outros ficam no botão CAD/IA, desligados. O nosso GSPS, ao reabrir, fica desligado — as medidas já estão no banco e seriam desenhadas duas vezes.
+- **Trazer as medidas para editar**: no botão CAD/IA, um SR ou GSPS de outro sistema tem *Trazer as medidas para editar* — régua, polilinha, polígono, ponto e texto viram medidas do Ipê (editáveis, no painel de medidas, no laudo). O objeto original fica desligado.
 
 ## Reconstruções: MPR, oblíquo, curvo e 3D
 
@@ -1382,7 +1389,7 @@ Em toda tabela do programa a divisa entre colunas se arrasta, e clicar no cabeç
 ## Limitações conhecidas
 
 - JPG/PNG exportado não apaga texto gravado na imagem nem aplica giro.
-- O registro entre exames é só translação (não deformável).
+- O registro entre exames é rígido (rotação e translação), não deformável.
 - O 3D roda na CPU; o servidor central usa SQLite.
 - Na mamografia, os anteriores saem só do banco local.
 - O streaming não é sob demanda: o resto do exame entra na ordem em que o PACS manda.

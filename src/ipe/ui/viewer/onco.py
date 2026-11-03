@@ -187,6 +187,19 @@ class OncoMixin:
                 rows = self.repo.series_for_study(study)
             except Exception:  # noqa: BLE001
                 continue
+            # 0.99.41: imagens-chave que chegaram como KO (de outro sistema, ou o nosso de volta do PACS)
+            try:
+                from ipe.exporter import ko_gsps as KG
+                if any((s.modality or "").upper() == "KO" for s in rows) and \
+                        KG.marcar_kos_do_exame(self.repo, study, getattr(self, "settings", None)):
+                    self.key_set |= self.repo.key_image_set(study)
+                    for v in self.viewports:
+                        v.key_frames = self.key_set
+                        v.update()
+                    QTimer.singleShot(0, self._fill_strip)
+                    self.status_message.emit("Imagens-chave do exame (KO) marcadas ★.")
+            except Exception:  # noqa: BLE001
+                log.exception("KO do exame")
             for s in rows:
                 if s.description in ("Cefalometria: conferência · TotalSegmentator",
                                      "Índices do crânio: conferência · SynthSeg"):
@@ -234,13 +247,15 @@ class OncoMixin:
                     if obj is None:
                         continue
                     obj.study_uid = obj.study_uid or study
-                    if obj.source == "SR" and any(m in (s.description or "") for m in MARCAS_NOSSAS):
-                        obj.enabled = False
+                    if obj.source in ("SR", "GSPS") and any(m in (s.description or "") for m in MARCAS_NOSSAS):
+                        obj.enabled = False      # o nosso: as medidas já estão no banco (desenhá-las de novo dobraria)
+                        obj.nosso = True
                     if obj.source in O.tipos_ocultos(self.settings):
                         obj.enabled = False      # escolha do exame anterior: nasce oculto
                     for parte in O.por_segmento(obj):    # SEG de órgãos: um item por órgão (0.98)
                         self.overlay_objects.append(parte)
                         added += 1
+        self._so_o_gsps_mais_recente()
         self.carregar_segmentacoes()
         if added:
             self._apply_overlays()
@@ -251,6 +266,28 @@ class OncoMixin:
                     f"Ocultos por escolha anterior: {added - n} — botão CAD/IA para mostrar.")
         self._update_overlay_button()
         return added
+
+    def _so_o_gsps_mais_recente(self) -> None:
+        """Vários estados de apresentação (GSPS) de outros sistemas no mesmo exame: liga só o mais recente
+        (como o Weasis); os outros ficam no menu CAD/IA, desligados. Feito uma vez por objeto."""
+        vistos = getattr(self, "_gsps_vistos", set())
+        self._gsps_vistos = vistos
+        por_exame: dict = {}
+        for o in self.overlay_objects:
+            if o.source == "GSPS" and not getattr(o, "nosso", False):
+                por_exame.setdefault(o.study_uid, []).append(o)
+        for lst in por_exame.values():
+            novos = [o for o in lst if o.key not in vistos]
+            if len(lst) < 2 or not novos:
+                vistos.update(o.key for o in lst)
+                continue
+            lst.sort(key=lambda o: getattr(o, "quando", "") or "")
+            for o in lst[:-1]:
+                if o.key not in vistos:
+                    o.enabled = False
+            vistos.update(o.key for o in lst)
+            self.status_message.emit(f"{len(lst)} estados de apresentação (GSPS): mostrando o mais recente — "
+                                     "os outros no botão CAD/IA.")
 
     def _apply_overlays(self) -> None:
         for vp in self.viewports:
@@ -317,6 +354,9 @@ class OncoMixin:
                     b = sub.addAction(f"{k + 1}. {lab}" if lab else f"Imagem {k + 1}")
                     b.triggered.connect(lambda _=False, su=series_uid, s=sop, f=fr, oo=o:
                                         self.go_to_image(oo.study_uid or self.study_uid, su, s, max(0, f)))
+            if o.source in ("SR", "GSPS") and o.by_frame and not getattr(o, "nosso", False):
+                h = m.addAction("   Trazer as medidas para editar (viram medidas do Ipê)")
+                h.triggered.connect(lambda _=False, oo=o: self.hidratar_medidas(oo))
         tipos = []
         for o in objs:
             if o.source not in tipos:
@@ -376,6 +416,57 @@ class OncoMixin:
             if su:
                 out.append((su, sop, fr, lab))
         return out
+
+    def hidratar_medidas(self, o, perguntar: bool = True) -> int:
+        """As medidas de um SR ou GSPS de outro sistema viram medidas editáveis do Ipê (como o OHIF faz
+        com o SR): régua, polilinha, polígono, ponto e texto, na imagem certa. O objeto original fica
+        desligado (as medidas passam a ser desenhadas pelo Ipê)."""
+        import json
+        from ipe.imaging.measure import Annotation
+        chaves = [k for k in o.by_frame if k[0]]
+        series = self._series_of_sops(sorted({k[0] for k in chaves}))
+        feitas = 0
+        for (sop, fr), graficos in o.by_frame.items():
+            su = series.get(sop)
+            if su is None:
+                continue
+            for g in graficos:
+                if g.text == "__display__" or (g.color is not None and g.color[0] < 0):
+                    continue                    # coordenadas da tela, não da imagem: não viram medida
+                pts = [(float(x), float(y)) for x, y in g.points]
+                if g.kind == "point" and pts:
+                    kind, pts, texto = "probe", pts[:1], ""
+                elif g.kind == "text" and pts:
+                    kind, pts, texto = "text", pts[:1], g.text
+                elif g.kind == "polygon" and len(pts) >= 3:
+                    kind, texto = "polygon", ""
+                    if pts[0] == pts[-1]:
+                        pts = pts[:-1]
+                elif g.kind == "polyline" and len(pts) == 2:
+                    kind, texto = "line", ""
+                elif g.kind == "polyline" and len(pts) > 2:
+                    kind, texto = "polyline", ""
+                else:
+                    continue
+                ann = Annotation(kind, (sop, max(0, int(fr))), pts, texto, o.study_uid or self.study_uid, su,
+                                 meta={"de": f"{o.source} {o.label}"[:80]})
+                self.repo.save_annotation(db_id=None, study_uid=ann.study_uid, series_uid=su, sop_uid=sop,
+                                          frame_index=ann.frame_key[1], kind=kind, data=ann.data_json())
+                feitas += 1
+        if feitas:
+            o.enabled = False
+            for vp in self.viewports:
+                store = getattr(vp, "annotation_store", None)
+                if store is not None and vp.frames:
+                    try:
+                        vp.annotations = store.load(vp.frames)
+                    except Exception:  # noqa: BLE001
+                        log.exception("recarregar medidas")
+                vp.update()
+            self._apply_overlays()
+        self.status_message.emit(f"{feitas} medida(s) de “{o.label}” agora são medidas do Ipê (editáveis)."
+                                 if feitas else "Nada para trazer: o objeto não tem medidas presas a imagens.")
+        return feitas
 
     def _series_of_sops(self, sops: list[str]) -> dict[str, str]:
         out = {}

@@ -3,6 +3,19 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.41 — key images and annotations in DICOM; draft measurements
+- **Save key images and annotations in the study** (Key button): key images are written as a **KO** and
+  measurements, arrows and texts as a **GSPS**, with each measurement's value beside it; they go to the
+  PACS with the study and open in other viewers.
+- An incoming **KO** marks the key images here; with several **GSPS from other systems**, only the most
+  recent is shown; **Bring the measurements in for editing** (CAD/AI button) turns the measurements of an
+  outside SR or GSPS into Ipê measurements.
+- **Draft measurement** (right-click ▸ Draft, or a preference for every new measurement): dashed, it does
+  not go to the SR, the GSPS, the report, the spreadsheet or lesion tracking.
+- Fixed: the measurements **SR** used only the tag's pixel size — a measurement calibrated by hand or on
+  ultrasound came out in pixels. It now uses the same scale as the screen (checked on the archive: 10, 20
+  and 50 mm).
+
 ## 0.99.40 — structures: edit masks and save SEG / RTSTRUCT
 - New **Structures** window (3D button, or CAD/AI): list of the study's masks with name, color, type
   (lesion, organ, other), volume, *locked* and source; imports saved lesions, SEG segments (including the

@@ -23,7 +23,8 @@ def rows_for_studies(repo, study_uids: list[str], anonymize: bool = False) -> li
     for study_uid in study_uids:
         info = repo.study_info(study_uid) or {}
         series = {s.series_uid: s for s in repo.series_for_study(study_uid)}
-        recs = [r for r in repo.annotations_for_studies([study_uid])]
+        from ipe.imaging.measure import e_rascunho
+        recs = [r for r in repo.annotations_for_studies([study_uid]) if not e_rascunho(r)]
         spac = _spacings(repo, sorted({r["sop_uid"] for r in recs}))
         order = {}
         for s_uid in series:

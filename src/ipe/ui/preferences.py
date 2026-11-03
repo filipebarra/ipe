@@ -637,6 +637,12 @@ class PreferencesDialog(QDialog):
         self.cb_incerteza.setToolTip("O erro de pôr cada ponta num pixel. O aviso de cortes grossos e de "
                                      "medida menor que a espessura aparece sempre.")
         f2.addRow(self.cb_incerteza)
+        self.cb_rascunho = QCheckBox("Medidas novas começam como rascunho (tracejadas; só saem depois de confirmadas)")
+        self.cb_rascunho.setChecked(bool(self.settings.get("viewer.medidas_rascunho", False)))
+        self.cb_rascunho.setToolTip("Rascunho fica na tela e no banco, mas não vai ao SR, ao GSPS, ao laudo, à "
+                                    "planilha nem ao acompanhamento de lesões. Botão direito na medida ▸ "
+                                    "Rascunho desmarca (ou marca) uma por uma.")
+        f2.addRow(self.cb_rascunho)
         raiz.addWidget(g2)
 
         # --- sincronização automática por modalidade (0.99.9)
@@ -906,6 +912,7 @@ class PreferencesDialog(QDialog):
         s.set("viewer.overlay_hotspots", self.cb_hot.isChecked())
         s.set("viewer.measure_font_scale", round(self.s_letra_med.value() / 100.0, 2))
         s.set("viewer.incerteza_medidas", self.cb_incerteza.isChecked())
+        s.set("viewer.medidas_rascunho", self.cb_rascunho.isChecked())
         s.set("viewer.overlay_font_scale", round(self.s_letra_ov.value() / 100.0, 2))
         s.set("ui.start_maximized", self.c_maximizada.isChecked())
         s.set("ui.janelas_maximizadas", self.c_todas_max.isChecked())

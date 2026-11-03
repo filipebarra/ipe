@@ -1011,6 +1011,10 @@ class ViewerTab(OncoMixin, QWidget):
         key_menu = self._menu()
         key_menu.addAction(key)
         key_menu.addAction(show_keys)
+        key_menu.addSeparator()
+        grava_ko = self._act("key.gravar", "Gravar imagens-chave e anotações no exame (KO + GSPS)",
+                             lambda: self.gravar_ko_gsps())
+        key_menu.addAction(grava_ko)
         self._button(tb, key, key_menu)
         self.priors_menu = self._menu()
         self.priors_menu.aboutToShow.connect(self._fill_priors_menu)
@@ -4568,6 +4572,51 @@ class ViewerTab(OncoMixin, QWidget):
             v.update()
         self._fill_strip()
         self.status_message.emit("Imagem-chave marcada ★" if on else "Imagem-chave desmarcada")
+
+    def gravar_ko_gsps(self, perguntar: bool = True) -> list[str]:
+        """Imagens-chave (KO) e medidas/anotações (GSPS) do exame do quadro ativo, gravadas no exame como
+        DICOM: vão ao PACS com ele e abrem em outros visualizadores (0.99.41). Rascunho fica de fora."""
+        from ipe.exporter import ko_gsps as KG
+        vp = self.active
+        study = (vp.study_uid if vp is not None and vp.study_uid else None) or self.study_uid
+        storage = getattr(self, "storage_root", None)
+        if storage is None:
+            return []
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        try:
+            ko = KG.build_ko(self.repo, study)
+            gsps, n = KG.build_gsps(self.repo, study)
+            if ko is None and gsps is None:
+                QApplication.restoreOverrideCursor()
+                if perguntar:
+                    QMessageBox.information(self, "Imagens-chave e anotações",
+                                            "Este exame não tem imagens-chave nem medidas para gravar "
+                                            "(medida rascunho não conta).")
+                return []
+            uids = KG.gravar_no_exame(self.repo, storage, ko, gsps)
+        except Exception as e:  # noqa: BLE001
+            QApplication.restoreOverrideCursor()
+            log.exception("KO/GSPS")
+            if perguntar:
+                QMessageBox.warning(self, "Imagens-chave e anotações", f"Não foi possível gravar:\n{e}")
+            return []
+        QApplication.restoreOverrideCursor()
+        if ko is not None:
+            try:                               # o nosso KO não volta a ser "lido" como de outro sistema
+                lidos = set(self.settings.get(KG.CHAVE_LIDOS, []) or [])
+                self.settings.set(KG.CHAVE_LIDOS, sorted(lidos | {str(ko.SOPInstanceUID)})[-5000:])
+            except Exception:  # noqa: BLE001
+                pass
+        n_ko = len(ko.ContentSequence) if ko is not None else 0
+        if ko is not None and gsps is not None:
+            msg = (f"Gravado no exame: {n_ko} imagem(ns)-chave (KO) e {n} medida(s)/anotação(ões) (GSPS). "
+                   "Vai ao PACS junto com o exame.")
+        elif ko is not None:
+            msg = f"Gravado no exame: {n_ko} imagem(ns)-chave (KO). Vai ao PACS junto com o exame."
+        else:
+            msg = f"Gravado no exame: {n} medida(s)/anotação(ões) (GSPS). Vai ao PACS junto com o exame."
+        self.status_message.emit(msg)
+        return uids
 
     def show_key_images(self) -> None:
         if self.active is not None:

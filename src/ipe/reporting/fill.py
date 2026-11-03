@@ -82,7 +82,8 @@ def _spacings(repo, sops: list[str]) -> dict[str, tuple | None]:
 
 
 def measurements_text(repo, study_uid: str, limit: int = 60) -> str:
-    rows = [r for r in repo.annotations_for_studies([study_uid]) if r.get("kind") not in SKIP_KINDS]
+    rows = [r for r in repo.annotations_for_studies([study_uid])
+            if r.get("kind") not in SKIP_KINDS and not M.e_rascunho(r)]
     if not rows:
         return ""
     anns = [M.Annotation.from_record(r) for r in rows[:limit]]
@@ -132,7 +133,7 @@ def lesions_text(repo, study_uid: str, info: dict) -> str:
     rows = repo.studies_of_patient(info.get("patient_id", "")) if info.get("patient_id") else []
     studies = {r.study_uid: r.study_date for r in rows}
     studies.setdefault(study_uid, info.get("study_date", ""))
-    anns = repo.annotations_for_studies(list(studies))
+    anns = [a for a in repo.annotations_for_studies(list(studies)) if not M.e_rascunho(a)]
     cells = L.collect_cells(lesions, anns, crit)
     used = {s for (_lid, s) in cells} | {study_uid}
     if track.get("baseline_study"):
@@ -143,7 +144,7 @@ def lesions_text(repo, study_uid: str, info: dict) -> str:
 
 
 def volumes_text(repo, study_uid: str) -> str:
-    rows = [r for r in repo.annotations_for_studies([study_uid]) if r.get("kind") == "seg"]
+    rows = [r for r in repo.annotations_for_studies([study_uid]) if r.get("kind") == "seg" and not M.e_rascunho(r)]
     if not rows:
         return ""
     metas = []
@@ -174,7 +175,7 @@ def volumes_text(repo, study_uid: str) -> str:
 
 
 def curves_text(repo, study_uid: str) -> str:
-    rows = [r for r in repo.annotations_for_studies([study_uid]) if r.get("kind") == "tic"]
+    rows = [r for r in repo.annotations_for_studies([study_uid]) if r.get("kind") == "tic" and not M.e_rascunho(r)]
     out = []
     for r in rows:
         try:

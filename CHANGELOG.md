@@ -3,6 +3,18 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.41 — imagens-chave e anotações em DICOM; medida rascunho
+- **Gravar imagens-chave e anotações no exame** (botão Chave): as imagens-chave saem como **KO** e as
+  medidas, setas e textos como **GSPS**, com o número de cada medida ao lado; vão ao PACS com o exame e
+  abrem em outros visualizadores.
+- O **KO que chega** no exame marca as imagens-chave aqui; com vários **GSPS de outros sistemas**, aparece
+  só o mais recente; **Trazer as medidas para editar** (botão CAD/IA) transforma as medidas de um SR ou
+  GSPS de fora em medidas do Ipê.
+- **Medida rascunho** (botão direito ▸ Rascunho, ou preferência para toda medida nova): tracejada, não
+  vai ao SR, ao GSPS, ao laudo, à planilha nem ao acompanhamento.
+- Corrigido: o **SR** das medidas usava só o tamanho do pixel da tag — a medida calibrada à mão ou no
+  ultrassom saía em pixels. Agora usa a mesma escala da tela (conferido no acervo: 10, 20 e 50 mm).
+
 ## 0.99.40 — estruturas: editar máscaras e gravar SEG / RTSTRUCT
 - Nova janela **Estruturas** (botão 3D, ou CAD/IA): lista das máscaras do exame com nome, cor, tipo
   (lesão, órgão, outro), volume, *travada* e origem; importa lesões guardadas, segmentos de SEG (inclusive

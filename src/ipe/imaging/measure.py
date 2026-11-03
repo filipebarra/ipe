@@ -78,6 +78,19 @@ class Annotation:
                           meta=dict(d.get("meta") or {}))
 
 
+def e_rascunho(a) -> bool:
+    """Medida rascunho (0.99.41, como no OHIF): fica na tela e no banco, mas não sai — nem no SR, nem no
+    GSPS, nem no laudo, nem na planilha, nem no acompanhamento de lesões. Aceita a `Annotation` ou o
+    registro do banco (dict com "data" em JSON)."""
+    if isinstance(a, Annotation):
+        return bool((a.meta or {}).get("rascunho"))
+    try:
+        d = json.loads((a or {}).get("data") or "{}")
+    except (TypeError, ValueError):
+        return False
+    return bool((d.get("meta") or {}).get("rascunho"))
+
+
 # --------------------------------------------------------------- geometria
 def length_mm(p1: Point, p2: Point, spacing: tuple[float, float] | None) -> float:
     rs, cs = spacing or (1.0, 1.0)

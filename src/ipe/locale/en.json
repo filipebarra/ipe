@@ -6804,5 +6804,22 @@
  "“{}” não cai na série de referência.": "“{}” does not fall within the reference series.",
  "Não deu certo:\n{}": "It did not work:\n{}",
  "Apagar “{}” desta sessão de edição?\n\nO que já foi gravado no exame não muda.": "Delete “{}” from this editing session?\n\nWhat was already saved in the study does not change.",
- "Série de referência: <b>{}</b> — {} ({} mm). As estruturas aparecem em todas as séries e planos deste exame.": "Reference series: <b>{}</b> — {} ({} mm). The structures appear in every series and plane of this study."
+ "Série de referência: <b>{}</b> — {} ({} mm). As estruturas aparecem em todas as séries e planos deste exame.": "Reference series: <b>{}</b> — {} ({} mm). The structures appear in every series and plane of this study.",
+ "   Trazer as medidas para editar (viram medidas do Ipê)": "   Bring the measurements in for editing (they become Ipê measurements)",
+ "Gravar imagens-chave e anotações no exame (KO + GSPS)": "Save key images and annotations in the study (KO + GSPS)",
+ "Imagens-chave (Ipe)": "Key images (Ipe)",
+ "Imagens-chave do exame (KO) marcadas ★.": "The study's key images (KO) were marked ★.",
+ "Imagens-chave e anotações": "Key images and annotations",
+ "Medidas e anotações (Ipe)": "Measurements and annotations (Ipe)",
+ "Anotações (Ipe)": "Annotations (Ipe)",
+ "Medidas novas começam como rascunho (tracejadas; só saem depois de confirmadas)": "New measurements start as drafts (dashed; they only leave Ipê once confirmed)",
+ "Rascunho fica na tela e no banco, mas não vai ao SR, ao GSPS, ao laudo, à planilha nem ao acompanhamento de lesões. Botão direito na medida ▸ Rascunho desmarca (ou marca) uma por uma.": "A draft stays on screen and in the database, but does not go to the SR, the GSPS, the report, the spreadsheet or lesion tracking. Right-click the measurement ▸ Draft unmarks (or marks) them one by one.",
+ "Nada para trazer: o objeto não tem medidas presas a imagens.": "Nothing to bring in: the object has no measurements tied to images.",
+ "Rascunho (não vai ao SR, ao laudo, à planilha nem ao PACS)": "Draft (does not go to the SR, the report, the spreadsheet or the PACS)",
+ "Este exame não tem imagens-chave nem medidas para gravar (medida rascunho não conta).": "This study has no key images or measurements to save (draft measurements do not count).",
+ "{} medida(s) de “{}” agora são medidas do Ipê (editáveis).": "{} measurement(s) from “{}” are now Ipê measurements (editable).",
+ "Gravado no exame: {} imagem(ns)-chave (KO) e {} medida(s)/anotação(ões) (GSPS). Vai ao PACS junto com o exame.": "Saved in the study: {} key image(s) (KO) and {} measurement(s)/annotation(s) (GSPS). It goes to the PACS with the study.",
+ "Gravado no exame: {} imagem(ns)-chave (KO). Vai ao PACS junto com o exame.": "Saved in the study: {} key image(s) (KO). It goes to the PACS with the study.",
+ "Gravado no exame: {} medida(s)/anotação(ões) (GSPS). Vai ao PACS junto com o exame.": "Saved in the study: {} measurement(s)/annotation(s) (GSPS). It goes to the PACS with the study.",
+ "{} estados de apresentação (GSPS): mostrando o mais recente — os outros no botão CAD/IA.": "{} presentation states (GSPS): showing the most recent — the others are in the CAD/AI button."
 }

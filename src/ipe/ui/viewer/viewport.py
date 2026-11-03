@@ -30,7 +30,7 @@ from ipe.imaging.windowing import auto_window, orientation_labels, to_display
 log = logging.getLogger(__name__)
 
 from ipe.ui.viewer.annotate import (  # noqa: E402,F401
-    ANNOT_TOOLS, CLICK_TOOLS, MEASURE_COLOR, SELECTED_COLOR, TOOLS, AnnotationMixin,
+    ANNOT_TOOLS, CLICK_TOOLS, MEASURE_COLOR, RASCUNHAVEIS, SELECTED_COLOR, TOOLS, AnnotationMixin,
 )
 
 
@@ -2989,7 +2989,14 @@ class Viewport(AnnotationMixin, QWidget):
                 a_txt = QAction("Editar texto…", menu)
                 a_txt.triggered.connect(lambda: self.edit_text(target))
                 menu.addAction(a_txt)
-            if target.kind in ("line", "ellipse", "rect", "polygon", "tic", "seg") and target.frame_key[0]:
+            if target.kind in RASCUNHAVEIS and target.frame_key[0] and not (target.meta or {}).get("lesion"):
+                a_ras = QAction("Rascunho (não vai ao SR, ao laudo, à planilha nem ao PACS)", menu)
+                a_ras.setCheckable(True)
+                a_ras.setChecked(M.e_rascunho(target))
+                a_ras.toggled.connect(lambda on: self.marcar_rascunho(target, on))
+                menu.addAction(a_ras)
+            if target.kind in ("line", "ellipse", "rect", "polygon", "tic", "seg") and target.frame_key[0] \
+                    and not M.e_rascunho(target):
                 lid = target.meta.get("lesion") if target.meta else None
                 a_les = QAction("Ligar a uma lesão (acompanhamento)…" if lid is None
                                 else "Trocar / desligar a lesão…", menu)

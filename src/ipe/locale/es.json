@@ -6804,5 +6804,22 @@
  "“{}” não cai na série de referência.": "“{}” no cae en la serie de referencia.",
  "Não deu certo:\n{}": "No funcionó:\n{}",
  "Apagar “{}” desta sessão de edição?\n\nO que já foi gravado no exame não muda.": "¿Borrar “{}” de esta sesión de edición?\n\nLo que ya se guardó en el estudio no cambia.",
- "Série de referência: <b>{}</b> — {} ({} mm). As estruturas aparecem em todas as séries e planos deste exame.": "Serie de referencia: <b>{}</b> — {} ({} mm). Las estructuras aparecen en todas las series y planos de este estudio."
+ "Série de referência: <b>{}</b> — {} ({} mm). As estruturas aparecem em todas as séries e planos deste exame.": "Serie de referencia: <b>{}</b> — {} ({} mm). Las estructuras aparecen en todas las series y planos de este estudio.",
+ "   Trazer as medidas para editar (viram medidas do Ipê)": "   Traer las medidas para editar (pasan a ser medidas de Ipê)",
+ "Gravar imagens-chave e anotações no exame (KO + GSPS)": "Guardar imágenes clave y anotaciones en el estudio (KO + GSPS)",
+ "Imagens-chave (Ipe)": "Imágenes clave (Ipe)",
+ "Imagens-chave do exame (KO) marcadas ★.": "Imágenes clave del estudio (KO) marcadas ★.",
+ "Imagens-chave e anotações": "Imágenes clave y anotaciones",
+ "Medidas e anotações (Ipe)": "Medidas y anotaciones (Ipe)",
+ "Anotações (Ipe)": "Anotaciones (Ipe)",
+ "Medidas novas começam como rascunho (tracejadas; só saem depois de confirmadas)": "Las medidas nuevas empiezan como borrador (discontinuas; solo salen tras confirmarlas)",
+ "Rascunho fica na tela e no banco, mas não vai ao SR, ao GSPS, ao laudo, à planilha nem ao acompanhamento de lesões. Botão direito na medida ▸ Rascunho desmarca (ou marca) uma por uma.": "El borrador queda en la pantalla y en la base, pero no va al SR, al GSPS, al informe, a la planilla ni al seguimiento de lesiones. Botón derecho en la medida ▸ Borrador lo desmarca (o marca) una por una.",
+ "Nada para trazer: o objeto não tem medidas presas a imagens.": "Nada para traer: el objeto no tiene medidas ligadas a imágenes.",
+ "Rascunho (não vai ao SR, ao laudo, à planilha nem ao PACS)": "Borrador (no va al SR, al informe, a la planilla ni al PACS)",
+ "Este exame não tem imagens-chave nem medidas para gravar (medida rascunho não conta).": "Este estudio no tiene imágenes clave ni medidas para guardar (las medidas borrador no cuentan).",
+ "{} medida(s) de “{}” agora são medidas do Ipê (editáveis).": "{} medida(s) de “{}” ahora son medidas de Ipê (editables).",
+ "Gravado no exame: {} imagem(ns)-chave (KO) e {} medida(s)/anotação(ões) (GSPS). Vai ao PACS junto com o exame.": "Guardado en el estudio: {} imagen(es) clave (KO) y {} medida(s)/anotación(es) (GSPS). Va al PACS junto con el estudio.",
+ "Gravado no exame: {} imagem(ns)-chave (KO). Vai ao PACS junto com o exame.": "Guardado en el estudio: {} imagen(es) clave (KO). Va al PACS junto con el estudio.",
+ "Gravado no exame: {} medida(s)/anotação(ões) (GSPS). Vai ao PACS junto com o exame.": "Guardado en el estudio: {} medida(s)/anotación(es) (GSPS). Va al PACS junto con el estudio.",
+ "{} estados de apresentação (GSPS): mostrando o mais recente — os outros no botão CAD/IA.": "{} estados de presentación (GSPS): mostrando el más reciente; los otros en el botón CAD/IA."
 }
