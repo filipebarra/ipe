@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.38 — rigid registration between studies
+- **Align automatically with the other study** now performs **rigid** registration (3D rotation and
+  translation), with correlation (same sequence) or mutual information (other modality or sequence),
+  over several resolutions; the quality is shown in the status bar.
+- When the other study is rotated 1° or more, the program offers to **save it in this study's plane**
+  (new series with this study's geometry and Frame of Reference): both then move together slice by slice.
+- The registration matrix is stored; validation by point pairs (mean and maximum error in mm).
+- Checked on the archive: real 3D brain MR with a known transform, mean error 0.4 mm in 6 s.
+
 ## 0.99.37 — diffusion on any MR
 - **Diffusion** button (also under Applications): **ADC map** from the series' b-values (regression over
   all checked b), saved as an MR series of the study in ×10⁻⁶ mm²/s, with a noise threshold and minimum

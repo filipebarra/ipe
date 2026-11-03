@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.38 — registro rígido entre estudios
+- **Alinear automáticamente con el otro estudio** pasa a hacer el registro **rígido** (rotación y
+  traslación en 3D), con correlación (misma secuencia) o información mutua (otra modalidad o secuencia),
+  en varias resoluciones; la calidad aparece en la barra de estado.
+- Con el otro estudio girado 1° o más, el programa ofrece **guardarlo en el plano de este** (serie nueva,
+  con la geometría y el Frame of Reference de este): los dos avanzan juntos corte a corte.
+- La matriz del registro queda guardada; validación por pares de puntos (error medio y máximo en mm).
+- Verificado en el acervo: RM de cráneo 3D real con transformación conocida, error medio 0,4 mm en 6 s.
+
 ## 0.99.37 — difusión en cualquier RM
 - Botón **Difusión** (y en Aplicaciones): **mapa ADC** a partir de los valores de b de la serie (regresión
   en todos los b marcados), guardado como serie de RM del estudio en ×10⁻⁶ mm²/s, con umbral de ruido y

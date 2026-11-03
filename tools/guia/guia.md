@@ -194,7 +194,13 @@ As duas vêm de fábrica e podem ser trocadas em Configurações ▸ Visualizado
 
 Botão **Sincronizar**. A seta ao lado abre as opções: Automática no mesmo estudo, Janela/nível, Zoom e pan, Linhas de referência e Tira de séries. Todas ficam guardadas entre as sessões.
 
-**Alinhar automaticamente com o outro exame** faz um registro por translação entre dois exames do mesmo paciente — útil para comparar com o anterior.
+**Alinhar automaticamente com o outro exame** (menu da sincronização) faz o **registro rígido** — rotação e translação em 3D — entre dois exames do mesmo paciente: abra o outro exame num quadro ao lado (botão Anteriores) e deixe ativo o quadro do exame atual.
+
+- A medida de semelhança é escolhida sozinha: **correlação** para a mesma modalidade e a mesma sequência; **informação mútua** para modalidades ou sequências diferentes (TC × RM, T1 × T2, PET × TC). A barra de status diz a rotação, o deslocamento e a qualidade (boa, razoável, fraca).
+- Os quadros passam a rolar juntos pelo deslocamento do centro. Quando o outro exame está **girado 1° ou mais**, o programa oferece **gravá-lo no plano deste**: uma série nova no outro exame ("… · registrada em <data>"), com a geometria e o Frame of Reference deste — aí os dois andam juntos corte a corte, e o cursor 3D, as linhas de referência e as ROIs caem no mesmo lugar. Os arquivos originais não mudam.
+- O registro (a matriz inteira) fica guardado para os dois exames; ajustar à mão com **Alt+rodinha** volta a valer só a translação.
+- Leva de 5 a 15 s em CPU (para sozinho em 90 s com o melhor achado, `viewer.registro_tempo_max`). Rígido quer dizer o mesmo formato: serve bem para crânio, coluna e ossos; mama e abdome deformam entre exames, e o resultado nesses é aproximado.
+- **Conferido no acervo**: numa RM de crânio 3D real, com rotação e translação conhecidas aplicadas, o registro acertou com erro médio de 0,4 mm (máximo 0,5 mm) em 6 s; duas sequências da mesma sessão (FLAIR e SWAN) deram 0,5° e 1,6 mm.
 
 ## Medidas
 
@@ -447,7 +453,7 @@ Botão **Dinâmica** na barra. A janela de parâmetros mostra as séries que ele
 | Realce mínimo (%) | abaixo disso o voxel não entra no mapa cinético |
 | Rápido (%) / Tardio (±%) | os limiares das seis classes: médio 50–100%, rápido acima; persistente / platô / washout pela variação da tardia |
 | Sinal mínimo do tecido (%) | máscara: pré-contraste de pelo menos N% do sinal de referência |
-| Corrigir movimento | registro por translação 3D entre as fases |
+| Corrigir movimento | registro por translação 3D entre as fases (a rotação fica para o registro entre exames) |
 | Disposição | quais mapas vão para quais quadros |
 
 Os valores ficam guardados: o próximo exame abre com os últimos que você usou.

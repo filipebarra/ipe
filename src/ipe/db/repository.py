@@ -941,6 +941,21 @@ class Repository:
                     return [sign * r.dx, sign * r.dy, sign * r.dz], sign * r.rel
         return None
 
+    def get_registration_matriz(self, study_a: str, study_b: str):
+        """A matriz 4 × 4 do registro rígido que leva um ponto de A ao de B (0.99.38), ou None."""
+        import json
+        import numpy as np
+        with self.db.session() as s:
+            for a, b, inverter in ((study_a, study_b, False), (study_b, study_a, True)):
+                r = s.scalar(select(StudyRegistration).where(StudyRegistration.study_a == a,
+                                                              StudyRegistration.study_b == b))
+                if r is not None:
+                    if not r.matriz:
+                        return None
+                    M = np.asarray(json.loads(r.matriz), dtype=float)
+                    return (np.linalg.inv(M) if inverter else M).tolist()
+        return None
+
     # ------------------------------------------------------------ conferência de IA (0.99.22)
     def revisao_ia(self, study_uid: str, modulo: str) -> dict | None:
         with self.db.session() as s:
@@ -977,12 +992,19 @@ class Repository:
         return sorted(out, key=lambda d: d["data"] or "", reverse=True)
 
     def save_registration(self, study_a: str, study_b: str, offset, rel: float = 0.0,
-                          method: str = "manual") -> None:
+                          method: str = "manual", matriz=None) -> None:
+        """`matriz` (0.99.38): 4 × 4 do registro rígido (ponto de A → ponto de B). Mexer na translação à
+        mão (Alt+rodinha) grava sem matriz e apaga a rígida: o que vale é o último ajuste."""
         if study_a == study_b:
             return
         sign = 1.0
+        import json
+        import numpy as np
+        M = None if matriz is None else np.asarray(matriz, dtype=float)
         if study_b < study_a:                 # guarda sempre na mesma ordem
             study_a, study_b, sign = study_b, study_a, -1.0
+            if M is not None:
+                M = np.linalg.inv(M)
         with self.db.session() as s:
             r = s.scalar(select(StudyRegistration).where(StudyRegistration.study_a == study_a,
                                                           StudyRegistration.study_b == study_b))
@@ -991,6 +1013,7 @@ class Repository:
                 s.add(r)
             r.dx, r.dy, r.dz = (sign * float(v) for v in offset)
             r.rel, r.method = sign * float(rel), method
+            r.matriz = json.dumps(M.tolist()) if M is not None else ""
 
     # ------------------------------------------------------- grupos de séries (fases)
     def series_groups(self, study_uid: str) -> list[dict]:

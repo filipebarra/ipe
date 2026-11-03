@@ -5071,7 +5071,18 @@
   "zerado pelo aparelho",
   "ADC (Ipê)",
   "ADC do aparelho",
-  "<b>Medir numa ROI</b> — desenhe uma ROI (elipse, retângulo, mão livre) num quadro com a difusão, o ADC daqui ou o do aparelho, e escolha-a."
+  "<b>Medir numa ROI</b> — desenhe uma ROI (elipse, retângulo, mão livre) num quadro com a difusão, o ADC daqui ou o do aparelho, e escolha-a.",
+  "Reformatando no plano deste exame…",
+  "Reformatação interrompida.",
+  "Registrando (rotação e translação)…",
+  "Registro interrompido.",
+  "correlação",
+  "informação mútua",
+  "boa",
+  "razoável",
+  "fraca",
+  "pouca imagem em comum para registrar",
+  "O outro exame foi gravado no plano deste (série nova) e os dois andam juntos corte a corte."
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -6366,6 +6377,12 @@
   "{}: média {} ± {}, mínimo {} ×10⁻⁶ mm²/s",
   "Difusão ({}): {}.",
   "ADC gravado no exame ({} cortes, b {}), aberto no quadro ativo. O valor do pixel é o ADC em ×10⁻⁶ mm²/s: as ROIs de sempre medem nele.",
-  "DWI sintética b{} gravada (a partir de b {}). É uma imagem calculada: não serve para calcular ADC."
+  "DWI sintética b{} gravada (a partir de b {}). É uma imagem calculada: não serve para calcular ADC.",
+  "Registrando: {}…",
+  "parou no tempo máximo ({} s), com o melhor achado até ali",
+  "resolução de {} mm",
+  "{} · registrada em {}",
+  "Exames alinhados: rotação {}, deslocamento {} ({} {} → {}, qualidade {}). Os quadros agora rolam juntos.",
+  "O outro exame está girado {}° em relação a este. Rolando juntos, os cortes não coincidem por inteiro.\n\nGravar o outro exame no plano deste (série nova no outro exame, com a geometria deste)? Aí os dois andam juntos corte a corte."
  ]
 }

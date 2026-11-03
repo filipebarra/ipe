@@ -14,7 +14,7 @@ RPC_METHODS: dict[str, str] = {
     "key_images": "view", "key_image_set": "view", "toggle_key_image": "view",
     "annotations_for_series": "view", "save_annotation": "view", "delete_annotation": "view",
     "annotation_counts": "view", "count_annotations": "view",
-    "get_registration": "view", "save_registration": "view",
+    "get_registration": "view", "save_registration": "view", "get_registration_matriz": "view",
     "series_groups": "view", "series_group": "view", "save_series_group": "view", "delete_series_group": "view",
     # lesões e laudos
     "lesions": "view", "save_lesion": "view", "delete_lesion": "view", "lesion_track": "view",

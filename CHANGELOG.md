@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.38 — registro rígido entre exames
+- **Alinhar automaticamente com o outro exame** passa a fazer o registro **rígido** (rotação e
+  translação em 3D), com correlação (mesma sequência) ou informação mútua (outra modalidade ou
+  sequência), em várias resoluções; a qualidade aparece na barra de status.
+- Com o outro exame girado 1° ou mais, o programa oferece **gravá-lo no plano deste** (série nova, com a
+  geometria e o Frame of Reference deste): os dois andam juntos corte a corte.
+- A matriz do registro fica guardada; validação por pares de pontos (erro médio e máximo em mm).
+- Conferido no acervo: crânio 3D real com transformação conhecida, erro médio 0,4 mm em 6 s.
+
 ## 0.99.37 — difusão em qualquer RM
 - Botão **Difusão** (e em Aplicações): **mapa ADC** a partir dos valores de b da série (regressão em
   todos os b marcados), gravado como série de RM do exame em ×10⁻⁶ mm²/s, com limiar de ruído e R²

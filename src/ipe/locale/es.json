@@ -6704,5 +6704,22 @@
  "Difusão ({}): {}.": "Difusión ({}): {}.",
  "ADC gravado no exame ({} cortes, b {}), aberto no quadro ativo. O valor do pixel é o ADC em ×10⁻⁶ mm²/s: as ROIs de sempre medem nele.": "ADC guardado en el estudio ({} cortes, b {}), abierto en el cuadro activo. El valor del píxel es el ADC en ×10⁻⁶ mm²/s: las ROIs de siempre miden en él.",
  "DWI sintética b{} gravada (a partir de b {}). É uma imagem calculada: não serve para calcular ADC.": "DWI sintética b{} guardada (a partir de b {}). Es una imagen calculada: no sirve para calcular ADC.",
- "<b>Medir numa ROI</b> — desenhe uma ROI (elipse, retângulo, mão livre) num quadro com a difusão, o ADC daqui ou o do aparelho, e escolha-a.": "<b>Medir en una ROI</b> — dibuje una ROI (elipse, rectángulo, a mano alzada) en un cuadro con la difusión, este ADC o el del equipo, y selecciónela."
+ "<b>Medir numa ROI</b> — desenhe uma ROI (elipse, retângulo, mão livre) num quadro com a difusão, o ADC daqui ou o do aparelho, e escolha-a.": "<b>Medir en una ROI</b> — dibuje una ROI (elipse, rectángulo, a mano alzada) en un cuadro con la difusión, este ADC o el del equipo, y selecciónela.",
+ "Reformatando no plano deste exame…": "Reformateando en el plano de este estudio…",
+ "Reformatação interrompida.": "Reformateo interrumpido.",
+ "Registrando (rotação e translação)…": "Registrando (rotación y traslación)…",
+ "Registrando: {}…": "Registrando: {}…",
+ "Registro interrompido.": "Registro interrumpido.",
+ "correlação": "correlación",
+ "informação mútua": "información mutua",
+ "boa": "buena",
+ "razoável": "razonable",
+ "fraca": "débil",
+ "parou no tempo máximo ({} s), com o melhor achado até ali": "se detuvo en el tiempo máximo ({} s), con lo mejor hallado hasta ahí",
+ "pouca imagem em comum para registrar": "poca imagen en común para registrar",
+ "resolução de {} mm": "resolución de {} mm",
+ "{} · registrada em {}": "{} · registrada en {}",
+ "Exames alinhados: rotação {}, deslocamento {} ({} {} → {}, qualidade {}). Os quadros agora rolam juntos.": "Estudios alineados: rotación {}, desplazamiento {} ({} {} → {}, calidad {}). Los cuadros ahora se desplazan juntos.",
+ "O outro exame está girado {}° em relação a este. Rolando juntos, os cortes não coincidem por inteiro.\n\nGravar o outro exame no plano deste (série nova no outro exame, com a geometria deste)? Aí os dois andam juntos corte a corte.": "El otro estudio está girado {}° respecto a este. Al desplazarse juntos, los cortes no coinciden por completo.\n\n¿Guardar el otro estudio en el plano de este (serie nueva en el otro estudio, con la geometría de este)? Así los dos avanzan juntos corte a corte.",
+ "O outro exame foi gravado no plano deste (série nova) e os dois andam juntos corte a corte.": "El otro estudio se guardó en el plano de este (serie nueva) y los dos avanzan juntos corte a corte."
 }

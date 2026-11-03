@@ -6704,5 +6704,22 @@
  "Difusão ({}): {}.": "Diffusion ({}): {}.",
  "ADC gravado no exame ({} cortes, b {}), aberto no quadro ativo. O valor do pixel é o ADC em ×10⁻⁶ mm²/s: as ROIs de sempre medem nele.": "ADC saved to the study ({} slices, b {}), opened in the active viewport. The pixel value is the ADC in ×10⁻⁶ mm²/s: the usual ROIs measure on it.",
  "DWI sintética b{} gravada (a partir de b {}). É uma imagem calculada: não serve para calcular ADC.": "Synthetic DWI b{} saved (from b {}). It is a computed image: it cannot be used to compute ADC.",
- "<b>Medir numa ROI</b> — desenhe uma ROI (elipse, retângulo, mão livre) num quadro com a difusão, o ADC daqui ou o do aparelho, e escolha-a.": "<b>Measure in an ROI</b> — draw an ROI (ellipse, rectangle, freehand) on a viewport with the diffusion, this ADC or the scanner's, and select it."
+ "<b>Medir numa ROI</b> — desenhe uma ROI (elipse, retângulo, mão livre) num quadro com a difusão, o ADC daqui ou o do aparelho, e escolha-a.": "<b>Measure in an ROI</b> — draw an ROI (ellipse, rectangle, freehand) on a viewport with the diffusion, this ADC or the scanner's, and select it.",
+ "Reformatando no plano deste exame…": "Reformatting into this study's plane…",
+ "Reformatação interrompida.": "Reformatting stopped.",
+ "Registrando (rotação e translação)…": "Registering (rotation and translation)…",
+ "Registrando: {}…": "Registering: {}…",
+ "Registro interrompido.": "Registration stopped.",
+ "correlação": "correlation",
+ "informação mútua": "mutual information",
+ "boa": "good",
+ "razoável": "fair",
+ "fraca": "weak",
+ "parou no tempo máximo ({} s), com o melhor achado até ali": "stopped at the time limit ({} s), with the best result so far",
+ "pouca imagem em comum para registrar": "too little image in common to register",
+ "resolução de {} mm": "{} mm resolution",
+ "{} · registrada em {}": "{} · registered on {}",
+ "Exames alinhados: rotação {}, deslocamento {} ({} {} → {}, qualidade {}). Os quadros agora rolam juntos.": "Studies aligned: rotation {}, offset {} ({} {} → {}, quality {}). The viewports now scroll together.",
+ "O outro exame está girado {}° em relação a este. Rolando juntos, os cortes não coincidem por inteiro.\n\nGravar o outro exame no plano deste (série nova no outro exame, com a geometria deste)? Aí os dois andam juntos corte a corte.": "The other study is rotated {}° relative to this one. Scrolling together, the slices do not fully match.\n\nSave the other study in this study's plane (new series in the other study, with this study's geometry)? Then both move together slice by slice.",
+ "O outro exame foi gravado no plano deste (série nova) e os dois andam juntos corte a corte.": "The other study was saved in this study's plane (new series) and both move together slice by slice."
 }

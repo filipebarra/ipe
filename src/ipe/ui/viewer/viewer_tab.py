@@ -1863,7 +1863,12 @@ class ViewerTab(OncoMixin, QWidget):
             dlg.close()
 
     def auto_register(self) -> bool:
-        """Alinha o quadro ativo com um quadro de outro exame (ex.: anterior) e liga os dois."""
+        """Alinha o quadro ativo com um quadro de outro exame (ex.: anterior) e liga os dois.
+
+        0.99.38: registro **rígido** (rotação + translação, `imaging/registro_rigido.py`) no lugar da só
+        translação. A sincronização continua pela translação do centro; quando o outro exame está girado
+        (≥ 1°), o programa oferece gravá-lo **no plano deste** (série nova, mesma geometria e Frame of
+        Reference), que então anda junto corte a corte."""
         a = self.active
         if a is None:
             return False
@@ -1878,20 +1883,111 @@ class ViewerTab(OncoMixin, QWidget):
         vb = self._volume_of(b, "outro exame") if va is not None else None
         if va is None or vb is None:
             return False
-        from ipe.imaging.register import register_translation
-        QApplication.setOverrideCursor(Qt.WaitCursor)
+        from ipe.imaging import registro_rigido as RR
+        sa = self.repo.series_meta(self._source_series(a)) or {}
+        sb = self.repo.series_meta(self._source_series(b)) or {}
+        metrica = RR.metrica_para(sa.get("modality", ""), sb.get("modality", ""),
+                                  sa.get("description", ""), sb.get("description", ""))
+        prog = QProgressDialog("Registrando (rotação e translação)…", "Parar", 0, len(RR.NIVEIS), self)
+        prog.setWindowModality(Qt.WindowModal)
+        prog.setMinimumDuration(300)
+
+        def andar(feito, total, texto):
+            prog.setLabelText(f"Registrando: {texto}…")
+            prog.setValue(feito)
+            QApplication.processEvents()
+            return not prog.wasCanceled()
         try:
-            t, score = register_translation(va, vb)
+            r = RR.registrar(va, vb, metrica, progresso=andar, tempo_max=float(
+                self.settings.get("viewer.registro_tempo_max", 90) if self.settings is not None else 90))
+        except InterruptedError:
+            self.status_message.emit("Registro interrompido.")
+            return False
         finally:
-            QApplication.restoreOverrideCursor()
-        self.repo.save_registration(a.study_uid, b.study_uid, t, 0.0, method="auto")
+            prog.close()
+        t = r.translacao
+        self.repo.save_registration(a.study_uid, b.study_uid, t, 0.0, method="rigido", matriz=r.M)
+        self.ultimo_registro = (a.study_uid, b.study_uid, r)
         self.hub.unlink([a, b])
         self.hub.apply_saved(a, b)
         self.update_reference_lines()
-        q = "boa" if score > 0.15 else "fraca — confira e ajuste com Alt+rodinha"
-        self.status_message.emit(f"Exames alinhados automaticamente: deslocamento {t[0]:.1f}, {t[1]:.1f}, "
-                                 f"{t[2]:.1f} mm (confiança {q}). Os quadros agora rolam juntos.")
+        from ipe.core.i18n import tr
+        rx, ry, rz = r.params[:3]
+        rot = f"{rx:.1f}°, {ry:.1f}°, {rz:.1f}°"
+        desl = f"{t[0]:.1f}, {t[1]:.1f}, {t[2]:.1f} mm"
+        nome_m = tr("correlação") if r.metrica == "ncc" else tr("informação mútua")
+        q = tr(r.qualidade())
+        self.status_message.emit(f"Exames alinhados: rotação {rot}, deslocamento {desl} ({nome_m} "
+                                 f"{r.valor_inicial:.2f} → {r.valor:.2f}, qualidade {q}). Os quadros agora rolam juntos.")
+        if r.rotacao_total >= 1.0 and QMessageBox.question(
+                self, "Registro",
+                f"O outro exame está girado {r.rotacao_total:.1f}° em relação a este. Rolando juntos, os cortes "
+                "não coincidem por inteiro.\n\nGravar o outro exame no plano deste (série nova no outro exame, "
+                "com a geometria deste)? Aí os dois andam juntos corte a corte.") == QMessageBox.Yes:
+            self.gravar_registrado(a, b, va, vb, r)
         return True
+
+    def gravar_registrado(self, a, b, va, vb, r) -> str | None:
+        """O exame do quadro `b` reamostrado na grade do quadro `a` (registro `r`), gravado e aberto em `b`."""
+        from ipe.imaging import registro_rigido as RR
+        from ipe.imaging import registro_saida as SAIDA
+        db = getattr(self.repo, "db", None)
+        storage = getattr(self, "storage_root", None)
+        if db is None or storage is None:
+            QMessageBox.information(self, "Registro", "Este banco não aceita série nova daqui.")
+            return None
+        prog = QProgressDialog("Reformatando no plano deste exame…", "Parar", 0, va.shape[0], self)
+        prog.setWindowModality(Qt.WindowModal)
+        prog.setMinimumDuration(300)
+
+        def andar(feito, total):
+            prog.setMaximum(total)
+            prog.setValue(feito)
+            QApplication.processEvents()
+            return not prog.wasCanceled()
+        try:
+            dados = RR.reformatar(vb, va, r.M, andar)
+            ia = self.repo.instances_for_series(self._source_series(a))[0]["path"]
+            ib = self.repo.instances_for_series(self._source_series(b))[0]["path"]
+            info_a = self.repo.study_info(a.study_uid) or {}
+            desc_b = (self.repo.series_meta(self._source_series(b)) or {}).get("description", "") or "série"
+            data_a = str(info_a.get("study_date", "") or "")
+            quando = f"{data_a[6:8]}/{data_a[4:6]}/{data_a[:4]}" if len(data_a) == 8 else data_a
+            uid, _sops = SAIDA.gravar(db, storage, va, dados, ib, ia, f"{desc_b} · registrada em {quando}",
+                                      r.M, andar)
+        except InterruptedError:
+            self.status_message.emit("Reformatação interrompida.")
+            return None
+        except Exception as e:  # noqa: BLE001
+            log.exception("gravar o exame registrado")
+            QMessageBox.warning(self, "Registro", f"Não deu para gravar: {e}")
+            return None
+        finally:
+            prog.close()
+        try:
+            self.rescan(b.study_uid)
+            self.load_series_into(b, uid, como_serie=True)
+            # mesmo espaço agora: liga sem deslocamento (não "mantendo o desalinho de agora")
+            self.hub.unlink([a, b])
+            g = self.hub._free_group()
+            self.hub.join(a, g)
+            ma = self.hub.members[a]
+            self.hub.join(b, g, geo_offset=ma.geo, rel_offset=ma.rel)
+            try:
+                self.hub._follow(a, b)
+            except Exception:  # noqa: BLE001
+                log.debug("seguir o quadro registrado", exc_info=True)
+            self.update_reference_lines()
+        except Exception:  # noqa: BLE001
+            log.exception("abrir a série registrada")
+        try:
+            from ipe.central.client_repo import upload_if_client
+            upload_if_client(self.repo, b.study_uid)
+        except Exception:  # noqa: BLE001
+            pass
+        self.status_message.emit("O outro exame foi gravado no plano deste (série nova) e os dois andam juntos "
+                                 "corte a corte.")
+        return uid
 
     # ================================================================ medidas como SR
     def show_histogram(self, vp: Viewport | None = None) -> None:

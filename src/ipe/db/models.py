@@ -275,6 +275,9 @@ class StudyRegistration(Base):
     dz: Mapped[float] = mapped_column(Float, default=0.0)
     rel: Mapped[float] = mapped_column(Float, default=0.0)   # deslocamento relativo (fração da pilha)
     method: Mapped[str] = mapped_column(String(16), default="manual")
+    #: 0.99.38: o registro rígido inteiro (rotação + translação), matriz 4 × 4 em JSON que leva um ponto
+    #: de A ao ponto de B; vazio = só a translação (dx, dy, dz)
+    matriz: Mapped[str] = mapped_column(Text, default="")
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
     __table_args__ = (UniqueConstraint("study_a", "study_b"),)
 
