@@ -1063,6 +1063,15 @@ O painel de lesões dá nome a cada lesão, e as medidas de exames diferentes se
 
 A segmentação 3D mede volume, SUV máximo e médio, TLG e, somando as lesões, TMTV. Os limiares (percentual do SUVmáx, SUV mínimo, método) ficam guardados, e a barra do limiar vale também para o percentual do SUVmáx.
 
+## Tarefas de IA: andamento e cancelar
+
+As IAs do Ipê (órgãos abdominais, níveis da coluna, cefalometria, índices do crânio, níveis linfonodais, implante na mamografia) rodam pedidas à mão ou **sozinhas quando o exame chega** (Configurações ▸ CAD/IA). Uma por vez; as outras esperam na fila.
+
+- **Tarefas de IA** mostra cada uma: exame, ferramenta, se foi automática ou à mão, situação (na fila, montando o volume, rodando, gravando, pronto, erro, cancelado), a etapa e o tempo. Abre pelo botão **Aplicações** do visualizador, por **Exibir ▸ Tarefas de IA**, e pelo aviso **⚙ IA: 1 rodando, 2 na fila** que aparece na barra de status enquanto há alguma ativa (um clique abre a janela).
+- **Cancelar a escolhida** (ou **Cancelar todas**): na fila, ela não começa; rodando, o processo é derrubado e **nada é gravado** no exame. O cancelamento fica no histórico da gestão automática. A janela não é modal: dá para continuar trabalhando com ela aberta.
+- **No banco de dados**, o exame que tem resultado de IA ganha **✦** ao lado do nome (a dica diz quais: "IA: órgãos abdominais, coluna"), e o que tem IA na fila ou rodando, **⚙**. A coluna **IA** (Colunas ▾) mostra as duas coisas por escrito.
+- **Órgãos abdominais** no visualizador: botão **Órgãos** (TC/RM de abdome ou pelve; nos outros exames, pelo botão **Aplicações**) ▸ *Segmentar órgãos abdominais desta série (IA)*. Grava as máscaras e a tabela de volumes no exame, como pelo botão direito no quadro.
+
 ## CAD, IA e anotações de outros sistemas
 
 O botão **CAD/IA** reúne o que outro programa escreveu sobre o exame: SEG (segmentações), GSPS (anotações gráficas do aparelho ou da estação), SR (achados de CAD/IA) e RTSTRUCT (contornos de radioterapia). O número no botão diz quantos objetos o exame tem; o menu lista um por um, com *Ir para a imagem* de cada achado.
@@ -1152,6 +1161,8 @@ A janela mostra cada número com a referência e **de quem é** (automático ou 
 No exame ficam duas séries, só neste computador: **Cefalometria · TotalSegmentator** (as estruturas, que podem ser ligadas e desligadas como as outras segmentações) e **Cefalometria: conferência · TotalSegmentator**, uma imagem com o sagital mediano, as linhas de cada medida, a lista dos números e o perfil da área. Olhe essa imagem antes de usar os números: se uma linha caiu fora do lugar, aquele número não vale. As distâncias são medidas na posição em que o paciente está na mesa; cabeça muito fletida ou estendida muda o "horizontal" do nível do hioide.
 
 # Configurações, usuários e exportação
+
+Todas as janelas de configuração **diminuem e maximizam** (botões de maximizar e minimizar na barra da janela); o que não cabe rola.
 
 ## Níveis da coluna e vértebra de transição
 

@@ -44,6 +44,7 @@ class AutomationEngine(QObject):
         self._job_tags: dict[int, dict] = {}          # tarefa de download -> o que fazer ao terminar
         self._implante_rodando: set[str] = set()      # exames com a correção do implante em curso
         self._seg_fila: list[tuple] = []               # (exame, "abdome"|"coluna") esperando o TotalSegmentator
+        self._seg_tarefas: dict[tuple, int] = {}       # (exame, tipo) -> id em ai/tarefas.REGISTRO (0.99.32)
         self._seg_simular = False                      # testes: o trabalhador devolve rótulos conhecidos
         self._gestao_rodando: set[int] = set()        # regras da gestão automática em curso (0.99.6)
         self._gestao_tentativas: dict[int, int] = {}  # regra -> repetições depois de erro
@@ -252,6 +253,10 @@ class AutomationEngine(QObject):
             return False
         self._implante_rodando.add(study_uid)
         inicio = datetime.now()
+        from ipe.ai import tarefas as TA
+        tid = TA.REGISTRO.nova("Implante de silicone", study_uid,
+                               f"{info.get('patient_name', '')} {info.get('description', '')}".strip(),
+                               "automática", TA.RODANDO).id
         repo, db, storage = self.repo, self.db, self.paths.storage
         so_marca = bool(IMP.config(self.settings, IMP.CHAVE_SO_COM_MARCA))
 
@@ -261,6 +266,12 @@ class AutomationEngine(QObject):
         def pronto(out, err) -> None:
             self._implante_rodando.discard(study_uid)
             nome = f"{info.get('patient_name', '')} {info.get('description', '')}".strip()
+            if err is not None:
+                TA.REGISTRO.mudar(tid, TA.ERRO, mensagem=str(err))
+            elif out and out.get("corrigidas"):
+                TA.REGISTRO.mudar(tid, TA.PRONTO, mensagem=f"{out['corrigidas']} imagem(ns) corrigida(s)")
+            else:
+                TA.REGISTRO.mudar(tid, TA.VAZIO, mensagem="nenhuma imagem com implante")
             if err is not None:
                 self.repo.add_job_run("implante", "Implante na chegada", "error", 0, f"{nome}: {err}",
                                       None, inicio)
@@ -357,8 +368,23 @@ class AutomationEngine(QObject):
             return False
         if (study_uid, tipo) not in self._seg_fila:
             self._seg_fila.append((study_uid, tipo))
+            # 0.99.32: aparece na janela "Tarefas de IA" desde a fila, e dá para cancelar dali
+            from ipe.ai import tarefas as TA
+            titulo = {"coluna": "Níveis da coluna", "cefalometria": "Cefalometria do cavum",
+                      "neuro": "Índices do crânio", "linfonodos": "Níveis linfonodais"}.get(tipo, "Órgãos abdominais")
+            nome = f"{info.get('patient_name', '')} {info.get('description', '')}".strip()
+            chave = (study_uid, tipo)
+            tarefa = TA.REGISTRO.nova(titulo, study_uid, nome, "automática",
+                                      cancelar=lambda k=chave: self._tirar_da_fila(k))
+            self._seg_tarefas[chave] = tarefa.id
         self._seg_proximo()
         return True
+
+    def _tirar_da_fila(self, chave) -> None:
+        if chave in self._seg_fila:
+            self._seg_fila.remove(chave)
+        self._seg_tarefas.pop(chave, None)
+        self.changed.emit()
 
     def _seg_proximo(self) -> None:
         from ipe.ai import coluna as COL
@@ -373,6 +399,8 @@ class AutomationEngine(QObject):
                 QTimer.singleShot(30_000, de_novo)
             return
         study_uid, tipo = self._seg_fila.pop(0)
+        from ipe.ai import tarefas as TA
+        tid = self._seg_tarefas.pop((study_uid, tipo), None)
         coluna = tipo == "coluna"
         cefalo = tipo == "cefalometria"
         neuro = tipo == "neuro"
@@ -388,6 +416,7 @@ class AutomationEngine(QObject):
                     "neuro": NE.escolher_serie, "linfonodos": LN.escolher_serie}.get(tipo, TS.escolher_serie)
         serie, motivo = escolher(self.repo, study_uid, self.settings)
         if serie is None:
+            TA.REGISTRO.mudar(tid, TA.VAZIO, mensagem=str(motivo or ""))
             self.repo.add_job_run("segmentacao", titulo, "vazio", 0, f"{nome}: {motivo}")
             self.changed.emit()
             QTimer.singleShot(0, self._seg_proximo)
@@ -407,10 +436,22 @@ class AutomationEngine(QObject):
         inicio = datetime.now()
 
         conf = {}
+        rodando = [t]                  # o trabalho e os de apoio (âncora, conferência): cancelar mata todos
+
+        def cancelar():
+            for x in list(rodando):
+                x.cancelar()
+        TA.REGISTRO.mudar(tid, TA.PREPARANDO, etapa=f"série {serie[-8:]}")
+        TA.REGISTRO.ao_cancelar(tid, cancelar)
+
+        def etapa(linha: str) -> None:
+            if linha.startswith("ETAPA "):
+                TA.REGISTRO.mudar(tid, etapa=linha[6:])
 
         def trabalho():
             t.preparar()                # volume montado aqui, fora da tela (cache próprio)
-            t.rodar_aqui()
+            TA.REGISTRO.mudar(tid, TA.RODANDO, etapa="iniciando o TotalSegmentator")
+            t.rodar_aqui(etapa)
             if cefalo:
                 rotulos, versao, _s = t.ler_rotulos()
                 return CF.calcular(t.vol, rotulos, self.settings), versao
@@ -427,13 +468,15 @@ class AutomationEngine(QObject):
                 if niveis.itens and niveis.numeracao.ancora == "modelo":
                     # 0.99.23: contar pela C2 noutra série do exame que pegue da C2 até aqui
                     outra = COL.serie_ancora(self.repo, study_uid, serie, self.settings)
-                    if outra:
+                    if outra and not t.cancelado:
                         ta = TS.Trabalho(self.repo, FrameCache(256), self.settings, study_uid, outra,
                                          simular=self._seg_simular)
                         ta.tarefas_proprias, ta.min_cortes = COL.tarefas_ancora, COL.MIN_CORTES
+                        rodando.append(ta)
+                        TA.REGISTRO.mudar(tid, etapa="contando a partir de C2 na outra série")
                         try:
                             ta.preparar()
-                            ta.rodar_aqui()
+                            ta.rodar_aqui(etapa)
                             ra, _va, _sa = ta.ler_rotulos()
                             desc = (self.repo.series_meta(outra) or {}).get("description", "")
                             niveis = COL.com_ancora(t.vol, rotulos, niveis, COL.nomear(ta.vol, ra), desc)
@@ -445,14 +488,16 @@ class AutomationEngine(QObject):
                 # 0.99.5: na RM, a mesma conta na outra sagital, para conferir as medidas
                 if niveis.itens and COL.quer_conferencia(self.settings, t.modalidade):
                     outra = COL.segunda_serie(self.repo, study_uid, serie, self.settings)
-                    if outra:
+                    if outra and not t.cancelado:
                         t2 = TS.Trabalho(self.repo, FrameCache(256), self.settings, study_uid, outra,
                                          simular=self._seg_simular)
                         t2.tarefas_proprias, t2.min_cortes = COL.tarefas, COL.MIN_CORTES
                         conf["t"] = t2
+                        rodando.append(t2)
+                        TA.REGISTRO.mudar(tid, etapa="conferindo na segunda sagital")
                         try:
                             t2.preparar()
-                            t2.rodar_aqui()
+                            t2.rodar_aqui(etapa)
                             r2, v2, _s2 = t2.ler_rotulos()
                             conf["niveis"], conf["versao"] = COL.nomear(t2.vol, r2), v2
                         except Exception as e:  # noqa: BLE001
@@ -464,6 +509,9 @@ class AutomationEngine(QObject):
             try:
                 if err is not None:
                     raise err
+                if t.cancelado:
+                    raise TS.Falhou("Cancelada.")
+                TA.REGISTRO.mudar(tid, TA.GRAVANDO, etapa="gravando as séries no exame")
                 if linfo:
                     (mk, vols, rotulos), versao = res
                     saida = LN.gravar(t, mk, rotulos, versao, self.db, self.paths.storage, repo=self.repo,
@@ -520,12 +568,18 @@ class AutomationEngine(QObject):
                     resumo, n_itens = SAIDA.resumo(res), len(res.estruturas)
                     destinos = TS.config(self.settings, TS.CHAVE_DESTINOS)
                 self.repo.add_job_run("segmentacao", titulo, "ok", n_itens, f"{nome}: {resumo}", None, inicio)
+                TA.REGISTRO.mudar(tid, TA.PRONTO, etapa="", mensagem=resumo)
                 from ipe.automation import destinos as DEST
                 DEST.enviar(self.net, self.repo, study_uid, saida.get("series"), destinos, f"{titulo}: {nome}")
                 self.segmentacao_pronta.emit(study_uid, saida)
             except Exception as e:  # noqa: BLE001
-                log.warning("%s automática de %s: %s", titulo, study_uid, e)
-                self.repo.add_job_run("segmentacao", titulo, "error", 0, f"{nome}: {e}", None, inicio)
+                if t.cancelado:
+                    TA.REGISTRO.mudar(tid, TA.CANCELADO, etapa="", mensagem="cancelada")
+                    self.repo.add_job_run("segmentacao", titulo, "vazio", 0, f"{nome}: cancelada", None, inicio)
+                else:
+                    log.warning("%s automática de %s: %s", titulo, study_uid, e)
+                    TA.REGISTRO.mudar(tid, TA.ERRO, etapa="", mensagem=str(e))
+                    self.repo.add_job_run("segmentacao", titulo, "error", 0, f"{nome}: {e}", None, inicio)
             finally:
                 t.limpar()
                 if conf.get("t") is not None:

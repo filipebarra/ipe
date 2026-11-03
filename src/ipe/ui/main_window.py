@@ -214,6 +214,15 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(self.user_label)
         self.net_label = QLabel()
         self.statusBar().addPermanentWidget(self.net_label)
+        # 0.99.32: "IA: 1 rodando, 2 na fila" — clique abre a janela Tarefas de IA
+        from PySide6.QtWidgets import QPushButton as _QB
+        self.ia_label = _QB()
+        self.ia_label.setFlat(True)
+        self.ia_label.setCursor(Qt.PointingHandCursor)
+        self.ia_label.setToolTip("Tarefas de IA: andamento e cancelar")
+        self.ia_label.clicked.connect(self.abrir_tarefas_ia)
+        self.ia_label.setVisible(False)
+        self.statusBar().addPermanentWidget(self.ia_label)
         self.cache_label = QLabel()
         self.statusBar().addPermanentWidget(self.cache_label)
         self.statusBar().addPermanentWidget(QLabel(f"<i>{NOT_FOR_DIAGNOSIS}</i>"))
@@ -329,6 +338,9 @@ class MainWindow(QMainWindow):
         v.addAction(p_esq)
         v.addAction(p_dir)
         v._paineis = (p_esq, p_dir)
+        a_ia = QAction("Tarefas de IA (andamento e cancelar)…", j)          # 0.99.32
+        a_ia.triggered.connect(self.abrir_tarefas_ia)
+        v.addAction(a_ia)
         sep_banco = v.addSeparator()
         banco = QAction("Voltar ao banco de dados", j)
         banco.setShortcut(QKeySequence("Ctrl+B"))
@@ -1358,7 +1370,27 @@ class MainWindow(QMainWindow):
     def cache_limit_mb(self) -> int:
         return int(self.settings.get("performance.cache_mb", 0) or auto_cache_mb())
 
+    def abrir_tarefas_ia(self):
+        """Exibir ▸ Tarefas de IA… / aviso "IA: …" na barra de status (0.99.32)."""
+        from ipe.ui.tarefas_ia import abrir
+        return abrir(self)
+
     def _update_status(self) -> None:
+        try:
+            from ipe.ai import tarefas as TA
+            txt = TA.REGISTRO.resumo()
+            lab = getattr(self, "ia_label", None)
+            if lab is not None:
+                lab.setText(f"⚙ {txt}" if txt else "")
+                lab.setVisible(bool(txt))
+            assin = tuple((t.id, t.estado) for t in TA.REGISTRO.tarefas())
+            if assin != getattr(self, "_ia_assinatura", ()):
+                self._ia_assinatura = assin
+                self.browser.table.viewport().update()        # as marcas ✦/⚙ da lista
+                if any(t.estado == TA.PRONTO for t in TA.REGISTRO.tarefas()):
+                    self.browser.refresh()
+        except Exception:  # noqa: BLE001
+            pass
         vol_mb = sum(v.nbytes_mb for t in self.all_viewer_tabs() for v in t._volumes.values())
         ram = process_ram_mb()
         parts = []

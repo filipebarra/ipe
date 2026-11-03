@@ -112,6 +112,10 @@ class PreferencesDialog(QDialog):
         tabs.addTab(_rolavel(self.cad_ia), "CAD/IA")
         tabs.addTab(self._general_tab(), "Geral")
         tabs.addTab(self._modulos_tab(), "Módulos")
+        # 0.99.32: cada aba rola — sem isto a janela não diminuía (o mínimo era o da maior aba, quase
+        # 1500 × 930) e, na tela dele, não dava para redimensionar
+        from ipe.ui.janelas import rolar_abas
+        rolar_abas(tabs)
         self.tabs = tabs
         from ipe.auth import session as S
         if not S.can("configure"):          # do computador: só quem configura

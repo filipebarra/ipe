@@ -519,6 +519,9 @@ class ViewerTab(OncoMixin, QWidget):
             for aid in sec_outras:
                 self._item_da_aplicacao(m, aid, estado[aid][1])
         m.addSeparator()
+        a = QAction("Tarefas de IA (andamento e cancelar)…", m)          # 0.99.32
+        a.triggered.connect(self.abrir_tarefas_ia)
+        m.addAction(a)
         a = QAction("Configurar a barra e as aplicações…", m)
         a.triggered.connect(self._configurar_barra)
         m.addAction(a)
@@ -1160,6 +1163,19 @@ class ViewerTab(OncoMixin, QWidget):
         lin.setIcon(icon("measure"))
         lin.setIconText("Linfonodos")
         self._button(tb, lin, None, app="linfonodos")
+        # órgãos abdominais (0.99.32, pedido dele: também no botão Aplicações)
+        menu_abd = self._menu()
+        a_abd = QAction("Segmentar órgãos abdominais desta série (IA)…", self)
+        a_abd.triggered.connect(lambda: self.segmentar_orgaos(self.active))
+        menu_abd.addAction(a_abd)
+        a_tar = QAction("Tarefas de IA (andamento e cancelar)…", self)
+        a_tar.triggered.connect(self.abrir_tarefas_ia)
+        menu_abd.addAction(a_tar)
+        abd = self._act("abdome.auto", "Segmentar órgãos abdominais (IA)",
+                        lambda: self.segmentar_orgaos(self.active))
+        abd.setIcon(icon("measure"))
+        abd.setIconText("Órgãos")
+        self._button(tb, abd, menu_abd, app="abdome")
         self._montar_bloco_de_aplicacoes(tb)
         self._button(tb, self._plain("Mais", "more", "Mais opções"), more, instant=True)
 
@@ -5092,6 +5108,11 @@ class ViewerTab(OncoMixin, QWidget):
             from PySide6.QtWidgets import QApplication
             QApplication.clipboard().setText(texto)
             self.status_message.emit("Sem laudo aberto: a frase foi copiada.")
+
+    def abrir_tarefas_ia(self):
+        """A janela "Tarefas de IA" (0.99.32): uma só para o programa todo."""
+        from ipe.ui.tarefas_ia import abrir
+        return abrir(self.window())
 
     def segmentar_orgaos(self, vp, simular: bool = False, tipo: str = "abdome"):
         """Quadro ▸ botão direito ▸ Segmentar órgãos abdominais (0.98) ou Identificar vértebras e discos

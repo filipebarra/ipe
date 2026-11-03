@@ -314,6 +314,8 @@ class AutomationDialog(QDialog):
         bb = QDialogButtonBox(QDialogButtonBox.Close)
         bb.rejected.connect(self.reject)
         lay = QVBoxLayout(self)
+        from ipe.ui.janelas import rolar_abas
+        rolar_abas(self.tabs)                  # 0.99.32: a janela diminui (cada aba rola)
         lay.addWidget(self.tabs)
         lay.addWidget(bb)
         self.auto.changed.connect(self._refresh_all)

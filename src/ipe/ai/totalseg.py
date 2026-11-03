@@ -289,7 +289,21 @@ class Trabalho:
     modalidades: tuple = ("CT", "MR")
     motivo_modalidade: str = "A segmentação de órgãos é só para TC e RM."
 
+    #: 0.99.32: cancelar pela janela "Tarefas de IA" (também a automática, que roda sem janela)
+    cancelado: bool = False
+
+    def cancelar(self) -> None:
+        self.cancelado = True
+        p = getattr(self, "_proc", None)
+        if p is not None and p.poll() is None:
+            try:
+                p.kill()
+            except OSError:
+                pass
+
     def preparar(self, progresso=None) -> None:
+        if progresso is None:
+            progresso = lambda _f, _t: not self.cancelado  # noqa: E731
         from ipe.imaging.series import build_frames
         from ipe.imaging.volume import VolumeError, build_volume
         serie = next((s for s in self.repo.series_for_study(self.study_uid, ocultas=True)
@@ -335,12 +349,20 @@ class Trabalho:
     def rodar_aqui(self, ao_ler_linha=None) -> None:
         """Roda o trabalhador e espera (testes e linha de comando; a tela usa QProcess)."""
         prog, args, env = self.comando()
+        if self.cancelado:
+            raise Falhou("Cancelada.")
         p = subprocess.Popen([prog, *args], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                              env=env, text=True, encoding="utf-8", errors="replace")
-        for linha in p.stdout:
-            if ao_ler_linha is not None:
-                ao_ler_linha(linha.rstrip())
-        p.wait()
+        self._proc = p
+        try:
+            for linha in p.stdout:
+                if ao_ler_linha is not None:
+                    ao_ler_linha(linha.rstrip())
+            p.wait()
+        finally:
+            self._proc = None
+        if self.cancelado:
+            raise Falhou("Cancelada.")
 
     def ler(self) -> Resultado:
         rotulos, versao, segundos = self.ler_rotulos()

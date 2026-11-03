@@ -313,6 +313,8 @@ class NetworkDialog(QDialog):
         bb.button(QDialogButtonBox.Cancel).setText("Cancelar")
         bb.accepted.connect(self.accept if so_pessoal else self._save)
         bb.rejected.connect(self.reject)
+        from ipe.ui.janelas import rolar_abas
+        rolar_abas(tabs)                       # 0.99.32: a janela diminui (cada aba rola)
         lay = QVBoxLayout(self)
         lay.addWidget(tabs)
         lay.addWidget(bb)

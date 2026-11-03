@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.32 — seguir las IAs
+- **Tareas de IA**: avance (en cola, armando, ejecutando, grabando, listo, error) y **cancelar**, también de
+  las que corren solas al llegar el estudio. Desde el botón Aplicaciones, el menú Ver y el aviso "⚙ IA: …"
+  en la barra de estado. Cancelar no graba nada en el estudio.
+- **Banco**: ✦ en el estudio con resultado de IA (la ayuda dice cuáles) y ⚙ cuando hay IA en cola o en
+  ejecución; columna **IA**.
+- **Órganos abdominales** en el visor (botón propio en TC/RM de abdomen y en el botón Aplicaciones).
+- **Ventanas de configuración** se achican y maximizan (antes el mínimo era casi el tamaño de la pantalla).
+
 ## 0.99.31 — ola A (ideas de Weasis ViewerHub y de Eden)
 - **Informe en curso** en el servidor central: quien abre el informe lo tiene; el siguiente elige solo
   leer o asumir (registrado), y el servidor rechaza grabar el informe de quien no lo tiene.

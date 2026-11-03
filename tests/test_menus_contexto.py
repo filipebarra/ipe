@@ -42,7 +42,8 @@ def test_no_banco_de_dados_nao_ha_layout_nem_monitor(janela):
     # 0.99.12: as configurações moram no menu Configurações; aqui sobra o aviso, não um menu vazio
     assert "Preferências…" not in itens and "Calibração GSDF do monitor…" not in itens
     # 0.99.29: no banco, o menu mostra os painéis que recolhem (como no Weasis)
-    assert itens == ["Mostrar Locais e listas", "Mostrar Séries e comentários"]
+    assert itens == ["Mostrar Locais e listas", "Mostrar Séries e comentários",
+                     "Tarefas de IA (andamento e cancelar)…"]        # 0.99.32
     config = _menu(w, "Configurações")
     monitores = next(a.menu() for a in config.actions() if a.text() == "Monitores")
     assert "Calibração GSDF do monitor…" in [a.text() for a in monitores.actions()]

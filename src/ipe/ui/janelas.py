@@ -85,6 +85,9 @@ class MaximizarJanelas(QObject):
         self.settings = settings
 
     def eventFilter(self, obj, ev):  # noqa: N802
+        if ev.type() == QEvent.Polish and isinstance(obj, QDialog) and not obj.property(_MARCA_BOTOES):
+            obj.setProperty(_MARCA_BOTOES, True)
+            com_maximizar(obj)
         if ev.type() == QEvent.Show and isinstance(obj, QWidget) and obj.isWindow() \
                 and not obj.property(_MARCA):
             obj.setProperty(_MARCA, True)              # só na primeira vez: depois vale o que ele fez
@@ -95,6 +98,48 @@ class MaximizarJanelas(QObject):
                     QTimer.singleShot(0, lambda w=obj: _centralizar_de_novo(w))
             except Exception:  # noqa: BLE001
                 log.debug("ajustar a janela", exc_info=True)
+        return False
+
+
+_MARCA_BOTOES = "_dv_botoes"
+
+
+def rolar_abas(tabs) -> None:
+    """Cada aba dentro de uma área que rola (0.99.32): o mínimo da janela deixa de ser o da maior aba,
+    e ela diminui em tela pequena."""
+    from PySide6.QtWidgets import QScrollArea
+    for i in range(tabs.count()):
+        w = tabs.widget(i)
+        if isinstance(w, QScrollArea):
+            continue
+        texto, icone, ligada = tabs.tabText(i), tabs.tabIcon(i), tabs.isTabEnabled(i)
+        dica = tabs.tabToolTip(i)
+        area = QScrollArea()
+        area.setWidgetResizable(True)
+        area.setFrameShape(QScrollArea.NoFrame)
+        tabs.removeTab(i)
+        area.setWidget(w)
+        tabs.insertTab(i, area, icone, texto)
+        tabs.setTabEnabled(i, ligada)
+        tabs.setTabToolTip(i, dica)
+
+
+def com_maximizar(w: QWidget) -> bool:
+    """0.99.32, relato dele: *"não consegui redimensionar ou maximizar as janelas de configurações"*.
+    No Windows o QDialog vem sem os botões de maximizar e minimizar: a janela que ajustamos ganha os dois
+    (as de pergunta, aviso e progresso ficam como são). Chamado no Polish — antes de a janela aparecer,
+    quando trocar os botões ainda não a esconde."""
+    try:
+        if not isinstance(w, QDialog) or not w.isWindow() or isinstance(w, _NUNCA) or w.isVisible():
+            return False
+        if w.minimumSize() == w.maximumSize() and w.minimumWidth() > 0:
+            return False                                   # tamanho fixo
+        flags = w.windowFlags()
+        quer = flags | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint
+        if quer != flags:
+            w.setWindowFlags(quer)
+        return True
+    except RuntimeError:
         return False
 
 

@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.en.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.32 — following the AIs
+- **AI tasks**: progress (queued, building, running, saving, done, error) and **cancel**, also for the ones
+  that run by themselves when an exam arrives. From the Applications button, the View menu and the
+  "⚙ AI: …" notice on the status bar. Cancelling saves nothing to the exam.
+- **Database**: ✦ on exams with AI results (the tooltip says which) and ⚙ while an AI is queued or running;
+  **AI** column.
+- **Abdominal organs** in the viewer (own button on abdomen CT/MR and in the Applications button).
+- **Settings windows** shrink and maximize (the minimum used to be almost the screen size).
+
 ## 0.99.31 — wave A (ideas from Weasis ViewerHub and Eden)
 - **Report in progress** on the central server: whoever opens the report holds it; the next one chooses
   read-only or take over (logged), and the server refuses saving a report you do not hold.

@@ -30,12 +30,12 @@ COLUMNS = [
     ("last_accessed", "Último acesso", "datetime"), ("locked", "Protegido", "bool"),
     ("key_images", "Imagens-chave", "int"), ("measured", "Imagens c/ medida", "int"),
     ("num_groups", "Dinâmicas", "int"), ("lists", "Listas", "text"), ("comment", "Comentário", "text"),
-    ("report", "Laudo", "text"), ("banco", "Banco", "banco"),
+    ("report", "Laudo", "text"), ("banco", "Banco", "banco"), ("ia", "IA", "ia"),
     ("case_n", "Nº", "int"), ("case_name", "Caso (lista)", "text"),
 ]
 LIST_ONLY = ["case_n", "case_name"]          # aparecem sozinhas quando uma lista está aberta
 DEFAULT_COLUMNS = ["patient_name", "patient_id", "birth_date", "study_date", "modalities", "description",
-                   "accession", "num_series", "num_images", "report"]
+                   "accession", "num_series", "num_images", "report", "ia"]
 SENSITIVE = {"patient_name", "patient_id", "birth_date", "accession", "institution", "referring", "operators"}
 ORIGINS = {"import": "importado", "received": "recebido", "retrieved": "baixado", "prefetch": "pré-busca",
            "anonymized": "anonimizado"}
@@ -52,9 +52,11 @@ MARK_DRAFT = "⌛"
 MARK_SIGNED = "✔"
 MARK_AMENDED = "✔↻"
 MARK_FILM = "▦"
+MARK_IA = "✦"            # 0.99.32: o exame tem resultado de IA (segmentação, coluna, implante…)
+MARK_IA_RODANDO = "⚙"    # uma IA está na fila ou rodando neste exame agora
 MARK_TIPS = {MARK_COMMENT: "tem comentário", MARK_DRAFT: "laudo em rascunho",
              MARK_SIGNED: "laudo assinado", MARK_AMENDED: "laudo retificado",
-             MARK_FILM: "tem filme salvo"}
+             MARK_FILM: "tem filme salvo", MARK_IA: "tem aplicação de IA", MARK_IA_RODANDO: "IA rodando ou na fila"}
 REPORT_MARKS = {"rascunho": MARK_DRAFT, "assinado": MARK_SIGNED, "retificado": MARK_AMENDED}
 
 
@@ -67,7 +69,28 @@ def _mark_list(r) -> list[str]:
         marcas.append(marca)
     if getattr(r, "has_film", False):
         marcas.append(MARK_FILM)
+    if getattr(r, "ia", ""):
+        marcas.append(MARK_IA)
+    if _ia_rodando(r.study_uid if hasattr(r, "study_uid") else ""):
+        marcas.append(MARK_IA_RODANDO)
     return marcas
+
+
+def _ia_rodando(study_uid: str) -> list:
+    try:
+        from ipe.ai import tarefas as TA
+        return TA.REGISTRO.ativas(study_uid) if study_uid else []
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def _texto_ia(r) -> str:
+    """Coluna IA: o que já foi feito e o que está rodando."""
+    feitas = getattr(r, "ia", "") or ""
+    rod = _ia_rodando(getattr(r, "study_uid", ""))
+    partes = ([f"{MARK_IA} {feitas}"] if feitas else []) + \
+        [f"{MARK_IA_RODANDO} {t.ferramenta.lower()} ({'na fila' if t.estado == 'fila' else 'rodando'})" for t in rod]
+    return "  ".join(partes)
 
 
 def _marks(r) -> str:
@@ -75,7 +98,15 @@ def _marks(r) -> str:
 
 
 def _marks_tip(r) -> str:
-    partes = [f"{m} {MARK_TIPS.get(m, '')}".strip() for m in _mark_list(r)]
+    partes = []
+    for m in _mark_list(r):
+        if m == MARK_IA:
+            partes.append(f"{m} IA: {getattr(r, 'ia', '')}")
+        elif m == MARK_IA_RODANDO:
+            partes.append(f"{m} IA: " + ", ".join(f"{t.ferramenta.lower()} ({'na fila' if t.estado == 'fila' else 'rodando'})"
+                                                     for t in _ia_rodando(r.study_uid)))
+        else:
+            partes.append(f"{m} {MARK_TIPS.get(m, '')}".strip())
     return " · ".join(partes)
 
 
@@ -126,6 +157,8 @@ class StudyTableModel(QAbstractTableModel):
             if kind == "banco":
                 from ipe.db import banco as B
                 return B.rotulo_do_banco(r)
+            if kind == "ia":
+                return _texto_ia(r)
             if kind in ("int", "float") and not v:
                 return ""
             if key == "patient_name":

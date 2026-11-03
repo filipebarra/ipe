@@ -76,6 +76,7 @@ class StudyRow:
     has_film: bool = False        # tem filme salvo no compositor
     dono: str = ""                # 0.99.27: "" = compartilhado; usuário = banco pessoal dele
     visivel_para: str = ""
+    ia: str = ""                  # 0.99.32: aplicações de IA já feitas no exame ("órgãos abdominais, coluna")
 
 
 @dataclass
@@ -181,6 +182,7 @@ class Repository:
             reports: dict[str, str] = {}
             filmados: set[str] = set()
             parts: dict[str, set[str]] = {}
+            ias: dict[str, list[str]] = {}
             if uids:
                 for uid, name in s.execute(select(CaseListItem.study_uid, CaseList.name)
                                            .join(CaseList, CaseListItem.list_fk == CaseList.id)
@@ -201,9 +203,14 @@ class Repository:
                     texts.setdefault(uid, []).append(text or "")
                 comments = {uid: comment_summary(t) for uid, t in texts.items()}
                 details: dict[str, dict[str, list[str]]] = {}
-                for uid, bp, ops, sta, dev in s.execute(
-                        select(Study.study_uid, Series.body_part, Series.operators, Series.station, Series.device)
+                from ipe.ai.tarefas import ferramentas_da_serie
+                for uid, bp, ops, sta, dev, desc in s.execute(
+                        select(Study.study_uid, Series.body_part, Series.operators, Series.station, Series.device,
+                               Series.description)
                         .join(Series, Series.study_fk == Study.id).where(Study.study_uid.in_(uids))):
+                    nome_ia = ferramentas_da_serie(desc or "")
+                    if nome_ia and nome_ia not in ias.setdefault(uid, []):
+                        ias[uid].append(nome_ia)
                     if bp:
                         parts.setdefault(uid, set()).add(bp)
                     d = details.setdefault(uid, {"operators": [], "station": [], "device": []})
@@ -227,6 +234,7 @@ class Repository:
                     body_part=", ".join(sorted(parts.get(st.study_uid, set()))), num_groups=ng or 0,
                     report=reports.get(st.study_uid, ""), has_film=st.study_uid in filmados,
                     dono=st.dono or "", visivel_para=st.visivel_para or "",
+                    ia=", ".join(ias.get(st.study_uid, [])),
                     **{k: "; ".join(v) for k, v in details.get(st.study_uid, {}).items()}))
             return rows
 

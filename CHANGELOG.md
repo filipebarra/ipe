@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.32 — acompanhar as IAs
+- **Tarefas de IA**: andamento (fila, montando, rodando, gravando, pronto, erro) e **cancelar**, também das
+  que rodam sozinhas na chegada do exame. Pelo botão Aplicações, por Exibir e pelo aviso "⚙ IA: …" na
+  barra de status. Cancelar não grava nada no exame.
+- **Banco de dados**: ✦ no exame com resultado de IA (a dica diz quais) e ⚙ quando há IA na fila ou
+  rodando; coluna **IA**.
+- **Órgãos abdominais** no visualizador (botão próprio na TC/RM de abdome e no botão Aplicações).
+- **Janelas de configuração** diminuem e maximizam (antes o mínimo era quase o tamanho da tela).
+
 ## 0.99.31 — onda A (ideias do Weasis ViewerHub e da Eden)
 - **Laudo em andamento** no servidor central: quem abre o laudo fica com ele; o próximo escolhe só ler
   ou assumir (registrado), e o servidor recusa gravar laudo de quem não está com ele.

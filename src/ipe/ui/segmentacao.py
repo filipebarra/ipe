@@ -131,7 +131,8 @@ class Segmentacao(QObject):
     def iniciar(self) -> bool:
         if ocupado():
             QMessageBox.information(self.janela, self.titulo,
-                                    "Já há uma segmentação rodando. Espere ela terminar.")
+                                    "Já há uma segmentação rodando. Espere ela terminar, ou veja e cancele em "
+                                    "Aplicações ▸ Tarefas de IA… (também no menu Exibir).")
             return False
         if not self.trabalho.simular and not TS.instalado(self.trabalho.settings):
             if QMessageBox.question(
@@ -143,6 +144,14 @@ class Segmentacao(QObject):
             return False
         _rodando.append(self)
         TS.EM_CURSO.add(self.trabalho.study_uid)
+        from ipe.ai import tarefas as TA                   # 0.99.32: aparece em "Tarefas de IA"
+        try:
+            info = self.repo.study_info(self.trabalho.study_uid) or {}
+        except Exception:  # noqa: BLE001
+            info = {}
+        self.tarefa = TA.REGISTRO.nova(self.titulo, self.trabalho.study_uid,
+                                       f"{info.get('patient_name', '')} {info.get('description', '')}".strip(),
+                                       "manual", TA.PREPARANDO, cancelar=self.cancelar).id
         self.dlg = QProgressDialog("Montando o volume da série…", "Cancelar", 0, 0, self.janela)
         self.dlg.setWindowTitle(self.titulo)
         self.dlg.setWindowModality(Qt.NonModal)          # dá para continuar lendo enquanto roda
@@ -186,6 +195,8 @@ class Segmentacao(QObject):
         self._timer.start()
         self._atualizar()
         self.proc.start(prog, args)
+        from ipe.ai import tarefas as TA
+        TA.REGISTRO.mudar(getattr(self, "tarefa", None), TA.RODANDO, etapa=self.etapa)
         return True
 
     def _progresso_volume(self, feitos: int, total: int) -> bool:
@@ -201,6 +212,8 @@ class Segmentacao(QObject):
             linha = linha.strip()
             if linha.startswith("ETAPA "):
                 self.etapa = linha[6:]
+                from ipe.ai import tarefas as TA
+                TA.REGISTRO.mudar(getattr(self, "tarefa", None), etapa=self.etapa)
             elif linha:
                 log.debug("TotalSegmentator: %s", linha)
         self._atualizar()
@@ -499,6 +512,9 @@ class Segmentacao(QObject):
         if self in _rodando:
             _rodando.remove(self)
             TS.EM_CURSO.discard(self.trabalho.study_uid)
+        from ipe.ai import tarefas as TA
+        estado = TA.PRONTO if saida is not None else (TA.CANCELADO if self.cancelado else TA.ERRO)
+        TA.REGISTRO.mudar(getattr(self, "tarefa", None), estado, etapa="", mensagem=msg)
         self.terminou.emit(saida, msg)
 
 
