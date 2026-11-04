@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.51 — busca ativa e filtros de mamografia (onda B8 e B7)
+- **Busca ativa**: o laudo BI-RADS 0 ou 3 assinado gera o pedido de chamar a paciente de volta (30 e 180
+  dias, configuráveis; 4 e 5 opcionais). **Laudos ▸ Busca ativa…**: prazos, atrasos, contatada / agendada /
+  encerrada com histórico, exportar CSV; a paciente sai sozinha quando chega exame de mama novo dela.
+- **Mama ▾** no banco de dados: filtros prontos por BI-RADS, densidade, sem laudo, rastreamento ou
+  diagnóstica e busca ativa; colunas novas **BI-RADS**, **Densidade** e **Busca ativa**.
+
 ## 0.99.50 — ferro hepático a 3 T e faixa do LIC
 - **Fígado na RM**: a 3 T, o R2* hepático é dividido por 2,05 para o equivalente a 1,5 T (Alam et al., JCMR
   2016) e então vai à calibração de Wood — o achado mostra o R2* equivalente e o LIC. Antes, a 3 T não

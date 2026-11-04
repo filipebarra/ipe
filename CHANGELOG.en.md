@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.51 — patient recall and mammography filters (wave B8 and B7)
+- **Patient recall**: a signed BI-RADS 0 or 3 report creates the request to call the patient back (30 and
+  180 days, configurable; 4 and 5 optional). **Reports ▸ Patient recall…**: deadlines, overdue items,
+  contacted / scheduled / closed with history, CSV export; the patient leaves the list on her own when a new
+  breast study of hers arrives.
+- **Breast ▾** in the database: ready-made filters by BI-RADS, density, unreported, screening or diagnostic
+  and patient recall; new **BI-RADS**, **Density** and **Patient recall** columns.
+
 ## 0.99.50 — liver iron at 3 T and LIC range
 - **Liver MRI**: at 3 T, liver R2* is divided by 2.05 for the 1.5 T equivalent (Alam et al., JCMR 2016)
   and then goes into the Wood calibration — the finding shows the equivalent R2* and the LIC. Before, 3 T

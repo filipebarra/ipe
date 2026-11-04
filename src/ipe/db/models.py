@@ -327,6 +327,31 @@ class AchadoIA(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
 
+class BuscaAtiva(Base):
+    """Paciente a chamar de volta (0.99.51, onda B8): o laudo assinado com BI-RADS 0 ou 3 gera o pedido.
+
+    O prazo sai da data da assinatura + os dias da categoria (Configurações ▸ Laudos ▸ Busca ativa). O estado
+    anda de *pendente* para *contatado* / *agendado* e termina em *retornou* (chegou exame de mama novo do
+    paciente — conferido sozinho) ou *encerrado* (com o motivo). `historico` guarda cada passo, com quem e quando."""
+    __tablename__ = "busca_ativa"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    study_uid: Mapped[str] = mapped_column(String(64), index=True)
+    report_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    patient_id: Mapped[str] = mapped_column(String(64), default="", index=True)
+    patient_name: Mapped[str] = mapped_column(String(256), default="")
+    study_date: Mapped[str] = mapped_column(String(8), default="")
+    modalidade: Mapped[str] = mapped_column(String(16), default="")       # MG, US, MR
+    categoria: Mapped[str] = mapped_column(String(4), default="")         # "0", "3"
+    motivo: Mapped[str] = mapped_column(Text, default="")
+    prazo: Mapped[str] = mapped_column(String(8), default="", index=True)  # AAAAMMDD
+    estado: Mapped[str] = mapped_column(String(16), default="pendente", index=True)
+    retorno_uid: Mapped[str] = mapped_column(String(64), default="")
+    historico: Mapped[str] = mapped_column(Text, default="")              # uma linha por passo
+    criado_por: Mapped[str] = mapped_column(String(128), default="")
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
 class SeriesGroup(Base):
     """Séries agrupadas pelo usuário (ex.: fases de uma RM dinâmica, uma série por fase)."""
     __tablename__ = "series_group"

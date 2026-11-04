@@ -906,6 +906,13 @@ class ReportWindow(QWidget):
         except Exception as e:  # noqa: BLE001
             log.exception("laudo DICOM")
             QMessageBox.warning(self, "Laudo", f"Laudo assinado, mas não foi possível gravar no exame:\n{e}")
+        try:                                                     # 0.99.51 (onda B8): BI-RADS 0 e 3
+            from ipe.reporting import busca_ativa as BA
+            txt = BA.registrar_do_laudo(self.repo, rep)
+            if txt:
+                msgs.append(txt)
+        except Exception:  # noqa: BLE001
+            log.exception("busca ativa")
         self.load(rep["id"])
         self.status.setText("Laudo assinado. " + "; ".join(msgs))
         self.saved.emit(self.study_uid)

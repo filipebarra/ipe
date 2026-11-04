@@ -366,6 +366,14 @@ class MainWindow(QMainWindow):
         a.triggered.connect(self.show_gestao_automatica)
         r.addAction(a)
 
+        # 0.99.51 (onda B): o fluxo dos laudos — busca ativa, produtividade
+        lm = j.menuBar().addMenu("&Laudos")
+        a = QAction("Busca ativa (BI-RADS 0 e 3)…", j)
+        a.triggered.connect(self.abrir_busca_ativa)
+        lm.addAction(a)
+        if janela is None:
+            self.laudos_menu = lm
+
         # 0.99.12: o que se configura mora num menu só, um submenu por assunto e uma janela por item
         from ipe.ui import configuracoes as CFG
         c = j.menuBar().addMenu("&Configurações")
@@ -695,6 +703,17 @@ class MainWindow(QMainWindow):
     def show_about(self) -> None:
         from ipe.ui.ajuda import mostrar_sobre
         mostrar_sobre(self)
+
+    def abrir_busca_ativa(self) -> None:
+        """Laudos ▸ Busca ativa (0.99.51, onda B8)."""
+        from ipe.ui.busca_ativa_dialog import BuscaAtivaDialog
+        dlg = BuscaAtivaDialog(self.repo, self, self)
+        self._busca_ativa_dlg = dlg
+        dlg.show()
+
+    def abrir_config_busca_ativa(self) -> None:
+        from ipe.ui.busca_ativa_dialog import BuscaAtivaConfigDialog
+        BuscaAtivaConfigDialog(self.repo, self).exec()
 
     def show_gestao(self) -> None:
         """Abre (ou traz para frente) a janela de gestão: modalidades × PACS."""

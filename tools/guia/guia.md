@@ -951,6 +951,16 @@ No modo cliente, quem abre o laudo de um exame passa a ser **quem está laudando
 
 **Configurações ▸ Visualizador ▸ Fechar o exame sozinho…**: fechar o exame (e a janela do laudo) ao **assinar o laudo**, e/ou fechar os exames abertos depois de **N minutos sem mexer** no mouse e no teclado (o rascunho do laudo é salvo antes). Evita que o próximo paciente seja olhado — ou laudado — com o anterior ainda na tela.
 
+## Busca ativa (BI-RADS 0 e 3)
+
+Ao **assinar** um laudo com o formulário BI-RADS, a categoria final decide se a paciente entra na **busca ativa**: de fábrica, **BI-RADS 0** com prazo de **30 dias** e **BI-RADS 3** com **180 dias**, contados da assinatura. A retificação troca o pedido aberto do exame (ou o encerra, se a categoria nova não pede retorno). Em **Configurações ▸ Laudos ▸ Busca ativa (prazos por BI-RADS)…** dá para mudar os dias e ligar também 4A, 4B, 4C e 5 ("aguardando o histopatológico").
+
+**Laudos ▸ Busca ativa…** mostra os pedidos — abertos, atrasados (em vermelho), que retornaram ou encerrados — com o prazo e a situação ("faltam 12 dias", "atrasada 3 dias"). Os botões **Contatada**, **Agendada**, **Retornou**, **Encerrar…** (com o motivo) e **Nota…** vão ao histórico, com quem e quando; **Abrir o exame** abre o exame de origem (ou o de retorno). A paciente **retorna sozinha** quando chega ao banco um exame de mama dela com data igual ou posterior (mamografia, ou US/RM com "mama" na descrição) — o botão **Conferir retornos** refaz essa conferência. **Exportar CSV…** leva a lista para a planilha da recepção. No servidor central, a lista é uma só para todas as estações.
+
+## Filtros de mamografia
+
+O botão **Mama ▾**, ao lado de **Colunas ▾** no banco de dados, aplica filtros prontos e mostra as colunas que eles usam: **BI-RADS 0**, **3**, **4 e 5**, **6**; **mamas densas** (ACR c e d) ou não densas; **mamografias sem laudo assinado**; **rastreamento** ou **diagnóstica** (pela descrição do exame); **busca ativa aberta** ou **que retornou**. As colunas **BI-RADS** e **Densidade** vêm do laudo BI-RADS assinado mais recente do exame; **Busca ativa**, do pedido do exame. Como toda coluna, aceitam também o filtro digitado e o filtro por valores.
+
 # Filme e impressão
 
 ## O compositor de filme

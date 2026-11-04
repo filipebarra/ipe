@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 from ipe.db.models import (
     AeIdentity, AnnotationRecord, AuditLog, AutomationRule, CaseList, DeletionLog, Diagnosis, JobRun, CaseListItem, Comment, Instance, KeyImage, Patient, Series, Study,
     DicomNode, PrintJobRecord, PrintSendRecord, SavedFilm, SeriesGroup, StudyRegistration, User, AppSetting, Lesion, LesionTrack, Report,
-    RevisaoIA, AchadoIA,
+    RevisaoIA, AchadoIA, BuscaAtiva,
 )
 from ipe.db.session import Database
 
@@ -77,6 +77,9 @@ class StudyRow:
     dono: str = ""                # 0.99.27: "" = compartilhado; usuário = banco pessoal dele
     visivel_para: str = ""
     ia: str = ""                  # 0.99.32: aplicações de IA já feitas no exame ("órgãos abdominais, coluna")
+    birads: str = ""              # 0.99.51: categoria final do laudo BI-RADS assinado
+    densidade: str = ""           # composição (ACR a–d) do mesmo laudo
+    busca: str = ""               # estado da busca ativa do exame
 
 
 @dataclass
@@ -183,16 +186,34 @@ class Repository:
             filmados: set[str] = set()
             parts: dict[str, set[str]] = {}
             ias: dict[str, list[str]] = {}
+            mama: dict[str, tuple[str, str]] = {}
+            buscas: dict[str, str] = {}
             if uids:
                 for uid, name in s.execute(select(CaseListItem.study_uid, CaseList.name)
                                            .join(CaseList, CaseListItem.list_fk == CaseList.id)
                                            .where(CaseListItem.study_uid.in_(uids))):
                     lists.setdefault(uid, []).append(name)
-                for uid, st_ in s.execute(select(Report.study_uid, Report.status).where(Report.study_uid.in_(uids))):
+                import json as _json
+                from ipe.reporting import birads as _BR
+                for uid, st_, flds in s.execute(select(Report.study_uid, Report.status, Report.fields)
+                                                .where(Report.study_uid.in_(uids)).order_by(Report.id)):
                     name = {"draft": "rascunho", "final": "assinado", "amended": "retificado"}.get(st_, st_)
                     rank = {"rascunho": 1, "assinado": 2, "retificado": 3}
                     if rank.get(name, 0) > rank.get(reports.get(uid, ""), 0):
                         reports[uid] = name
+                    if st_ != "draft" and flds and flds not in ("{}", "null"):
+                        # 0.99.51 (onda B7): categoria e densidade do laudo assinado mais recente
+                        try:
+                            f = _json.loads(flds)
+                        except ValueError:
+                            f = {}
+                        if isinstance(f, dict) and f.get("kind"):
+                            cat = _BR.final_category(f)
+                            comp = f.get("composition" if f.get("kind") != "mri" else "fgt", "")
+                            mama[uid] = (cat, str(comp or "").lower())
+                for uid, est in s.execute(select(BuscaAtiva.study_uid, BuscaAtiva.estado)
+                                          .where(BuscaAtiva.study_uid.in_(uids)).order_by(BuscaAtiva.id)):
+                    buscas[uid] = est
                 for guardados in s.scalars(select(SavedFilm.study_uids)):
                     for uid in (guardados or "").split(","):
                         if uid in set(uids):
@@ -235,6 +256,8 @@ class Repository:
                     report=reports.get(st.study_uid, ""), has_film=st.study_uid in filmados,
                     dono=st.dono or "", visivel_para=st.visivel_para or "",
                     ia=", ".join(ias.get(st.study_uid, [])),
+                    birads=mama.get(st.study_uid, ("", ""))[0], densidade=mama.get(st.study_uid, ("", ""))[1],
+                    busca=buscas.get(st.study_uid, ""),
                     **{k: "; ".join(v) for k, v in details.get(st.study_uid, {}).items()}))
             return rows
 
@@ -2183,6 +2206,116 @@ class Repository:
             r = s.get(Report, report_id)
             if r is not None and r.status == "draft":
                 s.delete(r)
+
+    # ------------------------------------------------------------------ busca ativa (0.99.51, onda B8)
+    @staticmethod
+    def _busca_dict(b) -> dict:
+        fmt = "%Y-%m-%d %H:%M"
+        return {"id": b.id, "study_uid": b.study_uid, "report_id": b.report_id, "patient_id": b.patient_id,
+                "patient_name": b.patient_name, "study_date": b.study_date, "modalidade": b.modalidade,
+                "categoria": b.categoria, "motivo": b.motivo, "prazo": b.prazo, "estado": b.estado,
+                "retorno_uid": b.retorno_uid, "historico": b.historico, "criado_por": b.criado_por,
+                "criado_em": b.criado_em.strftime(fmt) if b.criado_em else "",
+                "atualizado_em": b.atualizado_em.strftime(fmt) if b.atualizado_em else ""}
+
+    def buscas_ativas(self, estados=None, study_uid: str = "") -> list[dict]:
+        """Pedidos de busca ativa (por prazo); `estados` = só esses ("pendente", "contatado"…)."""
+        with self.db.session() as s:
+            q = select(BuscaAtiva)
+            if estados:
+                q = q.where(BuscaAtiva.estado.in_(list(estados)))
+            if study_uid:
+                q = q.where(BuscaAtiva.study_uid == study_uid)
+            return [self._busca_dict(b) for b in s.scalars(q.order_by(BuscaAtiva.prazo, BuscaAtiva.id))]
+
+    def criar_busca_ativa(self, item: dict) -> int:
+        """Cria o pedido; se o exame já tem um aberto, ele é trocado (retificação do laudo)."""
+        from ipe.reporting import busca_ativa as BA
+        with self.db.session() as s:
+            b = s.scalar(select(BuscaAtiva).where(BuscaAtiva.study_uid == item["study_uid"],
+                                                  BuscaAtiva.estado.in_(BA.ABERTOS)))
+            novo = b is None
+            if novo:
+                b = BuscaAtiva(study_uid=item["study_uid"])
+                s.add(b)
+            for k in ("report_id", "patient_id", "patient_name", "study_date", "modalidade", "categoria",
+                      "motivo", "prazo", "criado_por"):
+                if k in item and item[k] is not None:
+                    setattr(b, k, item[k] if k == "report_id" else str(item[k]))
+            acao = (f"pedido criado: {b.motivo}, prazo {BA.fmt(b.prazo)}" if novo
+                    else f"laudo retificado: {b.motivo}, prazo {BA.fmt(b.prazo)}")
+            b.historico = ((b.historico + "\n") if b.historico else "") + BA.linha(acao, item.get("criado_por", ""))
+            b.atualizado_em = datetime.now()
+            s.flush()
+            return b.id
+
+    def atualizar_busca_ativa(self, busca_id: int, estado: str = "", nota: str = "", usuario: str = "") -> dict | None:
+        from ipe.reporting import busca_ativa as BA
+        with self.db.session() as s:
+            b = s.get(BuscaAtiva, busca_id)
+            if b is None:
+                return None
+            partes = []
+            if estado and estado in BA.ESTADOS and estado != b.estado:
+                partes.append(f"{BA.ESTADOS.get(b.estado, b.estado)} → {BA.ESTADOS[estado]}")
+                b.estado = estado
+            if nota.strip():
+                partes.append(nota.strip())
+            if partes:
+                b.historico = ((b.historico + "\n") if b.historico else "") + BA.linha(" — ".join(partes), usuario)
+                b.atualizado_em = datetime.now()
+            s.flush()
+            return self._busca_dict(b)
+
+    def encerrar_buscas_do_exame(self, study_uid: str, motivo: str, usuario: str = "") -> int:
+        from ipe.reporting import busca_ativa as BA
+        n = 0
+        with self.db.session() as s:
+            for b in s.scalars(select(BuscaAtiva).where(BuscaAtiva.study_uid == study_uid,
+                                                        BuscaAtiva.estado.in_(BA.ABERTOS))):
+                b.estado = "encerrado"
+                b.historico = ((b.historico + "\n") if b.historico else "") + BA.linha(f"encerrada — {motivo}", usuario)
+                b.atualizado_em = datetime.now()
+                n += 1
+        return n
+
+    def conferir_retornos_busca_ativa(self) -> int:
+        """Marca *retornou* quando o paciente já tem exame de mama novo (data ≥ e chegou depois do pedido)."""
+        from ipe.reporting import busca_ativa as BA
+        n = 0
+        with self.db.session() as s:
+            abertos = list(s.scalars(select(BuscaAtiva).where(BuscaAtiva.estado.in_(BA.ABERTOS))))
+            for b in abertos:
+                if not b.patient_id:
+                    continue
+                q = (select(Study).join(Patient, Study.patient_fk == Patient.id)
+                     .where(Patient.patient_id == b.patient_id, Study.study_uid != b.study_uid,
+                            Study.study_date >= (b.study_date or "")))
+                for st in s.scalars(q.order_by(Study.study_date)):
+                    if st.date_added is not None and b.criado_em is not None and st.date_added <= b.criado_em:
+                        continue
+                    if not BA.exame_de_retorno({"modalities": st.modalities, "description": st.description}):
+                        continue
+                    b.estado, b.retorno_uid = "retornou", st.study_uid
+                    b.historico = ((b.historico + "\n") if b.historico else "") + BA.linha(
+                        f"retornou: exame de {BA.fmt(st.study_date)} ({st.modalities} {st.description})".strip(),
+                        "Ipê")
+                    b.atualizado_em = datetime.now()
+                    n += 1
+                    break
+        return n
+
+    def busca_ativa_por_exame(self, study_uids) -> dict[str, str]:
+        """{exame: estado do pedido mais recente}."""
+        uids = list(study_uids or [])
+        if not uids:
+            return {}
+        out: dict[str, str] = {}
+        with self.db.session() as s:
+            for uid, est in s.execute(select(BuscaAtiva.study_uid, BuscaAtiva.estado)
+                                      .where(BuscaAtiva.study_uid.in_(uids)).order_by(BuscaAtiva.id)):
+                out[uid] = est
+        return out
 
     def report_counts(self, study_uids: list[str]) -> dict[str, str]:
         """Estado do laudo por estudo: "final" se houver assinado, senão "draft"."""

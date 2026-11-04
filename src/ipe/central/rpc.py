@@ -49,6 +49,10 @@ RPC_METHODS: dict[str, str] = {
     # 0.99.31: trava de leitura do laudo (tratada no próprio servidor)
     "leitura_comecar": "view", "leitura_manter": "view", "leitura_terminar": "view", "leituras_ativas": "view",
     "historico_do_exame": "view", "delete_instance": "delete",
+    # 0.99.51: busca ativa (onda B8)
+    "buscas_ativas": "view", "criar_busca_ativa": "sign_report", "atualizar_busca_ativa": "view",
+    "encerrar_buscas_do_exame": "sign_report", "conferir_retornos_busca_ativa": "view",
+    "busca_ativa_por_exame": "view",
 }
 
 # 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame

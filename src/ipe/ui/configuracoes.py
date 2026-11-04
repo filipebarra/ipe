@@ -50,6 +50,9 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         ("Níveis linfonodais…", lambda w: w.abrir_cad_ia("Níveis linfonodais"), ""),
         ("Instalar a segmentação de órgãos (TotalSegmentator)…", "f:instalar_segmentacao", "configure"),
     ]),
+    ("Laudos", [
+        ("Busca ativa (prazos por BI-RADS)…", "f:abrir_config_busca_ativa", "users"),
+    ]),
     ("Monitores", [
         ("Papel, layout e ordem dos monitores…", "p:monitores", "configure"),
         ("Calibração GSDF do monitor…", "f:open_gsdf", "configure"),

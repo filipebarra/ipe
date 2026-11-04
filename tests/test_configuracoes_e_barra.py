@@ -41,7 +41,7 @@ def test_menu_configuracoes_tem_um_submenu_por_assunto(janela):
     app, w = janela
     conf = _menus(w)["Configurações"]
     subs = [a.text() for a in conf.actions() if a.menu() is not None]
-    assert subs == ["Visualizador", "Protocolos de exame", "CAD/IA", "Monitores", "Rede", "Impressão",
+    assert subs == ["Visualizador", "Protocolos de exame", "CAD/IA", "Laudos", "Monitores", "Rede", "Impressão",
                     "Banco de dados", "Usuários", "Sistema"]
     todas = [a for a in conf.actions() if a.text().startswith("Todas as preferências")]
     assert len(todas) == 1 and todas[0].shortcut().toString() == "Ctrl+,"

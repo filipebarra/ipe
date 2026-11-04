@@ -31,6 +31,7 @@ COLUMNS = [
     ("key_images", "Imagens-chave", "int"), ("measured", "Imagens c/ medida", "int"),
     ("num_groups", "Dinâmicas", "int"), ("lists", "Listas", "text"), ("comment", "Comentário", "text"),
     ("report", "Laudo", "text"), ("banco", "Banco", "banco"), ("ia", "IA", "ia"),
+    ("birads", "BI-RADS", "text"), ("densidade", "Densidade", "text"), ("busca", "Busca ativa", "busca"),
     ("case_n", "Nº", "int"), ("case_name", "Caso (lista)", "text"),
 ]
 LIST_ONLY = ["case_n", "case_name"]          # aparecem sozinhas quando uma lista está aberta
@@ -176,6 +177,9 @@ class StudyTableModel(QAbstractTableModel):
                 return B.rotulo_do_banco(r)
             if kind == "ia":
                 return _texto_ia(r)
+            if kind == "busca":
+                from ipe.reporting import busca_ativa as BA
+                return BA.ESTADOS.get(v, v) if v else ""
             if kind in ("int", "float") and not v:
                 return ""
             if key == "patient_name":
@@ -273,6 +277,12 @@ class Browser(QWidget):
         top.addWidget(self.period)
         top.addWidget(btn_search)
         top.addWidget(btn_cols)
+        # 0.99.51 (onda B7): filtros prontos de mamografia
+        self.btn_mama = QPushButton("Mama ▾")
+        self.btn_mama.setToolTip("Filtros de mamografia: BI-RADS, densidade, sem laudo, busca ativa")
+        self.btn_mama.clicked.connect(
+            lambda: self.menu_mama().exec(self.btn_mama.mapToGlobal(self.btn_mama.rect().bottomLeft())))
+        top.addWidget(self.btn_mama)
         top.addWidget(self.btn_clear_filters)
 
         # --- listas de casos (esquerda)
@@ -591,6 +601,50 @@ class Browser(QWidget):
         menu.addSeparator()
         self.columns_menu(menu.addMenu("Colunas"))
         menu.exec(hh.mapToGlobal(pos))
+
+    # ------------------------------------------------------------ filtros de mamografia (0.99.51, onda B7)
+    FILTROS_MAMA = [
+        ("BI-RADS 0 (incompleto)", {"birads": {"0"}}),
+        ("BI-RADS 3 (provavelmente benigno)", {"birads": {"3"}}),
+        ("BI-RADS 4 e 5 (suspeitos)", {"birads": {"4A", "4B", "4C", "5"}}),
+        ("BI-RADS 6 (malignidade comprovada)", {"birads": {"6"}}),
+        (None, None),
+        ("Mamas densas (ACR c e d)", {"densidade": {"c", "d"}}),
+        ("Mamas não densas (ACR a e b)", {"densidade": {"a", "b"}}),
+        (None, None),
+        ("Mamografias sem laudo assinado", {"modalities": "MG", "report": {"", "rascunho"}}),
+        ("Rastreamento (pela descrição)", {"description": "RASTRE|SCREEN|BILATERAL"}),
+        ("Diagnóstica (pela descrição)", {"description": "DIAGN|UNILATERAL|COMPLEMENTA|MAGNIF|COMPRESS"}),
+        (None, None),
+        ("Busca ativa aberta", {"busca": {"Pendente", "Contatada", "Agendada"}}),
+        ("Busca ativa: retornou", {"busca": {"Retornou"}}),
+    ]
+
+    def menu_mama(self) -> QMenu:
+        m = QMenu(self)
+        for texto, filtro in self.FILTROS_MAMA:
+            if texto is None:
+                m.addSeparator()
+                continue
+            m.addAction(texto, lambda f=filtro: self.aplicar_filtro_mama(f))
+        m.addSeparator()
+        m.addAction("Limpar filtros", self.clear_filters)
+        return m
+
+    def aplicar_filtro_mama(self, filtro: dict) -> None:
+        """Troca os filtros de coluna pelos deste atalho e mostra as colunas que ele usa."""
+        self.clear_filters()
+        visiveis = self.visible_columns()
+        faltam = [k for k in filtro if k not in visiveis]
+        if faltam:
+            self.set_columns(visiveis + faltam)
+        for chave, valor in filtro.items():
+            col = KEY_INDEX[chave]
+            if isinstance(valor, set):
+                self.proxy.set_value_filter(col, valor)
+            else:
+                self.set_column_filter(chave, valor)
+        self._update_count()
 
     def _clear_column_filter(self, col: int) -> None:
         ed = self.filter_header.editor(col)
