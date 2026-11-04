@@ -163,6 +163,7 @@ def test_gordura_ferro_e_dupla_eco(env, tmp_path):
         f = res.ferro
         assert f["r2_mediana"]["v"] == 80 and f["t2_ms"]["v"] == 12.5 and f["baco_r2"]["v"] == 40
         assert f["lic"]["v"] == pytest.approx(0.0254 * 80 + 0.202, abs=0.01)
+        assert f["lic_grau"]["v"].startswith("abaixo de 3,2") and "r2_15" not in f
         assert any("Wood" in a for a in res.avisos_ferro) and any("Tang" in a for a in res.avisos_gordura)
         d = res.dixon
         assert d["ff_sinal"]["v"] == pytest.approx(10.0) and d["razao_ef_ff"]["v"] == 1.25
@@ -194,20 +195,46 @@ def test_sem_nada_avisa(env, tmp_path):
         t.limpar()
 
 
-def test_3t_nao_estima_o_ferro(env, tmp_path, monkeypatch):
+def _campo(monkeypatch, tesla):
     real = F._cabecalho
 
-    def tres_tesla(repo, uid):
+    def outro_campo(repo, uid):
         ds = real(repo, uid)
         if ds is not None:
-            ds.MagneticFieldStrength = 3.0
+            ds.MagneticFieldStrength = tesla
         return ds
-    monkeypatch.setattr(F, "_cabecalho", tres_tesla)
+    monkeypatch.setattr(F, "_cabecalho", outro_campo)
+
+
+def test_3t_converte_por_alam(env, tmp_path, monkeypatch):
+    """0.99.50 — a 3 T: R2* ÷ 2,05 (Alam, JCMR 2016) e depois Wood."""
+    _campo(monkeypatch, 3.0)
     t, res, _v, *_r = _rodar(env, tmp_path)
     try:
-        assert "lic" not in res.ferro and any("1,5 T" in a for a in res.avisos_ferro)
+        f = res.ferro
+        assert f["r2_15"]["v"] == pytest.approx(80 / 2.05, abs=0.06)
+        assert f["lic"]["v"] == pytest.approx(0.0254 * 80 / 2.05 + 0.202, abs=0.01)
+        assert any("Alam" in a for a in res.avisos_ferro)
+        txt = F.frase({"tipo": F.TIPO_FERRO, "numeros": f, "estado": "confirmado"})
+        assert "equivalente a 39 s⁻¹ a 1,5 T" in txt
     finally:
         t.limpar()
+
+
+def test_outro_campo_nao_estima(env, tmp_path, monkeypatch):
+    _campo(monkeypatch, 0.35)
+    t, res, _v, *_r = _rodar(env, tmp_path)
+    try:
+        assert "lic" not in res.ferro and any("0,35 T" in a for a in res.avisos_ferro)
+    finally:
+        t.limpar()
+
+
+def test_faixas_do_lic():
+    assert F.grau_do_ferro(2.2).startswith("abaixo de 3,2")
+    assert "leve" in F.grau_do_ferro(3.2) and "moderada" in F.grau_do_ferro(7.0)
+    assert "grave" in F.grau_do_ferro(15.0) and F.grau_do_ferro(None) == ""
+    assert F.r2_para_15t(80, 1.5) == (80, "1,5 T") and F.r2_para_15t(80, None)[0] is None
 
 
 def test_na_tela(env, tmp_path, monkeypatch):

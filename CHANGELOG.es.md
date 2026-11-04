@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.50 — hierro hepático a 3 T y rango del LIC
+- **Hígado en la RM**: a 3 T, el R2* hepático se divide por 2,05 para el equivalente a 1,5 T (Alam et al.,
+  JCMR 2016) y luego entra en la calibración de Wood — el hallazgo muestra el R2* equivalente y el LIC. Antes,
+  a 3 T no estimaba.
+- **Rango del LIC** junto al número: 3,2–7 leve, 7–15 moderada, > 15 mg Fe/g grave (texto de referencia).
+
 ## 0.99.49 — grasa y hierro hepáticos en la RM
 - **Hígado** (RM de abdomen): el hígado, el bazo y los segmentos vienen del TotalSegmentator y las medidas de
   los mapas del equipo — **PDFF** (mediana, p25–p75 y por segmento) y **R2\*** (con T2\*, el bazo y, a 1,5 T,

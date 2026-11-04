@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.50 — ferro hepático a 3 T e faixa do LIC
+- **Fígado na RM**: a 3 T, o R2* hepático é dividido por 2,05 para o equivalente a 1,5 T (Alam et al., JCMR
+  2016) e então vai à calibração de Wood — o achado mostra o R2* equivalente e o LIC. Antes, a 3 T não
+  estimava.
+- **Faixa do LIC** ao lado do número: 3,2–7 leve, 7–15 moderada, > 15 mg Fe/g grave (texto de referência).
+
 ## 0.99.49 — gordura e ferro hepáticos na RM
 - **Fígado** (RM de abdome): o fígado, o baço e os segmentos vêm do TotalSegmentator e as medidas saem dos
   mapas do aparelho — **PDFF** (mediana, p25–p75 e por segmento) e **R2\*** (com T2\*, o baço e, a 1,5 T, o

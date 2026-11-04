@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.50 — liver iron at 3 T and LIC range
+- **Liver MRI**: at 3 T, liver R2* is divided by 2.05 for the 1.5 T equivalent (Alam et al., JCMR 2016)
+  and then goes into the Wood calibration — the finding shows the equivalent R2* and the LIC. Before, 3 T
+  gave no estimate.
+- **LIC range** next to the number: 3.2–7 mild, 7–15 moderate, > 15 mg Fe/g severe (reference text).
+
 ## 0.99.49 — liver fat and iron on MRI
 - **Liver** (abdominal MRI): the liver, spleen and segments come from TotalSegmentator and the measurements
   from the scanner maps — **PDFF** (median, p25–p75 and by segment) and **R2\*** (with T2\*, the spleen and,

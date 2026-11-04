@@ -7097,5 +7097,19 @@
  "não deu para ler a dupla eco: {}": "no se pudo leer la doble eco: {}",
  "não deu para ler o mapa de R2*: {}": "no se pudo leer el mapa de R2*: {}",
  "não deu para ler o mapa de gordura: {}": "no se pudo leer el mapa de grasa: {}",
- "referência: {} — texto de referência, não diagnóstico": "referencia: {} — texto de referencia, no diagnóstico"
+ "referência: {} — texto de referência, não diagnóstico": "referencia: {} — texto de referencia, no diagnóstico",
+ "Faixa do LIC": "Rango del LIC",
+ "LIC 3,2–7 leve, 7–15 moderada, > 15 mg Fe/g grave": "LIC 3,2–7 leve, 7–15 moderada, > 15 mg Fe/g grave",
+ "R2* equivalente a 1,5 T": "R2* equivalente a 1,5 T",
+ "abaixo de 3,2 (fora das faixas de sobrecarga)": "por debajo de 3,2 (fuera de los rangos de sobrecarga)",
+ "sem a intensidade do campo no arquivo": "sin la intensidad del campo en el archivo",
+ "sobrecarga grave (> 15)": "sobrecarga grave (> 15)",
+ "sobrecarga leve (3,2–7)": "sobrecarga leve (3,2–7)",
+ "sobrecarga moderada (7–15)": "sobrecarga moderada (7–15)",
+ "mg Fe/g": "mg Fe/g",
+ ", equivalente a {} s⁻¹ a 1,5 T": ", equivalente a {} s⁻¹ a 1,5 T",
+ "campo de {} T": "campo de {} T",
+ "exame a 3 T: R2* ÷ {} para o equivalente a 1,5 T (Alam et al., JCMR 2016) antes da calibração de Wood — a 3 T o T2* curto mede pior": "examen a 3 T: R2* ÷ {} para el equivalente a 1,5 T (Alam et al., JCMR 2016) antes de la calibración de Wood — a 3 T el T2* corto se mide peor",
+ "ferro estimado pela calibração de Wood et al. (Blood 2005): LIC = 0,0254 · R2* (1,5 T) + 0,202 mg Fe/g de peso seco — estimativa, não diagnóstico; referência: {}": "hierro estimado por la calibración de Wood et al. (Blood 2005): LIC = 0,0254 · R2* (1,5 T) + 0,202 mg Fe/g de peso seco — estimación, no diagnóstico; referencia: {}",
+ "sem ferro estimado (LIC): {} — a calibração vale a 1,5 T, e a 3 T com a conversão de Alam": "sin hierro estimado (LIC): {} — la calibración vale a 1,5 T, y a 3 T con la conversión de Alam"
 }

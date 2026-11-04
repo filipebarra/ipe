@@ -17,7 +17,9 @@ levada, ponto a ponto pela posição no paciente, para a grade de cada mapa:
 |---|---|---|
 | **PDFF** (fração de gordura pela densidade de prótons) | mapa de fração de gordura do aparelho (IDEAL IQ, mDIXON Quant, LiverLab) | mediana, média e p25–p75 no fígado (a borda, 1 voxel, fica de fora); por segmento |
 | **R2\\*** e T2\\* | mapa de R2\\* (ou de T2\\*, convertido: R2\\* = 1000/T2\\*) | mediana no fígado e no baço |
-| **ferro estimado** | R2\\* a 1,5 T | LIC ≈ 0,0254 · R2\\* + 0,202 mg Fe/g (Wood et al., Blood 2005), só a 1,5 T |
+| **ferro estimado** | R2\\* a 1,5 T | LIC ≈ 0,0254 · R2\\* + 0,202 mg Fe/g (Wood et al., Blood 2005) |
+| **ferro a 3 T** (0.99.50) | R2\\* a 3 T | R2\\* ÷ 2,05 = equivalente a 1,5 T (fígado, Alam et al., JCMR 2016), depois Wood |
+| **grau** (0.99.50) | LIC | 3,2–7 leve, 7–15 moderada, > 15 grave (mg Fe/g) — texto de referência |
 | **fração de sinal de gordura** | dupla eco em fase / fora de fase | (EF − FF) / (2 · EF) com as médias do fígado; **não é PDFF** |
 
 Referências, como texto ao lado do número (nunca veredito): PDFF ≥ 6,4% grau ≥ 1, ≥ 17,4% grau ≥ 2,
@@ -52,6 +54,13 @@ TIPO_DIXON = "Gordura hepática (dupla eco)"
 
 #: Wood et al., Blood 2005;106:1460 — R2* (s⁻¹) a 1,5 T → concentração hepática de ferro (mg Fe/g de peso seco)
 WOOD_A, WOOD_B = 0.0254, 0.202
+#: Alam et al., J Cardiovasc Magn Reson 2016;18:40 — no fígado o R2* a 3 T foi 105% maior que a 1,5 T (ajuste
+#: linear, R² 0,993); os autores sugerem dividir o R2* de 3 T por ~2 para chegar ao equivalente a 1,5 T.
+ALAM_FATOR = 2.05
+#: faixas de sobrecarga pelo LIC (mg Fe/g de peso seco) — Abdom Radiol 2022 (doi 10.1007/s00261-022-03762-4)
+LIC_GRAUS = ((15.0, "sobrecarga grave (> 15)"), (7.0, "sobrecarga moderada (7–15)"),
+             (3.2, "sobrecarga leve (3,2–7)"))
+LIC_REF = "LIC 3,2–7 leve, 7–15 moderada, > 15 mg Fe/g grave"
 PDFF_REF = "PDFF ≥ 6,4% grau ≥ 1, ≥ 17,4% grau ≥ 2, ≥ 22,1% grau 3 (Tang et al., Radiology 2015)"
 
 _FF_DESC = ("FATFRAC", "FAT FRAC", "FAT FRACTION", "FAT_FRACTION", "PDFF", "FF MAP", "FATFRACTION", "FAT%")
@@ -91,7 +100,7 @@ EXPLICACAO_CADIA = ("Na RM de abdome: acha o fígado e o baço (e os segmentos d
 OPCOES = ((CHAVE_SEGMENTOS, "Por segmento de Couinaud (1 = sim, 0 = não):", 0.0, 1.0, "",
            "Roda também a tarefa liver_segments_mr e dá a gordura de cada segmento (uns minutos a mais)."),)
 CHAVES_GORDURA = ("pdff_mediana", "pdff_media", "pdff_p25", "pdff_p75", "pdff_segmentos", "voxels")
-CHAVES_FERRO = ("r2_mediana", "t2_ms", "lic", "baco_r2", "r2_p25", "r2_p75")
+CHAVES_FERRO = ("r2_mediana", "t2_ms", "r2_15", "lic", "lic_grau", "baco_r2", "r2_p25", "r2_p75")
 CHAVES_DIXON = ("ff_sinal", "ef", "ff", "razao_ef_ff")
 CHAVES = CHAVES_GORDURA + CHAVES_FERRO + CHAVES_DIXON
 
@@ -261,6 +270,27 @@ def _ero2(m: np.ndarray, n: int = 1) -> np.ndarray:
     return np.stack([e(s, n) for s in m]) if m.ndim == 3 else e(m, n)
 
 
+def grau_do_ferro(lic: float | None) -> str:
+    """Faixa de referência do LIC (texto ao lado do número, nunca veredito)."""
+    if lic is None:
+        return ""
+    for limite, txt in LIC_GRAUS:
+        if lic >= limite:
+            return txt
+    return "abaixo de 3,2 (fora das faixas de sobrecarga)"
+
+
+def r2_para_15t(r2: float, campo: float | None) -> tuple[float | None, str]:
+    """(R2* equivalente a 1,5 T, ou None; de onde veio). 1,5 T: o próprio; 3 T: ÷ ALAM_FATOR."""
+    if campo is None:
+        return None, "sem a intensidade do campo no arquivo"
+    if abs(campo - 1.5) < 0.2:
+        return r2, "1,5 T"
+    if abs(campo - 3.0) < 0.3:
+        return r2 / ALAM_FATOR, "3 T"
+    return None, f"campo de {campo:g} T".replace(".", ",")
+
+
 def _stats(v: np.ndarray) -> dict:
     v = np.asarray(v, float)
     v = v[np.isfinite(v)]
@@ -379,15 +409,23 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
                     "r2_p25": AC.numero(round(st["p25"], 1), "s⁻¹", "R2* p25"),
                     "r2_p75": AC.numero(round(st["p75"], 1), "s⁻¹", "R2* p75"),
                 }
-                if res.campo is not None and abs(res.campo - 1.5) < 0.2:
-                    res.ferro["lic"] = AC.numero(round(WOOD_A * r2 + WOOD_B, 2), "mg Fe/g",
-                                                 "Ferro estimado (LIC)")
-                    res.avisos_ferro.append("ferro estimado pela calibração de Wood et al. (Blood 2005), a 1,5 T: "
-                                            "LIC = 0,0254 · R2* + 0,202 mg Fe/g de peso seco — estimativa, não "
-                                            "diagnóstico")
+                r15, como = r2_para_15t(r2, res.campo)
+                if r15 is not None:
+                    lic = round(WOOD_A * r15 + WOOD_B, 2)
+                    if como == "3 T":
+                        res.ferro["r2_15"] = AC.numero(round(r15, 1), "s⁻¹", "R2* equivalente a 1,5 T")
+                        fator = f"{ALAM_FATOR:.2f}".replace(".", ",")
+                        res.avisos_ferro.append(f"exame a 3 T: R2* ÷ {fator} para o equivalente a 1,5 T (Alam et "
+                                                "al., JCMR 2016) antes da calibração de Wood — a 3 T o T2* curto "
+                                                "mede pior")
+                    res.ferro["lic"] = AC.numero(lic, "mg Fe/g", "Ferro estimado (LIC)")
+                    res.ferro["lic_grau"] = AC.numero(grau_do_ferro(lic), "", "Faixa do LIC")
+                    res.avisos_ferro.append("ferro estimado pela calibração de Wood et al. (Blood 2005): "
+                                            "LIC = 0,0254 · R2* (1,5 T) + 0,202 mg Fe/g de peso seco — estimativa, "
+                                            f"não diagnóstico; referência: {LIC_REF}")
                 else:
-                    res.avisos_ferro.append("o ferro estimado (LIC) sai só a 1,5 T: a calibração de Wood é desse "
-                                            "campo, e o R2* a 3 T é perto do dobro")
+                    res.avisos_ferro.append(f"sem ferro estimado (LIC): {como} — a calibração vale a 1,5 T, e a "
+                                            "3 T com a conversão de Alam")
                 if baco is not None:
                     mb = _ero2(_amostrar(vol, baco, vr), 1)
                     sb = _stats(dados[mb]) if mb.sum() >= 5 else {}
@@ -529,8 +567,12 @@ def frase(a: dict) -> str:
         return txt + "."
     if a.get("tipo") == TIPO_FERRO:
         txt = f"R2* hepático mediano de {v('r2_mediana', 0)} s⁻¹ (T2* {v('t2_ms')} ms)"
+        if v("r2_15", 0):
+            txt += f", equivalente a {v('r2_15', 0)} s⁻¹ a 1,5 T"
         if v("lic", 2):
             txt += f", concentração de ferro estimada em {v('lic', 2)} mg Fe/g"
+            if v("lic_grau"):
+                txt += f" ({v('lic_grau')})"
         if v("baco_r2", 0):
             txt += f"; R2* do baço {v('baco_r2', 0)} s⁻¹"
         return txt + "."

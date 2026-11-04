@@ -5263,7 +5263,16 @@
   "mapa de T2* convertido: R2* = 1000 / T2*",
   "mapa em 0–1000: lido como décimos de porcento",
   "o exame não tem mapa de fração de gordura, mapa de R2*/T2* nem dupla eco em fase / fora de fase",
-  "o ferro estimado (LIC) sai só a 1,5 T: a calibração de Wood é desse campo, e o R2* a 3 T é perto do dobro"
+  "o ferro estimado (LIC) sai só a 1,5 T: a calibração de Wood é desse campo, e o R2* a 3 T é perto do dobro",
+  "Faixa do LIC",
+  "LIC 3,2–7 leve, 7–15 moderada, > 15 mg Fe/g grave",
+  "R2* equivalente a 1,5 T",
+  "abaixo de 3,2 (fora das faixas de sobrecarga)",
+  "sem a intensidade do campo no arquivo",
+  "sobrecarga grave (> 15)",
+  "sobrecarga leve (3,2–7)",
+  "sobrecarga moderada (7–15)",
+  "mg Fe/g"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -6603,6 +6612,11 @@
   "não deu para ler a dupla eco: {}",
   "não deu para ler o mapa de R2*: {}",
   "não deu para ler o mapa de gordura: {}",
-  "referência: {} — texto de referência, não diagnóstico"
+  "referência: {} — texto de referência, não diagnóstico",
+  ", equivalente a {} s⁻¹ a 1,5 T",
+  "campo de {} T",
+  "exame a 3 T: R2* ÷ {} para o equivalente a 1,5 T (Alam et al., JCMR 2016) antes da calibração de Wood — a 3 T o T2* curto mede pior",
+  "ferro estimado pela calibração de Wood et al. (Blood 2005): LIC = 0,0254 · R2* (1,5 T) + 0,202 mg Fe/g de peso seco — estimativa, não diagnóstico; referência: {}",
+  "sem ferro estimado (LIC): {} — a calibração vale a 1,5 T, e a 3 T com a conversão de Alam"
  ]
 }

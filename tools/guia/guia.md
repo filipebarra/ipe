@@ -1188,7 +1188,8 @@ Para quem já tinha instalado a segmentação: rode de novo o *instalar_segmenta
 | Ferro hepático (R2*) | o mapa de R2* (ou de T2*, convertido: R2* = 1000 / T2*) | R2* mediano (s⁻¹), T2* (ms), R2* do baço; a 1,5 T, o ferro estimado |
 | Gordura hepática (dupla eco) | a dupla eco em fase / fora de fase (as duas ecos na mesma série, ou o par InPhase/OutPhase) | fração de **sinal** de gordura = (EF − FF) / (2 · EF), e a razão EF/FF |
 
-- **Ferro estimado**: só a 1,5 T, LIC = 0,0254 · R2* + 0,202 mg Fe/g de peso seco (Wood et al., Blood 2005). A 3 T o R2* é perto do dobro e essa calibração não vale: a tela diz e não estima.
+- **Ferro estimado**: LIC = 0,0254 · R2* + 0,202 mg Fe/g de peso seco (Wood et al., Blood 2005), calibração de 1,5 T. **A 3 T** (0.99.50) o R2* do fígado é dividido por 2,05 para o equivalente a 1,5 T (Alam et al., JCMR 2016: o R2* hepático a 3 T foi 105% maior) e então entra na fórmula de Wood; o achado mostra também esse R2* equivalente. A 3 T o T2* muito curto mede pior: em sobrecarga grave, prefira 1,5 T. Em outro campo (ou sem o campo no arquivo) não estima.
+- **Faixa do LIC** (texto de referência, não veredito): 3,2–7 leve, 7–15 moderada, > 15 mg Fe/g grave.
 - **Referência da gordura**, como texto: PDFF ≥ 6,4% grau ≥ 1, ≥ 17,4% grau ≥ 2, ≥ 22,1% grau 3 — limiares de alta especificidade em doença hepática gordurosa (Tang et al., Radiology 2015).
 - A fração de sinal da dupla eco **não é PDFF**: não corrige T1 nem T2*. Em fase com sinal menor que fora de fase sugere ferro — e aí a gordura sai subestimada.
 - Mapa de gordura em 0–1000 (alguns fabricantes) é lido como décimos de porcento, com aviso. À mão continua valendo: uma ROI no próprio mapa mostra a média em % (ou em s⁻¹ no de R2*).
