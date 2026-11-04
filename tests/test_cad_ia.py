@@ -283,7 +283,7 @@ def test_layout_lista_a_esquerda_configuracoes_a_direita(env):
     pai.repo = repo
     d = PreferencesDialog(_settings(paths), pai)
     c = d.cad_ia
-    assert c.l_ferramentas.count() == 7 and c.painel.count() == 7       # + coluna, cefalometria, crânio, linfonodos, nódulos
+    assert c.l_ferramentas.count() == 8 and c.painel.count() == 8       # + coluna, cefalometria, crânio, linfonodos, nódulos, composição
     assert c.l_ferramentas.item(0).text().startswith("Segmentação abdominal")
     assert "só à mão" in c.l_ferramentas.item(0).text() and "automático" in c.l_ferramentas.item(2).text()
     c.c_seg_auto.setChecked(True)

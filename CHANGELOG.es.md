@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.47 — composición corporal en L3 y atenuación hepática
+- **Composición** (TC de abdomen): en el corte axial del medio de L3, área muscular, densidad muscular, grasa
+  visceral, subcutánea e intermuscular; con la altura en el archivo, el índice muscular (referencia de Prado
+  2008 como texto). Hígado y bazo: HU medio, hígado − bazo e hígado / bazo, con aviso cuando hay contraste.
+- Los números son hallazgos revisables (Aplicaciones ▸ Hallazgos de IA); automático en Configuración ▸ CAD/IA.
+- El instalador de la segmentación pasa a descargar *trunk_cavities*.
+
 ## 0.99.46 — hallazgos de IA revisables; nódulos pulmonares
 - **Hallazgos de IA** (Aplicaciones ▸ Hallazgos de IA): cada candidato que una IA señala queda *sugerido*, con
   posición, números, modelo, serie y avisos; usted **confirma, corrige o descarta** uno a uno, con quién y

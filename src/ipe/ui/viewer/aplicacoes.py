@@ -182,6 +182,8 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
               descricao="Mapa dos níveis linfonodais cervicais (I a VII) e o nível da lesão segmentada"),
     Aplicacao("nodulos", "Nódulos", frozenset({"CT"}), ((frozenset({"torax"}), frozenset()),),
               descricao="Nódulos pulmonares (IA): candidatos com volume, eixos e densidade, revisados um a um"),
+    Aplicacao("composicao", "Composição", frozenset({"CT"}), ((frozenset({"abdome"}), frozenset()),),
+              descricao="Composição corporal em L3 (músculo, gordura visceral e subcutânea) e atenuação hepática"),
     Aplicacao("difusao", "Difusão", frozenset({"MR"}), ((frozenset(), frozenset({"difusao"})),),
               descricao="Mapa ADC dos valores de b, DWI sintética e ADC numa ROI (qualquer RM)"),
     Aplicacao("abdome", "Órgãos abdominais", frozenset({"CT", "MR"}),

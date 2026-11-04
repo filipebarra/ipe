@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.47 — body composition at L3 and liver attenuation
+- **Composition** (abdominal CT): on the axial slice through the middle of L3, muscle area, muscle density,
+  visceral, subcutaneous and intermuscular fat; with the height in the file, the muscle index (Prado 2008
+  reference as text). Liver and spleen: mean HU, liver − spleen and liver / spleen, with a warning when
+  contrast was given.
+- The numbers are reviewable findings (Applications ▸ AI findings); automatic in Settings ▸ CAD/AI.
+- The segmentation installer now downloads *trunk_cavities*.
+
 ## 0.99.46 — reviewable AI findings; lung nodules
 - **AI findings** (Applications ▸ AI findings): each candidate an AI points out is *suggested*, with position,
   numbers, model, series and warnings; you **confirm, correct or dismiss** them one by one, with who and when.

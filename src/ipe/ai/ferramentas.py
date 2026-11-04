@@ -18,6 +18,7 @@ import importlib
 #: tipo -> módulo
 GENERICAS = {
     "nodulos": "ipe.ai.nodulos",
+    "composicao": "ipe.ai.composicao",          # 0.99.47
 }
 
 

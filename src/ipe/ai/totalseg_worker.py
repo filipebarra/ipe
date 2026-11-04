@@ -131,6 +131,16 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
                 lab[vol == 2000 + cod] = cid
             saida[nome] = (lab, {cid: n for cid, (_c, n) in codigos.items()})
             continue
+        if t.get("composicao"):              # 0.99.47: L3 = 701, fígado = 61, baço = 51, cavidade = −101/61/51/21
+            if nome == "trunk_cavities":
+                lab[np.isin(vol, (-101, 61, 51, 21))] = 1
+                saida[nome] = (lab, {1: "abdominal_cavity"})
+            else:
+                lab[vol == 701] = 27
+                lab[vol == 61] = 5
+                lab[vol == 51] = 1
+                saida[nome] = (lab, {27: "vertebrae_L3", 5: "liver", 1: "spleen"})
+            continue
         if t.get("nodulos"):                  # 0.99.46: nódulo sólido = 45 HU, vidro fosco = −601, pulmão = −850
             pulmao = np.isin(vol, (-850, 45, -601))
             if nome == "lung_nodules":

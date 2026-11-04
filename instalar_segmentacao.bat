@@ -86,7 +86,7 @@ if errorlevel 1 ( echo [ERRO] Falha instalando o TotalSegmentator. & goto :fim )
 
 echo.
 echo [3/3] Modelos: orgaos abdominais (TC e RM), segmentos do figado, coluna (vertebras e discos) e cabeca/pescoco (cefalometria)...
-for %%T in (total_fast total_fast_mr liver_segments liver_segments_mr vertebrae_mr vertebrae_body total_mr head_glands_cavities headneck_bones_vessels craniofacial_structures head_muscles headneck_muscles total lung_nodules) do (
+for %%T in (total_fast total_fast_mr liver_segments liver_segments_mr vertebrae_mr vertebrae_body total_mr head_glands_cavities headneck_bones_vessels craniofacial_structures head_muscles headneck_muscles total lung_nodules trunk_cavities) do (
   echo   - %%T
   "%VENV%\Scripts\totalseg_download_weights.exe" -t %%T
   if errorlevel 1 ( echo [ERRO] Falha baixando o modelo %%T. & goto :fim )

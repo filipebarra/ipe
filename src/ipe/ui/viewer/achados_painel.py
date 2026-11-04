@@ -175,7 +175,7 @@ class AchadosPainel(QDialog):
             mod = _modulo(a["ferramenta"])
             chaves = getattr(mod, "CHAVES", None)
             nums = AC.numeros_validos(a)
-            medidas = " · ".join(AC._fmt(nums[k]) for k in (chaves or list(nums))[:3] if k in nums)
+            medidas = " · ".join(AC._fmt(nums[k]) for k in [k for k in (chaves or list(nums)) if k in nums][:3])
             cels = [f"{a['rotulo']} {tr(a['tipo'])}".strip(), tr(a.get("local", "")), medidas,
                     tr(AC.ESTADOS.get(a["estado"], a["estado"])), tr(AC.quem_e_quando(a))]
             for c, txt in enumerate(cels):

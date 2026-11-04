@@ -1163,6 +1163,14 @@ Candidatos menores que o **diâmetro mínimo** (3 mm de fábrica, da esfera de m
 
 Para quem já tinha instalado a segmentação: rode de novo o *instalar_segmentacao* para baixar os modelos *lung_nodules* e *total* (ou eles baixam sozinhos na primeira vez, com internet).
 
+**Composição corporal em L3 e atenuação hepática** (botão **Composição**, na TC de abdome; ou automático em Configurações ▸ CAD/IA ▸ Composição corporal). Os números aparecem como dois achados na mesma janela — "Composição corporal (L3)" e "Atenuação hepática" —, para conferir, corrigir e mandar ao laudo como os outros.
+
+- **Onde mede**: o corte axial do meio craniocaudal da vértebra L3 (achada pelo TotalSegmentator). A série tem de ser axial; se não for, a composição não sai (o fígado sai assim mesmo). *Ir até* leva ao corte de L3, e a SEG "Composição corporal · TotalSegmentator" mostra os quatro compartimentos nele.
+- **Como separa** (limiares clássicos, Mitsiopoulos et al., 1998): músculo de −29 a 150 HU fora da cavidade abdominal, dos órgãos e da vértebra; gordura de −190 a −30 HU — visceral dentro da cavidade (tarefa aberta *trunk_cavities*), subcutânea nas regiões de gordura que encostam na pele, intermuscular o resto. A pele (3 mm de fora) não conta como músculo.
+- **Saem**: área muscular (SMA, cm²), densidade muscular (HU médio do músculo), gordura visceral, subcutânea e intermuscular (cm²) e VAT/SAT. Com a altura do paciente no arquivo (PatientSize), o **índice muscular** (SMA/altura², cm²/m²), com a referência de sarcopenia do sexo do paciente ao lado — Prado et al., Lancet Oncol 2008: < 52,4 (homens) e < 38,5 cm²/m² (mulheres) —, como texto, não veredito.
+- **Fígado e baço**: média e mediana do HU (a borda, 2 voxels, fica de fora), fígado − baço e fígado / baço. Na TC sem contraste vêm as referências como texto, as duas 100% específicas para esteatose de 30% ou mais na biópsia — fígado − baço < −9 HU ou fígado / baço < 0,8 (Park et al., Radiology 2006) e fígado < 48 HU (Pickhardt et al., Eur Radiol 2012). Com contraste (pela tag ContrastBolusAgent ou pela descrição da série) a tela avisa que esses limiares não valem.
+- Rode de novo o *instalar_segmentacao* para baixar o modelo *trunk_cavities*.
+
 ## CAD, IA e anotações de outros sistemas
 
 O botão **CAD/IA** reúne o que outro programa escreveu sobre o exame: SEG (segmentações), GSPS (anotações gráficas do aparelho ou da estação), SR (achados de CAD/IA) e RTSTRUCT (contornos de radioterapia). O número no botão diz quantos objetos o exame tem; o menu lista um por um, com *Ir para a imagem* de cada achado.

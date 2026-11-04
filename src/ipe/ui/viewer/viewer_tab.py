@@ -1244,6 +1244,18 @@ class ViewerTab(OncoMixin, QWidget):
         nod.setIconText("Nódulos")
         self._button(tb, nod, menu_nod, app="nodulos")
         self._act("achados.abrir", "Achados de IA: revisar, confirmar, descartar", self.abrir_achados)
+        # composição corporal em L3 e esteatose (0.99.47)
+        menu_comp = self._menu()
+        a_comp = QAction("Medir a composição corporal em L3 e o fígado nesta série (IA)…", self)
+        a_comp.triggered.connect(self._composicao_do_ativo)
+        menu_comp.addAction(a_comp)
+        a_ach2 = QAction("Achados de IA (revisar, confirmar, descartar)…", self)
+        a_ach2.triggered.connect(self.abrir_achados)
+        menu_comp.addAction(a_ach2)
+        comp = self._act("composicao.auto", "Composição corporal em L3 e esteatose (IA)", self.composicao_botao)
+        comp.setIcon(icon("measure"))
+        comp.setIconText("Composição")
+        self._button(tb, comp, menu_comp, app="composicao")
         # órgãos abdominais (0.99.32, pedido dele: também no botão Aplicações)
         menu_abd = self._menu()
         a_abd = QAction("Segmentar órgãos abdominais desta série (IA)…", self)
@@ -5452,6 +5464,24 @@ class ViewerTab(OncoMixin, QWidget):
         if vp is None:
             return None
         return self.segmentar_orgaos(vp, simular=simular, tipo="nodulos")
+
+    def _composicao_do_ativo(self):
+        return self.composicao_automatica(self.active)
+
+    def composicao_automatica(self, vp=None, simular: bool = False):
+        vp = vp or self.active or next((v for v in self.viewports if v.frames), None)
+        if vp is None:
+            return None
+        return self.segmentar_orgaos(vp, simular=simular, tipo="composicao")
+
+    def composicao_botao(self):
+        try:
+            tem = any(self.repo.achados(u, "composicao") for u in (getattr(self, "study_order", None) or [self.study_uid]))
+        except Exception:  # noqa: BLE001
+            tem = False
+        if tem:
+            return self.abrir_achados()
+        return self.composicao_automatica(self.active)
 
     def nodulos_botao(self):
         """O botão: com achados no exame, abre a lista; sem, procura na série do quadro ativo."""
