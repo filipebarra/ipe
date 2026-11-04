@@ -371,6 +371,9 @@ class MainWindow(QMainWindow):
         a = QAction("Busca ativa (BI-RADS 0 e 3)…", j)
         a.triggered.connect(self.abrir_busca_ativa)
         lm.addAction(a)
+        a = QAction("Produtividade…", j)
+        a.triggered.connect(self.abrir_produtividade)
+        lm.addAction(a)
         if janela is None:
             self.laudos_menu = lm
 
@@ -709,6 +712,18 @@ class MainWindow(QMainWindow):
         from ipe.ui.busca_ativa_dialog import BuscaAtivaDialog
         dlg = BuscaAtivaDialog(self.repo, self, self)
         self._busca_ativa_dlg = dlg
+        dlg.show()
+
+    def abrir_produtividade(self) -> None:
+        """Laudos ▸ Produtividade (0.99.53, onda B6). Quem não gerencia usuários vê só os próprios laudos."""
+        from ipe.auth import session as S
+        from ipe.ui.produtividade_dialog import ProdutividadeDialog
+        so_eu = None
+        if not S.can("users"):
+            u = S.get()
+            so_eu = u.full_name or u.username
+        dlg = ProdutividadeDialog(self.repo, self, so_eu=so_eu)
+        self._produtividade_dlg = dlg
         dlg.show()
 
     def abrir_config_sla(self) -> None:

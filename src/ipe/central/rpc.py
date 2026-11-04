@@ -55,6 +55,8 @@ RPC_METHODS: dict[str, str] = {
     "busca_ativa_por_exame": "view",
     # 0.99.52: prioridade e subespecialidade do exame (onda B4)
     "set_study_priority": "report",
+    # 0.99.53: painel de produtividade (onda B6)
+    "produtividade_dados": "view",
 }
 
 # 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame

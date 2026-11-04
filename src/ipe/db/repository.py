@@ -2344,6 +2344,34 @@ class Repository:
                 out[uid] = est
         return out
 
+    # ------------------------------------------------------------------ produtividade (0.99.53, onda B6)
+    def produtividade_dados(self, de: str, ate: str) -> list[dict]:
+        """Um item por laudo assinado entre `de` e `ate` (AAAA-MM-DD, inclusive): quem assinou, quando, a
+        modalidade, a subespecialidade, a prioridade, as horas da chegada à assinatura e se foi no prazo."""
+        from ipe.core import sla as SLA
+        cfg = SLA.config(self)
+        ini = datetime.strptime(de, "%Y-%m-%d")
+        fim = datetime.strptime(ate, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+        out = []
+        with self.db.session() as s:
+            q = (select(Report, Study).join(Study, Study.study_uid == Report.study_uid)
+                 .where(Report.status != "draft", Report.signed_at.is_not(None),
+                        Report.signed_at >= ini, Report.signed_at <= fim).order_by(Report.signed_at))
+            for r, st in s.execute(q):
+                res = SLA.resolver({"description": st.description or "", "modalities": st.modalities or "",
+                                    "prioridade_manual": st.prioridade or "",
+                                    "subesp_manual": st.subespecialidade or "", "chegada": st.date_added,
+                                    "laudado_em": r.signed_at}, cfg)
+                horas = ((r.signed_at - st.date_added).total_seconds() / 3600
+                         if st.date_added is not None else None)
+                out.append({"medico": r.signed_by or "—", "assinado_em": r.signed_at.strftime("%Y-%m-%d %H:%M"),
+                            "dia": r.signed_at.strftime("%Y-%m-%d"), "study_uid": r.study_uid,
+                            "modalidade": (st.modalities or "").split("\\")[0] or "—",
+                            "subesp": res["subesp"], "prioridade": res["prioridade"],
+                            "retificacao": r.status == "amended", "horas": horas,
+                            "no_prazo": res["sla_estado"] == "no_prazo"})
+        return out
+
     def report_counts(self, study_uids: list[str]) -> dict[str, str]:
         """Estado do laudo por estudo: "final" se houver assinado, senão "draft"."""
         if not study_uids:

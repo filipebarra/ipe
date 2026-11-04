@@ -5367,7 +5367,22 @@
   "Vencem em menos de 2 h",
   "no prazo",
   "SLA",
-  "Prioridade:"
+  "Prioridade:",
+  " · só os seus laudos",
+  "Agrupar por:",
+  "Datas escolhidas",
+  "Dia",
+  "Este mês",
+  "Exportar a produtividade",
+  "Fora do prazo",
+  "Mediana (h)",
+  "Mês passado",
+  "No prazo",
+  "P90 (h)",
+  "Produtividade",
+  "Produtividade dos laudos",
+  "Produtividade…",
+  "Retificações"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -6732,6 +6747,13 @@
   "fora do prazo (+{})",
   "horas inválidas em “{}”",
   "vence em {}",
-  "Minhas subespecialidades ({})"
+  "Minhas subespecialidades ({})",
+  " · mediana da chegada à assinatura {} h",
+  " · {} retificação(ões)",
+  " · {}% no prazo",
+  "Agora: {} exame(s) sem laudo assinado — {} atrasado(s), {} vencendo em menos de 2 h.",
+  "Não deu para ler os laudos: {}",
+  "{} ({}%)",
+  "<b>{}</b> laudo(s) assinado(s) de {}/{}/{} a {}/{}/{}"
  ]
 }

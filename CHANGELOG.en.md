@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.53 — productivity panel (wave B6)
+- **Reports ▸ Productivity…**: signed reports by radiologist, modality, subspecialty, priority or day, with
+  amendments, median and p90 from arrival to signature and the share on time; pending now; CSV. Users who do
+  not manage users see only their own reports.
+
 ## 0.99.52 — worklist with priority, subspecialty and deadline (wave B4)
 - **Priority**, **Subspecialty**, **Report deadline** and **SLA** columns (left / due in / overdue; on time or
   late once signed), from service rules and changeable by right-click.

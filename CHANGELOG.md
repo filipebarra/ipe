@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.53 — painel de produtividade (onda B6)
+- **Laudos ▸ Produtividade…**: laudos assinados por médico, modalidade, subespecialidade, prioridade ou dia,
+  com retificações, mediana e p90 da chegada à assinatura e parte no prazo; pendentes agora; CSV. Quem não
+  gerencia usuários vê só os próprios laudos.
+
 ## 0.99.52 — lista de trabalho com prioridade, subespecialidade e prazo (onda B4)
 - Colunas **Prioridade**, **Subespecialidade**, **Prazo do laudo** e **SLA** (faltam / vence em / atrasado;
   no prazo ou fora do prazo depois de assinado), por regras do serviço e trocáveis no botão direito.

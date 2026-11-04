@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.53 — panel de productividad (ola B6)
+- **Informes ▸ Productividad…**: informes firmados por médico, modalidad, subespecialidad, prioridad o día,
+  con rectificaciones, mediana y p90 de la llegada a la firma y la parte en plazo; pendientes ahora; CSV.
+  Quien no administra usuarios ve solo sus propios informes.
+
 ## 0.99.52 — lista de trabajo con prioridad, subespecialidad y plazo (ola B4)
 - Columnas **Prioridad**, **Subespecialidad**, **Plazo del informe** y **SLA** (faltan / vence en / atrasado;
   en plazo o fuera de plazo después de firmado), por reglas del servicio y cambiables con clic derecho.

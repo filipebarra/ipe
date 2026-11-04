@@ -965,6 +965,10 @@ A prioridade sai das palavras da descrição do exame (de fábrica "URGENTE", "P
 
 O botão **Trabalho ▾**, no banco de dados, filtra e ordena pelo prazo: **sem laudo** (o que vence primeiro em cima), **atrasados**, **vencem em menos de 2 h**, **urgências e emergências** e **minhas subespecialidades** (escolha as suas uma vez em *Escolher minhas subespecialidades…*). No servidor central as regras valem para todas as estações.
 
+## Produtividade
+
+**Laudos ▸ Produtividade…** conta os laudos **assinados** no período (hoje, 7 ou 30 dias, este mês, mês passado, este ano ou datas escolhidas) e agrupa por **médico**, **modalidade**, **subespecialidade**, **prioridade** ou **dia**: quantos laudos, quantas retificações, a **mediana** e o **p90** do tempo da chegada do exame ao banco até a assinatura (em horas) e quantos saíram **no prazo** (pelas regras de prazo do item anterior). As barras mostram no prazo em verde e fora do prazo em laranja. Em cima, o que está **pendente agora**: exames sem laudo assinado, atrasados e vencendo em menos de 2 h. **Exportar CSV…** leva a tabela para a planilha. Quem não gerencia usuários vê só os próprios laudos. Um laudo conta como um laudo (sem pesos por modalidade).
+
 ## Filtros de mamografia
 
 O botão **Mama ▾**, ao lado de **Colunas ▾** no banco de dados, aplica filtros prontos e mostra as colunas que eles usam: **BI-RADS 0**, **3**, **4 e 5**, **6**; **mamas densas** (ACR c e d) ou não densas; **mamografias sem laudo assinado**; **rastreamento** ou **diagnóstica** (pela descrição do exame); **busca ativa aberta** ou **que retornou**. As colunas **BI-RADS** e **Densidade** vêm do laudo BI-RADS assinado mais recente do exame; **Busca ativa**, do pedido do exame. Como toda coluna, aceitam também o filtro digitado e o filtro por valores.
