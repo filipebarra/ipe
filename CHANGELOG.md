@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.58 — estado salvo da análise
+- O exame **reabre como você deixou**: layout, séries, corte, janela, zoom, pan, giro, cores, quadro ativo,
+  anteriores (ligados de novo), painéis e os parâmetros da dinâmica (religa num clique). Por usuário, só no
+  Ipê (no servidor central para todas as estações).
+- **Exibir ▸ Estado da análise**: reabrir, voltar ao de fábrica, usar a montagem do exame anterior ou abri-lo
+  ao lado como estava. Configurações ▸ Visualizador ▸ Estado da análise ao abrir.
+
 ## 0.99.57 — PDF e imagens anexados ao exame
 - Arrastar um **PDF** ou uma **imagem** sobre o exame aberto, ou no banco de dados com um exame selecionado
   (com confirmação), ou o botão direito ▸ **Anexar documento…**: vira DICOM dentro do exame (PDF encapsulado

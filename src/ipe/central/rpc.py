@@ -60,6 +60,8 @@ RPC_METHODS: dict[str, str] = {
     # 0.99.56: perfil da estação e atualizações (tratados no próprio servidor, com a sessão de quem pede)
     "perfil_da_estacao": "", "atualizacoes_todas": "", "atualizacao_promover": "users",
     "atualizacao_retirar": "users",
+    # 0.99.58: estado salvo da análise (o usuário vem da sessão, no próprio servidor)
+    "salvar_estado": "view", "estado": "view", "esquecer_estado": "view", "estados_anteriores": "view",
 }
 
 # 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame

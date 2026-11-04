@@ -440,6 +440,18 @@ Metade do campo de uma mamografia é ar. Enquadrar a imagem inteira é enquadrar
 
 Quando a série de um quadro não existe no exame, o quadro diz **Série não encontrada** com o que procurou, e a barra de estado conta quantos faltaram. A reconstrução que o protocolo pede ao abrir não faz pergunta: volume acima do limite de memória (Configurações ▸ Sistema ▸ Desempenho) fica de fora, com aviso. Com o exame em várias telas, a etapa é da estação: passar de etapa numa passa em todas. Os protocolos feitos antes da 0.88 continuam valendo e viram protocolos de uma etapa ao salvar a aba.
 
+### Estado salvo da análise
+
+Ao fechar o exame (pelo X da aba, ao trocar de exame ou ao sair do programa), o Ipê guarda **como ele estava**, para cada usuário: o layout, o que estava em cada quadro — a série, de qual exame, o corte, a fase e a vista (janela, zoom, pan, inversão, cores, giro, espelhos e filtro) —, o quadro ativo, a ferramenta do botão esquerdo, os anteriores trazidos para a aba (que voltam ligados pelo alinhamento salvo) e os painéis de Medidas e Lesões. Na reabertura, o exame volta assim, e a barra de status diz de quando é o estado. A dinâmica e o MPR não se refazem sozinhos — a conta pode demorar —: **Exibir ▸ Estado da análise ▸ Religar a dinâmica como estava** abre a janela da dinâmica com as mesmas fases e parâmetros, e o MPR religa no botão.
+
+**Exibir ▸ Estado da análise** também tem:
+- **Reabrir como deixei** — refaz o estado a qualquer momento;
+- **Voltar ao arranjo de fábrica** — esquece o estado deste exame (e não guarda ao fechar desta vez);
+- **Usar a montagem do exame anterior** — num controle: o layout e as vistas do exame anterior do paciente, cada quadro com a série equivalente deste exame (mesma modalidade e descrição);
+- **Abrir o anterior ao lado, como estava** — o anterior entra na aba com os quadros dele como você deixou, ao lado dos deste exame.
+
+**Configurações ▸ Visualizador ▸ Estado da análise ao abrir…**: reabrir como deixei (de fábrica), perguntar ou abrir como de fábrica. O estado fica só no Ipê — no banco deste computador ou, no modo cliente, no servidor central, para todas as estações —, não vai junto com o exame. Não vale quando o exame abre com séries escolhidas, por um protocolo com etapas, repartido entre monitores, no modo mamografia ou em reunião: aí quem manda é o protocolo.
+
 ### A memória do layout
 
 Fora da mamografia, o programa aprende a grade sem que ninguém configure: você ajusta o layout de uma ressonância de ombro, e na próxima ressonância de ombro ela abre assim. A etiqueta é modalidade + as palavras da descrição que importam — lado, contraste e números não contam.

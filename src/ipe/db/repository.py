@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 from ipe.db.models import (
     AeIdentity, AnnotationRecord, AuditLog, AutomationRule, CaseList, DeletionLog, Diagnosis, JobRun, CaseListItem, Comment, Instance, KeyImage, Patient, Series, Study,
     DicomNode, PrintJobRecord, PrintSendRecord, SavedFilm, SeriesGroup, StudyRegistration, User, AppSetting, Lesion, LesionTrack, Report,
-    RevisaoIA, AchadoIA, BuscaAtiva,
+    RevisaoIA, AchadoIA, BuscaAtiva, EstadoAnalise,
 )
 from ipe.db.session import Database
 
@@ -2385,6 +2385,62 @@ class Repository:
                             "retificacao": r.status == "amended", "horas": horas,
                             "no_prazo": res["sla_estado"] == "no_prazo"})
         return out
+
+    # ------------------------------------------------------------------ estado salvo da análise (0.99.58)
+    def salvar_estado(self, study_uid: str, dados: dict, usuario: str = "") -> int:
+        import json
+        with self.db.session() as s:
+            e = s.scalar(select(EstadoAnalise).where(EstadoAnalise.study_uid == study_uid,
+                                                     EstadoAnalise.usuario == (usuario or "")))
+            if e is None:
+                e = EstadoAnalise(study_uid=study_uid, usuario=usuario or "")
+                s.add(e)
+            st = s.scalar(select(Study).options(selectinload(Study.patient)).where(Study.study_uid == study_uid))
+            if st is not None:
+                e.patient_id, e.study_date, e.modalidades = st.patient.patient_id, st.study_date, st.modalities
+            e.dados = json.dumps(dados or {}, ensure_ascii=False, default=str)
+            e.atualizado_em = datetime.now()
+            s.flush()
+            return e.id
+
+    def estado(self, study_uid: str, usuario: str = "") -> dict | None:
+        """{"dados", "atualizado_em"} do exame para o usuário, ou None."""
+        import json
+        with self.db.session() as s:
+            e = s.scalar(select(EstadoAnalise).where(EstadoAnalise.study_uid == study_uid,
+                                                     EstadoAnalise.usuario == (usuario or "")))
+            if e is None:
+                return None
+            try:
+                dados = json.loads(e.dados or "{}")
+            except ValueError:
+                dados = {}
+            return {"dados": dados, "atualizado_em": e.atualizado_em.strftime("%Y-%m-%d %H:%M"),
+                    "study_uid": e.study_uid}
+
+    def esquecer_estado(self, study_uid: str, usuario: str = "") -> bool:
+        with self.db.session() as s:
+            e = s.scalar(select(EstadoAnalise).where(EstadoAnalise.study_uid == study_uid,
+                                                     EstadoAnalise.usuario == (usuario or "")))
+            if e is None:
+                return False
+            s.delete(e)
+            return True
+
+    def estados_anteriores(self, study_uid: str, usuario: str = "") -> list[dict]:
+        """Os exames anteriores do mesmo paciente com estado salvo (do mais recente ao mais antigo):
+        [{study_uid, study_date, modalidades}]."""
+        with self.db.session() as s:
+            st = s.scalar(select(Study).options(selectinload(Study.patient)).where(Study.study_uid == study_uid))
+            if st is None:
+                return []
+            q = (select(EstadoAnalise).where(EstadoAnalise.patient_id == st.patient.patient_id,
+                                             EstadoAnalise.usuario == (usuario or ""),
+                                             EstadoAnalise.study_uid != study_uid,
+                                             EstadoAnalise.study_date <= (st.study_date or "99999999"))
+                 .order_by(EstadoAnalise.study_date.desc(), EstadoAnalise.atualizado_em.desc()))
+            return [{"study_uid": e.study_uid, "study_date": e.study_date, "modalidades": e.modalidades}
+                    for e in s.scalars(q)]
 
     def report_counts(self, study_uids: list[str]) -> dict[str, str]:
         """Estado do laudo por estudo: "final" se houver assinado, senão "draft"."""

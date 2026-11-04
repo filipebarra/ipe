@@ -162,6 +162,17 @@ class CentralServer:
         if method == "perfil_da_estacao":
             comp = str(args[0] if args else kwargs.get("computador", "") or "")
             return self.repo.perfil_da_estacao(comp, s.username, s.role)
+        if method in ("salvar_estado", "estado", "esquecer_estado", "estados_anteriores"):
+            # cada um tem o seu: o usuário é sempre o da sessão, nunca o que o cliente mandou
+            uid = str(args[0] if args else kwargs.get("study_uid", "") or "")
+            if not s.can("view"):
+                raise PermissionError("seu perfil não permite (view)")
+            if uid and not self.pode_ver(s, uid):
+                raise PermissionError("o exame está no banco pessoal de outro usuário")
+            if method == "salvar_estado":
+                dados = args[1] if len(args) > 1 else kwargs.get("dados", {})
+                return self.repo.salvar_estado(uid, dados, s.username)
+            return getattr(self.repo, method)(uid, s.username)
         if method == "atualizacoes_todas":
             return self.atualizacoes.todas()
         if method in ("atualizacao_promover", "atualizacao_retirar"):

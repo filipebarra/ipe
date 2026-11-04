@@ -32,6 +32,7 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         ("Texto e marcas sobre a imagem…", "p:aparencia", ""),
         ("Sincronização automática…", "p:sincronia", ""),
         ("Fechar o exame sozinho…", "f:abrir_fechar_sozinho", ""),
+        ("Estado da análise ao abrir…", "f:abrir_estado_ao_abrir", ""),
     ]),
     ("Protocolos de exame", [
         ("Protocolos de exibição…", "p:protocolos", ""),

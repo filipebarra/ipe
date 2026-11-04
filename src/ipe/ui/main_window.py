@@ -318,6 +318,9 @@ class MainWindow(QMainWindow):
         mon = QMenu("Mover estudo atual para o monitor", j)
         mon.aboutToShow.connect(lambda m=mon: self._fill_monitor_menu(m))
         v.addMenu(mon)
+        est = QMenu("Estado da análise", j)                      # 0.99.58
+        est.aboutToShow.connect(lambda m=est: self._encher_menu_estado(m))
+        v.addMenu(est)
         if janela is None:
             self.monitor_menu = mon
         voltar_todos = QAction("Trazer todos os estudos de volta", j)
@@ -348,7 +351,7 @@ class MainWindow(QMainWindow):
         banco.setShortcut(QKeySequence("Ctrl+B"))
         banco.triggered.connect(self.ir_para_o_banco)
         v.addAction(banco)
-        v._com_exame = [lay.menuAction(), mon.menuAction()]
+        v._com_exame = [lay.menuAction(), mon.menuAction(), est.menuAction()]
         v._com_monitor = [voltar_todos]
         v._sep_exame, v._sep_banco, v._banco = sep_exame, sep_banco, banco
         v._janela = janela
@@ -878,6 +881,80 @@ class MainWindow(QMainWindow):
     def _ultimo_uso(self, t: float) -> None:
         self._ultimo_uso_local = t
         _USO_GLOBAL[0] = t
+
+    def _encher_menu_estado(self, menu) -> None:
+        """Exibir ▸ Estado da análise (0.99.58)."""
+        from ipe.ui.viewer import estado_analise as EA
+        menu.clear()
+        tab = self.aba_atual()
+        if not isinstance(tab, ViewerTab):
+            a = menu.addAction("Abra um exame")
+            a.setEnabled(False)
+            return
+        e = tab.estado_salvo()
+        a = menu.addAction("Reabrir como deixei" + (f" ({e['atualizado_em'][8:10]}/{e['atualizado_em'][5:7]})"
+                                                    if e and len(e.get("atualizado_em", "")) >= 10 else ""),
+                           lambda: tab.restaurar_estado_ao_abrir(forcar=True))
+        a.setEnabled(bool(e))
+        a = menu.addAction("Religar a dinâmica como estava", tab.religar_dinamica_salva)
+        a.setEnabled(bool(e and (e.get("dados") or {}).get("dinamica")))
+        menu.addAction("Voltar ao arranjo de fábrica (esquecer o estado deste exame)", tab.esquecer_estado)
+        menu.addSeparator()
+        try:
+            anteriores = self.repo.estados_anteriores(tab.study_uid, EA.usuario_atual())
+        except Exception:  # noqa: BLE001
+            log.exception("estados anteriores")
+            anteriores = []
+        sub1 = menu.addMenu("Usar a montagem do exame anterior")
+        sub2 = menu.addMenu("Abrir o anterior ao lado, como estava")
+        for x in anteriores[:12]:
+            d = x.get("study_date", "")
+            rot = (f"{d[6:8]}/{d[4:6]}/{d[:4]}" if len(d) == 8 else d) + f"  {x.get('modalidades', '')}"
+            sub1.addAction(rot, lambda u=x["study_uid"]: self.usar_estado_de(tab, u, fundir=False))
+            sub2.addAction(rot, lambda u=x["study_uid"]: self.usar_estado_de(tab, u, fundir=True))
+        sub1.setEnabled(bool(anteriores))
+        sub2.setEnabled(bool(anteriores))
+
+    def usar_estado_de(self, tab, study_uid: str, fundir: bool = False) -> int:
+        """Carrega (ou funde ao lado) o estado salvo de outro exame do paciente nesta aba."""
+        from ipe.ui.viewer import estado_analise as EA
+        e = self.repo.estado(study_uid, EA.usuario_atual())
+        if not e:
+            return 0
+        if fundir:
+            n = EA.fundir_anterior(tab, study_uid, e["dados"])
+            self.mostrar_status(f"Anterior aberto ao lado, como estava: {n} quadro(s).", tab)
+        else:
+            n = EA.montagem_do_anterior(tab, e["dados"])
+            self.mostrar_status(f"Montagem do anterior aplicada: {n} quadro(s) com a série equivalente.", tab)
+        return n
+
+    def abrir_estado_ao_abrir(self):
+        """Configurações ▸ Visualizador ▸ Estado da análise ao abrir (0.99.58)."""
+        from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QFormLayout
+        from ipe.ui.viewer import estado_analise as EA
+        d = QDialog(self)
+        d.setWindowTitle("Estado da análise")
+        f = QFormLayout(d)
+        c = QComboBox()
+        for k, v in EA.AO_ABRIR.items():
+            c.addItem(v, k)
+        c.setCurrentIndex(max(0, c.findData(self.settings.get(EA.CHAVE_AO_ABRIR, "sempre") or "sempre")))
+        nota = QLabel("Ao fechar, o Ipê guarda como o exame estava (layout, séries, corte, janela, zoom, painéis, "
+                      "parâmetros da dinâmica), para cada usuário. Não vale quando o exame abre por um protocolo com "
+                      "etapas, repartido entre monitores, no modo mamografia ou em reunião.")
+        nota.setWordWrap(True)
+        f.addRow(nota)
+        f.addRow("Exame com estado salvo:", c)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.accepted.connect(d.accept)
+        bb.rejected.connect(d.reject)
+        f.addRow(bb)
+        d._c = c
+        if d.exec():
+            self.settings.set("viewer.estado_ao_abrir", c.currentData())
+            self.settings.save()
+        return d
 
     def abrir_fechar_sozinho(self):
         """Configurações ▸ Visualizador ▸ Fechar o exame sozinho…"""
@@ -1420,6 +1497,7 @@ class MainWindow(QMainWindow):
                 tab.guardar_layout()
             except Exception:  # noqa: BLE001 - lembrar o layout não pode impedir fechar o exame
                 log.debug("não consegui guardar o layout deste exame", exc_info=True)
+            tab.guardar_estado()                      # 0.99.58: o estado da análise (nunca levanta erro)
         # exame repartido entre monitores: as abas vão juntas. Zerar o grupo antes de fechar os
         # irmãos é o que impede a volta infinita.
         grupo = [t for t in (getattr(tab, "monitor_group", None) or []) if t is not tab]
@@ -1920,6 +1998,11 @@ class MainWindow(QMainWindow):
             tab.anon_action.setChecked(True)
             tab.anon_action.setEnabled(False)
             self._privacy_restore.append(tab)   # volta a mostrar quando a reunião acabar
+        else:
+            try:                               # 0.99.58: reabrir como ele deixou
+                tab.restaurar_estado_ao_abrir()
+            except Exception:  # noqa: BLE001
+                log.exception("restaurar o estado da análise")
         return tab
 
     def export_current(self) -> None:
@@ -3566,6 +3649,7 @@ class MainWindow(QMainWindow):
                 t.guardar_layout()
             except Exception:  # noqa: BLE001
                 log.debug("não consegui guardar o layout ao sair", exc_info=True)
+            t.guardar_estado()                        # 0.99.58
         if self.tray is not None:
             self.tray.hide()
         self.pacs_window.close()

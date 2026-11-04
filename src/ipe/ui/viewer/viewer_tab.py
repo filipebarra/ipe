@@ -4908,6 +4908,80 @@ class ViewerTab(OncoMixin, QWidget):
             self._activate(self.viewports[0])
         self.update_reference_lines()
 
+    # ------------------------------------------------- estado salvo da análise (0.99.58)
+    def estado_pode(self) -> bool:
+        """Reabrir e guardar o estado só quando quem montou o exame foi ele — não um protocolo, uma escolha de
+        séries, a divisão entre monitores ou a mamografia."""
+        return not (self.series_filter or self.plano_do_monitor or self.mg_monitor is not None
+                    or self.mg_session is not None or self.exib is not None or self.case_label
+                    or getattr(self, "_nao_guardar_estado", False))
+
+    def guardar_estado(self) -> bool:
+        from ipe.ui.viewer import estado_analise as EA
+        if not self.estado_pode():
+            return False
+        try:
+            dados = EA.capturar(self)
+            if not EA.vale_a_pena(dados):
+                return False
+            self.repo.salvar_estado(self.study_uid, dados, EA.usuario_atual())
+            return True
+        except Exception:  # noqa: BLE001
+            log.exception("guardar o estado da análise")
+            return False
+
+    def estado_salvo(self) -> dict | None:
+        from ipe.ui.viewer import estado_analise as EA
+        try:
+            return self.repo.estado(self.study_uid, EA.usuario_atual())
+        except Exception:  # noqa: BLE001
+            log.exception("ler o estado da análise")
+            return None
+
+    def restaurar_estado_ao_abrir(self, forcar: bool = False) -> bool:
+        """Ao abrir: reabre como ele deixou (Configurações ▸ Visualizador ▸ Estado da análise)."""
+        from ipe.ui.viewer import estado_analise as EA
+        modo = str(self.settings.get(EA.CHAVE_AO_ABRIR, "sempre") or "sempre")
+        if not forcar and (modo == "nunca" or not self.estado_pode()):
+            return False
+        e = self.estado_salvo()
+        if not e or not EA.vale_a_pena(e.get("dados") or {}):
+            return False
+        quando = e.get("atualizado_em", "")
+        quando_txt = f"{quando[8:10]}/{quando[5:7]} {quando[11:16]}" if len(quando) >= 16 else quando
+        if not forcar and modo == "perguntar" and QMessageBox.question(
+                self, "Estado da análise", f"Reabrir este exame como você deixou ({quando_txt})?") != QMessageBox.Yes:
+            return False
+        avisos = EA.restaurar(self, e["dados"])
+        self._estado_restaurado = e
+        dica = []
+        if (e["dados"].get("dinamica") or None):
+            dica.append("a dinâmica religa em Exibir ▸ Estado da análise")
+        if (e["dados"].get("mpr") or None):
+            dica.append("o MPR estava ligado (botão MPR)")
+        self.status_message.emit(f"Reaberto como você deixou em {quando_txt}"
+                                 + ("; " + "; ".join(dica + avisos) if dica or avisos else "") + ".")
+        return True
+
+    def esquecer_estado(self) -> None:
+        """Volta ao arranjo de fábrica e não guarda o estado desta vez."""
+        from ipe.ui.viewer import estado_analise as EA
+        try:
+            self.repo.esquecer_estado(self.study_uid, EA.usuario_atual())
+        except Exception:  # noqa: BLE001
+            log.exception("esquecer o estado")
+        self._nao_guardar_estado = True
+        self._estado_restaurado = None
+        self._initial_hanging()
+        self.status_message.emit("Arranjo de fábrica; o estado deste exame foi esquecido.")
+
+    def religar_dinamica_salva(self) -> bool:
+        e = getattr(self, "_estado_restaurado", None) or self.estado_salvo() or {}
+        params = (e.get("dados") or {}).get("dinamica")
+        if not params:
+            return False
+        return self.open_dynamic(previous=params)
+
     # ------------------------------------------------- memória do layout (sem configurar nada)
     def etiqueta_do_layout(self) -> str:
         """Que “tipo de exame” é este, para a memória do layout. Vazio = não lembrar."""

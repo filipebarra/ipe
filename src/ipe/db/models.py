@@ -355,6 +355,23 @@ class BuscaAtiva(Base):
     atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
 
+class EstadoAnalise(Base):
+    """Como o exame estava quando foi fechado (0.99.58, item 6 do backlog: estado salvo da análise).
+
+    Um por exame e por usuário ("" sem login): layout, o que estava em cada quadro (série, corte, janela, zoom,
+    pan, giro, espelho, cores, filtro), o quadro ativo, a ferramenta, os anteriores trazidos para a aba, os
+    painéis abertos e os parâmetros da dinâmica. Fica só no Ipê (no servidor central, para todas as estações)."""
+    __tablename__ = "estado_analise"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    study_uid: Mapped[str] = mapped_column(String(64), index=True)
+    usuario: Mapped[str] = mapped_column(String(64), default="", index=True)
+    patient_id: Mapped[str] = mapped_column(String(64), default="", index=True)
+    study_date: Mapped[str] = mapped_column(String(8), default="")
+    modalidades: Mapped[str] = mapped_column(String(64), default="")
+    dados: Mapped[str] = mapped_column(Text, default="{}")
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
 class SeriesGroup(Base):
     """Séries agrupadas pelo usuário (ex.: fases de uma RM dinâmica, uma série por fase)."""
     __tablename__ = "series_group"

@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.58 — saved analysis state
+- The study **reopens as you left it**: layout, series, slice, window, zoom, pan, rotation, colors, active
+  viewport, priors (linked again), panels and the dynamic parameters (back on with one click). Per user, only in
+  Ipê (on the central server for all workstations).
+- **View ▸ Analysis state**: reopen, back to factory, use the prior study's arrangement or open it alongside as
+  it was. Settings ▸ Viewer ▸ Analysis state on opening.
+
 ## 0.99.57 — PDFs and images attached to the study
 - Drag a **PDF** or an **image** onto the open study, or in the database with a study selected (with
   confirmation), or right-click ▸ **Attach a document…**: it becomes DICOM inside the study (encapsulated PDF

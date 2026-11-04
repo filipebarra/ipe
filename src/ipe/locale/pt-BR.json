@@ -5526,7 +5526,22 @@
   "Salvar o PDF",
   "Salvar o PDF…",
   "📄 Documentos do exame…",
-  "📎 Anexar documento (PDF ou imagem)…"
+  "📎 Anexar documento (PDF ou imagem)…",
+  "Abra um exame",
+  "Abrir como de fábrica",
+  "Abrir o anterior ao lado, como estava",
+  "Ao fechar, o Ipê guarda como o exame estava (layout, séries, corte, janela, zoom, painéis, parâmetros da dinâmica), para cada usuário. Não vale quando o exame abre por um protocolo com etapas, repartido entre monitores, no modo mamografia ou em reunião.",
+  "Arranjo de fábrica; o estado deste exame foi esquecido.",
+  "Estado da análise",
+  "Estado da análise ao abrir…",
+  "Exame com estado salvo:",
+  "Reabrir como deixei",
+  "Religar a dinâmica como estava",
+  "Usar a montagem do exame anterior",
+  "Voltar ao arranjo de fábrica (esquecer o estado deste exame)",
+  "a dinâmica religa em Exibir ▸ Estado da análise",
+  "o MPR estava ligado (botão MPR)",
+  "um exame anterior não abriu"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -6946,6 +6961,13 @@
   "{}: não consegui ler a imagem ({})",
   "{}: não parece um PDF",
   "📄 Documentos do exame ({} série(s))…",
-  "{} anexo(s) gravado(s) no exame."
+  "{} anexo(s) gravado(s) no exame.",
+  "Anterior aberto ao lado, como estava: {} quadro(s).",
+  "Montagem do anterior aplicada: {} quadro(s) com a série equivalente.",
+  "Reaberto como você deixou em {}",
+  "Reaberto como você deixou em {}.",
+  "Reabrir este exame como você deixou ({})?",
+  "{} série(s) não estão mais no exame",
+  "Reabrir como deixei ({})"
  ]
 }
