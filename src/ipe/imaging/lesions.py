@@ -188,6 +188,77 @@ def collect_cells(lesions: list[dict], annotations: list[dict], criterion: str) 
     return cells
 
 
+# ------------------------------------------------------------------ tempo de duplicação (0.99.45)
+def _dias(a: str, b: str) -> int | None:
+    from datetime import date
+    try:
+        da = date(int(a[:4]), int(a[4:6]), int(a[6:8]))
+        db = date(int(b[:4]), int(b[4:6]), int(b[6:8]))
+    except (TypeError, ValueError, IndexError):
+        return None
+    return (db - da).days
+
+
+def tempo_de_duplicacao(v1: float, v2: float, dias: float, por_diametro: bool = False) -> float | None:
+    """Dias para o volume dobrar, supondo crescimento exponencial: TD = t·ln2 / ln(V2/V1).
+
+    Com diâmetros (`por_diametro`), supõe esfera (V ∝ d³): TD = t·ln2 / (3·ln(d2/d1)).
+    Sem crescimento (V2 ≤ V1), sem intervalo ou valor ≤ 0 devolve None — "não se aplica", nunca
+    um número enorme ou negativo (a AW usa N/A nos mesmos casos)."""
+    if v1 is None or v2 is None or dias is None or dias <= 0 or v1 <= 0 or v2 <= v1:
+        return None
+    r = math.log(v2 / v1)
+    if por_diametro:
+        r *= 3.0
+    return dias * math.log(2.0) / r if r > 0 else None
+
+
+def duplicacoes(lesions: list[dict], studies: list[tuple[str, str]], cells: dict) -> dict:
+    """(lesão, exame) -> (dias ou None, texto curto, explicação), contra o exame anterior com medida
+    da mesma lesão. Usa o volume (mL) quando os dois exames têm; senão, o maior diâmetro."""
+    out: dict = {}
+    ordem = sorted(studies, key=lambda s: (s[1] or "", s[0]))
+    for le in lesions:
+        anterior = None
+        for uid, data in ordem:
+            c = cells.get((le["id"], uid))
+            if c is None:
+                continue
+            if c.status == "absent":
+                anterior = None                     # sumiu: o crescimento recomeça do zero
+                continue
+            if c.ml is None and c.long_mm is None:
+                continue
+            if anterior is not None:
+                (u0, d0, c0) = anterior
+                dias = _dias(d0, data)
+                if c.ml is not None and c0.ml is not None:
+                    td, base = tempo_de_duplicacao(c0.ml, c.ml, dias), "volume"
+                    v0, v1 = f"{c0.ml:.2f} mL", f"{c.ml:.2f} mL"
+                else:
+                    a0 = c0.long_mm if c0.long_mm is not None else None
+                    a1 = c.long_mm if c.long_mm is not None else None
+                    td = tempo_de_duplicacao(a0, a1, dias, por_diametro=True) if a0 and a1 else None
+                    base = "diâmetro (supondo esfera)"
+                    v0 = f"{a0:.1f} mm" if a0 else "?"
+                    v1 = f"{a1:.1f} mm" if a1 else "?"
+                if dias is None or dias <= 0:
+                    expl = "Tempo de duplicação: sem intervalo entre as datas."
+                    curto = ""
+                elif td is None:
+                    curto = "TD não se aplica"
+                    expl = (f"Tempo de duplicação não se aplica: não cresceu ({v0} → {v1} em {dias} dias, "
+                            f"pelo {base}).")
+                else:
+                    curto = f"TD {td:.0f} d"
+                    expl = (f"Tempo de duplicação {td:.0f} dias: {v0} → {v1} em {dias} dias, pelo {base}. "
+                            "Supõe crescimento exponencial; medidas de diâmetro com 1 mm de erro mudam muito "
+                            "o resultado em lesões pequenas.")
+                out[(le["id"], uid)] = (td, curto, expl)
+            anterior = (uid, data, c)
+    return out
+
+
 @dataclass
 class StudyEval:
     study_uid: str

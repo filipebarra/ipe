@@ -37,6 +37,83 @@ def plane_description(plane: MPRPlane) -> str:
     return f"MPR {plane.name}{slab}"
 
 
+#: limite de itens na Source Image Sequence de cada imagem: uma reconstrução de 600 cortes
+#: referenciando os 600 em cada uma das 600 imagens daria dezenas de MB só de referência
+MAX_FONTES = 300
+
+
+def _versao() -> str:
+    try:
+        from ipe import __version__
+        return str(__version__)
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def parametros_do_plano(plane, src=None) -> str:
+    """Os parâmetros que produziram a série derivada, em texto (0.99.45, plano AW item 13): quem
+    abre a série em outro programa sabe o que foi feito sem ter de adivinhar pelo nome."""
+    proprio = getattr(plane, "parametros", None)
+    partes = []
+    if callable(proprio):
+        try:
+            txt = proprio()
+        except Exception:  # noqa: BLE001
+            txt = ""
+        if txt:
+            partes.append(txt)
+    else:
+        nome = getattr(plane, "name", "") or ""
+        if nome:
+            partes.append(f"plano {nome}")
+        slab = float(getattr(plane, "slab_mm", 0) or 0)
+        if slab > 0:
+            partes.append(f"espessura {slab:g} mm ({SLAB_MODES.get(plane.mode, plane.mode)})")
+        passo = float(getattr(plane, "step_mm", 0) or 0)
+        if passo > 0:
+            partes.append(f"passo {passo:.2f} mm")
+        rs, cs = float(getattr(plane, "row_spacing", 0) or 0), float(getattr(plane, "col_spacing", 0) or 0)
+        if rs > 0 and cs > 0:
+            partes.append(f"pixel {rs:.3f} x {cs:.3f} mm")
+        ori = getattr(plane, "orientation", None)
+        if ori is not None:
+            try:
+                partes.append("orientacao " + " ".join(f"{float(v):.3f}" for v in list(ori)[:6]))
+            except (TypeError, ValueError):
+                pass
+    if src is not None:
+        num, desc = src.get("SeriesNumber", ""), str(src.get("SeriesDescription", "") or "")
+        if num != "" or desc:
+            partes.append(f"origem: serie {num} {desc}".strip())
+    return "; ".join(partes)
+
+
+def descricao_da_derivacao(desc: str, params: str) -> str:
+    v = _versao()
+    txt = f"Ipe{(' ' + v) if v else ''}: {desc}" + (f"; {params}" if params else "")
+    return txt[:1024]
+
+
+def sequencia_de_origem(sops: list, sop_class: str, maximo: int = MAX_FONTES):
+    """Source Image Sequence com as imagens de origem (até `maximo`, espaçadas por igual)."""
+    from pydicom.sequence import Sequence
+    uniq = list(dict.fromkeys((str(u), int(f or 0)) for u, f in sops if u))
+    if not uniq or not sop_class:
+        return None, 0
+    if len(uniq) > maximo:
+        passo = len(uniq) / maximo
+        uniq = [uniq[int(i * passo)] for i in range(maximo)]
+    itens = []
+    for uid, quadro in uniq:
+        it = pydicom.Dataset()
+        it.ReferencedSOPClassUID = sop_class
+        it.ReferencedSOPInstanceUID = uid
+        if quadro:
+            it.ReferencedFrameNumber = quadro + 1
+        itens.append(it)
+    return Sequence(itens), len(uniq)
+
+
 def plane_datasets(plane: MPRPlane, indices: list[int] | None = None, description: str | None = None,
                    series_number: int = 900):
     """Gera os datasets (um por corte) da reconstrução, copiando os dados do paciente/estudo."""
@@ -58,6 +135,15 @@ def plane_datasets(plane: MPRPlane, indices: list[int] | None = None, descriptio
         slope = max((vmax - vmin) / 60000.0, 1e-6)
         intercept = vmin + 30000 * slope
     thickness = max(plane.slab_mm, plane.step_mm)
+    params = parametros_do_plano(plane, src)
+    sops = list(getattr(plane.vol, "origem_sops", None) or getattr(plane, "origem_sops", None) or [])
+    if not sops and src.get("SOPInstanceUID"):
+        sops = [(str(src.SOPInstanceUID), 0)]
+    total_fontes = len(dict.fromkeys(sops))
+    fontes, n_fontes = sequencia_de_origem(sops, str(src.get("SOPClassUID", "") or ""))
+    if fontes is not None and n_fontes < total_fontes:
+        params += f"; Source Image Sequence com {n_fontes} de {total_fontes} imagens"
+    derivacao = descricao_da_derivacao(desc, params)
     for n, i in enumerate(idx, 1):
         img = plane.image(i)
         px = img.pixels
@@ -78,7 +164,9 @@ def plane_datasets(plane: MPRPlane, indices: list[int] | None = None, descriptio
         ds.ImageType = getattr(plane, "image_type", None) or (
             ["DERIVED", "SECONDARY", "MPR"] if plane.slab_mm == 0 else
             ["DERIVED", "SECONDARY", "MPR", SLAB_MODES.get(plane.mode, plane.mode).upper()[:16]])
-        ds.DerivationDescription = f"Ipe: {desc}"
+        ds.DerivationDescription = derivacao
+        if fontes is not None:
+            ds.SourceImageSequence = fontes
         ds.ContentDate, ds.ContentTime = now.strftime("%Y%m%d"), now.strftime("%H%M%S")
         ds.ImagePositionPatient = [f"{v:.4f}" for v in plane.position(i)]
         ds.ImageOrientationPatient = [f"{v:.6f}" for v in plane.orientation]
@@ -132,7 +220,8 @@ def save_plane_series(plane: MPRPlane, db, storage_root: Path, indices: list[int
 
 def save_secondary_capture(rgb: np.ndarray, source_path: str, db, storage_root: Path,
                            description: str = "Gráfico", series_number: int = 950,
-                           extra: dict | None = None, privado: dict | None = None) -> tuple[str, list[str]]:
+                           extra: dict | None = None, privado: dict | None = None,
+                           parametros: str = "") -> tuple[str, list[str]]:
     """Grava uma imagem RGB (H×W×3, uint8) como Secondary Capture no estudo do arquivo de origem
     e importa no banco. Devolve (SeriesInstanceUID, [SOPInstanceUID]).
     `extra`: atributos a mais (ex.: BurnedInAnnotation = "YES" quando a imagem traz o nome escrito).
@@ -157,6 +246,12 @@ def save_secondary_capture(rgb: np.ndarray, source_path: str, db, storage_root: 
     ds.SeriesInstanceUID, ds.SeriesNumber, ds.SeriesDescription = series_uid, series_number, description[:64]
     ds.InstanceNumber = 1
     ds.ImageType = ["DERIVED", "SECONDARY"]
+    # de onde veio e com que parâmetros (0.99.45): a captura também é série derivada
+    ds.DerivationDescription = descricao_da_derivacao(description, parametros)
+    fontes, _n = sequencia_de_origem([(str(src.get("SOPInstanceUID", "") or ""), 0)],
+                                     str(src.get("SOPClassUID", "") or ""))
+    if fontes is not None:
+        ds.SourceImageSequence = fontes
     ds.ContentDate, ds.ContentTime = now.strftime("%Y%m%d"), now.strftime("%H%M%S")
     rgb = np.ascontiguousarray(rgb[..., :3], dtype=np.uint8)
     ds.Rows, ds.Columns = rgb.shape[:2]

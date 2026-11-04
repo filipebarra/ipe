@@ -806,7 +806,10 @@ class MapPlane:
 
     def __init__(self, maps: DynamicMaps, kind: str):
         self.maps, self.kind = maps, kind
-        self.vol = SimpleNamespace(source_path=maps.source_path)
+        pre = maps.dset.phases[maps.pre] if maps.dset.phases else []
+        self.vol = SimpleNamespace(source_path=maps.source_path,
+                                   origem_sops=[(f.sop_uid, int(f.frame_index or 0)) for f in pre
+                                                if getattr(f, "sop_uid", "")])
         self.axis = f"dyn-{kind}-{id(maps)}"
         self.name = MAPS[kind][0]
         self.label = f"{self.name} (dinâmica)"
@@ -826,6 +829,20 @@ class MapPlane:
 
     def set_slab(self, *_a) -> None:
         pass
+
+    def parametros(self) -> str:
+        """O que fez este mapa (0.99.45): fases e limiares, para a série gravada dizer."""
+        m = self.maps
+        partes = [f"mapa {self.name}", f"fases: pre {m.pre + 1}, precoce {m.early + 1}, tardia {m.late + 1} "
+                  f"de {len(m.dset.phases)}"]
+        for nome, attr in (("limiar", "threshold_pct"), ("ruido", "noise_pct"), ("rapido", "rapido_pct"),
+                           ("tardio", "tardio_pct"), ("sinal minimo", "sinal_min_pct")):
+            v = getattr(m, attr, None)
+            if v is not None:
+                partes.append(f"{nome} {float(v):g}%")
+        if getattr(m, "relative", None) is not None:
+            partes.append("realce relativo" if m.relative else "realce absoluto")
+        return "; ".join(partes)
 
     def image(self, idx: int) -> FrameImage:
         return self.maps.image(self.kind, idx)

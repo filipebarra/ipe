@@ -297,6 +297,36 @@ class RevisaoIA(Base):
     __table_args__ = (UniqueConstraint("study_uid", "modulo"),)
 
 
+class AchadoIA(Base):
+    """Um achado proposto por uma IA, revisável um a um (0.99.46, base comum das IAs de achado).
+
+    Candidato com posição (mm, coordenadas do paciente), números com unidade, quem propôs (ferramenta,
+    modelo, versão, série) e por que aceitou a série; o estado anda de *sugerido* para *confirmado*,
+    *corrigido* ou *descartado*, com quem revisou e quando. **Nada vai sozinho ao laudo**: só o que
+    foi confirmado ou corrigido."""
+    __tablename__ = "achado_ia"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    study_uid: Mapped[str] = mapped_column(String(64), index=True)
+    series_uid: Mapped[str] = mapped_column(String(64), default="")
+    ferramenta: Mapped[str] = mapped_column(String(32), default="", index=True)
+    rotulo: Mapped[str] = mapped_column(String(32), default="")          # "N1"
+    tipo: Mapped[str] = mapped_column(String(64), default="")            # "Nódulo pulmonar"
+    local: Mapped[str] = mapped_column(String(128), default="")          # "lobo superior direito"
+    posicao: Mapped[str] = mapped_column(String(128), default="")        # JSON [x, y, z] em mm
+    numeros: Mapped[str] = mapped_column(Text, default="")               # JSON {nome: [valor, unidade]}
+    corrigidos: Mapped[str] = mapped_column(Text, default="")            # JSON, o que o médico mudou
+    modelo: Mapped[str] = mapped_column(String(128), default="")
+    versao: Mapped[str] = mapped_column(String(64), default="")
+    elegibilidade: Mapped[str] = mapped_column(Text, default="")         # por que a série serviu, avisos
+    segmento: Mapped[int] = mapped_column(Integer, default=0)            # número do segmento na SEG
+    estado: Mapped[str] = mapped_column(String(16), default="sugerido")
+    revisor: Mapped[str] = mapped_column(String(64), default="")
+    revisado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    nota: Mapped[str] = mapped_column(Text, default="")
+    lesao_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+
 class SeriesGroup(Base):
     """Séries agrupadas pelo usuário (ex.: fases de uma RM dinâmica, uma série por fase)."""
     __tablename__ = "series_group"

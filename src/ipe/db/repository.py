@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 from ipe.db.models import (
     AeIdentity, AnnotationRecord, AuditLog, AutomationRule, CaseList, DeletionLog, Diagnosis, JobRun, CaseListItem, Comment, Instance, KeyImage, Patient, Series, Study,
     DicomNode, PrintJobRecord, PrintSendRecord, SavedFilm, SeriesGroup, StudyRegistration, User, AppSetting, Lesion, LesionTrack, Report,
-    RevisaoIA,
+    RevisaoIA, AchadoIA,
 )
 from ipe.db.session import Database
 
@@ -975,6 +975,80 @@ class Repository:
             r.estado, r.editado, r.usuario, r.dados = estado, bool(editado), usuario or "", dados or ""
             r.quando = datetime.now()
             s.commit()
+
+    # ---- achados de IA revisáveis (0.99.46)
+    @staticmethod
+    def _achado_dict(a: AchadoIA) -> dict:
+        import json
+
+        def _j(t, padrao):
+            try:
+                return json.loads(t) if t else padrao
+            except ValueError:
+                return padrao
+        return {"id": a.id, "study_uid": a.study_uid, "series_uid": a.series_uid, "ferramenta": a.ferramenta,
+                "rotulo": a.rotulo, "tipo": a.tipo, "local": a.local, "posicao": _j(a.posicao, None),
+                "numeros": _j(a.numeros, {}), "corrigidos": _j(a.corrigidos, {}), "modelo": a.modelo,
+                "versao": a.versao, "elegibilidade": a.elegibilidade, "segmento": a.segmento,
+                "estado": a.estado, "revisor": a.revisor, "revisado_em": a.revisado_em, "nota": a.nota,
+                "lesao_id": a.lesao_id, "criado_em": a.criado_em}
+
+    def achados(self, study_uid: str, ferramenta: str | None = None) -> list[dict]:
+        with self.db.session() as s:
+            q = select(AchadoIA).where(AchadoIA.study_uid == study_uid)
+            if ferramenta:
+                q = q.where(AchadoIA.ferramenta == ferramenta)
+            return [self._achado_dict(a) for a in s.scalars(q.order_by(AchadoIA.ferramenta, AchadoIA.id))]
+
+    def achado(self, achado_id: int) -> dict | None:
+        with self.db.session() as s:
+            a = s.get(AchadoIA, achado_id)
+            return None if a is None else self._achado_dict(a)
+
+    def gravar_achados(self, study_uid: str, ferramenta: str, itens: list[dict]) -> list[int]:
+        """Troca os achados **ainda sugeridos** desta ferramenta pelos novos (uma rodada nova da IA).
+        Os já revisados (confirmados, corrigidos, descartados) ficam: são decisão do médico."""
+        import json
+        with self.db.session() as s:
+            for a in s.scalars(select(AchadoIA).where(AchadoIA.study_uid == study_uid,
+                                                      AchadoIA.ferramenta == ferramenta,
+                                                      AchadoIA.estado == "sugerido")):
+                s.delete(a)
+            ids = []
+            for it in itens:
+                a = AchadoIA(study_uid=study_uid, ferramenta=ferramenta, series_uid=it.get("series_uid", ""),
+                             rotulo=it.get("rotulo", ""), tipo=it.get("tipo", ""), local=it.get("local", ""),
+                             posicao=json.dumps(it.get("posicao")) if it.get("posicao") is not None else "",
+                             numeros=json.dumps(it.get("numeros") or {}, ensure_ascii=False),
+                             modelo=it.get("modelo", ""), versao=it.get("versao", ""),
+                             elegibilidade=it.get("elegibilidade", ""), segmento=int(it.get("segmento") or 0),
+                             estado="sugerido")
+                s.add(a)
+                s.flush()
+                ids.append(a.id)
+            s.commit()
+            return ids
+
+    def revisar_achado(self, achado_id: int, estado: str, revisor: str = "", corrigidos: dict | None = None,
+                       nota: str | None = None, lesao_id: int | None = None) -> dict | None:
+        import json
+        if estado not in ("sugerido", "confirmado", "corrigido", "descartado"):
+            raise ValueError(f"estado desconhecido: {estado}")
+        with self.db.session() as s:
+            a = s.get(AchadoIA, achado_id)
+            if a is None:
+                return None
+            a.estado = estado
+            a.revisor = revisor or ""
+            a.revisado_em = None if estado == "sugerido" else datetime.now()
+            if corrigidos is not None:
+                a.corrigidos = json.dumps(corrigidos, ensure_ascii=False) if corrigidos else ""
+            if nota is not None:
+                a.nota = nota
+            if lesao_id is not None:
+                a.lesao_id = lesao_id or None
+            s.commit()
+            return self._achado_dict(a)
 
     def revisoes_ia_do_paciente(self, study_uid: str, modulo: str) -> list[dict]:
         """As conferências deste módulo nos **outros** exames do mesmo paciente (0.99.23: a numeração da

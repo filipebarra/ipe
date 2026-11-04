@@ -61,3 +61,28 @@ def ler_wl(texto: str) -> tuple[float, float] | None:
         return None
     w, l = (float(n.replace(",", ".")) for n in nums)
     return (w, l) if w > 0 else None
+
+
+def ler_zoom(texto: str) -> tuple[str, float] | None:
+    """O zoom digitado (0.99.45, plano AW item 9).
+
+    - '150', '150%', '1,5x' -> ("ajuste", 1.5): relativo a "ajustar à janela", o mesmo número do canto;
+    - '1:1', 'pixel', '1 para 1' -> ("pixel", 1.0): 1 pixel da imagem = 1 pixel da tela;
+    - '2:1' -> ("pixel", 2.0).
+    Fora de 5% a 4000% devolve None."""
+    import re
+    t = (texto or "").strip().lower().replace(",", ".")
+    if not t:
+        return None
+    if t in ("pixel", "px", "1 para 1", "1x1"):
+        return ("pixel", 1.0)
+    m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)", t)
+    if m:
+        a, b = float(m.group(1)), float(m.group(2))
+        return ("pixel", a / b) if a > 0 and b > 0 and 0.05 <= a / b <= 40 else None
+    m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*(%|x|×)?", t)
+    if not m:
+        return None
+    v = float(m.group(1))
+    f = v if m.group(2) in ("x", "×") else v / 100.0
+    return ("ajuste", f) if 0.05 <= f <= 40 else None

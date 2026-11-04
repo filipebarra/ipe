@@ -3,6 +3,20 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.45 — typed zoom, cloned ROI, doubling time, derived series that say where they came from
+- **Typed zoom**: double click the "Zoom N%" in the corner ▸ fit, 1:1, 50 to 400% or *Type the zoom…*
+  (`150`, `2x`, `1:1`).
+- **Clone the ROI** (right click on the ROI): the other viewports receive the ROI at the same position in the
+  patient, with the statistics of their image; between different studies, only with the viewports linked or
+  registered.
+- **Doubling time** in lesion tracking, by volume or by diameter (assuming a sphere); without growth, "not
+  applicable".
+- **Amber badge** when the viewport is linked in sync to viewports of another Frame of Reference.
+- **Slices not shown**: when scrolling fast, how many slices never reached the screen appears for a moment.
+- **Exporting different patients in a single package** (CD with viewer or .zip, identified) asks first.
+- **Derived series** (reconstructions, maps, captures) write the parameters in *Derivation Description* and
+  the source images in *Source Image Sequence*.
+
 ## 0.99.44 — editing limits, extended statistics, registration check
 - **Structures ▸ Editing limits**: area (everywhere, only inside a structure, only outside the others), an
   intensity range valid for every tool, and **overwrite** (what one gains leaves the others).

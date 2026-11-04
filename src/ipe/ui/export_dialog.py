@@ -411,6 +411,8 @@ class ExportDialog(QDialog):
         if not self.dest.text().strip():
             QMessageBox.warning(self, "Exportar", "Escolha o destino.")
             return
+        if not self._mistura_aceita():
+            return
         self._fixed_target = None
         dest = self.target()
         if self.c_newdir.isChecked():
@@ -426,6 +428,46 @@ class ExportDialog(QDialog):
             self.dest.setText(str(sub))
         self._save_prefs()
         self._rodar("Exportando")
+
+    def pacientes_misturados(self) -> list[dict]:
+        """Os study_info dos exames escolhidos quando são de mais de um paciente e a cópia vai
+        **identificada num pacote só** (CD com visualizador ou .zip): é o pacote que se entrega a um
+        paciente com o exame de outro dentro (0.99.45, plano AW item 2). Pasta solta, imagens JPG/PNG
+        e cópias anonimizadas não perguntam: juntar casos para aula ou pesquisa é uso normal."""
+        from ipe.ui import compare_studies as CS
+        if self.mode() != "dicom" or self.g_anon.isChecked():
+            return []
+        if not (self.c_zip.isChecked() or self.c_viewer.currentData()):
+            return []
+        items = self.scopes[self.scope.currentIndex()][1]
+        uids = list(dict.fromkeys(it.study_uid for it in items if it.study_uid))
+        if len(uids) < 2:
+            return []
+        infos = []
+        for u in uids:
+            try:
+                infos.append(self.repo.study_info(u) or {})
+            except Exception:  # noqa: BLE001
+                continue
+        return infos if CS.pacientes_diferentes(infos) else []
+
+    def _mistura_aceita(self) -> bool:
+        infos = self.pacientes_misturados()
+        return not infos or self.confirmar_mistura(infos)
+
+    def confirmar_mistura(self, infos: list) -> bool:
+        from ipe.ui import compare_studies as CS
+        caixa = QMessageBox(self)
+        caixa.setIcon(QMessageBox.Warning)
+        caixa.setWindowTitle("Exportar: pacientes diferentes")
+        caixa.setText("Os exames escolhidos são de pacientes diferentes e vão juntos, identificados, num "
+                      "pacote só (CD/pendrive com visualizador ou .zip).")
+        caixa.setInformativeText(CS.summary(infos) + "\n\n" + "Gravar todos no mesmo pacote assim mesmo?")
+        caixa.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+        caixa.setDefaultButton(QMessageBox.Cancel)
+        caixa.button(QMessageBox.Yes).setText("Gravar assim mesmo")
+        caixa.button(QMessageBox.Cancel).setText("Cancelar")
+        return caixa.exec() == QMessageBox.Yes
 
     def _rodar(self, titulo: str) -> None:
         dlg = QProgressDialog("Preparando…", "Cancelar", 0, 100, self)

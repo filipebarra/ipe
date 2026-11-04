@@ -19,7 +19,7 @@ from datetime import datetime
 from sqlalchemy import or_, select
 
 from ipe.db.models import (
-    AnnotationRecord, Comment, Diagnosis, Instance, KeyImage, Report, RevisaoIA, Series, SeriesGroup,
+    AchadoIA, AnnotationRecord, Comment, Diagnosis, Instance, KeyImage, Report, RevisaoIA, Series, SeriesGroup,
     Study, StudyRegistration, StudyTag, Tag,
 )
 
@@ -33,6 +33,7 @@ TABELAS = {
     "annotation": (AnnotationRecord, ("sop_uid", "frame_index", "kind", "data")),
     "report": (Report, ("study_uid", "created_at", "title")),
     "revisao_ia": (RevisaoIA, ("study_uid", "modulo")),
+    "achado_ia": (AchadoIA, ("study_uid", "ferramenta", "rotulo", "posicao")),
     "series_group": (SeriesGroup, ("study_uid", "name", "series_uids")),
     "study_registration": (StudyRegistration, ("study_a", "study_b")),
 }
@@ -54,9 +55,11 @@ def exportar(db, study_uid: str) -> dict:
         p: dict = {"versao": VERSAO, "study_uid": study_uid, "dono": st.dono or "",
                    "visivel_para": st.visivel_para or "", "locked": bool(st.locked)}
         p["comment"] = [_linha(c) for c in s.scalars(select(Comment).where(Comment.target_uid.in_(alvos)))]
-        for nome in ("key_image", "annotation", "report", "revisao_ia", "series_group"):
+        for nome in ("key_image", "annotation", "report", "revisao_ia", "achado_ia", "series_group"):
             modelo = TABELAS[nome][0]
             p[nome] = [_linha(x) for x in s.scalars(select(modelo).where(modelo.study_uid == study_uid))]
+        for linha in p["achado_ia"]:
+            linha["lesao_id"] = None             # as lesões são do paciente e não viajam com o exame
         p["study_registration"] = [_linha(x) for x in s.scalars(
             select(StudyRegistration).where(or_(StudyRegistration.study_a == study_uid,
                                                 StudyRegistration.study_b == study_uid)))]

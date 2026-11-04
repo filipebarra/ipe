@@ -433,6 +433,47 @@ class ViewerTab(OncoMixin, QWidget):
                     v.usar_janela_do_arquivo(min(i, len(v.janelas_do_arquivo()) - 1))
         self.status_message.emit(msg)
 
+    def outros_referenciais_ligados(self, vp) -> int:
+        """Quantos quadros à vista estão no mesmo grupo de sincronia de `vp` com outro Frame of
+        Reference (0.99.45). A sincronia automática só junta o mesmo referencial; o grupo junta
+        qualquer coisa, pelo deslocamento — e é isso que o selo avisa."""
+        hub = getattr(self, "hub", None)
+        if hub is None or not vp.frames or not vp.for_uid:
+            return 0
+        g = hub.group_of(vp)
+        if g is None:
+            return 0
+        n = 0
+        for w in hub.viewports(self):
+            if w is vp or not w.frames or hub.group_of(w) != g or not w.for_uid:
+                continue
+            if w.for_uid != vp.for_uid and w.plane() is not None and vp.plane() is not None:
+                n += 1
+        return n
+
+    def clonar_roi(self, src, ann) -> list[tuple]:
+        """Leva a ROI para os outros quadros à vista, na mesma posição no paciente (0.99.45, plano AW
+        item 15). Cada cópia é uma ROI nova do quadro de destino: a média, o desvio e a área são os
+        da imagem de lá. Devolve [(quadro, motivo ou "")]."""
+        from ipe.imaging import clonar_roi as CR
+        out = []
+        alvos = [w for w in self._shown() if w is not src and w.frames]
+        if not alvos:
+            self.status_message.emit("Não há outro quadro com imagem para receber a ROI.")
+            return out
+        feitos = 0
+        for w in alvos:
+            motivo = CR.clonar(src, ann, w, self.hub)
+            out.append((w, motivo))
+            if not motivo:
+                feitos += 1
+        faltas = [f"{w.series_label or 'quadro'}: {m}" for w, m in out if m]
+        msg = f"ROI clonada em {feitos} quadro(s)."
+        if faltas:
+            msg += " Sem cópia — " + "; ".join(faltas[:3])
+        self.status_message.emit(msg)
+        return out
+
     def pacientes_no_layout(self) -> list[dict]:
         """A identidade de cada quadro com imagem (para o selo de mistura de pacientes, 0.99.22)."""
         return [vp.study_info for vp in getattr(self, "viewports", []) if vp.frames and vp.study_info]
@@ -3162,6 +3203,8 @@ class ViewerTab(OncoMixin, QWidget):
         vp.sig.renumerar_requested.connect(self.renumerar_coluna)
         vp.sig.numeracao_requested.connect(self.abrir_numeracao_coluna)
         vp.sig.lesion_requested.connect(self.choose_lesion_for)
+        vp.sig.clone_roi_requested.connect(self.clonar_roi)
+        vp.referencial_da_sincronia = self.outros_referenciais_ligados
         vp.sig.segment_requested.connect(self.segment_at)
         vp.sig.pincel.connect(self.pincel_estruturas)
         vp.sig.status_message.connect(self.status_message)

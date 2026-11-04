@@ -76,6 +76,13 @@ def _outro_paciente_sem_perguntar(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _exportar_misturado_sem_perguntar(monkeypatch):
+    """Exportar pacientes diferentes num pacote só pergunta (0.99.45) — modal trava o teste."""
+    from ipe.ui.export_dialog import ExportDialog
+    monkeypatch.setattr(ExportDialog, "confirmar_mistura", lambda self, infos: True)
+
+
+@pytest.fixture(autouse=True)
 def _link_sem_perguntar(monkeypatch):
     """O link ipe:// sem token pergunta antes de abrir (0.99.24) — pergunta modal trava o teste. Os
     testes de chamada por link aceitam; os de segurança trocam isto explicitamente."""

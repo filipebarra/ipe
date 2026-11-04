@@ -3,6 +3,19 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.45 — zoom digitado, ROI clonada, tempo de duplicação, séries derivadas que dizem de onde vieram
+- **Zoom digitado**: duplo clique no "Zoom N%" do canto ▸ ajustar, 1:1, 50 a 400% ou *Digitar o zoom…*
+  (`150`, `2x`, `1:1`).
+- **Clonar a ROI** (botão direito na ROI): os outros quadros recebem a ROI na mesma posição no paciente, com
+  a estatística da imagem deles; entre exames diferentes, só com os quadros ligados ou registrados.
+- **Tempo de duplicação** no acompanhamento de lesões, pelo volume ou pelo diâmetro (supondo esfera); sem
+  crescimento, "não se aplica".
+- **Selo âmbar** quando o quadro está ligado na sincronia a quadros de outro Frame of Reference.
+- **Cortes não mostrados**: rolando depressa, aparece por um instante quantos cortes não chegaram à tela.
+- **Exportar pacientes diferentes num pacote só** (CD com visualizador ou .zip, identificado) pergunta antes.
+- **Séries derivadas** (reconstruções, mapas, capturas) gravam os parâmetros em *Derivation Description* e as
+  imagens de origem em *Source Image Sequence*.
+
 ## 0.99.44 — limites da edição, estatística ampliada, conferir o registro
 - **Estruturas ▸ Limites da edição**: área (em toda parte, só dentro de uma estrutura, só fora das outras),
   faixa de intensidade valendo para todas as ferramentas e **sobrescrever** (o que uma ganha sai das outras).

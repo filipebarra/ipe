@@ -135,3 +135,13 @@ def selo_de_mistura(nome_deste: str) -> Selo:
     return Selo("paciente", "PACIENTES DIFERENTES NO LAYOUT — este quadro: " + (nome_deste or "?"), True,
                 "Os quadros desta tela mostram exames de pacientes diferentes (nome ou ID não batem). "
                 "Confira de quem é cada imagem antes de laudar ou comparar.")
+
+
+def selo_de_referencial(n_outros: int) -> Selo:
+    """Quadro ligado (grupo de sincronia) a quadros de outro referencial espacial (0.99.45, plano AW F5)."""
+    return Selo("referencial", "Sincronia entre referenciais diferentes", False,
+                f"Este quadro anda junto com {n_outros} quadro(s) de outro referencial espacial (Frame of "
+                "Reference diferente: outro exame, ou o paciente reposicionado). Eles seguem o deslocamento "
+                "de quando foram ligados, não um registro: se o paciente girou ou mudou de posição, o mesmo "
+                "milímetro não é o mesmo ponto. Para comparar ponto a ponto, use Sincronizar ▸ Alinhar "
+                "automaticamente com o outro exame (registro) ou ajuste com Alt + roda.")

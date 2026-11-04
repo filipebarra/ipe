@@ -45,6 +45,9 @@ class Volume:
     #: selos de integridade herdados das imagens de origem (0.99.22): a reconstrução de uma série
     #: comprimida com perdas continua com perdas, e o selo tem de ir junto
     origem_header: dict = field(default_factory=dict)
+    #: (SOPInstanceUID, quadro) das imagens de origem, na ordem dos cortes (0.99.45): a série que
+    #: sai do volume (MPR, MIP, mapa) diz de onde veio na Source Image Sequence
+    origem_sops: list = field(default_factory=list)
 
     @property
     def dz(self) -> float:
@@ -144,7 +147,8 @@ def build_volume(frames: list[Frame], cache: FrameCache,
                   slice_vec=slice_vec, dx=float(cs), dy=float(rs), window=first.window,
                   source_path=frames[0].path, warnings=warnings,
                   monochrome1=first.header.get("_monochrome1") == "1",
-                  origem_header=_header_de_origem(perdas or first.header))
+                  origem_header=_header_de_origem(perdas or first.header),
+                  origem_sops=[(f.sop_uid, int(f.frame_index or 0)) for f in frames if getattr(f, "sop_uid", "")])
 
 
 def _header_de_origem(h: dict) -> dict:

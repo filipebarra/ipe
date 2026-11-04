@@ -152,6 +152,7 @@ class LesionPanel(QWidget):
         self.all_studies = sorted(studies.items(), key=lambda s: (s[1] or "", s[0]))
         self.cells = L.collect_cells(self.lesions, anns, self.crit)
         self.evals = L.evaluate(self.crit, self.lesions, self.studies, self.cells, self.base_uid)
+        self.duplicacoes = L.duplicacoes(self.lesions, self.studies, self.cells)
 
     def refresh(self) -> None:
         name = "" if self.tab.anonymize else (self.tab.study_info.get("patient_name", "") or "")
@@ -200,10 +201,19 @@ class LesionPanel(QWidget):
             t.setItem(r, 0, it)
             for c, (uid, _d) in enumerate(self.studies, 1):
                 cell = self.cells.get((le["id"], uid))
-                ci = QTableWidgetItem(cell.text(self.crit) if cell else "")
+                texto = cell.text(self.crit) if cell else ""
+                dup = getattr(self, "duplicacoes", {}).get((le["id"], uid)) if self.crit != "percist" else None
+                dicas = []
+                if dup is not None and dup[1]:
+                    texto += f" · {dup[1]}"
+                if dup is not None:
+                    dicas.append(dup[2])
+                ci = QTableWidgetItem(texto)
                 ci.setTextAlignment(Qt.AlignCenter)
                 if cell is not None and cell.refs:
-                    ci.setToolTip("Duplo clique: abrir a imagem desta medida")
+                    dicas.append("Duplo clique: abrir a imagem desta medida")
+                if dicas:
+                    ci.setToolTip("\n".join(dicas))
                 t.setItem(r, c, ci)
         for k, lab in enumerate(summary):
             r = n_les + k

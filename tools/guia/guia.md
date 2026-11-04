@@ -153,6 +153,8 @@ A coluna *tecla* abaixo é sugestão: quase toda a lista de atalhos vem de fábr
 - `[` e `]` (sugestão) trocam a série do quadro ativo. Trocar de sequência mantém a posição: o corte novo passa pelo ponto que estava à vista.
 - Arrastar uma miniatura da tira para um quadro põe aquela série ali.
 - O canto inferior direito do quadro diz o plano (clicável), a fase da dinâmica, a janela e o FOV.
+- **Zoom digitado**: duplo clique no "Zoom N%" do canto abre o menu — *Ajustar à janela*, *1 pixel da imagem = 1 pixel da tela (1:1)*, 50 a 400% e **Digitar o zoom…** (aceita `150`, `150%`, `2x`, `1:1` e `2:1`). O número é o mesmo do canto: 100% é a imagem ajustada ao quadro.
+- **Cortes não mostrados**: rolando depressa (roda, arrasto, Shift), a imagem anda vários cortes entre duas pinturas da tela e os do meio nunca aparecem. Quando isso acontece, ao lado da barra de posição aparece por um segundo e meio, em âmbar, "N corte(s) não mostrado(s)". Ir a um corte (clique na barra, duplo clique no número da imagem, sincronia) não avisa.
 
 ## Selos de integridade
 
@@ -166,6 +168,7 @@ Uma faixa no alto do quadro avisa o que pode tornar a imagem imprópria para ler
 | PACIENTES DIFERENTES NO LAYOUT | vermelho | os quadros da tela têm exames de pacientes diferentes (nome ou ID não batem) |
 | Pixel não quadrado | âmbar | espaçamentos diferentes na linha e na coluna |
 | Imagem derivada | âmbar | ImageType DERIVED\SECONDARY (reconstrução, captura, mapa) |
+| Sincronia entre referenciais diferentes | âmbar | o quadro está num grupo de sincronia (corrente) com quadros de outro Frame of Reference — outro exame, ou o paciente reposicionado. Eles andam pelo deslocamento de quando foram ligados, não por registro |
 
 A reconstrução (MPR, MIP) herda o selo de compressão da série de origem.
 
@@ -219,6 +222,7 @@ O botão **Medidas** abre uma janela com tudo o que foi medido no exame: série,
 - **Régua 3D** (menu Medidas): clique o ponto A num corte e o ponto B em outro corte — ou em outro quadro, como o axial e o sagital. A distância sai em 3D, com as componentes direita-esquerda, ântero-posterior e craniocaudal; nos dois pontos do mesmo corte, o rótulo diz "(2D)". O terceiro clique começa uma régua nova.
 - **Cortes grossos**: a régua desenhada numa reconstrução de cortes grossos (o sagital de um axial de 5 mm) avisa quando a direção dela tem pixel de 5 mm — a medida craniocaudal herda esse erro, a ântero-posterior não. Na imagem original, a régua menor que a espessura do corte também avisa.
 - **Incerteza** (Configurações ▸ Visualizador ▸ Texto e marcas sobre a imagem): mostra ± o pixel na direção da régua e ± perímetro × pixel ÷ 2 na área da ROI. Desligada de fábrica; os avisos acima aparecem sempre.
+- **Clonar a ROI**: botão direito numa ROI ▸ *Clonar esta ROI nos outros quadros*. Cada quadro à vista recebe uma ROI nova **na mesma posição no paciente** (em mm, não no mesmo pixel: série com outra matriz ou outro FOV recebe a ROI do tamanho certo), no corte mais perto do centro dela, com a média, o desvio e a área da imagem de lá — T2 → ADC, pré → pós, atual → anterior. No mesmo exame vale o Frame of Reference; entre exames diferentes, ligue antes os quadros num grupo de sincronia (ou registre): sem referencial comum, a barra de status diz que não copiou e por quê. Também não copia para plano não paralelo nem para série que não cobre aquele ponto.
 - **ROI de referência**: botão direito numa ROI ▸ *Usar como ROI de referência*. As outras ROIs da série passam a mostrar a média delas em % da referência (lesão/fígado, lesão/aorta, lesão/músculo). Só uma por série; ela fica marcada "Referência (100%)" e acompanha se você a mexer.
 
 ## Escala das medidas e calibração
@@ -1119,6 +1123,8 @@ SUV funciona no PET (com os dados de dose e decaimento do arquivo). Em SPECT/CT,
 
 O painel de lesões dá nome a cada lesão, e as medidas de exames diferentes se ligam a ela. O painel mostra a evolução e calcula a resposta. **Layout das lesões** põe um quadro por lesão.
 
+**Tempo de duplicação**: em cada exame em que a lesão cresceu desde o exame anterior medido, a célula ganha "· TD N d" (fora do PERCIST). A conta é TD = t × ln 2 ÷ ln(V2/V1), supondo crescimento exponencial, pelo **volume** quando os dois exames têm volume segmentado; senão, pelo **maior diâmetro**, supondo esfera (V ∝ d³). Sem crescimento, sai "TD não se aplica" — nunca um número enorme ou negativo. A dica da célula mostra as duas medidas, o intervalo em dias e a base da conta; em lesão pequena, 1 mm de diferença no diâmetro muda muito o resultado.
+
 A segmentação 3D mede volume, SUV máximo e médio, TLG e, somando as lesões, TMTV. Os limiares (percentual do SUVmáx, SUV mínimo, método) ficam guardados, e a barra do limiar vale também para o percentual do SUVmáx.
 
 ## Tarefas de IA: andamento e cancelar
@@ -1392,6 +1398,10 @@ Botão **Usuários**. Quatro perfis de fábrica — Administrador, Médico, Resi
 - **Imagens** — JPG ou PNG, com formato, qualidade, janela (a do arquivo ou a do quadro atual), intervalo e tamanho máximo.
 
 A anonimização é opção da janela — e obrigatória para quem não tem a permissão de exportar com dados do paciente.
+
+**Pacientes diferentes num pacote só**: exportar identificado, num CD/pendrive com visualizador ou num .zip, exames de pacientes diferentes pergunta antes, mostrando onde nome e ID não batem — é o pacote que se entrega a um paciente com o exame de outro dentro. Pasta solta, imagens JPG/PNG e cópias anonimizadas não perguntam (juntar casos para aula ou pesquisa é uso normal).
+
+**Séries derivadas dizem de onde vieram**: toda série que o Ipê grava a partir de outra (reconstrução, MIP, mapa da dinâmica, captura) leva em *Derivation Description* a versão do programa e os parâmetros (plano, espessura e modo, passo, pixel, orientação e série de origem; no mapa, as fases e os limiares) e em *Source Image Sequence* as imagens de origem (até 300 por imagem, espaçadas por igual quando há mais — a descrição diz quantas de quantas).
 
 ### Anonimizar
 

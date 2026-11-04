@@ -5082,7 +5082,32 @@
   "razoável",
   "fraca",
   "pouca imagem em comum para registrar",
-  "O outro exame foi gravado no plano deste (série nova) e os dois andam juntos corte a corte."
+  "O outro exame foi gravado no plano deste (série nova) e os dois andam juntos corte a corte.",
+  " Sem cópia — ",
+  "1 pixel da imagem = 1 pixel da tela (1:1)",
+  "Clonar esta ROI nos outros quadros (mesma posição no paciente)",
+  "Digitar o zoom…",
+  "Digite uma porcentagem (5 a 4000), um fator (2x) ou 1:1.",
+  "Exportar: pacientes diferentes",
+  "Gravar assim mesmo",
+  "Gravar todos no mesmo pacote assim mesmo?",
+  "Não há outro quadro com imagem para receber a ROI.",
+  "Os exames escolhidos são de pacientes diferentes e vão juntos, identificados, num pacote só (CD/pendrive com visualizador ou .zip).",
+  "Sincronia entre referenciais diferentes",
+  "TD não se aplica",
+  "Tempo de duplicação: sem intervalo entre as datas.",
+  "Zoom (ex.: 150, 150%, 2x, 1:1):",
+  "a ROI não está no corte à vista",
+  "a posição cai fora da imagem",
+  "diâmetro (supondo esfera)",
+  "fora dos cortes desta série",
+  "outro referencial: ligue os quadros (Sincronizar) ou registre os exames",
+  "plano diferente (só entre cortes paralelos)",
+  "sem geometria (posição do corte) no arquivo",
+  "sem geometria no quadro de destino",
+  "sem geometria no quadro de origem",
+  "só ROIs (elipse, retângulo, polígono, curva) se clonam",
+  "volume"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -6383,6 +6408,12 @@
   "resolução de {} mm",
   "{} · registrada em {}",
   "Exames alinhados: rotação {}, deslocamento {} ({} {} → {}, qualidade {}). Os quadros agora rolam juntos.",
-  "O outro exame está girado {}° em relação a este. Rolando juntos, os cortes não coincidem por inteiro.\n\nGravar o outro exame no plano deste (série nova no outro exame, com a geometria deste)? Aí os dois andam juntos corte a corte."
+  "O outro exame está girado {}° em relação a este. Rolando juntos, os cortes não coincidem por inteiro.\n\nGravar o outro exame no plano deste (série nova no outro exame, com a geometria deste)? Aí os dois andam juntos corte a corte.",
+  "Este quadro anda junto com {} quadro(s) de outro referencial espacial (Frame of Reference diferente: outro exame, ou o paciente reposicionado). Eles seguem o deslocamento de quando foram ligados, não um registro: se o paciente girou ou mudou de posição, o mesmo milímetro não é o mesmo ponto. Para comparar ponto a ponto, use Sincronizar ▸ Alinhar automaticamente com o outro exame (registro) ou ajuste com Alt + roda.",
+  "ROI clonada em {} quadro(s).",
+  "TD {} d",
+  "Tempo de duplicação não se aplica: não cresceu ({} → {} em {} dias, pelo {}).",
+  "Tempo de duplicação {} dias: {} → {} em {} dias, pelo {}. Supõe crescimento exponencial; medidas de diâmetro com 1 mm de erro mudam muito o resultado em lesões pequenas.",
+  "{} corte(s) não mostrado(s)"
  ]
 }

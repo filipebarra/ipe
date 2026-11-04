@@ -118,6 +118,7 @@ class ViewportSignals(QObject):
     film_requested = Signal(object)             # ferramenta "enviar ao filme": clique na imagem
     group_action = Signal(object, str)          # "remove_phase" | "ungroup"
     lesion_requested = Signal(object, object)   # viewport, anotação: ligar a uma lesão
+    clone_roi_requested = Signal(object, object)  # viewport, anotação: clonar a ROI nos outros quadros
     histogram_requested = Signal(object)        # viewport: mostrar o histograma
     anotacoes_requested = Signal(str)           # nível de anotação escolhido no botão direito (0.99.9)
     copy_requested = Signal(object)             # "Copiar imagem" no botão direito (0.99.9)
@@ -635,6 +636,8 @@ class Viewport(AnnotationMixin, QWidget):
         n = len(self.frames)
         new = (self.index + delta) % n if wrap else max(0, min(n - 1, self.index + delta))
         if new != self.index:
+            if not wrap and not getattr(self, "_indo_direto", False):
+                self._rolagem = True                # para o aviso de cortes pulados (0.99.45)
             self.cancel_draft()
             self.index = new
             self._load_current()
@@ -650,7 +653,50 @@ class Viewport(AnnotationMixin, QWidget):
             self.update()
 
     def go_to(self, index: int) -> None:
-        self.step(index - self.index)
+        self._indo_direto = True                    # ir a um corte não é rolar: nada a avisar
+        try:
+            self.step(index - self.index)
+        finally:
+            self._indo_direto = False
+
+    # ---- cortes pulados na rolagem rápida (0.99.45, plano AW item 14)
+    #: por quanto tempo o aviso fica na tela, em segundos
+    PULADOS_SEG = 1.5
+
+    def _contar_pulados(self) -> None:
+        """Chamado a cada pintura. Rolando depressa, a roda (ou o arrasto) anda vários cortes entre
+        duas pinturas: os do meio nunca chegaram à tela. Quem lê precisa saber que pulou."""
+        ultimo = getattr(self, "_ultimo_pintado", None)
+        if getattr(self, "_rolagem", False) and ultimo is not None and not self.em_mosaico():
+            d = abs(self.index - ultimo) - 1
+            if d > 0:
+                self._pulados = (d, time.monotonic())
+                QTimer.singleShot(int(self.PULADOS_SEG * 1000) + 50, self.update)
+        self._rolagem = False
+        self._ultimo_pintado = self.index
+
+    def cortes_pulados(self) -> int:
+        """Quantos cortes a última rolagem pulou, enquanto o aviso está valendo (0 = nenhum)."""
+        d, t = getattr(self, "_pulados", (0, 0.0))
+        return d if d and time.monotonic() - t <= self.PULADOS_SEG else 0
+
+    def _draw_pulados(self, p: QPainter) -> None:
+        d = self.cortes_pulados()
+        if not d:
+            return
+        txt = tr(f"{d} corte(s) não mostrado(s)")
+        f = QFont()
+        f.setPixelSize(max(10, int(self.height() / 45)))
+        p.setFont(f)
+        fm = QFontMetrics(f)
+        r = self.posbar_rect()
+        n = max(1, len(self.frames))
+        y = r.top() + (self.index + 0.5) / n * r.height()
+        w = fm.horizontalAdvance(txt) + 10
+        caixa = QRectF(r.left() - w - 6, y - fm.height() / 2 - 2, w, fm.height() + 4)
+        p.fillRect(caixa, QColor(0, 0, 0, 170))
+        p.setPen(QColor(255, 190, 60))
+        p.drawText(caixa, Qt.AlignCenter, txt)
 
     # ------------------------------------------------------------ cardíaco 4D
     def is_4d(self) -> bool:
@@ -1517,6 +1563,9 @@ class Viewport(AnnotationMixin, QWidget):
                 self.render3d.draw_extra(self, p)
             if self._mostra("barra_posicao") and not self._capturando:
                 self._draw_posbar(p)
+            if not self._capturando:
+                self._contar_pulados()
+                self._draw_pulados(p)
             if self._loupe is not None:
                 self._draw_loupe(p, q)
             self._desenhar_pincel(p)
@@ -1947,6 +1996,11 @@ class Viewport(AnnotationMixin, QWidget):
                 else:
                     nome = (self.case_label or "Paciente oculto") if self.anonymize else CS.nome_curto(self.study_info)
                 out.insert(0, SL.selo_de_mistura(nome))
+        outros = getattr(self, "referencial_da_sincronia", None)
+        if callable(outros):
+            n = outros(self)
+            if n:
+                out.append(SL.selo_de_referencial(n))
         return out
 
     def _selos_visiveis(self) -> list:
@@ -2865,7 +2919,7 @@ class Viewport(AnnotationMixin, QWidget):
             if ok:
                 self.go_to(n - 1)
         elif hot == "zoom":
-            self.fit()
+            self.menu_do_zoom().exec(e.globalPosition().toPoint())
         elif hot and hot.startswith("pan_"):
             self.state.pan = QPointF(0, 0)
             self.update()
@@ -3038,6 +3092,44 @@ class Viewport(AnnotationMixin, QWidget):
         """Nome da janela do arquivo em uso (some quando ele arrasta a janela)."""
         return self._janela_arquivo[1] if self._na_janela_do_arquivo() else ""
 
+    def menu_do_zoom(self) -> QMenu:
+        """Duplo clique no "Zoom N%" do canto (0.99.45): ajustar, 1:1, valores prontos ou digitar."""
+        menu = QMenu(self)
+        menu.addAction("Ajustar à janela").triggered.connect(self.fit)
+        menu.addAction("1 pixel da imagem = 1 pixel da tela (1:1)").triggered.connect(self.zoom_actual_pixels)
+        menu.addSeparator()
+        for pct in (50, 150, 200, 300, 400):
+            menu.addAction(f"{pct}%").triggered.connect(lambda _=False, f=pct / 100: self.aplicar_zoom("ajuste", f))
+        menu.addSeparator()
+        menu.addAction("Digitar o zoom…").triggered.connect(self.digitar_zoom)
+        return menu
+
+    def aplicar_zoom(self, modo: str, fator: float) -> None:
+        """`modo` "ajuste": em relação a ajustar à janela (o número do canto); "pixel": pixels da
+        imagem por pixel da tela. A imagem continua centrada onde estava."""
+        if modo == "pixel":
+            f = self.fit_scale()
+            if f <= 0:
+                return
+            fator = fator / f
+        self.quad_idx = -1
+        self.anat_lock = self._anat_box_norm = None
+        self.state.zoom = float(np.clip(fator, 0.05, 40))
+        self.update()
+        self.sig.view_changed.emit(self, "zoom")
+
+    def digitar_zoom(self) -> None:
+        from ipe.imaging import presets_janela as PJ
+        txt, ok = QInputDialog.getText(self, "Zoom", "Zoom (ex.: 150, 150%, 2x, 1:1):",
+                                       text=f"{self.state.zoom * 100:.0f}%")
+        if not ok:
+            return
+        z = PJ.ler_zoom(txt)
+        if z is None:
+            QMessageBox.warning(self, "Zoom", "Digite uma porcentagem (5 a 4000), um fator (2x) ou 1:1.")
+            return
+        self.aplicar_zoom(*z)
+
     def digitar_janela(self) -> None:
         """Clicar no "W 400 L 40" e digitar (0.99.22, plano AW item 9)."""
         from ipe.imaging import presets_janela as PJ
@@ -3156,6 +3248,10 @@ class Viewport(AnnotationMixin, QWidget):
                     a_ref = QAction("Usar como ROI de referência (as outras mostram % dela)", menu)
                     a_ref.triggered.connect(lambda: self.marcar_referencia(target))
                 menu.addAction(a_ref)
+            if target.kind in M.ROI_KINDS and self.plane() is not None:
+                a_cl = QAction("Clonar esta ROI nos outros quadros (mesma posição no paciente)", menu)
+                a_cl.triggered.connect(lambda: self.sig.clone_roi_requested.emit(self, target))
+                menu.addAction(a_cl)
             if target.kind in ("line", "polyline") and self._img is not None and not self._img.is_color:
                 a_perf = QAction("Perfil de intensidade…", menu)          # 0.99.31 (onda A4)
                 a_perf.triggered.connect(lambda: self.abrir_perfil(target))
