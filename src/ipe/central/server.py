@@ -54,6 +54,8 @@ class CentralServer:
         self.on_import = None            # chamado com a lista de estudos recebidos por STOW
         from ipe.central.leituras import Leituras
         self.leituras = Leituras()       # 0.99.31: quem está laudando cada exame
+        from ipe.central.atualizacoes import Atualizacoes
+        self.atualizacoes = Atualizacoes(self.storage.parent / "Atualizacoes")   # 0.99.56 (onda B1)
 
     # ------------------------------------------------------------------ ciclo de vida
     @property
@@ -156,6 +158,22 @@ class CentralServer:
             if s.user_id:
                 self.repo.save_user_prefs(s.user_id, args[0] if args else kwargs.get("prefs", {}))
             return None
+        # 0.99.56 (ondas B1 e B2): perfil da estação e atualizações — quem e qual papel vêm da sessão
+        if method == "perfil_da_estacao":
+            comp = str(args[0] if args else kwargs.get("computador", "") or "")
+            return self.repo.perfil_da_estacao(comp, s.username, s.role)
+        if method == "atualizacoes_todas":
+            return self.atualizacoes.todas()
+        if method in ("atualizacao_promover", "atualizacao_retirar"):
+            if not s.can("users"):
+                raise PermissionError("só quem gerencia usuários publica atualizações")
+            if method == "atualizacao_promover":
+                d = self.atualizacoes.promover(s.full_name or s.username)
+            else:
+                canal = str(args[0] if args else kwargs.get("canal", ""))
+                d = self.atualizacoes.retirar(canal)
+            self.repo.audit("atualizacao", f"{method}: {d}", user=s.username, host=client_host)
+            return d
         if method == "change_my_password":
             old, new = args[0], args[1]
             if self.repo.authenticate(s.username, old) is None:
@@ -433,8 +451,59 @@ class _Handler(BaseHTTPRequestHandler):
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, {"result": res})
+        if path.startswith("/api/atualizacao"):
+            return self._atualizacao(method, path, parse_qs(parts.query), s)
         if path.startswith("/dicomweb"):
             return self._dicomweb(method, path[len("/dicomweb"):], parse_qs(parts.query), s)
+        return self._error(404, "rota desconhecida")
+
+    # ------------------------------------------------------------------ atualizações (0.99.56, onda B1)
+    def _atualizacao(self, method: str, path: str, q: dict, s: UserSession) -> None:
+        c = self.central
+        first = lambda k: (q.get(k) or [""])[0]          # noqa: E731
+        canal = first("canal") or "estavel"
+        if canal not in ("estavel", "teste"):
+            return self._error(400, "canal desconhecido")
+        if method == "GET" and path == "/api/atualizacao":
+            return self._json(200, c.atualizacoes.info(canal) or {}, raw=True)
+        if method == "GET" and path == "/api/atualizacao/pacote":
+            arq = c.atualizacoes.caminho(canal)
+            if arq is None:
+                return self._error(404, "nenhum pacote neste canal")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/octet-stream")
+            self.send_header("Content-Length", str(arq.stat().st_size))
+            self.end_headers()
+            with open(arq, "rb") as f:
+                shutil.copyfileobj(f, self.wfile, 1 << 20)
+            return None
+        if method == "POST" and path == "/api/atualizacao":
+            if not s.can("users"):
+                return self._error(403, "só quem gerencia usuários publica atualizações")
+            n = int(self.headers.get("Content-Length") or 0)
+            if n <= 0:
+                return self._error(400, "pacote vazio")
+            tmp = Path(tempfile.mkdtemp(prefix="ipe_atualiza_"))
+            try:
+                arq = tmp / "pacote"
+                with open(arq, "wb") as f:                   # em pedaços: o instalador tem centenas de MB
+                    falta = n
+                    while falta > 0:
+                        bloco = self.rfile.read(min(falta, 1 << 20))
+                        if not bloco:
+                            break
+                        f.write(bloco)
+                        falta -= len(bloco)
+                try:
+                    d = c.atualizacoes.publicar(arq, first("nome") or "pacote", first("versao"), canal,
+                                                first("notas"), s.full_name or s.username)
+                except ValueError as e:
+                    return self._error(400, str(e))
+                c.repo.audit("atualizacao", f"publicou {d['versao']} no canal {canal}", user=s.username,
+                             host=self.client_address[0])
+                return self._json(200, d, raw=True)
+            finally:
+                shutil.rmtree(tmp, ignore_errors=True)
         return self._error(404, "rota desconhecida")
 
     # ------------------------------------------------------------------ DICOMweb

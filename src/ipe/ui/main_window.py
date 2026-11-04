@@ -404,6 +404,9 @@ class MainWindow(QMainWindow):
         a = QAction("Abrir pasta de dados", j)
         a.triggered.connect(self._open_data_folder)
         h.addAction(a)
+        a = QAction("Procurar atualização no servidor central…", j)        # 0.99.56 (onda B1)
+        a.triggered.connect(lambda: self.procurar_atualizacao(silencioso=False))
+        h.addAction(a)
         # Ferramenta de teste: estava entre as ações clínicas do menu Arquivo.
         a = QAction("Gerar exames de teste (fantomas)…", j)
         a.triggered.connect(self.make_samples)
@@ -975,6 +978,7 @@ class MainWindow(QMainWindow):
         S.set_current(s)
         if self.auth is not None:
             self.settings.attach_user(self.auth.prefs(s), lambda p, ss=s: self.auth.save_prefs(ss, p))
+            self._aplicar_perfil(s)                      # 0.99.56 (onda B2)
         S.audit(self.repo, "login", "")
         self._ligar_itens()
         self.apply_permissions()
@@ -982,6 +986,124 @@ class MainWindow(QMainWindow):
         self.locations.banco = "visivel"
         self.locations.rebuild()
         self.browser.set_banco("visivel")
+        if self._central is not None and self.settings.get("central.atualizar_ao_entrar", True):
+            QTimer.singleShot(4000, lambda: self.procurar_atualizacao(silencioso=True))   # 0.99.56 (onda B1)
+
+    # ------------------------------------------------------------------ perfis e atualizações (0.99.56)
+    _perfil: dict = {}
+
+    def _aplicar_perfil(self, s) -> dict:
+        """Os perfis do servidor (ou do banco deste computador) que casam com este computador e com quem entrou."""
+        from ipe.core import perfis as PF
+        try:
+            p = self._repo_de_config().perfil_da_estacao(PF.nome_do_computador(), s.username, s.role) or {}
+        except Exception:  # noqa: BLE001
+            log.exception("perfil da estação")
+            p = {}
+        self._perfil = p
+        self.settings.attach_perfil(p)
+        if p.get("nomes"):
+            log.info("perfis aplicados: %s", ", ".join(p["nomes"]))
+        return p
+
+    def abrir_perfis(self):
+        """Configurações ▸ Usuários ▸ Perfis por grupo e computador (0.99.56, onda B2)."""
+        from ipe.auth import session as S
+        if not S.require("users", self):
+            return None
+        from ipe.ui.perfis_dialog import PerfisDialog
+        d = PerfisDialog(self._repo_de_config(), self.settings, self)
+        if d.exec() and S.get() is not None and self.auth is not None:
+            self._aplicar_perfil(S.get())
+        return d
+
+    def _backend_das_atualizacoes(self):
+        from ipe.auth import session as S
+        from ipe.ui.perfis_dialog import _Local, _Remoto
+        if self._central is not None:
+            return _Remoto(self._central[1].client)
+        if getattr(self, "central", None) is not None:
+            u = S.get()
+            return _Local(self.central.atualizacoes, (u.full_name or u.username) if u else "")
+        return None
+
+    def abrir_atualizacoes(self):
+        """Configurações ▸ Rede ▸ Atualizações pelo servidor central (0.99.56, onda B1)."""
+        from ipe.auth import session as S
+        if not S.require("users", self):
+            return None
+        b = self._backend_das_atualizacoes()
+        if b is None:
+            QMessageBox.information(self, "Atualizações", "As atualizações pelo servidor valem com o servidor central: "
+                                    "neste computador como servidor, ou como cliente dele (Configurações ▸ Usuários ▸ "
+                                    "Modo de uso).")
+            return None
+        from ipe.ui.perfis_dialog import AtualizacoesDialog
+        d = AtualizacoesDialog(b, self)
+        d.exec()
+        return d
+
+    def procurar_atualizacao(self, silencioso: bool = False) -> str:
+        """No modo cliente: a versão do meu canal no servidor é mais nova? Oferece baixar e instalar.
+        Devolve "" (nada), "nova", "adiada", "instalando" ou "baixada"."""
+        from ipe import __version__
+        from ipe.central import atualizacoes as AT
+        if self._central is None:
+            if not silencioso:
+                QMessageBox.information(self, "Atualização", "Este computador não está ligado a um servidor central.")
+            return ""
+        canal = (self._perfil or {}).get("canal") or "estavel"
+        client = self._central[1].client
+        try:
+            info = client.info_atualizacao(canal)
+        except Exception as e:  # noqa: BLE001
+            if not silencioso:
+                QMessageBox.warning(self, "Atualização", f"Não deu para falar com o servidor: {e}")
+            return ""
+        if not AT.ha_versao_nova(info, __version__):
+            if not silencioso:
+                QMessageBox.information(self, "Atualização", f"Você já está na versão mais nova do canal "
+                                        f"{'teste' if canal == 'teste' else 'estável'} ({__version__}).")
+            return ""
+        if silencioso and self.settings.get("central.atualizacao_adiada", "") == info["versao"]:
+            return "adiada"
+        txt = (f"Há uma versão nova no servidor: {info['versao']} (você está na {__version__})."
+               + (f"\n\n{info['notas']}" if info.get("notas") else "")
+               + "\n\nBaixar e instalar agora? O programa fecha durante a instalação.")
+        if QMessageBox.question(self, "Atualização", txt) != QMessageBox.Yes:
+            self.settings.set("central.atualizacao_adiada", info["versao"])
+            self.settings.save()
+            return "adiada"
+        destino = self.paths.data / "Atualizacoes" / info["nome"]
+        from PySide6.QtWidgets import QApplication, QProgressDialog
+        prog = QProgressDialog("Baixando a atualização…", "", 0, 100, self)
+        prog.setCancelButton(None)
+        prog.setMinimumDuration(0)
+
+        def andou(feito, total):
+            if total:
+                prog.setValue(int(100 * feito / total))
+            QApplication.processEvents()
+        try:
+            arq = client.baixar_atualizacao(canal, destino, andou)
+            AT.conferir_pacote(arq, info)
+        except Exception as e:  # noqa: BLE001
+            prog.close()
+            QMessageBox.warning(self, "Atualização", f"A atualização não baixou direito: {e}")
+            return "nova"
+        prog.close()
+        if AT.instalador_do_windows(arq):
+            try:
+                AT.rodar_instalador(arq)
+            except Exception as e:  # noqa: BLE001
+                QMessageBox.warning(self, "Atualização", f"Não deu para abrir o instalador: {e}")
+                return "baixada"
+            self.settings.save()
+            QTimer.singleShot(0, self.quit_app)
+            return "instalando"
+        QMessageBox.information(self, "Atualização", f"Pacote baixado em {arq}. Instale à mão (a pasta vai abrir).")
+        AT.abrir_pasta(arq.parent)
+        return "baixada"
 
     def abrir_config_niveis(self):
         """Configurações ▸ Usuários ▸ Pessoais e compartilhadas (0.99.30)."""

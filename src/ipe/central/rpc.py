@@ -57,6 +57,9 @@ RPC_METHODS: dict[str, str] = {
     "set_study_priority": "report",
     # 0.99.53: painel de produtividade (onda B6)
     "produtividade_dados": "view",
+    # 0.99.56: perfil da estação e atualizações (tratados no próprio servidor, com a sessão de quem pede)
+    "perfil_da_estacao": "", "atualizacoes_todas": "", "atualizacao_promover": "users",
+    "atualizacao_retirar": "users",
 }
 
 # 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame

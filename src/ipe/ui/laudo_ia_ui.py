@@ -258,8 +258,11 @@ class LaudoIAConfigDialog(QDialog):
     def _salvar(self) -> None:
         from ipe.core import segredos as SG
         v = self.valor()
-        for k in ("provedor", "url", "modelo", "tempo", "conferir_ao_assinar"):
-            self.settings.set(f"laudo_ia.{k}", v[k])
+        self.settings.set("laudo_ia.provedor", v["provedor"])
+        self.settings.set("laudo_ia.url", v["url"])
+        self.settings.set("laudo_ia.modelo", v["modelo"])
+        self.settings.set("laudo_ia.tempo", v["tempo"])
+        self.settings.set("laudo_ia.conferir_ao_assinar", v["conferir_ao_assinar"])
         self.settings.set("laudo_ia.chave", SG.guardar(v["chave"]))
         self.settings.save()
         self.accept()

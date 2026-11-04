@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.56 — perfis por grupo e computador e atualização pelo servidor (onda B2 e B1)
+- **Perfis por grupo e computador** (Configurações ▸ Usuários): preferências mandadas pelo servidor por
+  computador (com coringa), usuário ou perfil de acesso; captura do computador arrumado; chaves forçadas.
+- **Atualizações pelo servidor central** (Configurações ▸ Rede): publicar o instalador nos canais teste e
+  estável, promover e retirar; o cliente avisa ao entrar, baixa, confere o SHA-256 e instala com um clique.
+
 ## 0.99.55 — OAuth2/OIDC nos nós DICOMweb e senhas cifradas (onda B3)
 - Nó DICOMweb com **OAuth2**: credenciais do cliente, usuário e senha (Keycloak) ou token fixo; o endereço do
   token pode ser o do emissor OIDC (descoberta automática); token renovado sozinho e nova tentativa no 401.

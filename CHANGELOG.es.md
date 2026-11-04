@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.56 — perfiles por grupo y computadora y actualización por el servidor (ola B2 y B1)
+- **Perfiles por grupo y computadora** (Configuraciones ▸ Usuarios): preferencias enviadas por el servidor
+  por computadora (con comodín), usuario o perfil de acceso; captura de la computadora configurada; claves
+  forzadas.
+- **Actualizaciones por el servidor central** (Configuraciones ▸ Red): publicar el instalador en los canales
+  prueba y estable, promover y retirar; el cliente avisa al entrar, descarga, revisa el SHA-256 e instala con
+  un clic.
+
 ## 0.99.55 — OAuth2/OIDC en los nodos DICOMweb y contraseñas cifradas (ola B3)
 - Nodo DICOMweb con **OAuth2**: credenciales del cliente, usuario y contraseña (Keycloak) o token fijo; la
   dirección del token puede ser la del emisor OIDC (descubrimiento automático); token renovado solo y un nuevo

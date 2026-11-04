@@ -291,6 +291,51 @@ class Settings:
     def detach_user(self) -> None:
         self.user, self._user_saver = None, None
         self.itens = None
+        self.perfil = None
+
+    # 0.99.56 (onda B2): perfil do grupo ou do computador mandado pelo servidor (core/perfis.py) — uma camada
+    # entre o computador e a pessoa; as chaves "forçadas" ninguém troca
+    perfil = None
+
+    def attach_perfil(self, perfil: dict | None) -> None:
+        p = perfil or {}
+        self.perfil = p if (p.get("valores") or p.get("forcados")) else None
+
+    def forcado(self, dotted: str) -> bool:
+        if not self.perfil:
+            return False
+        return any(dotted == f or dotted.startswith(f + ".") for f in self.perfil.get("forcados") or [])
+
+    def _get_com_perfil(self, dotted: str, default: Any = None) -> Any:
+        camadas = []
+        ok, v = _get(self.data, dotted)
+        if ok:
+            camadas.append(v)
+        valores = self.perfil.get("valores") or {}
+        ok, v = _get(valores, dotted)
+        if ok:
+            camadas.append(v)
+        if self.user is not None and is_user_key(dotted) and not self.forcado(dotted):
+            ok, v = _get(self.user, dotted)
+            if ok:
+                camadas.append(v)
+        if self.forcado(dotted):
+            ok, v = _get(valores, dotted)
+            if ok:
+                camadas.append(v)
+        if not camadas:
+            return default
+        out = camadas[0]
+        for c in camadas[1:]:
+            out = _merge(out, c) if isinstance(out, dict) and isinstance(c, dict) else c
+        # chave forçada mais funda do que a pedida (pede "viewer", forçado "viewer.mouse")
+        for f in self.perfil.get("forcados") or []:
+            if f.startswith(dotted + ".") and isinstance(out, dict):
+                ok, v = _get(valores, f)
+                if ok:
+                    out = deepcopy(out)
+                    _set(out, f[len(dotted) + 1:], v)
+        return out
 
     # 0.99.30: as listas de configuração com dono (protocolos, modelos…) — ver core/itens.py
     itens = None
@@ -384,6 +429,8 @@ class Settings:
         if self.itens is not None and dotted in _CHAVES_ITENS:
             v = self.itens.efetivo(dotted)
             return v if v is not None else default
+        if self.perfil:
+            return self._get_com_perfil(dotted, default)
         if self.user is not None and is_user_key(dotted):
             found, v = _get(self.user, dotted)
             if found:

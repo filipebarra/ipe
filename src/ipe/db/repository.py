@@ -454,6 +454,11 @@ class Repository:
                 n += 1
         return n
 
+    def perfil_da_estacao(self, computador: str = "", usuario: str = "", papel: str = "") -> dict:
+        """0.99.56 (onda B2): os perfis que casam com este computador e esta pessoa, juntos."""
+        from ipe.core import perfis as PF
+        return PF.juntar(self.get_app_setting(PF.CHAVE, []) or [], computador, usuario, papel)
+
     def set_study_priority(self, study_uids, prioridade: str | None = None, subespecialidade: str | None = None) -> int:
         """0.99.52 (onda B4): troca à mão a prioridade ("" = a da regra) e/ou a subespecialidade."""
         n = 0

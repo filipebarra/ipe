@@ -891,6 +891,18 @@ A aba **Histórico** mostra o que cada regra fez e quando.
 
 **Configurações ▸ Rede ▸ Servidor central…** põe uma instalação no papel de servidor, com login e banco compartilhado; as outras entram como cliente. É para um grupo pequeno na mesma rede — o banco é SQLite.
 
+### Perfis por grupo e computador
+
+**Configurações ▸ Usuários ▸ Perfis por grupo e computador…** (quem gerencia usuários) monta perfis de preferências que o servidor manda para as estações: cada perfil diz para quais **computadores** vale (nomes, com coringa: `SALA-MAMO*`, `TC-0?`), para quais **usuários** e quais **perfis de acesso** (vazio = todos), e quais preferências leva — mouse, texto sobre a imagem, atalhos, colunas do banco, monitores, dinâmica da mama, CAD/IA, idioma… O jeito mais fácil é arrumar um computador como deve ficar e usar **Capturar deste computador…**; dá também para escrever chave e valor à mão (o valor em JSON).
+
+Ao entrar, valem os perfis que casam, na ordem da lista (o de baixo ganha). O perfil manda sobre o que vem do computador, e cada pessoa ainda pode ajustar o seu — menos nas chaves marcadas **Forçar**, que ninguém troca. No modo cliente os perfis moram no servidor; num computador com várias pessoas, no banco dele (aí só usuários e perfis de acesso fazem diferença). O nome deste computador aparece na própria janela.
+
+### Atualizações pelo servidor central
+
+**Configurações ▸ Rede ▸ Atualizações pelo servidor central…** (quem gerencia usuários, no servidor ou num cliente) publica o pacote de uma versão — de preferência o instalador do Windows, `Ipe-setup-x.y.z.exe` — num de dois canais: **teste**, que vai primeiro para os computadores e as pessoas dos perfis marcados *Atualizações: Teste*, e **estável**, para todos. **Promover teste → estável** libera para todos o que já foi testado; **Retirar** tira o pacote do canal.
+
+Ao entrar no modo cliente, o programa confere o canal dele; havendo versão mais nova, pergunta se baixa e instala. Com o "sim", baixa, confere o SHA-256 e, sendo o instalador do Windows, fecha o programa e instala sem mais perguntas. Outro tipo de pacote (zip, tgz) é baixado e a pasta abre, para instalar à mão. Com o "não", não pergunta de novo a mesma versão; **Ajuda ▸ Procurar atualização no servidor central…** pergunta na hora. Cada publicação, promoção e retirada fica no registro de acesso.
+
 ## Compressão sem perda
 
 **Arquivo ▸ Relatório do acervo (formato e compressão)…** mostra o que o acervo tem e quanto a compressão sem perda economizaria. A compressão troca o arquivo só depois de conferir pixel a pixel, lendo de volta do disco, que a imagem é idêntica.

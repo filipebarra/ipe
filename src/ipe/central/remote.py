@@ -99,6 +99,45 @@ class RemoteClient:
                 return codec.loads(r.read())["result"]
         return self._retry(call)
 
+    # ------------------------------------------------------------------ atualizações (0.99.56, onda B1)
+    def info_atualizacao(self, canal: str = "estavel") -> dict:
+        def call():
+            with self._open(f"/api/atualizacao?canal={canal}", timeout=10) as r:
+                return json.loads(r.read() or b"{}")
+        return self._retry(call)
+
+    def baixar_atualizacao(self, canal: str, dest: Path, progress=None) -> Path:
+        dest = Path(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+
+        def call():
+            with self._open(f"/api/atualizacao/pacote?canal={canal}", timeout=max(self.timeout, 300)) as r:
+                total = int(r.headers.get("Content-Length") or 0)
+                feito = 0
+                with open(dest, "wb") as f:
+                    while True:
+                        bloco = r.read(1 << 20)
+                        if not bloco:
+                            break
+                        f.write(bloco)
+                        feito += len(bloco)
+                        if progress:
+                            progress(feito, total)
+            return dest
+        return self._retry(call)
+
+    def publicar_atualizacao(self, arquivo: Path, versao: str = "", canal: str = "teste", notas: str = "") -> dict:
+        from urllib.parse import urlencode
+        arquivo = Path(arquivo)
+        q = urlencode({"canal": canal, "nome": arquivo.name, "versao": versao, "notas": notas})
+
+        def call():
+            with open(arquivo, "rb") as f:
+                h = {"Content-Type": "application/octet-stream", "Content-Length": str(arquivo.stat().st_size)}
+                with self._open(f"/api/atualizacao?{q}", f, h, "POST", timeout=max(self.timeout, 900)) as r:
+                    return json.loads(r.read())
+        return self._retry(call)
+
     # ------------------------------------------------------------------ DICOMweb
     def qido(self, path: str) -> list[dict]:
         def call():

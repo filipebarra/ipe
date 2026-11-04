@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.56 — profiles by group and computer and updates through the server (wave B2 and B1)
+- **Profiles by group and computer** (Settings ▸ Users): preferences sent by the server per computer (with
+  wildcards), user or access profile; capture from a set-up computer; enforced keys.
+- **Updates through the central server** (Settings ▸ Network): publish the installer to the test and stable
+  channels, promote and remove; the client warns at sign-in, downloads, checks the SHA-256 and installs in one
+  click.
+
 ## 0.99.55 — OAuth2/OIDC on DICOMweb nodes and encrypted passwords (wave B3)
 - DICOMweb node with **OAuth2**: client credentials, username and password (Keycloak) or a fixed token; the
   token address can be the OIDC issuer (automatic discovery); token renewed on its own and one retry on 401.

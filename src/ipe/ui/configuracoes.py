@@ -63,6 +63,7 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         ("Nós DICOM (PACS, estações)…", "f:open_network_settings", "query"),
         ("Automação (buscas agendadas, anteriores, roteamento, limpeza)…", "f:open_automation", "configure"),
         ("Servidor central (intranet)…", "f:open_central_settings", "configure"),
+        ("Atualizações pelo servidor central…", "f:abrir_atualizacoes", "users"),
         ("Registrar link ipe:// neste computador", "f:_register_url", "configure"),
     ]),
     ("Impressão", [
@@ -79,6 +80,7 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         ("Modo de uso (só eu, várias pessoas, servidor)…", "f:abrir_modo_de_uso", "users"),
         ("Usuários e permissões…", lambda w: w.open_users(tab=0), "users"),
         ("Configurações pessoais e compartilhadas…", "f:abrir_config_niveis", ""),
+        ("Perfis por grupo e computador…", "f:abrir_perfis", "users"),
     ]),
     ("Sistema", [
         ("Ao abrir o programa…", "p:abertura", ""),
