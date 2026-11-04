@@ -61,6 +61,9 @@ class Study(Base):
     last_accessed: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     locked: Mapped[bool] = mapped_column(Boolean, default=False)       # protegido do autodelete
     unread: Mapped[bool] = mapped_column(Boolean, default=True)
+    # 0.99.52 (onda B4): troca manual da prioridade e da subespecialidade ("" = a da regra)
+    prioridade: Mapped[str] = mapped_column(String(16), default="")
+    subespecialidade: Mapped[str] = mapped_column(String(64), default="")
 
     patient: Mapped[Patient] = relationship(back_populates="studies")
     series: Mapped[list["Series"]] = relationship(back_populates="study",

@@ -51,6 +51,7 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         ("Instalar a segmentação de órgãos (TotalSegmentator)…", "f:instalar_segmentacao", "configure"),
     ]),
     ("Laudos", [
+        ("Prioridade, subespecialidade e prazos (SLA)…", "f:abrir_config_sla", "users"),
         ("Busca ativa (prazos por BI-RADS)…", "f:abrir_config_busca_ativa", "users"),
     ]),
     ("Monitores", [

@@ -32,6 +32,8 @@ COLUMNS = [
     ("num_groups", "Dinâmicas", "int"), ("lists", "Listas", "text"), ("comment", "Comentário", "text"),
     ("report", "Laudo", "text"), ("banco", "Banco", "banco"), ("ia", "IA", "ia"),
     ("birads", "BI-RADS", "text"), ("densidade", "Densidade", "text"), ("busca", "Busca ativa", "busca"),
+    ("prioridade", "Prioridade", "prioridade"), ("subesp", "Subespecialidade", "text"),
+    ("prazo", "Prazo do laudo", "datetime"), ("sla", "SLA", "text"),
     ("case_n", "Nº", "int"), ("case_name", "Caso (lista)", "text"),
 ]
 LIST_ONLY = ["case_n", "case_name"]          # aparecem sozinhas quando uma lista está aberta
@@ -180,12 +182,26 @@ class StudyTableModel(QAbstractTableModel):
             if kind == "busca":
                 from ipe.reporting import busca_ativa as BA
                 return BA.ESTADOS.get(v, v) if v else ""
+            if kind == "prioridade":
+                from ipe.core import sla as SLA
+                return SLA.PRIORIDADES.get(v, v)
             if kind in ("int", "float") and not v:
                 return ""
             if key == "patient_name":
                 marcas = _marks(r)
                 return f"{v}  {marcas}" if marcas else v
             return v
+        if role == Qt.ForegroundRole and key in ("sla", "prioridade"):
+            # 0.99.52 (onda B4): atrasado em vermelho, perto de vencer em laranja; urgente e emergência também
+            est = getattr(r, "sla_estado", "") if key == "sla" else getattr(r, "prioridade", "")
+            cor = {"atrasado": (200, 40, 40), "fora_do_prazo": (200, 40, 40), "atencao": (210, 120, 0),
+                   "emergencia": (200, 40, 40), "urgente": (210, 120, 0)}.get(est)
+            if cor:
+                from PySide6.QtGui import QColor
+                return QColor(*cor)
+        if role == Qt.UserRole + 1 and key == "prioridade":
+            from ipe.core import sla as SLA
+            return SLA.ORDEM.get(getattr(r, "prioridade", ""), 9)
         if role == Qt.TextAlignmentRole and kind in ("int", "float"):
             return int(Qt.AlignRight | Qt.AlignVCenter)
         if role == Qt.FontRole and r.unread:
@@ -283,6 +299,13 @@ class Browser(QWidget):
         self.btn_mama.clicked.connect(
             lambda: self.menu_mama().exec(self.btn_mama.mapToGlobal(self.btn_mama.rect().bottomLeft())))
         top.addWidget(self.btn_mama)
+        # 0.99.52 (onda B4): a lista de trabalho — prioridade, subespecialidade e prazo
+        self.btn_trabalho = QPushButton("Trabalho ▾")
+        self.btn_trabalho.setToolTip("Lista de trabalho: sem laudo pelo prazo, atrasados, urgentes, minhas "
+                                     "subespecialidades")
+        self.btn_trabalho.clicked.connect(
+            lambda: self.menu_trabalho().exec(self.btn_trabalho.mapToGlobal(self.btn_trabalho.rect().bottomLeft())))
+        top.addWidget(self.btn_trabalho)
         top.addWidget(self.btn_clear_filters)
 
         # --- listas de casos (esquerda)
@@ -619,6 +642,78 @@ class Browser(QWidget):
         ("Busca ativa aberta", {"busca": {"Pendente", "Contatada", "Agendada"}}),
         ("Busca ativa: retornou", {"busca": {"Retornou"}}),
     ]
+
+    # ------------------------------------------------------------ lista de trabalho (0.99.52, onda B4)
+    def minhas_subesp(self) -> list[str]:
+        v = self._settings_get("worklist.minhas_subesp") or []
+        return [str(x) for x in v] if isinstance(v, list) else []
+
+    def menu_trabalho(self) -> QMenu:
+        m = QMenu(self)
+        m.addAction("Sem laudo, pelo prazo (o que vence primeiro)", lambda: self.filtro_trabalho("sem_laudo"))
+        m.addAction("Atrasados", lambda: self.filtro_trabalho("atrasados"))
+        m.addAction("Vencem em menos de 2 h", lambda: self.filtro_trabalho("vencendo"))
+        m.addAction("Urgências e emergências sem laudo", lambda: self.filtro_trabalho("urgentes"))
+        minhas = self.minhas_subesp()
+        a = m.addAction("Minhas subespecialidades" + (f" ({', '.join(minhas)})" if minhas else ""),
+                        lambda: self.filtro_trabalho("minhas"))
+        a.setEnabled(bool(minhas))
+        m.addSeparator()
+        m.addAction("Escolher minhas subespecialidades…", self.escolher_minhas_subesp)
+        m.addAction("Limpar filtros", self.clear_filters)
+        return m
+
+    def filtro_trabalho(self, qual: str) -> None:
+        sem_laudo = {"report": {"", "rascunho"}}
+        filtro = {"sem_laudo": sem_laudo, "atrasados": {**sem_laudo, "sla": "atrasado"},
+                  "vencendo": {**sem_laudo, "sla": "vence em"},
+                  "urgentes": {**sem_laudo, "prioridade": {"Urgente", "Emergência"}},
+                  "minhas": {**sem_laudo, "subesp": set(self.minhas_subesp())}}[qual]
+        self.aplicar_filtro_mama(filtro)
+        visiveis = self.visible_columns()
+        faltam = [k for k in ("prioridade", "subesp", "prazo", "sla") if k not in visiveis]
+        if faltam:
+            self.set_columns(visiveis + faltam)
+        self.table.sortByColumn(KEY_INDEX["prazo"], Qt.AscendingOrder)
+
+    def escolher_minhas_subesp(self) -> list[str] | None:
+        from ipe.core import sla as SLA
+        nomes = sorted({str(r.get("nome") or "") for r in SLA.config(self.repo)["subesp"]} | {"Geral"})
+        dlg = ValueFilterDialog("Minhas subespecialidades", nomes, set(self.minhas_subesp()) or None, self)
+        if not dlg.exec():
+            return None
+        ch = dlg.chosen()
+        escolha = sorted(nomes if ch is None else ch)
+        if self.settings is not None:
+            self.settings.set("worklist.minhas_subesp", escolha)
+            self.settings.save()
+        return escolha
+
+    def menu_prioridade(self, menu: QMenu, rows) -> None:
+        """Botão direito ▸ Prioridade / Subespecialidade (troca à mão; "da regra" volta ao automático)."""
+        from ipe.core import sla as SLA
+        uids = [r.study_uid for r in rows]
+        mp = menu.addMenu("Prioridade")
+        for k, rot in [("", "Da regra (automática)")] + list(SLA.PRIORIDADES.items()):
+            mp.addAction(rot, lambda p=k: self._trocar_prioridade(uids, prioridade=p))
+        ms = menu.addMenu("Subespecialidade")
+        nomes = sorted({str(r.get("nome") or "") for r in SLA.config(self.repo)["subesp"]} | {"Geral"})
+        ms.addAction("Da regra (automática)", lambda: self._trocar_prioridade(uids, subespecialidade=""))
+        ms.addSeparator()
+        for n in nomes:
+            ms.addAction(n, lambda n=n: self._trocar_prioridade(uids, subespecialidade=n))
+        from ipe.auth import session as S
+        mp.setEnabled(S.can("report"))
+        ms.setEnabled(S.can("report"))
+
+    def _trocar_prioridade(self, uids, prioridade=None, subespecialidade=None) -> None:
+        try:
+            self.repo.set_study_priority(uids, prioridade, subespecialidade)
+        except Exception as e:  # noqa: BLE001
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Prioridade", f"Não deu para trocar: {e}")
+            return
+        self.refresh()
 
     def menu_mama(self) -> QMenu:
         m = QMenu(self)
@@ -1544,6 +1639,7 @@ class Browser(QWidget):
             a.triggered.connect(lambda _=False, l=lid, k=kind: self._add_to_list(l, k, rows))
             lists_menu.addAction(a)
 
+        self.menu_prioridade(menu, rows)
         self.acoes_de_banco(menu, rows)
         send_menu = menu.addMenu("Enviar para")
         self.fill_send_menu(send_menu, rows)

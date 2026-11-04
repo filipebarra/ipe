@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.52 — worklist with priority, subspecialty and deadline (wave B4)
+- **Priority**, **Subspecialty**, **Report deadline** and **SLA** columns (left / due in / overdue; on time or
+  late once signed), from service rules and changeable by right-click.
+- **Work ▾**: unreported by deadline, overdue, due within 2 h, urgent studies and my subspecialties.
+- Rules in **Settings ▸ Reports ▸ Priority, subspecialty and deadlines (SLA)…**.
+
 ## 0.99.51 — patient recall and mammography filters (wave B8 and B7)
 - **Patient recall**: a signed BI-RADS 0 or 3 report creates the request to call the patient back (30 and
   180 days, configurable; 4 and 5 optional). **Reports ▸ Patient recall…**: deadlines, overdue items,

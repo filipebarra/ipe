@@ -80,6 +80,11 @@ class StudyRow:
     birads: str = ""              # 0.99.51: categoria final do laudo BI-RADS assinado
     densidade: str = ""           # composição (ACR a–d) do mesmo laudo
     busca: str = ""               # estado da busca ativa do exame
+    prioridade: str = ""          # 0.99.52 (onda B4): rotina, urgente, emergencia
+    subesp: str = ""              # subespecialidade
+    prazo: str = ""               # prazo do laudo, AAAAMMDDHHMM
+    sla: str = ""                 # "faltam 5 h", "atrasado 2 h", "no prazo"
+    sla_estado: str = ""          # ok, atencao, atrasado, no_prazo, fora_do_prazo
 
 
 @dataclass
@@ -188,6 +193,10 @@ class Repository:
             ias: dict[str, list[str]] = {}
             mama: dict[str, tuple[str, str]] = {}
             buscas: dict[str, str] = {}
+            laudado: dict = {}
+            from ipe.core import sla as _SLA
+            cfg_sla = _SLA.config(self)
+            agora = datetime.now()
             if uids:
                 for uid, name in s.execute(select(CaseListItem.study_uid, CaseList.name)
                                            .join(CaseList, CaseListItem.list_fk == CaseList.id)
@@ -195,8 +204,11 @@ class Repository:
                     lists.setdefault(uid, []).append(name)
                 import json as _json
                 from ipe.reporting import birads as _BR
-                for uid, st_, flds in s.execute(select(Report.study_uid, Report.status, Report.fields)
-                                                .where(Report.study_uid.in_(uids)).order_by(Report.id)):
+                for uid, st_, flds, sig in s.execute(select(Report.study_uid, Report.status, Report.fields,
+                                                            Report.signed_at)
+                                                     .where(Report.study_uid.in_(uids)).order_by(Report.id)):
+                    if st_ != "draft" and sig is not None and uid not in laudado:
+                        laudado[uid] = sig                 # 0.99.52: a primeira assinatura conta para o prazo
                     name = {"draft": "rascunho", "final": "assinado", "amended": "retificado"}.get(st_, st_)
                     rank = {"rascunho": 1, "assinado": 2, "retificado": 3}
                     if rank.get(name, 0) > rank.get(reports.get(uid, ""), 0):
@@ -242,6 +254,9 @@ class Repository:
             rows = []
             fmt = "%Y%m%d%H%M"
             for st, pt, ns, ni, hc, sz, nk, nm, ng in result:
+                sla = _SLA.resolver({"description": st.description or "", "modalities": st.modalities or "",
+                                     "prioridade_manual": st.prioridade or "", "subesp_manual": st.subespecialidade or "",
+                                     "chegada": st.date_added, "laudado_em": laudado.get(st.study_uid)}, cfg_sla, agora)
                 rows.append(StudyRow(
                     st.study_uid, pt.name, pt.patient_id, pt.birth_date, pt.sex, st.study_date,
                     st.modalities, st.description, st.accession, ns or 0, ni or 0, st.unread, bool(hc),
@@ -257,7 +272,7 @@ class Repository:
                     dono=st.dono or "", visivel_para=st.visivel_para or "",
                     ia=", ".join(ias.get(st.study_uid, [])),
                     birads=mama.get(st.study_uid, ("", ""))[0], densidade=mama.get(st.study_uid, ("", ""))[1],
-                    busca=buscas.get(st.study_uid, ""),
+                    busca=buscas.get(st.study_uid, ""), **sla,
                     **{k: "; ".join(v) for k, v in details.get(st.study_uid, {}).items()}))
             return rows
 
@@ -436,6 +451,18 @@ class Repository:
         with self.db.session() as s:
             for st in s.scalars(select(Study).where(Study.study_uid.in_(list(study_uids)))):
                 st.dono, st.visivel_para = (dono or "").strip(), (visivel_para or "").strip()
+                n += 1
+        return n
+
+    def set_study_priority(self, study_uids, prioridade: str | None = None, subespecialidade: str | None = None) -> int:
+        """0.99.52 (onda B4): troca à mão a prioridade ("" = a da regra) e/ou a subespecialidade."""
+        n = 0
+        with self.db.session() as s:
+            for st in s.scalars(select(Study).where(Study.study_uid.in_(list(study_uids or [])))):
+                if prioridade is not None:
+                    st.prioridade = str(prioridade or "")
+                if subespecialidade is not None:
+                    st.subespecialidade = str(subespecialidade or "")
                 n += 1
         return n
 

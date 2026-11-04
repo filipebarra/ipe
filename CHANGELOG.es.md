@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.52 — lista de trabajo con prioridad, subespecialidad y plazo (ola B4)
+- Columnas **Prioridad**, **Subespecialidad**, **Plazo del informe** y **SLA** (faltan / vence en / atrasado;
+  en plazo o fuera de plazo después de firmado), por reglas del servicio y cambiables con clic derecho.
+- **Trabajo ▾**: sin informe por plazo, atrasados, venciendo en 2 h, urgencias y mis subespecialidades.
+- Reglas en **Configuraciones ▸ Informes ▸ Prioridad, subespecialidad y plazos (SLA)…**.
+
 ## 0.99.51 — búsqueda activa y filtros de mamografía (ola B8 y B7)
 - **Búsqueda activa**: el informe BI-RADS 0 o 3 firmado genera el pedido de llamar de vuelta a la paciente
   (30 y 180 días, configurables; 4 y 5 opcionales). **Informes ▸ Búsqueda activa…**: plazos, atrasos,

@@ -53,6 +53,8 @@ RPC_METHODS: dict[str, str] = {
     "buscas_ativas": "view", "criar_busca_ativa": "sign_report", "atualizar_busca_ativa": "view",
     "encerrar_buscas_do_exame": "sign_report", "conferir_retornos_busca_ativa": "view",
     "busca_ativa_por_exame": "view",
+    # 0.99.52: prioridade e subespecialidade do exame (onda B4)
+    "set_study_priority": "report",
 }
 
 # 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame

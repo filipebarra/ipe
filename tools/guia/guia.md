@@ -957,6 +957,14 @@ Ao **assinar** um laudo com o formulário BI-RADS, a categoria final decide se a
 
 **Laudos ▸ Busca ativa…** mostra os pedidos — abertos, atrasados (em vermelho), que retornaram ou encerrados — com o prazo e a situação ("faltam 12 dias", "atrasada 3 dias"). Os botões **Contatada**, **Agendada**, **Retornou**, **Encerrar…** (com o motivo) e **Nota…** vão ao histórico, com quem e quando; **Abrir o exame** abre o exame de origem (ou o de retorno). A paciente **retorna sozinha** quando chega ao banco um exame de mama dela com data igual ou posterior (mamografia, ou US/RM com "mama" na descrição) — o botão **Conferir retornos** refaz essa conferência. **Exportar CSV…** leva a lista para a planilha da recepção. No servidor central, a lista é uma só para todas as estações.
 
+## Lista de trabalho: prioridade, subespecialidade e prazo (SLA)
+
+Cada exame do banco tem uma **prioridade** (rotina, urgente, emergência), uma **subespecialidade** (mama, neuro, cabeça e pescoço, tórax, musculoesquelético, abdome, medicina nuclear ou geral) e um **prazo do laudo**: a chegada ao banco + as horas da prioridade (de fábrica, rotina 48 h, urgente 4 h, emergência 1 h; a rotina pode ter horas próprias por subespecialidade, como "Mama=72"). As colunas **Prioridade**, **Subespecialidade**, **Prazo do laudo** e **SLA** mostram isso; o SLA diz "faltam 5 h", "vence em 40 min" (laranja, a menos de 2 h), "atrasado 3 h" (vermelho) e, depois de assinado, "no prazo" ou "fora do prazo (+5 h)". Urgente aparece em laranja e emergência em vermelho.
+
+A prioridade sai das palavras da descrição do exame (de fábrica "URGENTE", "PS", "PRONTO SOCORRO", "UTI" → urgente; "EMERGÊNCIA", "CÓDIGO AVC", "TRAUMA" → emergência) e a subespecialidade da primeira regra que casar (modalidades + palavras da descrição). Tudo se ajusta em **Configurações ▸ Laudos ▸ Prioridade, subespecialidade e prazos (SLA)…**; em cada exame, **botão direito ▸ Prioridade** ou **▸ Subespecialidade** troca à mão ("Da regra" volta ao automático).
+
+O botão **Trabalho ▾**, no banco de dados, filtra e ordena pelo prazo: **sem laudo** (o que vence primeiro em cima), **atrasados**, **vencem em menos de 2 h**, **urgências e emergências** e **minhas subespecialidades** (escolha as suas uma vez em *Escolher minhas subespecialidades…*). No servidor central as regras valem para todas as estações.
+
 ## Filtros de mamografia
 
 O botão **Mama ▾**, ao lado de **Colunas ▾** no banco de dados, aplica filtros prontos e mostra as colunas que eles usam: **BI-RADS 0**, **3**, **4 e 5**, **6**; **mamas densas** (ACR c e d) ou não densas; **mamografias sem laudo assinado**; **rastreamento** ou **diagnóstica** (pela descrição do exame); **busca ativa aberta** ou **que retornou**. As colunas **BI-RADS** e **Densidade** vêm do laudo BI-RADS assinado mais recente do exame; **Busca ativa**, do pedido do exame. Como toda coluna, aceitam também o filtro digitado e o filtro por valores.

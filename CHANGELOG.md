@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.52 — lista de trabalho com prioridade, subespecialidade e prazo (onda B4)
+- Colunas **Prioridade**, **Subespecialidade**, **Prazo do laudo** e **SLA** (faltam / vence em / atrasado;
+  no prazo ou fora do prazo depois de assinado), por regras do serviço e trocáveis no botão direito.
+- **Trabalho ▾**: sem laudo pelo prazo, atrasados, vencendo em 2 h, urgências e minhas subespecialidades.
+- Regras em **Configurações ▸ Laudos ▸ Prioridade, subespecialidade e prazos (SLA)…**.
+
 ## 0.99.51 — busca ativa e filtros de mamografia (onda B8 e B7)
 - **Busca ativa**: o laudo BI-RADS 0 ou 3 assinado gera o pedido de chamar a paciente de volta (30 e 180
   dias, configuráveis; 4 e 5 opcionais). **Laudos ▸ Busca ativa…**: prazos, atrasos, contatada / agendada /

@@ -711,6 +711,15 @@ class MainWindow(QMainWindow):
         self._busca_ativa_dlg = dlg
         dlg.show()
 
+    def abrir_config_sla(self) -> None:
+        """Configurações ▸ Laudos ▸ Prioridade, subespecialidade e prazos (0.99.52, onda B4)."""
+        from ipe.ui.sla_dialog import SlaConfigDialog
+        if SlaConfigDialog(self.repo, self).exec():
+            try:
+                self.browser.refresh()
+            except Exception:  # noqa: BLE001
+                pass
+
     def abrir_config_busca_ativa(self) -> None:
         from ipe.ui.busca_ativa_dialog import BuscaAtivaConfigDialog
         BuscaAtivaConfigDialog(self.repo, self).exec()
