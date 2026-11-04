@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 CELL_CHOICES = [""] + [f"{v}{s}{t}{a}" for a in ("", " ant", " ant2") for t in ("", " tomo", " rec")
                        for v in ("CC", "MLO", "ML", "LM", "XCCL", "XCCM", "AT", "SPOT", "MAG", "")
-                       for s in ("D", "E")]
+                       for s in ("D", "E")] + ["US", "RM"]
 # zoom por quadrante: duas etapas, ancoradas na parede torácica (posterior)
 QUAD_NAMES = ["posterior e superior", "posterior e inferior"]
 SLAB_STEPS = [1, 5, 10, 20]                         # tomossíntese: espessura em cortes
@@ -95,6 +95,10 @@ class MgSession:
             cell = M.parse_code(code) if code else None
             vp.mg_cell = None
             vp.empty_note = ""
+            outro = M.parse_outro(code) if code and cell is None else None
+            if outro is not None:                # 0.99.61 (PV 19): última US / última RM no quadro
+                self._load_outro(vp, *outro)
+                continue
             if cell is None:
                 vp.clear()
                 vp.empty_note = "(quadro vazio no protocolo)" if not code else f"{code}: código inválido"
@@ -162,13 +166,39 @@ class MgSession:
         comum = min(achados) if self.proto.get("sync_zoom", True) else None
         faltaram = 0
         for vp, z in zooms:
+            vp.mg_dy = 0.0
             if not vp.enquadrar_na_mama(comum if comum is not None else z):
                 vp.fit()
                 faltaram += 1
         if faltaram:
             self.tab.status_message.emit(
                 f"Não achei a mama em {faltaram} quadro(s): esses abriram com a imagem inteira.")
+        if M.alinhamento_do_protocolo(self.proto) == "mamilo":
+            self.alinhar_pelo_mamilo([vp for vp, _z in zooms])
         return modo
+
+    def alinhar_pelo_mamilo(self, vps) -> int:
+        """PV 16: na mesma linha da tela, o mamilo das duas mamas na mesma altura (a média das alturas). Fica
+        guardado em `mg_dy`, para a tomo e a recombinada continuarem alinhadas ao rolar. Devolve quantos
+        quadros alinhou."""
+        t = self.tab
+        cols = max(1, t._layout[1])
+        linhas: dict[int, list] = {}
+        for vp in vps:
+            if vp in t.viewports and getattr(vp, "anat_lock", None) and vp.anat_lock[0] == "mama":
+                linhas.setdefault(t.viewports.index(vp) // cols, []).append(vp)
+        n = 0
+        for grupo in linhas.values():
+            ys = [(vp, vp.mamilo_na_tela()) for vp in grupo]
+            ys = [(vp, y) for vp, y in ys if y is not None]
+            if len(ys) < 2:
+                continue
+            alvo = sum(y for _vp, y in ys) / len(ys)
+            for vp, y in ys:
+                vp.mg_dy = float(alvo - y)             # o enquadramento soma isto à altura do alvo
+                vp.enquadrar_na_mama(vp.state.zoom, vp.anat_lock[2])
+                n += 1
+        return n
 
     def _series_frames(self, series_uid: str) -> list:
         if series_uid not in self._frames:
@@ -247,6 +277,50 @@ class MgSession:
             vp.set_tomo_slab(t.mg_slab, getattr(t, "mg_slab_mode", "mip"))
         if implant or getattr(t, "mg_implant", False):
             vp.set_implant_mask(True)
+        if getattr(t, "mg_inverter_mama", False):
+            vp.set_inverter_mama(True)
+
+    # ------------------------------------------------------------------ outro exame (PV 19)
+    def exame_outro(self, mod: str):
+        """O exame mais recente do paciente com `mod` (US ou MR), da mama de preferência. Guardado."""
+        chave = f"outro:{mod}"
+        if chave in self._studies:
+            return self._studies[chave]
+        t = self.tab
+        try:
+            rows = t.repo.other_studies_same_patient(t.study_uid)
+        except Exception:  # noqa: BLE001
+            rows = []
+        r, da_mama = M.estudo_outro(rows, mod, t.study_info.get("study_date", ""), t.study_uid)
+        self._studies[chave] = (r, da_mama) if r is not None else None
+        return self._studies[chave]
+
+    def _load_outro(self, vp, mod: str, filtro: str = "") -> bool:
+        t = self.tab
+        achado = self.exame_outro(mod)
+        rotulo = M.rotulo_outro(mod)
+        vp.mg_cell = None
+        if achado is None:
+            vp.clear()
+            vp.set_orientation(0, False, False)
+            vp.empty_note = rotulo + "\n" + "nenhum exame do paciente"
+            return False
+        r, da_mama = achado
+        t.add_study_silent(r.study_uid)
+        serie = M.serie_outra([s for s in t.series if s.study_uid == r.study_uid], mod, filtro)
+        if serie is None:
+            vp.clear()
+            vp.empty_note = rotulo + "\n" + "sem imagens"
+            return False
+        vp.set_orientation(0, False, False)
+        vp.align_edge = None
+        t.load_series_into(vp, serie.series_uid, como_serie=True)
+        d = r.study_date or ""
+        data = f"{d[6:8]}/{d[4:6]}/{d[:4]}" if len(d) == 8 else d
+        vp.series_label = rotulo + " — " + data + (" · " + serie.description if serie.description else "") + \
+            ("" if da_mama else " (não é da mama?)")
+        vp.update()
+        return True
 
     def toggle_tomo(self, vp) -> bool:
         """Atalho (Shift+T): pula entre a imagem 2D e o meio da tomossíntese, na mesma lista do quadro."""
@@ -348,6 +422,19 @@ class MgBar(QToolBar):
         self.addAction(a)
         self.a_enquadre = a
         self.addAction(tab.tool_actions["loupe"])
+        sz = getattr(tab, "sync_zoom_action", None)
+        if sz is not None:                          # 0.99.61 (PV 16): zoom e pan espelhados entre as mamas
+            self.addAction(sz)
+        self.addSeparator()
+        self.a_inv = QAction("Inverter só a mama", self, checkable=True)
+        self.a_inv.setToolTip("Inverte o tecido da mama e deixa o fundo preto, em todos os quadros")
+        self.a_inv.toggled.connect(lambda on: tab.mg_set_inverter_mama(on))
+        self.addAction(self.a_inv)
+        a = QAction("★ Corte", self)
+        a.setToolTip("Marca o corte da tomossíntese (ou a imagem) do quadro ativo como imagem-chave. Para ir "
+                     "ao próximo corte marcado, escolha uma tecla em Atalhos ▸ Mamografia")
+        a.triggered.connect(lambda: tab.mg_corte_chave())
+        self.addAction(a)
         self.addSeparator()
         from PySide6.QtWidgets import QMenu, QToolButton
         self.slab_btn = QToolButton()
@@ -481,6 +568,12 @@ class MgProtocolsEditor(QWidget):
         f.addRow("Descrição do exame contém:", self.e_desc)
         for c in (self.c_enabled, self.c_center, self.c_align, self.c_sync):
             f.addRow(c)
+        self.c_alinhar = QComboBox()                # 0.99.61 (PV 16)
+        for chave, rot in M.ALINHAMENTOS.items():
+            self.c_alinhar.addItem(rot, chave)
+        self.c_alinhar.setToolTip("Altura das mamas na mesma linha da tela, no enquadramento da mama")
+        self.c_alinhar.currentIndexChanged.connect(lambda _i: self._store_proto())
+        f.addRow("Alinhar na vertical:", self.c_alinhar)
         for wdg in (self.e_name, self.e_desc):
             wdg.editingFinished.connect(self._store_proto)
         for c in (self.c_enabled, self.c_center, self.c_align, self.c_sync):
@@ -552,9 +645,12 @@ class MgProtocolsEditor(QWidget):
         self.grid_host = QWidget()
         self.grid = QGridLayout(self.grid_host)
         vs.addWidget(self.grid_host)
-        vs.addWidget(QLabel("<small>Incidências: CC, MLO, ML, LM, XCCL, XCCM, AT, SPOT, MAG (ou só D/E = qualquer). "
-                            "Ex.: 1×2 “CCD x CCE”, 1×2 “MLOD x MLOE”, 2×2 “CCD, MLOD x CCE, MLOE”, "
-                            "2×2 “CCD, CCD ant x CCE, CCE ant”.</small>"))
+        dica = QLabel("<small>Incidências: CC, MLO, ML, LM, XCCL, XCCM, AT, SPOT, MAG (ou só D/E = qualquer). "
+                      "Ex.: 1×2 “CCD x CCE”, 1×2 “MLOD x MLOE”, 2×2 “CCD, MLOD x CCE, MLOE”, "
+                      "2×2 “CCD, CCD ant x CCE, CCE ant”. Outro exame: “US” = a última ultrassonografia da mama, "
+                      "“RM” = a última RM da mama (“RM:SUB” escolhe a série pela descrição).</small>")
+        dica.setWordWrap(True)
+        vs.addWidget(dica)
         right.addWidget(gs, 1)
         lay.addLayout(right, 2)
         self.cells: list[QComboBox] = []
@@ -587,6 +683,7 @@ class MgProtocolsEditor(QWidget):
         self.c_center.setChecked(pr.get("chest_to_center", True))
         self.c_align.setChecked(pr.get("align_chest", True))
         self.c_sync.setChecked(pr.get("sync_zoom", True))
+        self.c_alinhar.setCurrentIndex(max(0, self.c_alinhar.findData(M.alinhamento_do_protocolo(pr))))
         self._loading = False
         self._fill_steps()
 
@@ -596,7 +693,8 @@ class MgProtocolsEditor(QWidget):
             return
         pr.update({"name": self.e_name.text().strip() or "Mamografia", "description": self.e_desc.text().strip(),
                    "enabled": self.c_enabled.isChecked(), "chest_to_center": self.c_center.isChecked(),
-                   "align_chest": self.c_align.isChecked(), "sync_zoom": self.c_sync.isChecked()})
+                   "align_chest": self.c_align.isChecked(), "sync_zoom": self.c_sync.isChecked(),
+                   "alinhar": self.c_alinhar.currentData() or M.ALINHAMENTO_PADRAO})
         it = self.l_protos.currentItem()
         if it is not None:
             it.setText(("" if pr["enabled"] else "(inativo) ") + pr["name"])
@@ -783,7 +881,7 @@ class MgProtocolsEditor(QWidget):
         if q is None:
             return
         parsed = M.parse_step(self.e_text.text())
-        bad = [c for c in parsed["cells"] if c and M.parse_code(c) is None]
+        bad = [c for c in parsed["cells"] if c and M.parse_code(c) is None and M.parse_outro(c) is None]
         if bad:
             QMessageBox.warning(self, "Etapa", "Código(s) não reconhecido(s): " + ", ".join(bad))
             return

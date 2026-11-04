@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.61 — breast round P2
+- **Nipple alignment** in mammography: in the same screen row, both breasts with the nipple at the same height
+  (protocol option; "by the middle of the breast" as before). Mirrored **zoom and pan** now also on the bar.
+- **Invert only the breast**: tissue inverted, background black, in all viewports.
+- **★ Slice**: the tomosynthesis slice as a key image, with the slice number; shortcuts to jump to the next
+  and previous marked slices.
+- **US** and **RM** cells in the mammography protocol: the patient's latest ultrasound and latest MRI
+  (`RM:T2` picks the series).
+- **Hand-set symmetry axis** for the mirrored ROI (right-click ▸ Symmetry axis).
+
 ## 0.99.60 — PET in follow-up (item 7, part 2)
 - **SUL** (Janmahasatian lean body mass) stored with every PET measurement; PERCIST uses SULpeak.
 - **PET…** button in the lesion panel: **liver** reference (3 cm sphere, by click or automatic from the liver

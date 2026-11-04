@@ -1366,6 +1366,11 @@ class ViewerTab(OncoMixin, QWidget):
                   lambda: self.mg_set_implant(not getattr(self, "mg_implant", False)))
         self._act("mg.slab", "Tomossíntese: próxima espessura", lambda: self.mg_set_slab(-1))
         self._act("mg.enquadrar", "Mamografia: enquadrar a mama no quadro", lambda: self.mg_enquadrar())
+        self._act("mg.inverter_mama", "Mamografia: inverter só a mama",
+                  lambda: self.mg_set_inverter_mama(not getattr(self, "mg_inverter_mama", False)))
+        self._act("mg.corte_chave", "Mamografia: corte da tomo como imagem-chave", lambda: self.mg_corte_chave())
+        self._act("mg.chave_proxima", "Imagens-chave: próximo corte marcado", lambda: self.mg_proximo_chave(1))
+        self._act("mg.chave_anterior", "Imagens-chave: corte marcado anterior", lambda: self.mg_proximo_chave(-1))
         # Os atalhos se aplicam **depois** da última ação criada. Até a 0.65 esta chamada ficava
         # no meio da montagem da barra, antes do bloco da mamografia: as teclas de mamografia
         # nasciam mortas e só passavam a funcionar depois que ele abrisse Preferências e
@@ -5335,6 +5340,56 @@ class ViewerTab(OncoMixin, QWidget):
             self.status_message.emit("Baixa energia ⇄ recombinada: só nos quadros do protocolo de mamografia.")
             return
         self.mg_session.toggle_rec(vp)
+
+    def mg_set_inverter_mama(self, on: bool) -> int:
+        """PV 17: inverte só a mama (fundo preto) nos quadros de mamografia (ou no ativo, fora do protocolo)."""
+        self.mg_inverter_mama = bool(on)
+        a = getattr(self.mg_bar, "a_inv", None)
+        if a is not None and a.isChecked() != bool(on):
+            a.blockSignals(True)
+            a.setChecked(bool(on))
+            a.blockSignals(False)
+        alvos = [v for v in self._shown() if v.frames and (v.mg_cell is not None or (v.modality or "").upper() == "MG")]
+        if not alvos and self.active is not None:
+            alvos = [self.active]
+        achou = sum(1 for v in alvos if v.set_inverter_mama(on))
+        if on and achou < len(alvos):
+            self.status_message.emit(f"Não achei a mama em {len(alvos) - achou} quadro(s): ficaram como estavam.")
+        return achou
+
+    def mg_corte_chave(self) -> bool:
+        """PV 18: o corte da tomo (ou a imagem) do quadro ativo como imagem-chave; diz qual corte e a espessura."""
+        vp = self.active
+        f = vp.current_frame() if vp is not None else None
+        if f is None:
+            return False
+        self.toggle_key_image()
+        on = (f.sop_uid, f.frame_index) in self.key_set
+        rng = getattr(vp, "tomo_range", None)
+        if on and rng and rng[0] <= vp.index < rng[1]:
+            k, n = vp.index - rng[0] + 1, rng[1] - rng[0]
+            slab = int(getattr(vp, "tomo_slab", 1) or 1)
+            extra = f", espessura de {slab} cortes" if slab > 1 else ""
+            self.status_message.emit(f"Corte {k} de {n} da tomossíntese marcado como imagem-chave ★{extra}.")
+        return on
+
+    def mg_proximo_chave(self, d: int = 1) -> bool:
+        """Vai ao próximo (d = 1) ou anterior (d = −1) corte marcado ★ no quadro ativo — a tomo tem dezenas de
+        cortes, e procurar a estrela rolando é perder tempo."""
+        vp = self.active
+        if vp is None or not vp.frames:
+            return False
+        marcados = [i for i, f in enumerate(vp.frames) if (f.sop_uid, f.frame_index) in self.key_set]
+        if not marcados:
+            self.status_message.emit("Nenhum corte marcado ★ neste quadro.")
+            return False
+        alvo = next((i for i in marcados if i > vp.index), marcados[0]) if d > 0 else \
+            next((i for i in reversed(marcados) if i < vp.index), marcados[-1])
+        vp.go_to(alvo)
+        rng = getattr(vp, "tomo_range", None)
+        if rng and rng[0] <= alvo < rng[1]:
+            self.status_message.emit(f"Corte ★ {alvo - rng[0] + 1} de {rng[1] - rng[0]}.")
+        return True
 
     def mg_densidade(self) -> None:
         """Densidade das imagens que estão na tela. A janela lê os quadros visíveis desta aba."""

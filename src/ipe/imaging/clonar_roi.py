@@ -95,6 +95,8 @@ def clonar(src, ann, dst, hub=None) -> str:
 def eixo_de_simetria(vp) -> tuple[float | None, str]:
     """(x do plano sagital mediano, em mm do paciente, ou None; como foi achado).
 
+    - Marcado à mão na série (0.99.61): vale ele.
+
     - Corte axial ou coronal (as colunas andam em x): o meio do corpo **nesta imagem** — as colunas
       com sinal acima de 10% do percentil 99, da primeira à última.
     - Corte sagital (RM de mama bilateral): o meio da faixa de cortes da série em x.
@@ -103,6 +105,9 @@ def eixo_de_simetria(vp) -> tuple[float | None, str]:
     img = getattr(vp, "_img", None)
     if pl is None or img is None:
         return None, "sem geometria"
+    manual = vp.eixo_manual() if hasattr(vp, "eixo_manual") else None
+    if manual is not None:                             # 0.99.61: marcado à mão (botão direito ▸ Eixo de simetria)
+        return float(manual), "eixo marcado à mão"
     _pos, row, col, n = pl
     if abs(float(n[0])) > 0.9:                         # sagital: o espelho é outro corte
         xs = [float(f.position[0]) for f in vp.frames if f.position is not None]

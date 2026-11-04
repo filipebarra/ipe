@@ -223,6 +223,7 @@ O botão **Medidas** abre uma janela com tudo o que foi medido no exame: série,
 - **Cortes grossos**: a régua desenhada numa reconstrução de cortes grossos (o sagital de um axial de 5 mm) avisa quando a direção dela tem pixel de 5 mm — a medida craniocaudal herda esse erro, a ântero-posterior não. Na imagem original, a régua menor que a espessura do corte também avisa.
 - **Incerteza** (Configurações ▸ Visualizador ▸ Texto e marcas sobre a imagem): mostra ± o pixel na direção da régua e ± perímetro × pixel ÷ 2 na área da ROI. Desligada de fábrica; os avisos acima aparecem sempre.
 - **Clonar a ROI**: botão direito numa ROI ▸ *Clonar esta ROI nos outros quadros*. Cada quadro à vista recebe uma ROI nova **na mesma posição no paciente** (em mm, não no mesmo pixel: série com outra matriz ou outro FOV recebe a ROI do tamanho certo), no corte mais perto do centro dela, com a média, o desvio e a área da imagem de lá — T2 → ADC, pré → pós, atual → anterior. No mesmo exame vale o Frame of Reference; entre exames diferentes, ligue antes os quadros num grupo de sincronia (ou registre): sem referencial comum, a barra de status diz que não copiou e por quê. Também não copia para plano não paralelo nem para série que não cobre aquele ponto.
+- **Eixo de simetria à mão** (0.99.61): quando o meio do corpo achado sozinho não serve (paciente rodado, mama muito assimétrica), botão direito no lugar do eixo ▸ *Eixo de simetria (ROI espelhada)* ▸ *Marcar o eixo aqui*. Vale para a série, neste computador, aparece como uma linha tracejada azul no axial e no coronal, e *Voltar ao eixo automático* desfaz.
 - **ROI espelhada**: botão direito numa ROI ▸ *Espelhar no outro lado (razão lesão / contralateral)*. A ROI nova ("Contralateral") vai para o espelho no plano sagital mediano: num axial ou coronal, o meio do corpo naquela imagem; numa série sagital (RM de mama bilateral), o meio da faixa de cortes — e o quadro vai ao corte do outro lado. A ROI original passa a mostrar *lesão / contralateral* (a média dela sobre a do outro lado), em qualquer mapa: ADC, realce, BPE. A barra de status diz onde ficou o eixo. Plano oblíquo, série que não cobre o outro lado e imagem colorida não espelham, e a barra diz por quê.
 - **ROI de referência**: botão direito numa ROI ▸ *Usar como ROI de referência*. As outras ROIs da série passam a mostrar a média delas em % da referência (lesão/fígado, lesão/aorta, lesão/músculo). Só uma por série; ela fica marcada "Referência (100%)" e acompanha se você a mexer.
 
@@ -316,7 +317,7 @@ Mamografia não usa o protocolo de exibição genérico dos outros exames. Ela t
 
 1. **+ Novo** e dê um **Nome:** (ex.: "Rastreamento 2 telas").
 2. **Descrição do exame contém:** — vazio vale para qualquer mamografia; `RASTREAMENTO|DIAGNOSTICA` casa com qualquer uma das duas palavras. É isto que escolhe o protocolo quando o exame abre.
-3. Marque **Ativo**. As outras três caixas são de apresentação: *Parede torácica voltada para o centro* (espelha a imagem quando precisa, para as duas mamas se olharem), *Encostar a imagem na borda da parede torácica* e *Zoom por quadrante em todos os quadros juntos*.
+3. Marque **Ativo**. As outras três caixas são de apresentação: *Parede torácica voltada para o centro* (espelha a imagem quando precisa, para as duas mamas se olharem), *Encostar a imagem na borda da parede torácica* e *Zoom por quadrante em todos os quadros juntos*. **Alinhar na vertical:** (0.99.61) — *pelo mamilo* (de fábrica: na mesma linha da tela, o mamilo das duas mamas fica na mesma altura) ou *pelo meio da mama* (como era antes).
 4. No grupo **Etapas**, **+ Etapa**. Dê um **Nome da etapa:** — ele aparece no combo do exame (ex.: "CC atual × anterior").
 5. Defina o **Layout** (linhas × colunas) da etapa.
 6. Preencha os quadros: ou pelo campo **Em texto:**, ou pela grade de combos, um por quadro.
@@ -333,6 +334,7 @@ Cada quadro recebe um código. A ordem é: incidência (opcional) + lado (obriga
 | Tomossíntese | tomo ou dbt | pega a pilha da tomo em vez da 2D |
 | Contraste (CEM) | rec, recomb, sub ou cem | a imagem recombinada |
 | Anterior | ant / ant2 | ant = o exame anterior; ant2 = o anterior do anterior |
+| Outro exame (0.99.61) | US, RM, RM:texto | o quadro mostra a **última ultrassonografia** ou a **última RM** do paciente (até a data do exame, as da mama primeiro); na RM, a subtração ou o pós-contraste, ou a série cuja descrição tem o texto depois dos dois-pontos (`RM:T2`) |
 
 No campo **Em texto:**, colunas se separam por `x` e linhas por vírgula:
 
@@ -342,6 +344,7 @@ No campo **Em texto:**, colunas se separam por `x` e linhas por vírgula:
 2 × 2   CCD, CCD ant x CCE, CCE ant     (atual acima, anterior abaixo)
 1 × 2   CCD tomo x CCE tomo             (tomossíntese)
 1 × 2   CCD rec x CCE rec               (contrastada, recombinada)
+2 × 2   CCD, US x CCE, RM               (mamografia com a última US e a última RM)
 ```
 
 Código que o programa não reconhece é recusado na hora, com a mensagem "Código(s) não reconhecido(s): …". Na tela do exame, um quadro sem definição mostra *(quadro vazio no protocolo)*, e uma imagem que não existe mostra "… não encontrada (sem exame anterior)" — em vez de ficar preto sem explicação.
@@ -364,6 +367,9 @@ Com a mamografia aberta, a barra **Mamografia:** traz o combo do protocolo, o co
 - **Densidade…** — mede a densidade mamária do que está nos quadros (capítulo 6);
 - **2D ⇄ tomo** pula entre a 2D e a tomossíntese na mesma lista;
 - **Mama no quadro** reenquadra a mama (veja abaixo);
+- **Zoom e pan** (0.99.61, o mesmo botão de sincronia da barra principal) — ligado, zoom e pan num quadro mostram o mesmo lugar nas outras mamas, espelhado;
+- **Inverter só a mama** (0.99.61) — inverte o tecido e deixa o fundo preto, em todos os quadros e nas etapas seguintes;
+- **★ Corte** (0.99.61) — marca o corte da tomossíntese (ou a imagem 2D) do quadro ativo como imagem-chave; a barra de status diz qual corte e a espessura. Em Atalhos ▸ Mamografia há *ir ao próximo / anterior corte marcado*, para voltar às estrelas numa tomo de dezenas de cortes;
 - **✕** sai do protocolo.
 
 ### Implante (0.95; só "corrigir" desde a 0.96)

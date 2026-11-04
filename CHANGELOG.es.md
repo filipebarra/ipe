@@ -3,6 +3,17 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.61 — ronda de mama P2
+- **Alineación por el pezón** en la mamografía: en la misma fila de la pantalla, las dos mamas con el pezón a
+  la misma altura (opción del protocolo; "por el centro de la mama" como antes). **Zoom y pan** reflejados
+  ahora también en la barra.
+- **Invertir solo la mama**: tejido invertido, fondo negro, en todos los cuadros.
+- **★ Corte**: el corte de la tomosíntesis como imagen clave, con el número del corte; atajos para ir al
+  siguiente y al anterior marcados.
+- Cuadros **US** y **RM** en el protocolo de la mamografía: la última ecografía y la última RM del paciente
+  (`RM:T2` elige la serie).
+- **Eje de simetría a mano** para la ROI reflejada (clic derecho ▸ Eje de simetría).
+
 ## 0.99.60 — PET en el seguimiento (ítem 7, parte 2)
 - **SUL** (masa magra de Janmahasatian) guardado en cada medida de PET; el PERCIST usa el SULpeak.
 - Botón **PET…** en el panel de lesiones: referencia del **hígado** (esfera de 3 cm, por clic o automática

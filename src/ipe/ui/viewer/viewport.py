@@ -196,6 +196,8 @@ class Viewport(AnnotationMixin, QWidget):
         self.empty_note = ""
         self.lesion_names: dict = {}           # id da lesão -> nome (acompanhamento de lesões)
         self.implant_mask = False              # mamografia: implante "apagado" (prótese lisa)
+        self.inverter_mama = False             # 0.99.61 (PV 17): inverte só a mama; o fundo continua preto
+        self.mg_dy = 0.0                       # 0.99.61 (PV 16): deslocamento vertical do alinhamento pelo mamilo
         self.implant_found: bool | None = None
         self.implant_seed = None               # ponto (linha, coluna) escolhido à mão dentro da prótese
         self.implant_motivo = ""               # por que não procurou sozinho (tag do aparelho, 0.95)
@@ -254,6 +256,8 @@ class Viewport(AnnotationMixin, QWidget):
         self.implant_mask = False
         self.implant_seed = None
         self._implant_cache = None
+        self.inverter_mama = False
+        self.mg_dy = 0.0
         self.series_uid, self.frames, self.series_label = series_uid, frames, label
         try:
             from ipe.imaging.cardiac import detect as _detect_4d
@@ -1224,12 +1228,34 @@ class Viewport(AnnotationMixin, QWidget):
         # para o outro lado, o da pele.
         tx = float(self.width()) if lado_tela == "right" else 0.0
         agora = self.image_to_widget(QPointF(ix, iy))
-        alvo = QPointF(tx, self.height() / 2.0)
+        alvo = QPointF(tx, self.height() / 2.0 + float(getattr(self, "mg_dy", 0.0) or 0.0))
         self.state.pan += self._delta_unrotated(alvo - agora)
         self.anat_lock = ("mama", float(self.state.zoom),
                           float(self.MARGEM_MAMA if margem is None else margem))
         self.update()
         return True
+
+    def mamilo_imagem(self) -> tuple[float, float] | None:
+        """O mamilo aproximado nesta imagem (pixels), guardado por imagem."""
+        if self._img is None or self._img.is_color:
+            return None
+        hit = getattr(self, "_mamilo_cache", None)
+        if hit is not None and hit[0] == id(self._img):
+            return hit[1]
+        from ipe.imaging.mammo import mamilo
+        try:
+            pt = mamilo(self._img.pixels, self._img.header.get("_monochrome1") == "1", self.chest_image_side())
+        except Exception:  # noqa: BLE001
+            pt = None
+        self._mamilo_cache = (id(self._img), pt)
+        return pt
+
+    def mamilo_na_tela(self) -> float | None:
+        """Altura (y da tela) do mamilo, ou None."""
+        pt = self.mamilo_imagem()
+        if pt is None:
+            return None
+        return float(self.image_to_widget(QPointF(pt[0], pt[1])).y())
 
     def zoom_actual_pixels(self) -> None:
         """1 pixel da imagem = 1 pixel da tela (mamografia: ver microcalcificações)."""
@@ -1473,11 +1499,17 @@ class Viewport(AnnotationMixin, QWidget):
         if img is None:
             return None
         key = (id(img), round(self.state.width, 3), round(self.state.level, 3), self.state.invert,
-               self.state.cmap, self.state.filter, self.settings.get("monitors.gsdf_stamp", 0))
+               self.state.cmap, self.state.filter, self.settings.get("monitors.gsdf_stamp", 0),
+               bool(getattr(self, "inverter_mama", False)))
         if key == self._qimage_key and self._qimage is not None:
             return self._qimage
+        bruta = img
         img = self._filtered(img)
-        disp = to_display(img, self.state.width, self.state.level, self.state.invert, self.state.cmap)
+        so_mama = self._mascara_para_inverter(bruta)
+        disp = to_display(img, self.state.width, self.state.level,
+                          self.state.invert if so_mama is None else False, self.state.cmap)
+        if so_mama is not None and disp.ndim == 2 and disp.shape == so_mama.shape:
+            disp = np.where(so_mama, 255 - disp, 0).astype(np.uint8)
         tabela = self._gsdf_table()
         if tabela is not None:
             disp = tabela[disp]                # calibração GSDF deste monitor
@@ -1490,6 +1522,29 @@ class Viewport(AnnotationMixin, QWidget):
         self._qimage = q.copy()           # copia: o buffer numpy pode ser liberado
         self._qimage_key = key
         return self._qimage
+
+    def _mascara_para_inverter(self, img):
+        """Máscara da mama quando "inverter só a mama" está ligado (só imagem cinza); senão None."""
+        if not getattr(self, "inverter_mama", False) or img is None or img.is_color or img.pixels.ndim != 2:
+            return None
+        hit = getattr(self, "_mascara_mama_cache", None)
+        if hit is not None and hit[0] == id(img):
+            return hit[1]
+        from ipe.imaging.mammo import mascara_da_mama
+        try:
+            m = mascara_da_mama(img.pixels, img.header.get("_monochrome1") == "1")
+        except Exception:  # noqa: BLE001
+            log.debug("máscara da mama", exc_info=True)
+            m = None
+        self._mascara_mama_cache = (id(img), m)
+        return m
+
+    def set_inverter_mama(self, on: bool) -> bool:
+        """Inverte só a mama (PV 17): tecido invertido, fundo preto. Devolve se achou a mama."""
+        self.inverter_mama = bool(on)
+        self._qimage_key = None
+        self.update()
+        return not on or self._mascara_para_inverter(self._img) is not None
 
     def _gsdf_table(self):
         """Tabela de calibração GSDF do monitor em que este quadro está (None = desligada)."""
@@ -1973,6 +2028,11 @@ class Viewport(AnnotationMixin, QWidget):
             p.drawText(QPointF(rect.x() + 5, rect.y() + 2 + QFontMetrics(font).ascent() + 1), txt)
             p.setPen(QColor(80, 255, 120))
             p.drawText(QPointF(rect.x() + 4, rect.y() + 2 + QFontMetrics(font).ascent()), txt)
+        linha_eixo = self._linha_do_eixo() if not self._capturando and self.settings is not None else None
+        if linha_eixo is not None:                         # 0.99.61: eixo de simetria marcado à mão
+            caneta = QPen(QColor(0, 220, 255, 170), 1, Qt.DashLine)
+            p.setPen(caneta)
+            p.drawLine(linha_eixo[0], linha_eixo[1])
         if self.state.cmap and self._img is not None and not self._img.is_color and self._mostra("barra_cores"):
             self._draw_colorbar(p, font)
         if self.is_calibrated() and self._mostra("calibrada"):
@@ -3095,6 +3155,64 @@ class Viewport(AnnotationMixin, QWidget):
         """Nome da janela do arquivo em uso (some quando ele arrasta a janela)."""
         return self._janela_arquivo[1] if self._na_janela_do_arquivo() else ""
 
+    # -------------------------------------------- eixo de simetria à mão (0.99.61, rodada mama P2)
+    CHAVE_EIXOS = "roi_espelhada.eixos"
+
+    def _serie_do_eixo(self) -> str:
+        f = self.current_frame()
+        return (f.series_uid if f is not None and getattr(f, "series_uid", "") else "") or self.series_uid or ""
+
+    def eixo_manual(self) -> float | None:
+        """x (mm do paciente) do eixo marcado à mão nesta série, ou None."""
+        if self.settings is None:
+            return None
+        v = (self.settings.get(self.CHAVE_EIXOS, {}) or {}).get(self._serie_do_eixo())
+        return float(v) if v is not None else None
+
+    def marcar_eixo(self, pos: QPointF) -> float | None:
+        """O eixo passa pelo ponto clicado: o plano sagital (x constante) do paciente nesse ponto. Fica guardado
+        para a série, neste computador."""
+        if self._img is None or self.settings is None:
+            return None
+        ip = self.widget_to_image(pos)
+        p = self.pixel_to_patient(ip.x(), ip.y())
+        if p is None:
+            self.sig.status_message.emit(tr("Sem geometria: não dá para marcar o eixo nesta imagem."))
+            return None
+        eixos = dict(self.settings.get(self.CHAVE_EIXOS, {}) or {})
+        eixos[self._serie_do_eixo()] = round(float(p[0]), 2)
+        if len(eixos) > 300:                               # não cresce para sempre
+            eixos = dict(list(eixos.items())[-300:])
+        self.settings.set(self.CHAVE_EIXOS, eixos)
+        self.settings.save()
+        self.sig.status_message.emit(tr(f"Eixo de simetria marcado em x = {float(p[0]):.1f} mm nesta série."))
+        self.update()
+        return float(p[0])
+
+    def esquecer_eixo(self) -> None:
+        if self.settings is None:
+            return
+        eixos = dict(self.settings.get(self.CHAVE_EIXOS, {}) or {})
+        eixos.pop(self._serie_do_eixo(), None)
+        self.settings.set(self.CHAVE_EIXOS, eixos)
+        self.settings.save()
+        self.sig.status_message.emit(tr("Eixo de simetria de volta ao automático."))
+        self.update()
+
+    def _linha_do_eixo(self):
+        """(QPointF, QPointF) da linha do eixo à mão neste quadro (axial ou coronal), ou None."""
+        xm = self.eixo_manual()
+        if xm is None or self._img is None:
+            return None
+        h, w = self._img.pixels.shape[:2]
+        p0, p1 = self.pixel_to_patient(0.0, h / 2), self.pixel_to_patient(1.0, h / 2)
+        if p0 is None or p1 is None or abs(float(p1[0] - p0[0])) < 1e-6:
+            return None                                    # sagital: o eixo é um corte, não uma linha
+        u = (xm - float(p0[0])) / float(p1[0] - p0[0])
+        if not (0 <= u <= w):
+            return None
+        return self.image_to_widget(QPointF(u, 0)), self.image_to_widget(QPointF(u, h))
+
     def espelhar_roi(self, ann):
         """ROI do outro lado, no espelho do plano sagital mediano (0.99.48, plano AW M14). A original
         passa a mostrar a razão lesão / contralateral; a barra de status diz onde ficou o eixo."""
@@ -3289,6 +3407,14 @@ class Viewport(AnnotationMixin, QWidget):
                 a_tic.triggered.connect(lambda: self.sig.tic_requested.emit(self, target))
                 menu.addAction(a_tic)
             menu.addSeparator()
+        if local_pos is not None and self._img is not None and self.plane() is not None \
+                and (self.modality or "").upper() in ("MR", "CT", "PT") and self.mpr_plane is None:
+            em = menu.addMenu("Eixo de simetria (ROI espelhada)")          # 0.99.61
+            a_eixo = em.addAction("Marcar o eixo aqui (meio do corpo neste ponto)")
+            a_eixo.triggered.connect(lambda: self.marcar_eixo(local_pos))
+            a_auto = em.addAction("Voltar ao eixo automático")
+            a_auto.setEnabled(self.eixo_manual() is not None)
+            a_auto.triggered.connect(self.esquecer_eixo)
         if self.annotations:
             nav = menu.addMenu("Medidas desta série")
             for i, text in self.annotation_summary()[:40]:

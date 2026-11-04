@@ -1041,3 +1041,121 @@ def implant_window(pixels: np.ndarray, monochrome1: bool = False,
     if b <= a:
         return None
     return (float(b - a), float((a + b) / 2)), m
+
+
+# ------------------------------------------------------------------ rodada mama P2 (0.99.61)
+def mascara_da_mama(pixels: np.ndarray, monochrome1: bool = False) -> np.ndarray | None:
+    """Máscara da mama (tecido + pele) no tamanho da imagem: o maior pedaço acima do fundo, sem buracos.
+    Serve para "inverter só a mama" (o fundo continua preto) e para achar o mamilo."""
+    if pixels.ndim != 2 or min(pixels.shape) < 16:
+        return None
+    step = max(1, max(pixels.shape) // 512)
+    px = display_values(pixels[::step, ::step].astype(np.float32), monochrome1)
+    lo, hi = np.percentile(px, 1), np.percentile(px, 99.5)
+    if hi <= lo:
+        return None
+    tecido = px > lo + 0.08 * (hi - lo)
+    reg = _maior_componente(tecido)
+    if reg.sum() < 0.02 * reg.size:
+        return None
+    reg = _sem_buracos(reg)
+    cheia = np.repeat(np.repeat(reg, step, axis=0), step, axis=1)[: pixels.shape[0], : pixels.shape[1]]
+    if cheia.shape != pixels.shape:                       # imagem não múltipla do passo
+        out = np.zeros(pixels.shape, bool)
+        out[: cheia.shape[0], : cheia.shape[1]] = cheia
+        cheia = out
+    return cheia
+
+
+def mamilo(pixels: np.ndarray, monochrome1: bool = False, lado_parede: str = "") -> tuple[float, float] | None:
+    """Ponto aproximado do mamilo (x, y em pixels): o ponto da pele mais longe da parede torácica — na CC e
+    na MLO é ali que o mamilo fica. A altura é a média das linhas da mama na faixa mais distante (2% da
+    profundidade), para um pelo ou um pixel solto não decidirem."""
+    m = mascara_da_mama(pixels, monochrome1)
+    if m is None:
+        return None
+    lado = lado_parede or chest_wall_side(pixels)
+    if lado not in ("left", "right"):
+        return None
+    cols = np.nonzero(m.any(axis=0))[0]
+    if not len(cols):
+        return None
+    prof = cols[-1] - cols[0] + 1
+    faixa = max(2, int(0.02 * prof))
+    if lado == "left":                                  # parede à esquerda: o mamilo é a coluna mais à direita
+        x0, x1, xm = cols[-1] - faixa, cols[-1] + 1, float(cols[-1])
+    else:
+        x0, x1, xm = cols[0], cols[0] + faixa, float(cols[0])
+    ys = np.nonzero(m[:, x0:x1].any(axis=1))[0]
+    if not len(ys):
+        return None
+    return xm, float(ys.mean())
+
+
+ALINHAMENTOS = {"mamilo": "Pelo mamilo (as duas mamas na mesma altura)",
+                "meio": "Pelo meio da mama"}
+ALINHAMENTO_PADRAO = "mamilo"
+
+
+def alinhamento_do_protocolo(proto: dict | None) -> str:
+    v = str((proto or {}).get("alinhar") or ALINHAMENTO_PADRAO)
+    return v if v in ALINHAMENTOS else ALINHAMENTO_PADRAO
+
+# Quadros de outro exame no protocolo da mamografia (PV 19): "US" e "RM", com filtro opcional da série
+# depois de dois-pontos ("RM:SUB"). Pegam o exame mais recente do paciente com essa modalidade e da mama.
+OUTROS = {"US": "US", "RM": "MR", "MR": "MR"}
+_OUTRO = re.compile(r"^\s*(US|RM|MR)\s*(?::\s*(.*))?$", re.I)
+_MAMA = re.compile(r"MAMA|MAMAR|MAMÁR|BREAST|MAMOGR|AXILA", re.I)
+SERIE_RM_PREFERIDA = ["SUB", "SUBTR", "POS", "PÓS", "C\\+", "GD", "DYN", "DIN", "T1"]
+
+
+def parse_outro(code: str) -> tuple[str, str] | None:
+    """"US" → ("US", ""); "RM:SUB" → ("MR", "SUB"); o resto → None."""
+    m = _OUTRO.match(code or "")
+    if not m:
+        return None
+    return OUTROS[m.group(1).upper()], (m.group(2) or "").strip()
+
+
+def rotulo_outro(mod: str) -> str:
+    return "Última US" if mod == "US" else "Última RM"
+
+
+def estudo_outro(rows, mod: str, data_limite: str, excluir: str = ""):
+    """O exame mais recente (até `data_limite`, inclusive o mesmo dia) do paciente com a modalidade `mod`.
+    Prefere os da mama (pela descrição); sem nenhum, aceita qualquer um dessa modalidade."""
+    cands = [r for r in rows if r.study_uid != excluir and mod in (r.modalities or "").upper().replace("\\", " ").split()
+             and (r.study_date or "") <= (data_limite or "99999999")]
+    if not cands:
+        cands = [r for r in rows if r.study_uid != excluir and mod in (r.modalities or "").upper()
+                 and (r.study_date or "") <= (data_limite or "99999999")]
+    da_mama = [r for r in cands if _MAMA.search(r.description or "")]
+    pool = da_mama or cands
+    if not pool:
+        return None, False
+    return max(pool, key=lambda r: (r.study_date or "", r.study_uid)), bool(da_mama)
+
+
+def serie_outra(series, mod: str, filtro: str = ""):
+    """A série do quadro: a que tem o filtro na descrição; sem filtro, na RM a primeira pela ordem de
+    preferência (subtração, pós-contraste, dinâmica, T1); na US, a com mais imagens."""
+    ss = [s for s in series if (s.num_images or 0) > 0 and (s.modality or "").upper() == mod]
+    if not ss:
+        ss = [s for s in series if (s.num_images or 0) > 0]
+    if not ss:
+        return None
+    if filtro:
+        try:
+            pat = re.compile(filtro, re.I)
+        except re.error:
+            pat = re.compile(re.escape(filtro), re.I)
+        achou = [s for s in ss if pat.search(s.description or "")]
+        if achou:
+            return achou[0]
+    if mod == "MR":
+        for p in SERIE_RM_PREFERIDA:
+            pat = re.compile(rf"(?<![A-Z]){p}", re.I)
+            achou = [s for s in ss if pat.search(s.description or "")]
+            if achou:
+                return max(achou, key=lambda s: s.num_images or 0)
+    return max(ss, key=lambda s: s.num_images or 0)
