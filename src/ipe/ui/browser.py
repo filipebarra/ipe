@@ -254,6 +254,8 @@ class Browser(QWidget):
     open_case = Signal(str, list)                  # abrir exame (séries escolhidas)
     import_list_requested = Signal(object)         # pasta de destino (ou None)
     report_requested = Signal(str)                 # abrir o laudo do estudo
+    anexar_requested = Signal(str)                 # 0.99.57: anexar PDF/imagem ao estudo
+    documentos_requested = Signal(str)             # 0.99.57: ver os documentos do estudo
     series_changed = Signal()                      # série oculta ou apagada: quem mostra séries recarrega
     segmentacao_pronta = Signal(str, object)       # estudo, saída da segmentação de órgãos (0.98)
     status_message = Signal(str)                   # 0.99.27: recado para a barra de estado
@@ -1382,6 +1384,12 @@ class Browser(QWidget):
     def _open_series_item(self, item) -> None:
         rows = self.selected_rows()
         if len(rows) == 1 and item.data(Qt.UserRole):
+            # 0.99.57: série de documentos (PDF) abre no leitor de documentos, não no visualizador
+            se = next((x for x in self.repo.series_for_study(rows[0].study_uid, ocultas=True)
+                       if x.series_uid == item.data(Qt.UserRole)), None)
+            if se is not None and (se.modality or "").upper() == "DOC":
+                self.documentos_requested.emit(rows[0].study_uid)
+                return
             self.open_series.emit(rows[0].study_uid, [item.data(Qt.UserRole)])
 
     def selected_series(self) -> list[str]:
@@ -1599,6 +1607,14 @@ class Browser(QWidget):
         a_rep.triggered.connect(lambda: self.report_requested.emit(rows[0].study_uid))
         a_rep.setEnabled(len(rows) == 1)
         menu.addAction(a_rep)
+        a_anx = QAction("Anexar documento (PDF ou imagem)…", menu)          # 0.99.57
+        a_anx.triggered.connect(lambda: self.anexar_requested.emit(rows[0].study_uid))
+        a_anx.setEnabled(len(rows) == 1)
+        menu.addAction(a_anx)
+        a_docs = QAction("Documentos do exame…", menu)
+        a_docs.triggered.connect(lambda: self.documentos_requested.emit(rows[0].study_uid))
+        a_docs.setEnabled(len(rows) == 1)
+        menu.addAction(a_docs)
         a_com = QAction("Adicionar comentário…", menu)
         a_com.triggered.connect(self._add_comment)
         a_com.setEnabled(len(rows) == 1)

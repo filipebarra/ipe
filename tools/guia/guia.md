@@ -975,6 +975,20 @@ O botão **IA ▾**, na janela do laudo, ao lado de **Inserir ▾**:
 
 **Configurações ▸ Laudos ▸ IA no texto do laudo…** escolhe o provedor: **Ollama** (o modelo roda neste computador ou num servidor da rede; o texto não sai do serviço), um servidor **compatível com OpenAI** (LM Studio, vLLM, llama.cpp) ou a **API da Anthropic** (com a chave do serviço; o texto sai para fora). Antes de sair do programa, o texto perde o **nome, o ID, o accession e a data de nascimento** do paciente, que voltam na resposta; para um endereço fora deste computador, o programa pergunta uma vez. **Testar** confere a conexão. A chave da API fica guardada **cifrada**. O modelo só sugere: quem assina é o médico.
 
+## Documentos anexados ao exame (PDF e imagens)
+
+Pedido médico, termo de consentimento, laudo anterior de outro serviço, foto da lesão: o PDF ou a imagem entra **dentro do exame**, convertido para DICOM, e vai junto quando o exame é exportado ou enviado ao PACS. Três caminhos:
+
+- **arrastar sobre o visualizador** — vai para o exame aberto (o do quadro ativo);
+- **arrastar no banco de dados com um exame selecionado** — o programa pergunta antes ("Anexar 2 arquivos ao exame de …?"), para não cair no paciente errado;
+- **botão direito no exame ▸ Anexar documento (PDF ou imagem)…**, ou, no visualizador, o menu de séries do quadro ▸ **Anexar documento…**.
+
+O **PDF** vira um documento PDF encapsulado em DICOM (modalidade DOC), na série **Documentos anexados**, com o nome do arquivo como título. Cada **imagem** (JPG, PNG, TIFF — cada página vira uma —, BMP, GIF, WEBP) vira uma imagem DICOM (captura secundária, modalidade OT) na série **Imagens anexadas**, e aparece no visualizador como qualquer outra série. Os dados do paciente e do exame são os do próprio exame. Word, Excel e outros formatos ficam de fora, com o aviso: salve como PDF antes.
+
+O anexo segue as **regras de roteamento** do exame (Configurações ▸ Rede ▸ Automação): se o exame iria para um nó, o anexo vai também. Quem anexou fica no registro de acesso.
+
+Para ler os PDF do exame — anexados, laudos guardados em PDF ou PDF que vieram de outro sistema —: botão direito no exame ▸ **Documentos do exame…**, duplo clique na série de documentos no painel de séries, ou o menu de séries do quadro ▸ **Documentos do exame…**. O PDF abre dentro do programa; há também **Abrir no programa do sistema** e **Salvar o PDF…**.
+
 ## Laudo em andamento (servidor central)
 
 No modo cliente, quem abre o laudo de um exame passa a ser **quem está laudando**, até fechar a janela do laudo. Outro médico que abrir o laudo do mesmo exame é avisado ("Dra. Ana está laudando este exame desde 10:05") e escolhe **Só ler** (a janela abre sem poder gravar) ou **Assumir o laudo** (fica no registro de acesso, e o primeiro não grava mais). Quem só abre as imagens vê o aviso na barra de status. O servidor recusa gravar ou assinar o laudo de quem não está com ele. Se o computador de quem laudava travar, a trava cai sozinha em 10 minutos.

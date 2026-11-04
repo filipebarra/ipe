@@ -2918,6 +2918,26 @@ class ViewerTab(OncoMixin, QWidget):
         self._menu_do_vazio = menu            # popup não bloqueia; a referência mantém o menu vivo
         menu.popup(global_pos)
 
+    def _janela_principal(self):
+        from PySide6.QtWidgets import QApplication
+        return next((w for w in QApplication.topLevelWidgets() if hasattr(w, "anexar_ao_exame")), None)
+
+    def acoes_de_documentos(self, menu: QMenu, study_uid: str) -> None:
+        """0.99.57: anexar PDF/imagem ao exame e ver os documentos (PDF) dele."""
+        main = self._janela_principal()
+        n = 0
+        try:
+            n = sum(1 for se in self.repo.series_for_study(study_uid, ocultas=True)
+                    if (se.modality or "").upper() == "DOC")
+        except Exception:  # noqa: BLE001
+            pass
+        a = menu.addAction(f"📄 Documentos do exame ({n} série(s))…" if n else "📄 Documentos do exame…",
+                           lambda: main.abrir_documentos(study_uid) if main else None)
+        a.setEnabled(main is not None)
+        a = menu.addAction("📎 Anexar documento (PDF ou imagem)…",
+                           lambda: main.escolher_anexos(study_uid) if main else None)
+        a.setEnabled(main is not None)
+
     def menu_de_series(self, vp: Viewport) -> QMenu:
         """Monta o menu de séries do canto do quadro (separado de quem exibe, para testar)."""
         menu = QMenu(self)
@@ -2956,6 +2976,8 @@ class ViewerTab(OncoMixin, QWidget):
                     a.setIcon(QIcon(pm))
                 a.triggered.connect(lambda _=False, uid=s.series_uid: self.load_series_into(vp, uid))
                 menu.addAction(a)
+        menu.addSeparator()
+        self.acoes_de_documentos(menu, vp.study_uid or self.study_uid)
         return menu
 
     # ================================================================ anteriores

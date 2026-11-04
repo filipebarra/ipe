@@ -5508,7 +5508,25 @@
   "vazio = todos · ex.: ana, bia",
   "vazio = todos · ex.: medico, tecnico",
   "Baixar e instalar agora? O programa fecha durante a instalação.",
-  "teste"
+  "teste",
+  "Abrir no programa do sistema",
+  "Alguns arquivos não entraram:\n\n",
+  "Anexar",
+  "Anexar ao exame",
+  "Anexar documento (PDF ou imagem)…",
+  "Anexar documento…",
+  "Documento",
+  "Documentos anexados",
+  "Documentos do exame",
+  "Documentos do exame…",
+  "Estes arquivos não são PDF nem imagem e ficaram de fora (salve como PDF e arraste de novo):\n\n",
+  "Imagens anexadas",
+  "Nenhum documento neste exame. Arraste um PDF ou uma imagem sobre o exame, ou use Anexar documento….",
+  "Para anexar um PDF ou imagem, solte o arquivo sobre o exame aberto no visualizador, ou selecione um exame (um só) no banco de dados e solte de novo.",
+  "Salvar o PDF",
+  "Salvar o PDF…",
+  "📄 Documentos do exame…",
+  "📎 Anexar documento (PDF ou imagem)…"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -6914,6 +6932,20 @@
   "Pacote baixado em {}. Instale à mão (a pasta vai abrir).",
   "Perfil {}",
   "Você já está na versão mais nova do canal {} ({}).",
-  "canal desconhecido: {}"
+  "canal desconhecido: {}",
+  " — {}/{}/{}",
+  "; enviado(s) a {} destino(s)",
+  "Anexar {} arquivo(s) ao exame de {} — {} ({})?",
+  "Anexo → {}",
+  "Não deu para abrir: {}",
+  "Não deu para converter: {}",
+  "Solte para anexar ao exame\n{} documento(s) ou imagem(ns)\n\n(viram DICOM dentro do exame)",
+  "documento {}: só PDF se abre aqui",
+  "{} anexo(s) gravado(s) no exame",
+  "{}: formato não aceito — salve como PDF",
+  "{}: não consegui ler a imagem ({})",
+  "{}: não parece um PDF",
+  "📄 Documentos do exame ({} série(s))…",
+  "{} anexo(s) gravado(s) no exame."
  ]
 }

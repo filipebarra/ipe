@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.57 — PDF e imagens anexados ao exame
+- Arrastar um **PDF** ou uma **imagem** sobre o exame aberto, ou no banco de dados com um exame selecionado
+  (com confirmação), ou o botão direito ▸ **Anexar documento…**: vira DICOM dentro do exame (PDF encapsulado
+  ou imagem de captura secundária) e segue as regras de roteamento do exame. Outros formatos: salve como PDF.
+- **Documentos do exame…**: os PDF do exame abrem dentro do programa.
+
 ## 0.99.56 — perfis por grupo e computador e atualização pelo servidor (onda B2 e B1)
 - **Perfis por grupo e computador** (Configurações ▸ Usuários): preferências mandadas pelo servidor por
   computador (com coringa), usuário ou perfil de acesso; captura do computador arrumado; chaves forçadas.

@@ -76,6 +76,12 @@ class DropOverlay(QLabel):
     def show_for(self, paths: list[Path]) -> None:
         win = self.parentWidget()
         self.setGeometry(win.rect().adjusted(24, 24, -24, -24))
+        from ipe.importer import anexos as AX
+        docs, resto, recusados = AX.separar(paths)
+        if (docs or recusados) and not resto:            # 0.99.57: PDF e imagens viram anexo do exame
+            self.setText(f"Solte para anexar ao exame\n{len(docs)} documento(s) ou imagem(ns)\n\n"
+                         "(viram DICOM dentro do exame)")
+            return
         self.setText(f"Solte para importar\n{describe(paths)}\n\n"
                      "(os exames abrem quando terminar)")
         self.raise_()
@@ -143,5 +149,10 @@ class FileDropFilter(QObject):
         self.hide_all()
         e.setDropAction(Qt.CopyAction)
         e.accept()
-        QTimer.singleShot(0, lambda p=paths: self.main.import_dropped(p))
+        from ipe.importer import anexos as AX
+        docs, resto, recusados = AX.separar(paths)
+        if (docs or recusados) and hasattr(self.main, "anexar_soltos"):
+            QTimer.singleShot(0, lambda d=docs, r=recusados, o=obj: self.main.anexar_soltos(d, r, o))
+        if resto:
+            QTimer.singleShot(0, lambda p=resto: self.main.import_dropped(p))
         return True

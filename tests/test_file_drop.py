@@ -114,3 +114,27 @@ def test_drop_on_monitor_window(env, sample_dir):
     _wait_import(app, w)
     assert any("MG" in (t.study_info.get("modalities") or "") for t in w.all_viewer_tabs())
     w.close()
+
+
+def test_pdf_solto_no_visualizador_vira_anexo(env, sample_dir, tmp_path):
+    """0.99.57: PDF ou imagem solto sobre o exame aberto vira DICOM dentro dele (sem importar nada)."""
+    from reportlab.pdfgen import canvas
+    from ipe.importer import anexos as AX
+    from ipe.importer.scanner import Importer
+    paths, db, repo = env
+    Importer(db, paths.storage).import_paths([sample_dir])
+    app, w = _window(env)
+    uid = repo.search_studies()[0].study_uid
+    w.open_study(uid)
+    app.processEvents()
+    pdf = tmp_path / "pedido.pdf"
+    c = canvas.Canvas(str(pdf))
+    c.drawString(100, 750, "x")
+    c.save()
+    vp = w.tabs.currentWidget().viewports[0]
+    aceito, _ = _drop(app, vp, _mime([pdf]))
+    for _ in range(5):
+        app.processEvents()
+    assert aceito and w._import_thread is None
+    assert any(s.description == AX.DESC_DOC for s in repo.series_for_study(uid, ocultas=True))
+    w.close()

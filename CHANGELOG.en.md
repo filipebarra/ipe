@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.57 — PDFs and images attached to the study
+- Drag a **PDF** or an **image** onto the open study, or in the database with a study selected (with
+  confirmation), or right-click ▸ **Attach a document…**: it becomes DICOM inside the study (encapsulated PDF
+  or secondary capture image) and follows the study's routing rules. Other formats: save as PDF.
+- **Study documents…**: the study's PDFs open inside the program.
+
 ## 0.99.56 — profiles by group and computer and updates through the server (wave B2 and B1)
 - **Profiles by group and computer** (Settings ▸ Users): preferences sent by the server per computer (with
   wildcards), user or access profile; capture from a set-up computer; enforced keys.
