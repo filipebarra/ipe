@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.44 — editing limits, extended statistics, registration check
+- **Structures ▸ Editing limits**: area (everywhere, only inside a structure, only outside the others), an
+  intensity range valid for every tool, and **overwrite** (what one gains leaves the others).
+- **Extended statistics** of the structure: median, 10th/90th percentiles, skewness, kurtosis, entropy,
+  uniformity, largest diameter (Feret), sphericity, elongation and flatness; **Copy the numbers** (one line
+  per structure, for the spreadsheet).
+- **Check the registration** with the other study: checkerboard, curtain that follows the mouse, difference
+  and blend, using the rigid-registration matrix.
+
 ## 0.99.43 — mosaic in the viewport; CAD hidden until revealed
 - **Slice mosaic** (right-click ▸ Mosaic, or shortcut): 2 × 2, 3 × 3 or 4 × 4 consecutive slices of the same
   series inside one viewport; the wheel turns the page; double-click returns to the normal viewport on that

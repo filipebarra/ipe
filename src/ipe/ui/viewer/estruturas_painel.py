@@ -122,6 +122,31 @@ class EstruturasPainel(QDialog):
         g.addWidget(self.s_tol, 1, 3)
         lay.addWidget(gp)
 
+        # ---------------- limites da edição (0.99.44, como as opções de máscara do 3D Slicer)
+        gl = QGroupBox("Limites da edição (pincel, crescer, buracos, interpolar)")
+        lg = QGridLayout(gl)
+        self.c_area = QComboBox()
+        for txt, k in (("Em toda parte", "tudo"), ("Só dentro de", "dentro"), ("Só fora das outras (visíveis)", "fora")):
+            self.c_area.addItem(txt, k)
+        self.c_area_alvo = QComboBox()
+        self.c_area.currentIndexChanged.connect(self._area_mudou)
+        self.c_area_alvo.setEnabled(False)
+        self.c_lim_faixa = QCheckBox("Só intensidades entre")
+        self.c_lim_faixa.setToolTip("Nada entra fora desta faixa — vale para todas as ferramentas, não só para o pincel.")
+        self.s_lim_lo = QDoubleSpinBox(minimum=-1e6, maximum=1e6, decimals=1)
+        self.s_lim_hi = QDoubleSpinBox(minimum=-1e6, maximum=1e6, decimals=1)
+        self.c_sobre = QCheckBox("Sobrescrever as outras (o que esta ganha sai delas)")
+        self.c_sobre.setToolTip("Desligado: as estruturas podem se sobrepor. Ligado: pintar a lesão tira esses "
+                                "voxels do órgão (as travadas nunca mudam).")
+        lg.addWidget(QLabel("Área:"), 0, 0)
+        lg.addWidget(self.c_area, 0, 1)
+        lg.addWidget(self.c_area_alvo, 0, 2, 1, 2)
+        lg.addWidget(self.c_lim_faixa, 1, 0, 1, 2)
+        lg.addWidget(self.s_lim_lo, 1, 2)
+        lg.addWidget(self.s_lim_hi, 1, 3)
+        lg.addWidget(self.c_sobre, 2, 0, 1, 4)
+        lay.addWidget(gl)
+
         # ---------------- operações
         go = QGroupBox("Corrigir a estrutura escolhida")
         o = QGridLayout(go)
@@ -203,7 +228,11 @@ class EstruturasPainel(QDialog):
         self.b_lesao.clicked.connect(self.atualizar_lesao)
         self.b_laudo = QPushButton("Mandar ao laudo")
         self.b_laudo.clicked.connect(self.mandar_ao_laudo)
-        for b in (self.b_seg, self.b_rt, self.b_lesao, self.b_laudo):
+        self.b_copiar = QPushButton("Copiar os números")
+        self.b_copiar.setToolTip("Uma linha por estrutura (volume, intensidade, forma), separada por tabulação — "
+                                 "cola direto na planilha.")
+        self.b_copiar.clicked.connect(self.copiar_numeros)
+        for b in (self.b_seg, self.b_rt, self.b_lesao, self.b_laudo, self.b_copiar):
             sai.addWidget(b)
         lay.addLayout(sai)
         self.resize(560, 720)
@@ -239,6 +268,8 @@ class EstruturasPainel(QDialog):
         self._faixa_ref = (lo, hi if hi > lo else lo + 1.0)
         self.s_lo.setValue(lo)
         self.s_hi.setValue(hi)
+        self.s_lim_lo.setValue(lo)
+        self.s_lim_hi.setValue(hi)
         nz, ny, nx = self.grade.forma
         dx, dy, dz = self.grade.espacamento
         desc = ""
@@ -314,8 +345,40 @@ class EstruturasPainel(QDialog):
 
     def _encher_outras(self) -> None:
         self.c_outra.clear()
+        alvo = self.c_area_alvo.currentData()
+        self.c_area_alvo.clear()
         for e in self.estruturas:
             self.c_outra.addItem(e.nome, e.id)
+            self.c_area_alvo.addItem(e.nome, e.id)
+        if alvo is not None:
+            self.c_area_alvo.setCurrentIndex(max(0, self.c_area_alvo.findData(alvo)))
+
+    def _area_mudou(self, _i=0) -> None:
+        self.c_area_alvo.setEnabled(self.c_area.currentData() == "dentro")
+
+    def limites(self) -> ES.Limites:
+        """Os limites da edição escolhidos na janela."""
+        alvo_id = self.c_area_alvo.currentData()
+        return ES.Limites(area=self.c_area.currentData() or "tudo",
+                          alvo=next((x for x in self.estruturas if x.id == alvo_id), None),
+                          outras=list(self.estruturas),
+                          faixa=(self.s_lim_lo.value(), self.s_lim_hi.value()) if self.c_lim_faixa.isChecked() else None,
+                          dados=self.vol.data if self.vol is not None else None,
+                          sobrescrever=self.c_sobre.isChecked())
+
+    def _depois_de_somar(self, e: ES.Estrutura, lim: ES.Limites) -> list:
+        """Depois de uma operação que soma voxels: tira o que entrou fora dos limites e, com sobrescrever,
+        tira das outras o que esta ganhou. Devolve as outras que mudaram."""
+        if not e._desfazer:
+            return []
+        foto = e._desfazer[-1]
+        ES.restringir(e, foto, lim)
+        if not lim.sobrescrever:
+            return []
+        mudaram = ES.sobrescrever(e, foto, self.estruturas)
+        for o in mudaram:
+            self._linha(o)
+        return mudaram
 
     def _item_mudou(self, item: QTableWidgetItem) -> None:
         if self._enchendo:
@@ -370,7 +433,7 @@ class EstruturasPainel(QDialog):
         self.b_refazer.setEnabled(ok and e is not None and e.pode_refazer())
         self.b_lesao.setEnabled(ok and e is not None and e.chave_origem.startswith("segann:"))
         tem = ok and any(not x.vazia() for x in self.estruturas)
-        for b in (self.b_seg, self.b_rt, self.b_laudo):
+        for b in (self.b_seg, self.b_rt, self.b_laudo, self.b_copiar):
             b.setEnabled(tem)
 
     def _numeros(self) -> None:
@@ -389,6 +452,15 @@ class EstruturasPainel(QDialog):
             t += f"<br>eixos {a:.1f} × {b:.1f} × {c:.1f} mm"
         if "media" in s:
             t += f"<br>média {s['media']:.1f} ± {s['dp']:.1f} · mín {s['minimo']:.1f} · máx {s['maximo']:.1f}"
+            t += (f"<br>mediana {s['mediana']:.1f} · p10–p90 {s['p10']:.1f}–{s['p90']:.1f} · "
+                  f"assimetria {s['assimetria']:.2f} · curtose {s['curtose']:.2f}")
+            t += f"<br>entropia {s['entropia']:.2f} bits · uniformidade {s['uniformidade']:.3f}"
+        if s.get("feret_mm"):
+            t += f"<br>maior diâmetro (Feret) {s['feret_mm']:.1f} mm"
+            if "esfericidade" in s:
+                t += f" · esfericidade {s['esfericidade']:.2f}"
+            if "alongamento" in s:
+                t += f" · alongamento {s['alongamento']:.2f} · achatamento {s['achatamento']:.2f}"
         n_ilhas = len(ES.ilhas(e, self.grade)) if e.voxels < 4_000_000 else 0
         if n_ilhas > 1:
             t += f"<br>{n_ilhas} ilhas separadas"
@@ -575,9 +647,10 @@ class EstruturasPainel(QDialog):
                 n = int(dist / max(r * 0.5, 0.3))
                 pontos = [ultimo + (pontos[0] - ultimo) * (t / (n + 1)) for t in range(1, n + 1)] + pontos
             mudou = 0
+            lim = self.limites()
             for q in pontos:
                 mudou += ES.pintar(e, self.grade, q, r, normal=normal, apagar=apagar, dados=self.vol.data,
-                                   faixa=faixa, proibidas=proib)
+                                   faixa=faixa, proibidas=proib, limites=lim)
             total += mudou
             self._traco = (e, np.asarray(p, float), faixa, total)
             if mudou:
@@ -588,6 +661,9 @@ class EstruturasPainel(QDialog):
             e.aparar()
             if not total and e._desfazer:
                 e._desfazer.pop()             # traço que não mudou nada não ocupa o desfazer
+            elif total and not apagar and self.c_sobre.isChecked():
+                if self._depois_de_somar(e, self.limites()):
+                    self._redesenhar()
             self._traco = None
             self._selecionou()
 
@@ -611,6 +687,8 @@ class EstruturasPainel(QDialog):
             return 0
         finally:
             QApplication.restoreOverrideCursor()
+        if r and nome in ("crescer", "buracos", "interpolar"):
+            self._depois_de_somar(e, self.limites())
         if not r:
             e._desfazer.pop()                 # nada mudou: não ocupa o desfazer
             self.tab.status_message.emit("Nada mudou.")
@@ -764,6 +842,24 @@ class EstruturasPainel(QDialog):
             pass
         self.tab.status_message.emit(f"Lesão “{e.nome}” atualizada: {s['ml']:.2f} mL.")
         return True
+
+    COLUNAS = ("ml", "voxels", "cortes", "media", "dp", "minimo", "maximo", "mediana", "p10", "p90", "assimetria",
+               "curtose", "entropia", "uniformidade", "feret_mm", "superficie_mm2", "esfericidade", "alongamento",
+               "achatamento")
+
+    def tabela_de_numeros(self) -> str:
+        """TSV com os números de todas as estruturas (para a planilha, a pesquisa)."""
+        linhas = ["\t".join(("estrutura", "tipo", *self.COLUNAS, "eixo1_mm", "eixo2_mm", "eixo3_mm"))]
+        for e in self._validas():
+            s = ES.estatisticas(e, self.grade, self.vol.data if self.vol is not None else None)
+            eixos = s.get("eixos_mm") or ("", "", "")
+            vals = [s.get(k, "") for k in self.COLUNAS] + list(eixos)
+            linhas.append("\t".join([e.nome, e.tipo] + [f"{v:.4g}" if isinstance(v, float) else str(v) for v in vals]))
+        return "\n".join(linhas)
+
+    def copiar_numeros(self) -> None:
+        QApplication.clipboard().setText(self.tabela_de_numeros())
+        self.tab.status_message.emit("Números das estruturas copiados (cole na planilha).")
 
     def mandar_ao_laudo(self) -> None:
         from ipe.core.i18n import tr

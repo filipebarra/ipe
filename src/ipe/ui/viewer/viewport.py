@@ -2081,11 +2081,21 @@ class Viewport(AnnotationMixin, QWidget):
         pos, row, col, _n = pl
         h, w = self._img.pixels.shape[:2]
         rs, cs = self._spacing()
-        key = (id(fu), fu.version, self.index, id(self._img), tuple(np.round(pos, 3)), h, w)
+        key = (id(fu), fu.version, self.index, id(self._img), tuple(np.round(pos, 3)), h, w,
+               fu.modo, round(fu.cortina, 3), round(self.state.width, 2), round(self.state.level, 2))
         if self._fusion_cache is not None and self._fusion_cache[0] == key:
             return self._fusion_cache[1], self._fusion_cache[2]
         vals, stride = fu.values(pos, row, col, rs, cs, h, w)
-        rgba = np.ascontiguousarray(fu.rgba(vals))
+        if fu.modo in fu.MODOS_DE_CONFERIR:
+            a8 = None
+            if fu.modo == "diferenca" and not self._img.is_color:
+                disp = to_display(self._img, self.state.width, self.state.level, self.state.invert, None)
+                a8 = disp[(stride - 1) // 2::stride, (stride - 1) // 2::stride][:vals.shape[0], :vals.shape[1]]
+                if a8.ndim != 2:
+                    a8 = None
+            rgba = np.ascontiguousarray(fu.conferir(vals, a8))
+        else:
+            rgba = np.ascontiguousarray(fu.rgba(vals))
         q = QImage(rgba.data, rgba.shape[1], rgba.shape[0], rgba.strides[0], QImage.Format_RGBA8888).copy()
         self._fusion_cache = (key, q, stride)
         return q, stride
@@ -2573,6 +2583,12 @@ class Viewport(AnnotationMixin, QWidget):
             self._cursor_por_tecla = False
             self._acc_tecla = 0.0
             self.setCursor(Qt.ArrowCursor)
+        if pr is None and self.fusion is not None and getattr(self.fusion, "modo", "") == "cortina" \
+                and self._img is not None:
+            ip = self.widget_to_image(pos)                 # a cortina segue o mouse (0.99.44)
+            w = self._img.pixels.shape[1]
+            self.fusion.cortina = float(np.clip(ip.x() / max(w, 1), 0, 1))
+            self.update()
         if pr is None:
             if self.left_tool == "pincel":
                 self._pincel_pos = pos

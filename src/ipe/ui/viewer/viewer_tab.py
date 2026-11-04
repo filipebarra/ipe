@@ -996,6 +996,14 @@ class ViewerTab(OncoMixin, QWidget):
         a.triggered.connect(lambda: (self.hub.unlink_all(), self.update_reference_lines()))
         sync_menu.addAction(a)
         sync_menu.addSeparator()
+        conf = sync_menu.addMenu("Conferir o registro com o outro exame")
+        for modo, nome in (("xadrez", "Xadrez"), ("cortina", "Cortina (segue o mouse)"), ("diferenca", "Diferença"),
+                           ("mistura", "Mistura 50%")):
+            conf.addAction(self._act(f"registro.conferir.{modo}", f"Conferir o registro: {nome}",
+                                     lambda _=False, m=modo: self.conferir_registro(m)))
+        conf.addSeparator()
+        conf.addAction(self._act("registro.conferir.off", "Conferir o registro: desligar",
+                                 lambda: self.conferir_registro(None)))
         sync_menu.addAction(self._act("sync.register", "Alinhar automaticamente com o outro exame (registro)",
                                       self.auto_register))
         self.link_action = self._act("sync.link", "Ligar quadros", self.toggle_link, checkable=True)
@@ -1906,6 +1914,52 @@ class ViewerTab(OncoMixin, QWidget):
             return None
         finally:
             dlg.close()
+
+    def conferir_registro(self, modo: str | None):
+        """Põe o outro exame sobre o quadro ativo para conferir o registro (0.99.44, como o MITK): xadrez,
+        cortina que segue o mouse, diferença ou mistura — em cinza, cada um com a sua janela. Usa a matriz do
+        registro rígido guardado; a série já gravada no plano deste (mesmo Frame of Reference) entra sem ela."""
+        import numpy as np
+        a = self.active
+        if a is None:
+            return None
+        if modo is None:
+            if a.fusion is not None and getattr(a.fusion, "modo", "cor") != "cor":
+                self.remove_fusion(a)
+            return None
+        if a.fusion is not None and getattr(a.fusion, "matriz_de", None) is not None:
+            a.fusion.modo = modo                 # já está conferindo: só troca o modo
+            a.fusion.changed()
+            a._fusion_cache = None
+            a.update()
+            return a.fusion
+        others = [v for v in self.hub.viewports(self) if v is not a and v.study_uid and v.study_uid != a.study_uid
+                  and self._source_series(v) is not None]
+        if not others:
+            QMessageBox.information(self, "Conferir o registro", "Abra o outro exame num quadro ao lado (botão "
+                                    "Anteriores) e deixe ativo o quadro do exame atual.")
+            return None
+        b = others[0]
+        uid_b = self._source_series(b)
+        meta_b = self.repo.series_meta(uid_b) or {}
+        mesma_ref = bool(a.for_uid) and meta_b.get("frame_of_reference") == a.for_uid
+        M = None if mesma_ref else self.repo.get_registration_matriz(a.study_uid, b.study_uid)
+        fu = self.set_fusion(a, uid_b)
+        if fu is None:
+            return None
+        fu.matriz = None if M is None else np.asarray(M, float)
+        fu.matriz_de = (a.study_uid, b.study_uid)
+        fu.modo = modo
+        fu.changed()
+        a._fusion_cache = None
+        a.update()
+        if M is None and not mesma_ref:
+            self.status_message.emit("Sem registro rígido guardado entre os dois exames: a conferência usa as "
+                                     "coordenadas do paciente (rode o Alinhar automaticamente antes).")
+        else:
+            self.status_message.emit("Conferindo o registro: as bordas devem continuar sem degrau no xadrez e na "
+                                     "cortina; na diferença, o que sobra claro é o que não alinhou.")
+        return fu
 
     def auto_register(self) -> bool:
         """Alinha o quadro ativo com um quadro de outro exame (ex.: anterior) e liga os dois.

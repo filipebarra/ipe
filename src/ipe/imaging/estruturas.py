@@ -260,9 +260,93 @@ def de_meta(d: dict, grade: Grade, nome: str, cor, **kw) -> Estrutura:
     return e
 
 
+# ====================================================================== limites da edição (0.99.44)
+@dataclass
+class Limites:
+    """Onde a edição pode pôr voxel (como as opções de máscara do Segment Editor do 3D Slicer).
+
+    - `area`: "tudo"; "dentro" (só dentro da estrutura `alvo`); "fora" (só fora das `outras` visíveis).
+    - `faixa` (mín, máx) com `dados`: só voxels com intensidade na faixa — vale para todas as ferramentas.
+    - `sobrescrever`: o que a estrutura ganha sai das outras (não travadas); sem isso, sobrepõem.
+    Valem para o que **entra** (pincel, crescer, buracos, interpolação); apagar não é limitado.
+    """
+    area: str = "tudo"
+    alvo: "Estrutura | None" = None
+    outras: list = field(default_factory=list)
+    faixa: tuple | None = None
+    dados: np.ndarray | None = None
+    sobrescrever: bool = False
+
+    def ativo(self) -> bool:
+        return self.area != "tudo" or self.faixa is not None
+
+    def permitido(self, caixa, e: "Estrutura") -> np.ndarray:
+        k0, k1, j0, j1, i0, i1 = caixa
+        m = np.ones((k1 - k0, j1 - j0, i1 - i0), bool)
+        if self.faixa is not None and self.dados is not None:
+            v = self.dados[k0:k1, j0:j1, i0:i1]
+            m &= (v >= self.faixa[0]) & (v <= self.faixa[1])
+        if self.area == "dentro" and self.alvo is not None and self.alvo is not e:
+            m &= _recorte_de(self.alvo, caixa)
+        elif self.area == "fora":
+            for o in self.outras:
+                if o is not e and o.visivel and not o.vazia():
+                    m &= ~_recorte_de(o, caixa)
+        return m
+
+
+def _de_foto(foto) -> "Estrutura":
+    m, off = Estrutura._de_foto(foto)
+    return Estrutura("antes", (0, 0, 0), m, off)
+
+
+def restringir(e: "Estrutura", antes, limites: "Limites | None") -> int:
+    """Depois de uma operação: o que entrou fora dos limites sai. `antes`: a foto do desfazer (ou uma
+    Estrutura). Devolve os voxels tirados."""
+    if limites is None or not limites.ativo() or e.vazia():
+        return 0
+    velha = antes if isinstance(antes, Estrutura) else _de_foto(antes)
+    cx = _caixa_de(e)
+    novos = e.mascara & ~_recorte_de(velha, cx)
+    if not novos.any():
+        return 0
+    tirar = novos & ~limites.permitido(cx, e)
+    n = int(tirar.sum())
+    if n:
+        e.mascara = e.mascara & ~tirar
+        e.aparar()
+    return n
+
+
+def sobrescrever(e: "Estrutura", antes, outras) -> list:
+    """O que `e` ganhou sai das outras estruturas (não travadas). Cada uma que mudou guarda o seu
+    desfazer. Devolve as que mudaram."""
+    if e.vazia():
+        return []
+    velha = antes if isinstance(antes, Estrutura) else _de_foto(antes)
+    cx = _caixa_de(e)
+    novos = Estrutura("novos", (0, 0, 0), e.mascara & ~_recorte_de(velha, cx), cx[0::2])
+    if novos.vazia():
+        return []
+    mudaram = []
+    for o in outras:
+        if o is e or o.travada or o.vazia():
+            continue
+        co = _caixa_de(o)
+        tira = o.mascara & _recorte_de(novos, co)
+        if tira.any():
+            o.guardar_para_desfazer()
+            o.mascara = o.mascara & ~tira
+            o.aparar()
+            o.alterada = True
+            mudaram.append(o)
+    return mudaram
+
+
 # ====================================================================== pincel
 def pintar(e: Estrutura, grade: Grade, centro_mm, raio_mm: float, normal=None, apagar: bool = False,
-           dados: np.ndarray | None = None, faixa: tuple | None = None, proibidas=()) -> int:
+           dados: np.ndarray | None = None, faixa: tuple | None = None, proibidas=(),
+           limites: "Limites | None" = None) -> int:
     """Pincel (ou borracha) em volta de `centro_mm`.
 
     Com `normal` (a do plano do quadro): um **disco** de raio `raio_mm` no plano, da espessura de um
@@ -303,6 +387,8 @@ def pintar(e: Estrutura, grade: Grade, centro_mm, raio_mm: float, normal=None, a
         if p is e or p.vazia():
             continue
         sel &= ~_recorte_de(p, (k0, k1, j0, j1, i0, i1))
+    if not apagar and limites is not None and limites.ativo():
+        sel &= limites.permitido((k0, k1, j0, j1, i0, i1), e)
     if not sel.any():
         return 0
     if apagar:
@@ -612,6 +698,8 @@ def estatisticas(e: Estrutura, grade: Grade, dados: np.ndarray | None = None) ->
     if dados is not None:
         v = dados[e.caixa()][e.mascara].astype(np.float64)
         out.update(media=float(v.mean()), dp=float(v.std()), minimo=float(v.min()), maximo=float(v.max()))
+        out.update(primeira_ordem(v))
+    out.update(forma(e, grade))
     pts = e.pontos_mm(grade)
     if len(pts) > 60000:
         pts = pts[np.random.default_rng(0).choice(len(pts), 60000, replace=False)]
@@ -621,6 +709,79 @@ def estatisticas(e: Estrutura, grade: Grade, dados: np.ndarray | None = None) ->
         pass
     k = np.flatnonzero(e.mascara.any(axis=(1, 2)))
     out["cortes"] = int(len(k))
+    return out
+
+
+def primeira_ordem(v: np.ndarray) -> dict:
+    """Estatística de primeira ordem (as definições do pyradiomics / IBSI): mediana, percentis 10 e 90,
+    assimetria, curtose (excesso, 0 na normal), entropia (bits, histograma de 64 classes), uniformidade."""
+    v = np.asarray(v, np.float64).ravel()
+    if v.size == 0:
+        return {}
+    out = {"mediana": float(np.median(v)), "p10": float(np.percentile(v, 10)), "p90": float(np.percentile(v, 90))}
+    m, s = float(v.mean()), float(v.std())
+    if s > 0 and v.size > 2:
+        z = (v - m) / s
+        out["assimetria"] = float(np.mean(z ** 3))
+        out["curtose"] = float(np.mean(z ** 4) - 3.0)
+    else:
+        out["assimetria"] = out["curtose"] = 0.0
+    lo, hi = float(v.min()), float(v.max())
+    h = np.histogram(v, bins=64, range=(lo, hi if hi > lo else lo + 1))[0].astype(np.float64)
+    p = h[h > 0] / h.sum()
+    out["entropia"] = float(-(p * np.log2(p)).sum())
+    out["uniformidade"] = float((p ** 2).sum())
+    return out
+
+
+def forma(e: "Estrutura", grade: Grade) -> dict:
+    """Forma 3D: superfície (faces expostas dos voxels), esfericidade, maior diâmetro (Feret, entre os
+    voxels da borda), alongamento e achatamento (raízes das razões dos autovalores — pyradiomics)."""
+    if e.vazia():
+        return {}
+    m = e.mascara
+    dx, dy, dz = grade.espacamento
+    p = np.pad(m, 1)
+    borda = np.zeros_like(p)
+    for ax in range(3):
+        d = np.diff(p.astype(np.int8), axis=ax) != 0
+        sl_a = [slice(None)] * 3
+        sl_b = [slice(None)] * 3
+        sl_a[ax], sl_b[ax] = slice(None, -1), slice(1, None)
+        borda[tuple(sl_a)] |= d & p[tuple(sl_a)]
+        borda[tuple(sl_b)] |= d & p[tuple(sl_b)]
+    vol = e.voxels * dx * dy * dz
+    out = {}
+    # superfície pela malha (marching cubes sem suavizar, como o pyradiomics); contar faces de voxel
+    # superestima ~50% numa esfera. Em objeto pequeno (raio < ~10 voxels) a esfericidade é aproximada.
+    area = 0.0
+    if m.size <= 30_000_000:
+        from ipe.imaging.surface import mesh_from_mask
+        v, f = mesh_from_mask(m, (dz, dy, dx), smooth=0)[:2]
+        if len(f):
+            a, b = v[f[:, 1]] - v[f[:, 0]], v[f[:, 2]] - v[f[:, 0]]
+            area = float(0.5 * np.linalg.norm(np.cross(a, b), axis=1).sum())
+    if area > 0:
+        out["superficie_mm2"] = area
+        out["esfericidade"] = float(min(1.0, (np.pi ** (1 / 3)) * ((6 * vol) ** (2 / 3)) / area))
+    k, j, i = np.nonzero(borda[1:-1, 1:-1, 1:-1])
+    pts = np.stack([i * dx, j * dy, k * dz], axis=1) if len(k) else np.zeros((0, 3))
+    if len(pts) > 2500:
+        pts = pts[np.random.default_rng(0).choice(len(pts), 2500, replace=False)]
+    if len(pts) >= 2:
+        best = 0.0
+        for a0 in range(0, len(pts), 500):
+            d2 = ((pts[a0:a0 + 500, None, :] - pts[None, :, :]) ** 2).sum(-1)
+            best = max(best, float(d2.max()))
+        out["feret_mm"] = float(np.sqrt(best))
+    todos = e.pontos_mm(grade)
+    if len(todos) > 60000:
+        todos = todos[np.random.default_rng(1).choice(len(todos), 60000, replace=False)]
+    if len(todos) >= 4:
+        lam = np.sort(np.linalg.eigvalsh(np.cov((todos - todos.mean(0)).T)))[::-1]
+        if lam[0] > 0:
+            out["alongamento"] = float(np.sqrt(max(lam[1], 0) / lam[0]))
+            out["achatamento"] = float(np.sqrt(max(lam[2], 0) / lam[0]))
     return out
 
 

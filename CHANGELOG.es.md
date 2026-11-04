@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.44 — límites de la edición, estadística ampliada, verificar el registro
+- **Estructuras ▸ Límites de la edición**: área (en todas partes, solo dentro de una estructura, solo fuera
+  de las otras), rango de intensidad válido para todas las herramientas y **sobrescribir** (lo que una gana
+  sale de las otras).
+- **Estadística ampliada** de la estructura: mediana, percentiles 10/90, asimetría, curtosis, entropía,
+  uniformidad, diámetro mayor (Feret), esfericidad, alargamiento y aplanamiento; **Copiar los números** (una
+  línea por estructura, para la planilla).
+- **Verificar el registro** con el otro estudio: tablero, cortina que sigue el ratón, diferencia y mezcla,
+  con la matriz del registro rígido.
+
 ## 0.99.43 — mosaico en el cuadro; CAD oculto hasta revelar
 - **Mosaico de cortes** (botón derecho ▸ Mosaico, o atajo): 2 × 2, 3 × 3 o 4 × 4 cortes seguidos de la misma
   serie dentro de un cuadro; la rueda pasa la página; doble clic vuelve al cuadro normal en la imagen.
