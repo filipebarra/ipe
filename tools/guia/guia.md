@@ -943,6 +943,15 @@ No rodapé dá para incluir as imagens-chave no PDF, guardar o PDF no exame (com
 
 Os modelos se editam em **Modelos…** (nome, modalidades, palavras-chave, BI-RADS e o texto com campos automáticos entre chaves). Há *Restaurar os de fábrica*.
 
+## IA no texto do laudo
+
+O botão **IA ▾**, na janela do laudo, ao lado de **Inserir ▾**:
+
+- **Conferir o laudo (sem rede)** — sempre disponível: aponta campo não preenchido ("___", "{campo}"), medida sem unidade ("medindo 12") ou grande demais (mais de 400 mm ou 60 cm), palavra repetida, "direita esquerda", órgão que não combina com o sexo do paciente (útero no masculino, próstata no feminino), categoria BI-RADS do texto diferente da do formulário, BI-RADS 3 com conduta de rotina, BI-RADS 4 e 5 sem histopatológico, conclusão que cita um lado que o corpo do laudo não cita e impressão vazia. A mesma conferência roda **antes de assinar**: se achar algo, mostra a lista e pergunta se assina mesmo assim (desliga em Configurações).
+- **Refinar o texto (IA)…**, **Gerar a impressão (IA)…** e **Apontar erros (IA)…** — com um modelo de linguagem configurado. A resposta abre numa janela editável; nada entra no laudo sem **Trocar o texto do laudo por este** ou **Inserir no laudo (no cursor)**, e Ctrl+Z desfaz.
+
+**Configurações ▸ Laudos ▸ IA no texto do laudo…** escolhe o provedor: **Ollama** (o modelo roda neste computador ou num servidor da rede; o texto não sai do serviço), um servidor **compatível com OpenAI** (LM Studio, vLLM, llama.cpp) ou a **API da Anthropic** (com a chave do serviço; o texto sai para fora). Antes de sair do programa, o texto perde o **nome, o ID, o accession e a data de nascimento** do paciente, que voltam na resposta; para um endereço fora deste computador, o programa pergunta uma vez. **Testar** confere a conexão. A chave da API fica guardada **cifrada**. O modelo só sugere: quem assina é o médico.
+
 ## Laudo em andamento (servidor central)
 
 No modo cliente, quem abre o laudo de um exame passa a ser **quem está laudando**, até fechar a janela do laudo. Outro médico que abrir o laudo do mesmo exame é avisado ("Dra. Ana está laudando este exame desde 10:05") e escolhe **Só ler** (a janela abre sem poder gravar) ou **Assumir o laudo** (fica no registro de acesso, e o primeiro não grava mais). Quem só abre as imagens vê o aviso na barra de status. O servidor recusa gravar ou assinar o laudo de quem não está com ele. Se o computador de quem laudava travar, a trava cai sozinha em 10 minutos.

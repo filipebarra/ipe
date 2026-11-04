@@ -73,6 +73,13 @@ CREDITOS: tuple[Credito, ...] = (
             onde="opcional", modulos=("PIL",)),
     Credito("Tesseract / pytesseract", "OCR de reserva, quando instalado no computador", "Apache-2.0",
             "https://github.com/tesseract-ocr/tesseract", onde="opcional", modulos=("pytesseract",)),
+    Credito("Ollama", "modelo de linguagem local para a IA no texto do laudo (0.99.54), se instalado à parte",
+            "MIT", "https://ollama.com", onde="opcional"),
+    Credito("API compatível com OpenAI (LM Studio, vLLM, llama.cpp)", "servidor de modelo de linguagem para a IA "
+            "no texto do laudo, se o serviço tiver um", "conforme o servidor", "https://platform.openai.com/docs/api-reference",
+            onde="opcional"),
+    Credito("API da Anthropic (Claude)", "modelo de linguagem para a IA no texto do laudo, com chave própria do "
+            "serviço", "serviço da Anthropic", "https://docs.claude.com", onde="opcional"),
     Credito("ReportLab", "o guia do usuário em PDF", "BSD", "https://www.reportlab.com/opensource/",
             onde="desenvolvimento", modulos=("reportlab",)),
     # ------------------------------------------------------------------ inteligência artificial

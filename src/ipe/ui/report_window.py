@@ -445,6 +445,9 @@ class ReportWindow(QWidget):
         top.addWidget(b_apply)
         top.addWidget(b_models)
         top.addWidget(ins)
+        from ipe.ui.laudo_ia_ui import IALaudo                   # 0.99.54 (onda B5)
+        self.ia = IALaudo(self)
+        top.addWidget(self.ia.botao)
         top.addSpacing(16)
         top.addWidget(QLabel("Laudos deste exame:"))
         top.addWidget(self.versions)
@@ -881,6 +884,8 @@ class ReportWindow(QWidget):
         if not auth.require("sign_report", self, "assinar laudos"):
             return
         if not self.editor.toPlainText().strip():
+            return
+        if not self.ia.pode_assinar():                           # 0.99.54: conferência local antes de assinar
             return
         if QMessageBox.question(self, "Assinar", "Assinar e liberar o laudo? Depois de assinado, ele só pode ser "
                                 "mudado por retificação.") != QMessageBox.Yes:

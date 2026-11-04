@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.54 — IA en el texto del informe (ola B5)
+- Botón **IA ▾** en el informe: **revisión local** (sin red; campo vacío, medida sin unidad, lateralidad,
+  sexo × órgano, BI-RADS del texto × formulario, conducta × categoría, impresión vacía), también **antes de
+  firmar**; y, con un modelo configurado (Ollama, servidor compatible con OpenAI o la API de Anthropic),
+  **refinar el texto**, **generar la impresión** y **señalar errores** — siempre como sugerencia para aceptar.
+- El texto va sin nombre, ID, accession ni nacimiento del paciente; la clave de la API queda cifrada.
+
 ## 0.99.53 — panel de productividad (ola B6)
 - **Informes ▸ Productividad…**: informes firmados por médico, modalidad, subespecialidad, prioridad o día,
   con rectificaciones, mediana y p90 de la llegada a la firma y la parte en plazo; pendientes ahora; CSV.

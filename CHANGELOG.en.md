@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.54 — AI in the report text (wave B5)
+- **AI ▾** button in the report: **local check** (offline; empty field, measurement without a unit,
+  laterality, sex × organ, BI-RADS in the text × form, recommendation × category, empty impression), also
+  **before signing**; and, with a configured model (Ollama, OpenAI-compatible server or the Anthropic API),
+  **refine the text**, **generate the impression** and **point out errors** — always as a suggestion to accept.
+- The text goes without the patient's name, ID, accession and birth date; the API key is stored encrypted.
+
 ## 0.99.53 — productivity panel (wave B6)
 - **Reports ▸ Productivity…**: signed reports by radiologist, modality, subspecialty, priority or day, with
   amendments, median and p90 from arrival to signature and the share on time; pending now; CSV. Users who do

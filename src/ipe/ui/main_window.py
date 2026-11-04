@@ -726,6 +726,11 @@ class MainWindow(QMainWindow):
         self._produtividade_dlg = dlg
         dlg.show()
 
+    def abrir_config_laudo_ia(self) -> None:
+        """Configurações ▸ Laudos ▸ IA no texto do laudo (0.99.54, onda B5)."""
+        from ipe.ui.laudo_ia_ui import LaudoIAConfigDialog
+        LaudoIAConfigDialog(self.settings, self).exec()
+
     def abrir_config_sla(self) -> None:
         """Configurações ▸ Laudos ▸ Prioridade, subespecialidade e prazos (0.99.52, onda B4)."""
         from ipe.ui.sla_dialog import SlaConfigDialog

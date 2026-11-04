@@ -32,6 +32,9 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 |---|---|---|
 | [Pillow](https://python-pillow.org) | imagens comuns (PNG/JPG) no OCR de reserva | MIT-CMU |
 | [Tesseract / pytesseract](https://github.com/tesseract-ocr/tesseract) | OCR de reserva, quando instalado no computador | Apache-2.0 |
+| [Ollama](https://ollama.com) | modelo de linguagem local para a IA no texto do laudo (0.99.54), se instalado à parte | MIT |
+| [API compatível com OpenAI (LM Studio, vLLM, llama.cpp)](https://platform.openai.com/docs/api-reference) | servidor de modelo de linguagem para a IA no texto do laudo, se o serviço tiver um | conforme o servidor |
+| [API da Anthropic (Claude)](https://docs.claude.com) | modelo de linguagem para a IA no texto do laudo, com chave própria do serviço | serviço da Anthropic |
 
 ## Ambiente da segmentação, baixado à parte
 

@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.54 — IA no texto do laudo (onda B5)
+- Botão **IA ▾** no laudo: **conferência local** (sem rede; campo vazio, medida sem unidade, lateralidade,
+  sexo × órgão, BI-RADS do texto × formulário, conduta × categoria, impressão vazia), também **antes de
+  assinar**; e, com um modelo configurado (Ollama, servidor compatível com OpenAI ou API da Anthropic),
+  **refinar o texto**, **gerar a impressão** e **apontar erros** — sempre como sugestão para aceitar.
+- O texto vai sem nome, ID, accession e nascimento do paciente; a chave da API fica cifrada.
+
 ## 0.99.53 — painel de produtividade (onda B6)
 - **Laudos ▸ Produtividade…**: laudos assinados por médico, modalidade, subespecialidade, prioridade ou dia,
   com retificações, mediana e p90 da chegada à assinatura e parte no prazo; pendentes agora; CSV. Quem não
