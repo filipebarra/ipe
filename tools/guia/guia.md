@@ -811,13 +811,24 @@ No cadastro de um nó, o primeiro campo é **Tipo de conexão**, e ele muda os c
 | | DICOM clássico (DIMSE) | DICOMweb (HTTP) |
 |---|---|---|
 | Como fala | C-FIND, C-GET / C-MOVE, C-STORE | QIDO-RS, WADO-RS, STOW-RS |
-| Identificação | AE title dos dois lados | usuário e senha |
+| Identificação | AE title dos dois lados | usuário e senha, OAuth2 / OIDC ou token |
 | Precisa de porta aberta aqui? | só com C-MOVE | não |
 | Atravessa firewall e proxy? | difícil | sim, é HTTP |
 
 O endereço do DICOMweb é a base, a que costuma terminar em `/dicom-web` (por exemplo `http://192.168.1.216:8042/dicom-web`). **Testar rede** funciona nos dois.
 
-> **Três coisas sobre o DICOMweb.** Não existe C-MOVE ali: o download volta pela mesma conexão. Identidade de AE não vale num nó DICOMweb — quem identifica é o usuário e a senha. E a senha fica em texto claro no banco deste computador: use um usuário só de leitura quando o PACS permitir.
+> **Três coisas sobre o DICOMweb.** Não existe C-MOVE ali: o download volta pela mesma conexão. Identidade de AE não vale num nó DICOMweb — quem identifica é o login. E a senha, o token e o segredo do cliente ficam **cifrados** neste computador (no Windows pela proteção do próprio sistema; nos outros, por uma chave local da pasta de configuração): o banco copiado para outro computador não abre as senhas — lá, digite de novo. Senhas gravadas antes da 0.99.55 são cifradas na primeira vez que o programa as lê. Use um usuário só de leitura quando o PACS permitir.
+
+**Autenticação** do nó DICOMweb:
+
+| Opção | Quando usar | Campos |
+|---|---|---|
+| Usuário e senha (Basic) | Orthanc, dcm4chee sem login central | usuário e senha |
+| OAuth2 — credenciais do cliente | PACS na nuvem, integração entre sistemas | token / emissor, ID e segredo do cliente, escopo |
+| OAuth2 — usuário e senha (Keycloak) | dcm4chee-arc ou Orthanc com Keycloak, cada médico com seu login | token / emissor, ID (e segredo) do cliente, escopo, usuário e senha |
+| Token fixo (Bearer) | o PACS entregou um token pronto | o token, no campo Senha / token |
+
+Em **Token / emissor** vai o *token endpoint* (termina em `/token`) ou só o endereço do **emissor OIDC** (no Keycloak, `https://login.exemplo/realms/pacs`): o programa lê `/.well-known/openid-configuration` e acha o endpoint sozinho. O token fica na memória até perto de vencer e é renovado sem pedir a senha de novo; se o PACS recusar (401), o programa pede outro uma vez. **Testar rede** já faz o login.
 
 | Campo do nó | Para que serve |
 |---|---|

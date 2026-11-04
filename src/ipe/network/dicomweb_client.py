@@ -63,6 +63,12 @@ class WebTarget:
     password: str = ""
     verify_tls: bool = True
     timeout: int = 30
+    # 0.99.55 (onda B3): basic | oauth2_cliente | oauth2_senha | token (network/oauth.py)
+    auth: str = "basic"
+    token_url: str = ""
+    client_id: str = ""
+    client_secret: str = ""
+    scope: str = ""
 
     @staticmethod
     def build(node: dict, timeout: int = 30) -> "WebTarget":
@@ -73,7 +79,15 @@ class WebTarget:
             url = "http://" + url
         return WebTarget(node.get("name", ""), url, node.get("username", "") or "",
                          node.get("password", "") or "",
-                         bool(node.get("verify_tls", True)), timeout)
+                         bool(node.get("verify_tls", True)), timeout,
+                         str(node.get("auth") or "basic"), str(node.get("token_url") or ""),
+                         str(node.get("client_id") or ""), str(node.get("client_secret") or ""),
+                         str(node.get("scope") or ""))
+
+    def config_do_token(self) -> dict:
+        return {"auth": self.auth, "token_url": self.token_url, "client_id": self.client_id,
+                "client_secret": self.client_secret, "scope": self.scope, "user": self.user,
+                "password": self.password, "verify_tls": self.verify_tls}
 
 
 def _texto(item: dict, tag: str) -> str:
@@ -108,13 +122,20 @@ class DicomWebClient:
 
     # ------------------------------------------------------------ HTTP
     def _abrir(self, t: WebTarget, caminho: str, aceita: str, timeout: int | None = None,
-               corpo: bytes | None = None, tipo: str = ""):
+               corpo: bytes | None = None, tipo: str = "", _de_novo: bool = False):
         url = t.base_url + caminho
         req = urllib.request.Request(url, data=corpo, method="POST" if corpo is not None else "GET")
         req.add_header("Accept", aceita)
         if tipo:
             req.add_header("Content-Type", tipo)
-        if t.user:
+        token = (t.auth or "basic") != "basic"
+        if token:
+            from ipe.network import oauth
+            try:
+                req.add_header("Authorization", "Bearer " + oauth.TOKENS.token(t.config_do_token()))
+            except oauth.ErroDeToken as e:
+                raise DicomError(f"Nó {t.name}: login OAuth2 — {e}") from e
+        elif t.user:
             cred = base64.b64encode(f"{t.user}:{t.password}".encode("utf-8")).decode("ascii")
             req.add_header("Authorization", "Basic " + cred)
         ctx = None
@@ -128,7 +149,11 @@ class DicomWebClient:
         try:
             return urllib.request.urlopen(req, timeout=timeout or t.timeout, context=ctx)
         except urllib.error.HTTPError as e:
-            detalhe = {401: "usuário ou senha recusados", 403: "acesso negado",
+            if e.code == 401 and token and t.auth != "token" and not _de_novo:
+                from ipe.network import oauth                 # token vencido ou revogado: um novo, uma vez
+                oauth.TOKENS.esquecer(t.config_do_token())
+                return self._abrir(t, caminho, aceita, timeout, corpo, tipo, _de_novo=True)
+            detalhe = {401: "usuário ou senha recusados" if not token else "token recusado", 403: "acesso negado",
                        404: "endereço não encontrado (confira a base /dicom-web/)",
                        405: "o servidor não aceita esse pedido"}.get(e.code, e.reason)
             raise DicomError(f"Nó {t.name}: HTTP {e.code} — {detalhe}") from e

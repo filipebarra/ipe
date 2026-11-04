@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.55 — OAuth2/OIDC on DICOMweb nodes and encrypted passwords (wave B3)
+- DICOMweb node with **OAuth2**: client credentials, username and password (Keycloak) or a fixed token; the
+  token address can be the OIDC issuer (automatic discovery); token renewed on its own and one retry on 401.
+- **Encrypted passwords**: the password, token and client secret are stored encrypted in the database (DPAPI
+  on Windows; a local key elsewhere); old plain-text ones are encrypted the first time they are read.
+
 ## 0.99.54 — AI in the report text (wave B5)
 - **AI ▾** button in the report: **local check** (offline; empty field, measurement without a unit,
   laterality, sex × organ, BI-RADS in the text × form, recommendation × category, empty impression), also

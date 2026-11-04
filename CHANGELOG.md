@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.55 — OAuth2/OIDC nos nós DICOMweb e senhas cifradas (onda B3)
+- Nó DICOMweb com **OAuth2**: credenciais do cliente, usuário e senha (Keycloak) ou token fixo; o endereço do
+  token pode ser o do emissor OIDC (descoberta automática); token renovado sozinho e nova tentativa no 401.
+- **Senhas cifradas**: a senha, o token e o segredo do cliente ficam cifrados no banco (DPAPI no Windows;
+  chave local nos outros); as antigas em texto claro são cifradas na primeira leitura.
+
 ## 0.99.54 — IA no texto do laudo (onda B5)
 - Botão **IA ▾** no laudo: **conferência local** (sem rede; campo vazio, medida sem unidade, lateralidade,
   sexo × órgão, BI-RADS do texto × formulário, conduta × categoria, impressão vazia), também **antes de

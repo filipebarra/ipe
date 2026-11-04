@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.55 — OAuth2/OIDC en los nodos DICOMweb y contraseñas cifradas (ola B3)
+- Nodo DICOMweb con **OAuth2**: credenciales del cliente, usuario y contraseña (Keycloak) o token fijo; la
+  dirección del token puede ser la del emisor OIDC (descubrimiento automático); token renovado solo y un nuevo
+  intento en el 401.
+- **Contraseñas cifradas**: la contraseña, el token y el secreto del cliente quedan cifrados en la base (DPAPI
+  en Windows; clave local en los otros); las antiguas en texto claro se cifran en la primera lectura.
+
 ## 0.99.54 — IA en el texto del informe (ola B5)
 - Botón **IA ▾** en el informe: **revisión local** (sin red; campo vacío, medida sin unidad, lateralidad,
   sexo × órgano, BI-RADS del texto × formulario, conducta × categoría, impresión vacía), también **antes de

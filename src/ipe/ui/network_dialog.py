@@ -73,9 +73,22 @@ class NodeDialog(QDialog):
         self.tls.setChecked(not bool(n.get("verify_tls", True)))
         self.tls.setToolTip("Marque só em rede interna, e sabendo o que faz: com isto o programa "
                             "não confere a identidade do servidor.")
-        self.aviso_web = QLabel("<small>A senha fica <b>em texto claro</b> no banco deste "
-                                "computador, como o token da API. Use um usuário só de "
+        self.aviso_web = QLabel("<small>A senha, o token e o segredo do cliente ficam <b>cifrados</b> neste "
+                                "computador (no Windows, pela proteção do próprio sistema). Use um usuário só de "
                                 "leitura quando o PACS permitir.</small>")
+        # 0.99.55 (onda B3): OAuth2 / OIDC
+        from ipe.network import oauth
+        self.auth = QComboBox()
+        for k, v in oauth.TIPOS.items():
+            self.auth.addItem(v, k)
+        self.auth.setCurrentIndex(max(0, self.auth.findData(n.get("auth") or "basic")))
+        self.auth.currentIndexChanged.connect(self._trocar_tipo)
+        self.token_url = QLineEdit(n.get("token_url", ""),
+                                   placeholderText="https://login.exemplo/realms/pacs  (emissor OIDC ou …/token)")
+        self.client_id = QLineEdit(n.get("client_id", ""))
+        self.client_secret = QLineEdit(n.get("client_secret", ""))
+        self.client_secret.setEchoMode(QLineEdit.Password)
+        self.scope = QLineEdit(n.get("scope", ""), placeholderText="opcional, ex.: openid dicomweb")
         self.aviso_web.setWordWrap(True)
         self.search = QCheckBox("Busca (“Todos os nós de busca”, chamada externa e buscas agendadas)")
         self.search.setChecked(bool(n.get("use_in_search", True)))
@@ -112,8 +125,13 @@ class NodeDialog(QDialog):
                 ("host", "Endereço:", self.host),
                 ("porta", "Porta:", self.port),
                 ("url", "Endereço DICOMweb:", self.base_url),
+                ("auth", "Autenticação:", self.auth),
+                ("token_url", "Token / emissor:", self.token_url),
+                ("client_id", "ID do cliente:", self.client_id),
+                ("client_secret", "Segredo do cliente:", self.client_secret),
+                ("scope", "Escopo:", self.scope),
                 ("user", "Usuário:", self.user),
-                ("senha", "Senha:", linha_senha),
+                ("senha", "Senha / token:", linha_senha),
                 ("tls", "", self.tls),
                 ("aviso", "", self.aviso_web),
                 ("retrieve", "Download por:", self.retrieve),
@@ -139,6 +157,14 @@ class NodeDialog(QDialog):
         bb.rejected.connect(self.reject)
         f.addRow(bb)
 
+    def dados_da_auth(self) -> dict:
+        auth = self.auth.currentData() or "basic"
+        oa = auth.startswith("oauth2")
+        return {"auth": auth, "token_url": self.token_url.text().strip() if oa else "",
+                "client_id": self.client_id.text().strip() if oa else "",
+                "client_secret": self.client_secret.text() if oa else "",
+                "scope": self.scope.text().strip() if oa else ""}
+
     def eh_web(self) -> bool:
         return self.kind.currentData() == "dicomweb"
 
@@ -147,10 +173,16 @@ class NodeDialog(QDialog):
         endereço HTTP e senha não existem no DIMSE."""
         web = self.eh_web()
         so_dimse = ("ae", "host", "porta", "retrieve", "move")
-        so_web = ("url", "user", "senha", "tls", "aviso")
+        so_web = ("url", "auth", "token_url", "client_id", "client_secret", "scope", "user", "senha", "tls", "aviso")
+        auth = self.auth.currentData() if web else ""
+        campos_da_auth = {"basic": {"user", "senha"}, "token": {"senha"},
+                          "oauth2_cliente": {"token_url", "client_id", "client_secret", "scope"},
+                          "oauth2_senha": {"token_url", "client_id", "client_secret", "scope", "user", "senha"}}
+        fora = ({"token_url", "client_id", "client_secret", "scope", "user", "senha"}
+                - campos_da_auth.get(auth, set())) if web else set()
         for chave in so_dimse + so_web:
             rotulo, campo = self._linhas[chave]
-            visivel = (chave in so_web) if web else (chave in so_dimse)
+            visivel = ((chave in so_web) if web else (chave in so_dimse)) and chave not in fora
             if rotulo is not None:
                 rotulo.setVisible(visivel)
             if isinstance(campo, QHBoxLayout):
@@ -172,10 +204,16 @@ class NodeDialog(QDialog):
                 QMessageBox.warning(self, "Nó DICOMweb", "Preencha o endereço DICOMweb "
                                     "(a base, que costuma terminar em /dicom-web).")
                 return
+            da = self.dados_da_auth()
+            if da["auth"].startswith("oauth2") and not (da["token_url"] and da["client_id"]):
+                QMessageBox.warning(self, "Nó DICOMweb", "No OAuth2, preencha o endereço do token (ou do emissor "
+                                    "OIDC) e o ID do cliente.")
+                return
             self.data.update({
                 "name": self.name.text().strip(), "kind": "dicomweb",
                 "base_url": url.rstrip("/"), "username": self.user.text().strip(),
                 "password": self.senha.text(), "verify_tls": not self.tls.isChecked(),
+                **self.dados_da_auth(),
                 "ae_title": "", "host": "", "port": 0, "retrieve": "get", "move_destination": "",
                 "use_in_search": self.search.isChecked(), "use_in_priors": self.priors.isChecked(),
                 "use_in_send": self.send.isChecked(), "active": self.active.isChecked(),
@@ -193,7 +231,8 @@ class NodeDialog(QDialog):
         self.data.update({
             "name": self.name.text().strip(), "kind": "dimse", "ae_title": self.ae.text().strip(),
             "host": self.host.text().strip(), "port": self.port.value(), "base_url": "",
-            "username": "", "password": "",
+            "username": "", "password": "", "auth": "basic", "token_url": "", "client_id": "", "client_secret": "",
+            "scope": "",
             "retrieve": self.retrieve.currentData(), "move_destination": self.move_dest.text().strip(),
             "use_in_search": self.search.isChecked(), "use_in_priors": self.priors.isChecked(),
             "use_in_send": self.send.isChecked(), "active": self.active.isChecked(),
@@ -217,7 +256,11 @@ class NodeDialog(QDialog):
         if self.eh_web():                # testa o que está na tela, salvo ou não (0.99.6)
             node.update({"kind": "dicomweb", "base_url": self.base_url.text().strip().rstrip("/"),
                          "username": self.user.text().strip(), "password": self.senha.text(),
-                         "verify_tls": not self.tls.isChecked(), "name": self.name.text().strip() or "nó"})
+                         "verify_tls": not self.tls.isChecked(), "name": self.name.text().strip() or "nó",
+                         **self.dados_da_auth()})
+            from ipe.network import oauth
+            oauth.TOKENS.esquecer({"auth": node["auth"], "token_url": node["token_url"],
+                                   "client_id": node["client_id"], "user": node["username"]})
         else:
             node.update({"kind": "dimse", "ae_title": self.ae.text().strip(), "host": self.host.text().strip(),
                          "port": self.port.value(), "retrieve": self.retrieve.currentData(),

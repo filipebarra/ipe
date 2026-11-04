@@ -37,6 +37,13 @@ def _system_user():
 
 
 @pytest.fixture(autouse=True)
+def _chave_dos_segredos(tmp_path_factory, monkeypatch):
+    """0.99.55: a chave local dos segredos cifrados fica numa pasta do teste, não na do usuário."""
+    from ipe.core import segredos as SG
+    monkeypatch.setattr(SG, "PASTA", tmp_path_factory.getbasetemp() / "chave_dos_segredos")
+
+
+@pytest.fixture(autouse=True)
 def _sem_ocr_na_chegada(monkeypatch):
     """O OCR na chegada da impressão (0.81) vem desligado nos testes: rodar o leitor de verdade em
     cada impressão de teste pesa (onnxruntime) e não é o que esses testes conferem. Quem testa o

@@ -5431,7 +5431,26 @@
   "\n\nAssinar mesmo assim?",
   "Refinar o texto (IA)…",
   "Gerar a impressão (IA)…",
-  "Apontar erros (IA)…"
+  "Apontar erros (IA)…",
+  "<small>A senha, o token e o segredo do cliente ficam <b>cifrados</b> neste computador (no Windows, pela proteção do próprio sistema). Use um usuário só de leitura quando o PACS permitir.</small>",
+  "Autenticação:",
+  "Escopo:",
+  "ID do cliente:",
+  "No OAuth2, preencha o endereço do token (ou do emissor OIDC) e o ID do cliente.",
+  "OAuth2 — credenciais do cliente",
+  "OAuth2 — usuário e senha (Keycloak)",
+  "Segredo do cliente:",
+  "Senha / token:",
+  "Token / emissor:",
+  "Token fixo (Bearer)",
+  "Usuário e senha (Basic)",
+  "falta o ID do cliente",
+  "falta o endereço do token (ou do emissor OIDC)",
+  "falta o token (campo Senha / token)",
+  "falta o usuário",
+  "o servidor de login não devolveu access_token",
+  "opcional, ex.: openid dicomweb",
+  "token recusado"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -6816,6 +6835,11 @@
   "o servidor respondeu {}: {}",
   "o texto cita BI-RADS {}, mas o formulário dá {}",
   "sem conexão com {}: {}",
-  "A conferência do laudo achou:\n\n{}\n\nAssinar mesmo assim?"
+  "A conferência do laudo achou:\n\n{}\n\nAssinar mesmo assim?",
+  "Nó {}: login OAuth2 — {}",
+  "autenticação sem token: {}",
+  "o emissor {} não anuncia o token_endpoint",
+  "o servidor de login respondeu {}: {}",
+  "sem conexão com o servidor de login ({})"
  ]
 }

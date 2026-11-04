@@ -492,11 +492,17 @@ class DicomNode(Base):
     host: Mapped[str] = mapped_column(String(256), default="")
     port: Mapped[int] = mapped_column(Integer, default=104)
     base_url: Mapped[str] = mapped_column(String(512), default="")          # DICOMweb: .../dicom-web
-    # DICOMweb usa usuário e senha em vez de AE title. A senha fica **em texto claro** neste
-    # banco, como o token da API: é o mesmo nível de proteção do arquivo de configuração, e o
-    # usuário é avisado disso na tela do nó.
+    # DICOMweb usa usuário e senha em vez de AE title. 0.99.55 (onda B3): a senha e o segredo do cliente
+    # ficam **cifrados** (core/segredos.py: DPAPI no Windows, chave local nos outros); o repositório
+    # cifra ao gravar e abre ao ler, e as senhas antigas em texto claro são cifradas na primeira leitura.
     username: Mapped[str] = mapped_column(String(128), default="")
-    password: Mapped[str] = mapped_column(String(256), default="")
+    password: Mapped[str] = mapped_column(Text, default="")
+    # 0.99.55: como o nó DICOMweb se apresenta — basic | oauth2_cliente | oauth2_senha | token
+    auth: Mapped[str] = mapped_column(String(16), default="basic")
+    token_url: Mapped[str] = mapped_column(String(512), default="")       # token endpoint ou emissor OIDC
+    client_id: Mapped[str] = mapped_column(String(256), default="")
+    client_secret: Mapped[str] = mapped_column(Text, default="")
+    scope: Mapped[str] = mapped_column(String(256), default="")
     verify_tls: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=True)
     retrieve: Mapped[str] = mapped_column(String(8), default="get")         # get | move
     move_destination: Mapped[str] = mapped_column(String(16), default="")  # vazio = este programa

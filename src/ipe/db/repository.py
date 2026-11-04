@@ -1796,9 +1796,10 @@ class Repository:
 
     # ------------------------------------------------------- rede DICOM
     NODE_FIELDS = ("name", "kind", "ae_title", "host", "port", "base_url", "username", "password",
-                   "verify_tls", "retrieve",
+                   "verify_tls", "auth", "token_url", "client_id", "client_secret", "scope", "retrieve",
                    "move_destination", "use_in_search", "use_in_priors", "use_in_send", "stream_open",
                    "priority", "active", "note", "dono", "visivel_para")
+    NODE_SECRETS = ("password", "client_secret")
     IDENTITY_FIELDS = ("name", "ae_title", "move_destination", "allowed_nodes", "note", "dono", "visivel_para")
 
     def nodes(self, only_active: bool = False, todos: bool = False, gerenciar: bool = False) -> list[dict]:
@@ -1817,8 +1818,15 @@ class Repository:
             if only_active:
                 q = q.where(DicomNode.active.is_(True))
             out = []
+            from ipe.core import segredos as SG
             for n in s.scalars(q):
                 d = {"id": n.id, **{f: getattr(n, f) for f in self.NODE_FIELDS}}
+                for f in self.NODE_SECRETS:                    # 0.99.55: cifrados no banco, abertos aqui
+                    bruto = d.get(f) or ""
+                    if bruto and not SG.cifrado(bruto):
+                        setattr(n, f, SG.guardar(bruto))       # senha antiga em texto claro: cifra agora
+                    d[f] = SG.abrir_ou_vazio(bruto)
+                d["auth"] = d.get("auth") or "basic"
                 if d["use_in_priors"] is None:
                     d["use_in_priors"] = bool(d["use_in_search"])
                 if d["use_in_send"] is None:
@@ -1839,9 +1847,10 @@ class Repository:
             if n is None:
                 n = DicomNode()
                 s.add(n)
+            from ipe.core import segredos as SG
             for f in self.NODE_FIELDS:
                 if f in data:
-                    setattr(n, f, data[f])
+                    setattr(n, f, SG.guardar(str(data[f] or "")) if f in self.NODE_SECRETS else data[f])
             s.flush()
             return n.id
 
