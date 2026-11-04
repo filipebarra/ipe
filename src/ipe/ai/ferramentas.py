@@ -19,6 +19,7 @@ import importlib
 GENERICAS = {
     "nodulos": "ipe.ai.nodulos",
     "composicao": "ipe.ai.composicao",          # 0.99.47
+    "figado_rm": "ipe.ai.figado_rm",            # 0.99.49
 }
 
 

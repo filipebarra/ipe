@@ -81,7 +81,8 @@ CREDITOS: tuple[Credito, ...] = (
             "head_glands_cavities, headneck_bones_vessels, craniofacial_structures, head_muscles e "
             "headneck_muscles), dos marcos dos níveis linfonodais cervicais e dos nódulos pulmonares (tarefa "
             "aberta lung_nodules, modelo da BLUEMIND AI treinado em parte com o LIDC-IDRI) e da composição corporal "
-            "(vértebras, órgãos e a cavidade abdominal da tarefa aberta trunk_cavities)",
+            "(vértebras, órgãos e a cavidade abdominal da tarefa aberta trunk_cavities) e do fígado, do "
+            "baço e dos segmentos de Couinaud na RM (total_mr e liver_segments_mr)",
             "Apache-2.0 (algumas tarefas pedem licença, gratuita para uso não comercial)",
             "https://github.com/wasserth/TotalSegmentator", onde="segmentação",
             citacao="Wasserthal J, et al. TotalSegmentator: robust segmentation of 104 anatomic "

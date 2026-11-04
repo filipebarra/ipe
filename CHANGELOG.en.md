@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.49 — liver fat and iron on MRI
+- **Liver** (abdominal MRI): the liver, spleen and segments come from TotalSegmentator and the measurements
+  from the scanner maps — **PDFF** (median, p25–p75 and by segment) and **R2\*** (with T2\*, the spleen and,
+  at 1.5 T, the iron estimated by the Wood 2005 calibration); with the in/opposed-phase dual echo, the fat
+  signal fraction. Tang 2015 PDFF reference as text.
+- The numbers are reviewable findings (Applications ▸ AI findings); automatic in Settings ▸ CAD/AI.
+
 ## 0.99.48 — phases left out, curve descriptors, mirrored ROI
 - **Dynamic ▸ Parameters**: **phases left out** (the one that moved leaves the maps and curves; not the
   initial, the late, nor two in a row) and **baseline from the mean of the pre phases**; a warning with a

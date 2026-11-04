@@ -1256,6 +1256,18 @@ class ViewerTab(OncoMixin, QWidget):
         comp.setIcon(icon("measure"))
         comp.setIconText("Composição")
         self._button(tb, comp, menu_comp, app="composicao")
+        # gordura e ferro hepáticos na RM (0.99.49)
+        menu_fig = self._menu()
+        a_fig = QAction("Medir a gordura (PDFF) e o ferro (R2*) do fígado nesta RM (IA)…", self)
+        a_fig.triggered.connect(self._figado_rm_do_ativo)
+        menu_fig.addAction(a_fig)
+        a_ach3 = QAction("Achados de IA (revisar, confirmar, descartar)…", self)
+        a_ach3.triggered.connect(self.abrir_achados)
+        menu_fig.addAction(a_ach3)
+        fig = self._act("figado_rm.auto", "Gordura e ferro hepáticos na RM (IA)", self.figado_rm_botao)
+        fig.setIcon(icon("measure"))
+        fig.setIconText("Fígado")
+        self._button(tb, fig, menu_fig, app="figado_rm")
         # órgãos abdominais (0.99.32, pedido dele: também no botão Aplicações)
         menu_abd = self._menu()
         a_abd = QAction("Segmentar órgãos abdominais desta série (IA)…", self)
@@ -5483,6 +5495,38 @@ class ViewerTab(OncoMixin, QWidget):
         if tem:
             return self.abrir_achados()
         return self.composicao_automatica(self.active)
+
+    def _figado_rm_do_ativo(self):
+        return self.figado_rm_automatico(self.active)
+
+    def figado_rm_automatico(self, vp=None, simular: bool = False):
+        """Fígado na RM (0.99.49): a IA roda na série anatômica escolhida pela regra (o fígado vem dela) e
+        mede nos mapas do aparelho. O quadro ativo só decide o exame."""
+        from ipe.ai import figado_rm as FR
+        from ipe.core.i18n import tr
+        vp = vp or self.active or next((v for v in self.viewports if v.frames), None)
+        if vp is None:
+            return None
+        uid = vp.study_uid or self.study_uid
+        serie, motivo = FR.escolher_serie(self.repo, uid, self.settings)
+        alvo = vp
+        if serie and serie != vp.series_uid:
+            alvo = next((v for v in self.viewports if v.series_uid == serie), None)
+            if alvo is None:
+                alvo = vp
+                self.load_series_into(vp, serie)
+        elif not serie:
+            self.status_message.emit(tr(f"Fígado na RM: {motivo} — uso a série do quadro ativo."))
+        return self.segmentar_orgaos(alvo, simular=simular, tipo="figado_rm")
+
+    def figado_rm_botao(self):
+        try:
+            tem = any(self.repo.achados(u, "figado_rm") for u in (getattr(self, "study_order", None) or [self.study_uid]))
+        except Exception:  # noqa: BLE001
+            tem = False
+        if tem:
+            return self.abrir_achados()
+        return self.figado_rm_automatico(self.active)
 
     def nodulos_botao(self):
         """O botão: com achados no exame, abre a lista; sem, procura na série do quadro ativo."""

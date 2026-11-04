@@ -1180,6 +1180,19 @@ Para quem já tinha instalado a segmentação: rode de novo o *instalar_segmenta
 - **Fígado e baço**: média e mediana do HU (a borda, 2 voxels, fica de fora), fígado − baço e fígado / baço. Na TC sem contraste vêm as referências como texto, as duas 100% específicas para esteatose de 30% ou mais na biópsia — fígado − baço < −9 HU ou fígado / baço < 0,8 (Park et al., Radiology 2006) e fígado < 48 HU (Pickhardt et al., Eur Radiol 2012). Com contraste (pela tag ContrastBolusAgent ou pela descrição da série) a tela avisa que esses limiares não valem.
 - Rode de novo o *instalar_segmentacao* para baixar o modelo *trunk_cavities*.
 
+**Gordura e ferro hepáticos na RM** (botão **Fígado**, na RM de abdome; ou automático em Configurações ▸ CAD/IA ▸ Gordura e ferro hepáticos). O fígado, o baço e os segmentos de Couinaud vêm do TotalSegmentator (*total_mr* e *liver_segments_mr*), rodado numa série anatômica axial do abdome (de fábrica, o "WATER" do LAVA/Dixon; a da pelve fica de fora); a máscara é levada ponto a ponto, pela posição no paciente, para a grade de cada mapa — que costuma ser mais grossa (no IDEAL IQ do acervo, cortes de 16 mm a cada 8 mm). A borda do fígado (1 voxel no plano) fica de fora. Saem até três achados, na janela Achados de IA:
+
+| Achado | De onde | Números |
+|---|---|---|
+| Gordura hepática (PDFF) | o mapa de fração de gordura do aparelho (IDEAL IQ, mDIXON Quant, LiverLab), reconhecido pela ImageType FAT_FRACTION ou pela descrição | mediana, média, p25 e p75 (%), e a mediana de cada segmento |
+| Ferro hepático (R2*) | o mapa de R2* (ou de T2*, convertido: R2* = 1000 / T2*) | R2* mediano (s⁻¹), T2* (ms), R2* do baço; a 1,5 T, o ferro estimado |
+| Gordura hepática (dupla eco) | a dupla eco em fase / fora de fase (as duas ecos na mesma série, ou o par InPhase/OutPhase) | fração de **sinal** de gordura = (EF − FF) / (2 · EF), e a razão EF/FF |
+
+- **Ferro estimado**: só a 1,5 T, LIC = 0,0254 · R2* + 0,202 mg Fe/g de peso seco (Wood et al., Blood 2005). A 3 T o R2* é perto do dobro e essa calibração não vale: a tela diz e não estima.
+- **Referência da gordura**, como texto: PDFF ≥ 6,4% grau ≥ 1, ≥ 17,4% grau ≥ 2, ≥ 22,1% grau 3 — limiares de alta especificidade em doença hepática gordurosa (Tang et al., Radiology 2015).
+- A fração de sinal da dupla eco **não é PDFF**: não corrige T1 nem T2*. Em fase com sinal menor que fora de fase sugere ferro — e aí a gordura sai subestimada.
+- Mapa de gordura em 0–1000 (alguns fabricantes) é lido como décimos de porcento, com aviso. À mão continua valendo: uma ROI no próprio mapa mostra a média em % (ou em s⁻¹ no de R2*).
+
 ## CAD, IA e anotações de outros sistemas
 
 O botão **CAD/IA** reúne o que outro programa escreveu sobre o exame: SEG (segmentações), GSPS (anotações gráficas do aparelho ou da estação), SR (achados de CAD/IA) e RTSTRUCT (contornos de radioterapia). O número no botão diz quantos objetos o exame tem; o menu lista um por um, com *Ir para a imagem* de cada achado.

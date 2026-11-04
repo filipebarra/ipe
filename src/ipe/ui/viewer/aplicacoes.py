@@ -184,6 +184,8 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
               descricao="Nódulos pulmonares (IA): candidatos com volume, eixos e densidade, revisados um a um"),
     Aplicacao("composicao", "Composição", frozenset({"CT"}), ((frozenset({"abdome"}), frozenset()),),
               descricao="Composição corporal em L3 (músculo, gordura visceral e subcutânea) e atenuação hepática"),
+    Aplicacao("figado_rm", "Fígado (RM)", frozenset({"MR"}), ((frozenset({"abdome"}), frozenset()),),
+              descricao="Gordura (PDFF) e ferro (R2*) do fígado nos mapas do aparelho; dupla eco em fase / fora de fase"),
     Aplicacao("difusao", "Difusão", frozenset({"MR"}), ((frozenset(), frozenset({"difusao"})),),
               descricao="Mapa ADC dos valores de b, DWI sintética e ADC numa ROI (qualquer RM)"),
     Aplicacao("abdome", "Órgãos abdominais", frozenset({"CT", "MR"}),

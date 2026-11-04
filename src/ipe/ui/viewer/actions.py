@@ -121,6 +121,7 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("difusao.abrir", "Difusão: ADC, DWI sintética e ADC na ROI", "Medidas"),
     ("nodulos.auto", "Nódulos pulmonares (IA)", "Medidas"),
     ("composicao.auto", "Composição corporal em L3 e esteatose (IA)", "Medidas"),
+    ("figado_rm.auto", "Gordura e ferro hepáticos na RM (IA)", "Medidas"),
     ("achados.abrir", "Achados de IA: revisar, confirmar, descartar", "Medidas"),
     ("estruturas.abrir", "Estruturas: editar máscaras (SEG / RTSTRUCT)", "Medidas"),
 ]

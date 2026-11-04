@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.49 — gordura e ferro hepáticos na RM
+- **Fígado** (RM de abdome): o fígado, o baço e os segmentos vêm do TotalSegmentator e as medidas saem dos
+  mapas do aparelho — **PDFF** (mediana, p25–p75 e por segmento) e **R2\*** (com T2\*, o baço e, a 1,5 T, o
+  ferro estimado pela calibração de Wood 2005); com a dupla eco em fase / fora de fase, a fração de sinal de
+  gordura. Referência de PDFF de Tang 2015 como texto.
+- Os números são achados revisáveis (Aplicações ▸ Achados de IA); automático em Configurações ▸ CAD/IA.
+
 ## 0.99.48 — fases fora da conta, descritores da curva, ROI espelhada
 - **Dinâmica ▸ Parâmetros**: **fases fora da conta** (a que mexeu sai dos mapas e das curvas; não a inicial,
   a tardia nem duas seguidas) e **linha de base pela média das fases pré**; aviso com uma fase pré só.
