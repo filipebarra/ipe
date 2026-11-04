@@ -3,6 +3,25 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.60 — PET en el seguimiento (ítem 7, parte 2)
+- **SUL** (masa magra de Janmahasatian) guardado en cada medida de PET; el PERCIST usa el SULpeak.
+- Botón **PET…** en el panel de lesiones: referencia del **hígado** (esfera de 3 cm, por clic o automática
+  por la segmentación del hígado) y del **mediastino**, **umbral del PERCIST** (1,5 × hígado + 2 DE), aviso
+  de hígado no comparable entre exámenes.
+- Criterio **Deauville / Lugano**: puntuación propuesta por lesión y por examen (se cambia con clic derecho)
+  y la respuesta metabólica.
+- **Q.Check** del encabezado del PET, en el examen y contra el de base (captación, peso, dosis, unidad,
+  correcciones, reconstrucción, equipo).
+
+## 0.99.59 — seguimiento entre fechas (ítem 7, parte 1)
+- **Vínculo por posición**: la medida hecha en el examen de seguimiento en el lugar de una lesión (hasta
+  10 mm, llevada al anterior por el registro) se vincula sola a ella. Sin registro, o con dos lesiones cerca,
+  no se vincula.
+- **Seguimiento…** en el panel de lesiones: las lesiones aún sin medida en este examen, una a una —
+  **repetir** la medida en el lugar estimado (contorno anterior en sombra), **demasiado pequeña** (5 mm),
+  **ausente**, estable o progresión.
+- **Nadir** en el panel (fila y marca ▼) y las cuatro fechas (base, nadir, anterior, actual) en el resumen.
+
 ## 0.99.58 — estado guardado del análisis
 - El examen **se reabre como lo dejó**: diseño, series, corte, ventana, zoom, desplazamiento, giro, colores,
   cuadro activo, anteriores (vinculados de nuevo), paneles y los parámetros de la dinámica (se vuelve a encender

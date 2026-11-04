@@ -3,6 +3,25 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.60 — PET in follow-up (item 7, part 2)
+- **SUL** (Janmahasatian lean body mass) stored with every PET measurement; PERCIST uses SULpeak.
+- **PET…** button in the lesion panel: **liver** reference (3 cm sphere, by click or automatic from the liver
+  segmentation) and **mediastinum**, **PERCIST threshold** (1.5 × liver + 2 SD), warning when the liver is
+  not comparable between studies.
+- **Deauville / Lugano** criterion: proposed score per lesion and per study (change it with a right-click)
+  and the metabolic response.
+- **Q.Check** of the PET header, for the study and against the baseline (uptake, weight, dose, unit,
+  corrections, reconstruction, scanner).
+
+## 0.99.59 — follow-up across dates (item 7, part 1)
+- **Linking by position**: a measurement made in the follow-up study at a lesion's location (within 10 mm,
+  carried to the prior by the registration) links to it automatically. Without a registration, or with two
+  lesions nearby, it does not link.
+- **Follow-up…** in the lesion panel: lesions not yet measured in this study, one by one — **repeat** the
+  measurement at the estimated location (prior outline as a shadow), **too small** (5 mm), **absent**, stable
+  or progression.
+- **Nadir** in the panel (row and ▼ mark) and the four dates (baseline, nadir, prior, current) in the summary.
+
 ## 0.99.58 — saved analysis state
 - The study **reopens as you left it**: layout, series, slice, window, zoom, pan, rotation, colors, active
   viewport, priors (linked again), panels and the dynamic parameters (back on with one click). Per user, only in

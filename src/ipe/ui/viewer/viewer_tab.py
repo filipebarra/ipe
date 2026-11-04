@@ -3265,6 +3265,7 @@ class ViewerTab(OncoMixin, QWidget):
         vp.sig.renumerar_requested.connect(self.renumerar_coluna)
         vp.sig.numeracao_requested.connect(self.abrir_numeracao_coluna)
         vp.sig.lesion_requested.connect(self.choose_lesion_for)
+        vp.sig.medida_criada.connect(self.ligar_pela_posicao)            # 0.99.59
         vp.sig.clone_roi_requested.connect(self.clonar_roi)
         vp.referencial_da_sincronia = self.outros_referenciais_ligados
         vp.sig.segment_requested.connect(self.segment_at)

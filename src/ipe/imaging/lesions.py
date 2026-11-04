@@ -26,10 +26,14 @@ CRITERIA = {
     "recist": "RECIST 1.1",
     "mrecist": "mRECIST (fígado)",
     "percist": "PERCIST 1.0 (PET)",
+    "deauville": "Deauville / Lugano (PET)",
 }
+PET_CRITERIA = ("percist", "deauville")
 KINDS = {"target": "Alvo", "nontarget": "Não alvo", "new": "Nova"}
 STATUS = {"": "—", "present": "Presente", "absent": "Desapareceu", "progression": "Progressão inequívoca",
-          "nm": "Não mensurável"}
+          "nm": "Não mensurável", "pequena": "Pequena demais (5 mm)"}
+#: RECIST 1.1: lesão-alvo pequena demais para medir com confiança entra na soma com 5 mm
+PEQUENA_MM = 5.0
 RESPONSES = {
     "RC": "Resposta completa", "RP": "Resposta parcial", "DE": "Doença estável", "DP": "Doença progressiva",
     "NRC": "Não RC / não DP",
@@ -72,7 +76,7 @@ def peak_mean(pixels: np.ndarray, center: tuple[int, int], radius_px: tuple[floa
 
 
 def measure_values(kind: str, points: list, pixels: np.ndarray | None, spacing,
-                   suv: float | None = None) -> dict:
+                   suv: float | None = None, sul_razao: float | None = None) -> dict:
     """Valores guardados na medida ligada à lesão: mm (diâmetro), SUV (máx/pico/médio), média, área."""
     from ipe.imaging import measure as M
     out: dict = {}
@@ -104,6 +108,10 @@ def measure_values(kind: str, points: list, pixels: np.ndarray | None, spacing,
                     pk = box_mean_max(pixels, full, (max(1, round(10 / rs)), max(1, round(10 / cs))))
                     if pk is not None:           # quadrado de 1 cm (aprox. 2D do SUVpeak)
                         out["suvpeak"] = round(pk * suv, 3)
+                if sul_razao:                    # 0.99.60: SUL = SUV × massa magra / peso
+                    for k in ("suvmax", "suvmean", "suvpeak"):
+                        if k in out:
+                            out["sul" + k[3:]] = round(out[k] * sul_razao, 3)
     return out
 
 
@@ -115,11 +123,17 @@ class Cell:
     short_mm: float | None = None
     suvmax: float | None = None
     suvpeak: float | None = None
+    sulmax: float | None = None          # 0.99.60: SUV pela massa magra (o PERCIST mede em SUL)
+    sulpeak: float | None = None
     ml: float | None = None
+    deauville: str = ""                  # 0.99.60: escore proposto (ou o escolhido à mão)
+    deauville_manual: bool = False
     status: str = ""                 # present, absent, progression, nm
     refs: list = field(default_factory=list)   # (series_uid, sop_uid, frame_index, annotation_id)
 
     def text(self, criterion: str) -> str:
+        if self.status == "pequena" and self.long_mm is None:
+            return f"{PEQUENA_MM:.0f} mm (pequena demais)"
         if self.status == "absent":
             return "0 (desapareceu)"
         if self.status == "progression":
@@ -129,7 +143,9 @@ class Cell:
         if self.value is None:
             return "presente" if self.status == "present" else ""
         if criterion == "percist":
-            return f"SUVpk {self.value:.2f}"
+            return f"{'SULpk' if self.sulpeak is not None or self.sulmax is not None else 'SUVpk'} {self.value:.2f}"
+        if criterion == "deauville":
+            return f"SUVmáx {self.value:.2f}" + (f" · D{self.deauville}" if self.deauville else "")
         if criterion == "free" and self.long_mm is None and self.suvmax is not None:
             return f"SUVmáx {self.suvmax:.2f}"
         if criterion == "free" and self.long_mm is None and self.ml is not None:
@@ -159,7 +175,7 @@ def collect_cells(lesions: list[dict], annotations: list[dict], criterion: str) 
         if mm is not None:
             c.long_mm = mm if c.long_mm is None else max(c.long_mm, mm)
             c.short_mm = mm if c.short_mm is None else min(c.short_mm, mm)
-        for k in ("suvmax", "suvpeak", "ml"):
+        for k in ("suvmax", "suvpeak", "sulmax", "sulpeak", "ml"):
             v = meta.get(k)
             if v is not None:
                 cur = getattr(c, k)
@@ -173,8 +189,13 @@ def collect_cells(lesions: list[dict], annotations: list[dict], criterion: str) 
         if c.status == "absent":
             c.value = 0.0
             continue
+        if c.status == "pequena" and c.long_mm is None and criterion not in PET_CRITERIA:
+            c.value = PEQUENA_MM
+            continue
         if criterion == "percist":
-            c.value = c.suvpeak if c.suvpeak is not None else c.suvmax
+            c.value = next((v for v in (c.sulpeak, c.sulmax, c.suvpeak, c.suvmax) if v is not None), None)
+        elif criterion == "deauville":
+            c.value = c.suvmax if c.suvmax is not None else c.suvpeak
         elif c.long_mm is not None:
             nlines = len(c.refs)
             if le.get("nodal"):
@@ -186,6 +207,25 @@ def collect_cells(lesions: list[dict], annotations: list[dict], criterion: str) 
         if c.status == "" and (c.value is not None or c.refs):
             c.status = "present"
     return cells
+
+
+def aplicar_deauville(lesions: list[dict], cells: dict, refs: dict, fator5: float | None = None) -> None:
+    """0.99.60: o escore de Deauville de cada lesão em cada exame — o escolhido à mão (lesão data["deauville"]) ou
+    o proposto pelos números (SUVmáx contra o mediastino e o fígado do mesmo exame)."""
+    from ipe.imaging import pet_onco as PO
+    f5 = PO.FATOR_DEAUVILLE_5 if not fator5 else float(fator5)
+    by_id = {le["id"]: le for le in lesions}
+    for (lid, uid), c in cells.items():
+        le = by_id.get(lid) or {}
+        manual = ((le.get("data") or {}).get("deauville") or {}).get(uid)
+        if manual:
+            c.deauville, c.deauville_manual = str(manual), True
+            continue
+        r = refs.get(uid) or {}
+        c.deauville = PO.deauville(c.suvmax if c.suvmax is not None else c.value, r.get("figado"), r.get("mediastino"),
+                                   nova=le.get("kind") == "new" and c.status in ("present", "nm", "progression"),
+                                   ausente=c.status == "absent", fator5=f5)
+        c.deauville_manual = False
 
 
 # ------------------------------------------------------------------ tempo de duplicação (0.99.45)
@@ -269,6 +309,8 @@ class StudyEval:
     pct_prev: float | None = None
     response: str = ""                   # código (RC, RP…); vazio antes da base
     notes: list[str] = field(default_factory=list)
+    nadir_uid: str = ""                  # 0.99.59: o exame do menor valor até aqui (para "% do nadir")
+    nadir_total: float | None = None
 
     @property
     def response_text(self) -> str:
@@ -282,8 +324,11 @@ def _pct(cur: float | None, ref: float | None) -> float | None:
 
 
 def evaluate(criterion: str, lesions: list[dict], studies: list[tuple[str, str]], cells: dict,
-             baseline: str = "") -> list[StudyEval]:
-    """Resposta por exame. `studies`: (study_uid, data AAAAMMDD), em qualquer ordem."""
+             baseline: str = "", refs: dict | None = None) -> list[StudyEval]:
+    """Resposta por exame. `studies`: (study_uid, data AAAAMMDD), em qualquer ordem. `refs` (PET, 0.99.60):
+    {study_uid: {"figado": {...}, "mediastino": {...}}} — limiar do PERCIST e escore de Deauville."""
+    from ipe.imaging import pet_onco as PO
+    refs = refs or {}
     studies = sorted(studies, key=lambda s: (s[1] or "", s[0]))
     targets = [le for le in lesions if le.get("kind", "target") == "target"]
     nontargets = [le for le in lesions if le.get("kind") == "nontarget"]
@@ -294,6 +339,7 @@ def evaluate(criterion: str, lesions: list[dict], studies: list[tuple[str, str]]
     out: list[StudyEval] = []
     started = False
     history: list[float] = []
+    hist_uids: list[str] = []
     prev_total: float | None = None
     base_total: float | None = None
     for uid, date in studies:
@@ -312,6 +358,9 @@ def evaluate(criterion: str, lesions: list[dict], studies: list[tuple[str, str]]
                 vals.append((le, c.value))
         if criterion == "percist":
             ev.total = max((v for _le, v in vals), default=None)
+        elif criterion == "deauville":           # Lugano: a lesão mais ávida, alvo ou não
+            todos = [c.value for le in lesions if (c := cells.get((le["id"], uid))) is not None and c.value is not None]
+            ev.total = max(todos, default=None)
         else:
             ev.total = sum(v for _le, v in vals) if vals else None
         if missing and uid != baseline:
@@ -322,11 +371,22 @@ def evaluate(criterion: str, lesions: list[dict], studies: list[tuple[str, str]]
                     if (c := cells.get((le["id"], uid))) is not None and c.status in ("present", "nm", "progression")]
         prog_nt = [le for le in nontargets
                    if (c := cells.get((le["id"], uid))) is not None and c.status == "progression"]
+        if criterion == "percist" and uid == baseline:
+            lim, _como = PO.limiar_percist(PO.em_sul((refs.get(uid) or {}).get("figado")),
+                                           PO.em_sul((refs.get(uid) or {}).get("mediastino")))
+            if lim is not None and ev.total is not None and ev.total < lim:
+                ev.notes.append(f"lesão mais ávida abaixo do limiar de mensurabilidade ({ev.total:.2f} < {lim:.2f})")
+        if criterion == "percist" and uid != baseline:
+            cmp_f = PO.comparar_figado(PO.em_sul((refs.get(baseline) or {}).get("figado")),
+                                       PO.em_sul((refs.get(uid) or {}).get("figado")))
+            if cmp_f is not None and cmp_f[0] == "aviso":
+                ev.notes.append(cmp_f[1])
         if uid == baseline:
             ev.response = "BASE"
             base_total = ev.total
             if ev.total is not None:
                 history.append(ev.total)
+                hist_uids.append(uid)
             prev_total = ev.total
             if criterion == "recist" or criterion == "mrecist":
                 n_by_org: dict[str, int] = {}
@@ -339,12 +399,18 @@ def evaluate(criterion: str, lesions: list[dict], studies: list[tuple[str, str]]
             continue
         ev.pct_base = _pct(ev.total, base_total)
         nadir = min(history) if history else None
+        if history:
+            ev.nadir_total = nadir
+            ev.nadir_uid = hist_uids[history.index(nadir)]
         ev.pct_nadir = _pct(ev.total, nadir)
         ev.pct_prev = _pct(ev.total, prev_total)
         if criterion == "free":
             ev.response = ""
         elif criterion == "percist":
             ev.response = _percist(ev, base_total, targets, cells, uid, bool(new_here))
+        elif criterion == "deauville":
+            escores = [c.deauville for le in lesions if (c := cells.get((le["id"], uid))) is not None]
+            ev.response = PO.resposta_lugano(escores, base_total, ev.total, bool(new_here))
         else:
             ev.response = _recist(ev, base_total, nadir, targets, nontargets, cells, uid,
                                   bool(new_here), bool(prog_nt), bool(missing))
@@ -354,7 +420,27 @@ def evaluate(criterion: str, lesions: list[dict], studies: list[tuple[str, str]]
             ev.notes.append("progressão de não alvo: " + ", ".join(le.get("name", "") for le in prog_nt))
         if ev.total is not None:
             history.append(ev.total)
+            hist_uids.append(uid)
             prev_total = ev.total
+    return out
+
+
+def quatro_datas(evals: list[StudyEval], study_uid: str) -> list[tuple[str, StudyEval]]:
+    """(rótulo, avaliação) de base, nadir, anterior e atual — sem repetir o mesmo exame (0.99.59, AW O3)."""
+    by = {e.study_uid: e for e in evals}
+    atual = by.get(study_uid)
+    if atual is None:
+        return []
+    base = next((e for e in evals if e.response == "BASE"), None)
+    ordem = [e for e in evals if e.total is not None or e.response]
+    i = next((k for k, e in enumerate(ordem) if e.study_uid == study_uid), None)
+    anterior = next((e for e in reversed(ordem[:i]) if e.total is not None), None) if i else None
+    nadir = by.get(atual.nadir_uid) if atual.nadir_uid else None
+    out, vistos = [], set()
+    for rot, e in (("base", base), ("nadir", nadir), ("anterior", anterior), ("atual", atual)):
+        if e is not None and e.study_uid not in vistos:
+            vistos.add(e.study_uid)
+            out.append((rot, e))
     return out
 
 
@@ -421,10 +507,22 @@ def summary_text(criterion: str, lesions: list[dict], studies: list[tuple[str, s
             txt += f" (base: {cb.text(criterion) or '—'})"
         lines.append(txt)
     if ev is not None and ev.total is not None and criterion != "free":
-        lab = "SUVpeak máximo" if criterion == "percist" else "Soma dos diâmetros"
-        unit = "" if criterion == "percist" else " mm"
+        lab = {"percist": "SUL/SUVpeak máximo", "deauville": "SUVmáx máximo"}.get(criterion, "Soma dos diâmetros")
+        unit = "" if criterion in PET_CRITERIA else " mm"
         lines.append(f"{lab}: {ev.total:.1f}{unit}" + (f" ({ev.pct_base:+.0f}% da base)" if ev.pct_base is not None else "")
-                     + (f", {ev.pct_nadir:+.0f}% do nadir" if ev.pct_nadir is not None and criterion != "percist" else ""))
+                     + (f", {ev.pct_nadir:+.0f}% do nadir" if ev.pct_nadir is not None and criterion not in PET_CRITERIA else ""))
+    if ev is not None and criterion == "deauville":
+        esc = [c.deauville for le in lesions if (c := cells.get((le["id"], target_uid))) is not None and c.deauville]
+        if esc:
+            maior = max(esc, key=lambda e: (e.isdigit(), e))
+            lines.append(f"Deauville (maior escore): {maior}")
+    if ev is not None and criterion != "free" and ev.response != "BASE":
+        datas = quatro_datas(evals, target_uid)
+        if len(datas) > 1:
+            unit = "" if criterion in PET_CRITERIA else " mm"
+            partes = [f"{rot} {_fmt_date(e.date)}" + (f" ({e.total:.1f}{unit})" if e.total is not None else "")
+                      for rot, e in datas]
+            lines.append("Datas: " + "; ".join(partes) + ".")
     if ev is not None and ev.response and ev.response != "BASE":
         lines.append(f"Resposta ({CRITERIA.get(criterion, criterion)}): {ev.response_text}")
     if ev is not None and ev.notes:

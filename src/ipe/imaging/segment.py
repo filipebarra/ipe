@@ -49,6 +49,7 @@ class SegResult:
     eixos_mm: tuple[float, float, float] | None = None   # 3 eixos perpendiculares, do maior ao menor
     truncated: bool = False
     notes: list[str] = field(default_factory=list)
+    sul_razao: float | None = None   # 0.99.60: massa magra / peso (SUL = SUV × razão)
 
     def summary(self) -> str:
         s = f"{self.ml:.2f} mL"
@@ -72,6 +73,10 @@ class SegResult:
             v = getattr(self, k)
             if v is not None:
                 d[k] = round(float(v), 3)
+        if self.sul_razao:
+            for k in ("suvmax", "suvmean", "suvpeak"):
+                if k in d:
+                    d["sul" + k[3:]] = round(d[k] * self.sul_razao, 3)
         if self.max_diam_mm:
             d["mm"] = round(self.max_diam_mm, 2)
         if self.eixos_mm:

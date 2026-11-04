@@ -232,6 +232,8 @@ class LesionTrack(Base):
     patient_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     criterion: Mapped[str] = mapped_column(String(16), default="recist")
     baseline_study: Mapped[str] = mapped_column(String(64), default="")
+    # 0.99.60: PET — referências por exame (fígado, mediastino) e o fator do Deauville 5 (JSON)
+    data: Mapped[str] = mapped_column(Text, default="{}")
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 

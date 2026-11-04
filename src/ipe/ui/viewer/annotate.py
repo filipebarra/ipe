@@ -270,6 +270,8 @@ class AnnotationMixin:
                 a.cache.clear()
         if ann.meta.get("lesion") is not None:
             self.update_lesion_values(ann)
+        elif created and ann.kind in ("line", "ellipse", "rect", "polygon"):
+            self.sig.medida_criada.emit(self, ann)      # 0.99.59: o seguimento pode ligar sozinho
         if ann.kind == "ponto3d" and created:
             self._ponto_da_regua3d(ann)
         self._store("save", ann)
@@ -288,11 +290,27 @@ class AnnotationMixin:
             return
         keep = {k: v for k, v in ann.meta.items() if k in ("lesion", "lesion_name", "role") + REF_CHAVES}
         try:
-            vals = measure_values(ann.kind, ann.points, pix, self.measure_spacing(ann), getattr(self, "suv_factor", None))
+            vals = measure_values(ann.kind, ann.points, pix, self.measure_spacing(ann), getattr(self, "suv_factor", None),
+                                  getattr(self, "sul_razao", None))
         except Exception as e:  # noqa: BLE001
             log.warning("valores da lesão: %s", e)
             vals = {}
+        vals.update(self.posicao_mm(ann))            # 0.99.59: para ligar sozinho no seguimento
         ann.meta = {**keep, **vals}
+
+    def posicao_mm(self, ann: Annotation) -> dict:
+        """{"centro": [x, y, z], "pontos_mm": [...]} da medida, em mm do paciente ({} sem geometria)."""
+        from ipe.imaging import seguimento as SG
+        try:
+            pts = [self.pixel_to_patient(float(x), float(y)) for x, y in ann.points]
+        except Exception:  # noqa: BLE001
+            return {}
+        if not pts or any(p is None for p in pts):
+            return {}
+        mm = [[round(float(v), 2) for v in p] for p in pts]
+        if len(mm) > 64:
+            mm = mm[:: max(1, len(mm) // 64)]
+        return {"centro": [round(v, 2) for v in SG.centro(mm)], "pontos_mm": mm}
 
     def link_lesion(self, ann: Annotation, lesion_id: int | None, name: str = "") -> None:
         """Liga (ou desliga, com None) a medida a uma lesão do acompanhamento."""

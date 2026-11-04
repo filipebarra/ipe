@@ -2087,14 +2087,21 @@ class Repository:
                 s.delete(le)
 
     def lesion_track(self, patient_id: str) -> dict:
+        import json
         with self.db.session() as s:
             t = s.scalar(select(LesionTrack).where(LesionTrack.patient_id == patient_id))
             if t is None:
-                return {"patient_id": patient_id, "criterion": "recist", "baseline_study": ""}
-            return {"patient_id": patient_id, "criterion": t.criterion, "baseline_study": t.baseline_study}
+                return {"patient_id": patient_id, "criterion": "recist", "baseline_study": "", "data": {}}
+            try:
+                dados = json.loads(t.data or "{}")
+            except (TypeError, ValueError):
+                dados = {}
+            return {"patient_id": patient_id, "criterion": t.criterion, "baseline_study": t.baseline_study,
+                    "data": dados}
 
     def save_lesion_track(self, patient_id: str, criterion: str | None = None,
-                          baseline_study: str | None = None) -> None:
+                          baseline_study: str | None = None, data: dict | None = None) -> None:
+        import json
         with self.db.session() as s:
             t = s.scalar(select(LesionTrack).where(LesionTrack.patient_id == patient_id))
             if t is None:
@@ -2104,6 +2111,8 @@ class Repository:
                 t.criterion = criterion
             if baseline_study is not None:
                 t.baseline_study = baseline_study
+            if data is not None:
+                t.data = json.dumps(data, ensure_ascii=False)
 
     def annotations_for_studies(self, study_uids: list[str]) -> list[dict]:
         if not study_uids:

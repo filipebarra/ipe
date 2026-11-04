@@ -9,7 +9,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QBrush, QColor, QFont
 from PySide6.QtWidgets import (
-    QAbstractItemView, QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout,
+    QAbstractItemView, QApplication, QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QDialogButtonBox, QFormLayout,
     QHBoxLayout, QLabel, QLineEdit, QMenu, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem,
     QVBoxLayout, QWidget,
 )
@@ -108,12 +108,26 @@ class LesionPanel(QWidget):
         b_layout.clicked.connect(self._layout)
         b_copy = QPushButton("Copiar texto")
         b_copy.clicked.connect(self._copy)
+        # 0.99.59 (item 7): assistente do seguimento e ligação sozinha pela posição
+        b_seg = QPushButton("Seguimento…")
+        b_seg.setToolTip("As lesões medidas antes e ainda sem medida neste exame: repetir, pequena demais, ausente")
+        b_seg.clicked.connect(lambda: self.tab.assistente_de_seguimento())
+        from PySide6.QtWidgets import QCheckBox
+        self.c_sozinho = QCheckBox("Ligar sozinho a medida feita no lugar da lesão (pelo registro), até")
+        self.c_sozinho.setChecked(bool(tab.settings.get("lesoes.ligar_sozinho", True)))
+        self.c_sozinho.toggled.connect(self._sozinho)
         row1 = QHBoxLayout()
         row1.addWidget(b_new)
         row1.addWidget(b_link, 1)
         row2 = QHBoxLayout()
+        row2.addWidget(b_seg)
         row2.addWidget(b_layout, 1)
         row2.addWidget(b_copy)
+        # 0.99.60 (item 7): PET — referências, Q.Check, SUL, Deauville
+        b_pet = QPushButton("PET…")
+        b_pet.setToolTip("Referências do fígado e do mediastino, limiar do PERCIST, Deauville e Q.Check do cabeçalho")
+        b_pet.clicked.connect(self.abrir_pet)
+        row2.addWidget(b_pet)
         self.status = QLabel("")
         self.status.setWordWrap(True)
         lay = QVBoxLayout(self)
@@ -123,6 +137,17 @@ class LesionPanel(QWidget):
         lay.addWidget(self.table, 1)
         lay.addLayout(row1)
         lay.addLayout(row2)
+        from ipe.imaging import seguimento as SG
+        self.s_raio = QDoubleSpinBox()
+        self.s_raio.setRange(2.0, 50.0)
+        self.s_raio.setSuffix(" mm")
+        self.s_raio.setValue(float(tab.settings.get("lesoes.raio_mm", SG.RAIO_PADRAO_MM) or SG.RAIO_PADRAO_MM))
+        self.s_raio.valueChanged.connect(self._raio)
+        h_soz = QHBoxLayout()
+        h_soz.addWidget(self.c_sozinho)
+        h_soz.addWidget(self.s_raio)
+        h_soz.addStretch(1)
+        lay.addLayout(h_soz)
         lay.addWidget(self.status)
         lay.addWidget(self.hint)
         self.lesions: list[dict] = []
@@ -151,7 +176,10 @@ class LesionPanel(QWidget):
         self.studies = sorted(((u, d) for u, d in studies.items() if u in keep), key=lambda s: (s[1] or "", s[0]))
         self.all_studies = sorted(studies.items(), key=lambda s: (s[1] or "", s[0]))
         self.cells = L.collect_cells(self.lesions, anns, self.crit)
-        self.evals = L.evaluate(self.crit, self.lesions, self.studies, self.cells, self.base_uid)
+        dados = track.get("data") or {}
+        self.refs = dados.get("refs") or {}
+        L.aplicar_deauville(self.lesions, self.cells, self.refs, dados.get("fator5"))
+        self.evals = L.evaluate(self.crit, self.lesions, self.studies, self.cells, self.base_uid, self.refs)
         self.duplicacoes = L.duplicacoes(self.lesions, self.studies, self.cells)
 
     def refresh(self) -> None:
@@ -180,14 +208,22 @@ class LesionPanel(QWidget):
         t = self.table
         t.clear()
         n_les = len(self.lesions)
-        summary = ["Soma" if self.crit != "percist" else "SUVpeak máx.", "% da base", "% do nadir", "Resposta"]
+        summary = ["Soma", "% da base", "% do nadir", "Nadir", "Resposta"]
         if self.crit == "free":
             summary = ["% da base", "% do anterior"]
+        elif self.crit == "percist":
+            summary = ["SULpeak máx.", "% da base", "Fígado (ref.)", "Limiar", "Resposta"]
+        elif self.crit == "deauville":
+            summary = ["SUVmáx máx.", "Deauville", "Fígado (ref.)", "Mediastino (ref.)", "Resposta"]
         t.setRowCount(n_les + len(summary))
         t.setColumnCount(1 + len(self.studies))
         heads = ["Lesão"]
+        atual = next((e for e in self.evals if e.study_uid == self.tab.study_uid), None)
+        nadir_uid = atual.nadir_uid if atual is not None else ""
         for uid, d in self.studies:
             mark = " ●" if uid == self.tab.study_uid else ""
+            if uid == nadir_uid and self.crit not in ("free",) + L.PET_CRITERIA:
+                mark += " ▼"                        # o nadir do exame atual
             heads.append(fmt_date(d) + mark)
         t.setHorizontalHeaderLabels(heads)
         bold = QFont()
@@ -202,7 +238,8 @@ class LesionPanel(QWidget):
             for c, (uid, _d) in enumerate(self.studies, 1):
                 cell = self.cells.get((le["id"], uid))
                 texto = cell.text(self.crit) if cell else ""
-                dup = getattr(self, "duplicacoes", {}).get((le["id"], uid)) if self.crit != "percist" else None
+                dup = getattr(self, "duplicacoes", {}).get((le["id"], uid)) if self.crit not in L.PET_CRITERIA \
+                    else None
                 dicas = []
                 if dup is not None and dup[1]:
                     texto += f" · {dup[1]}"
@@ -210,6 +247,9 @@ class LesionPanel(QWidget):
                     dicas.append(dup[2])
                 ci = QTableWidgetItem(texto)
                 ci.setTextAlignment(Qt.AlignCenter)
+                if cell is not None and cell.deauville and self.crit == "deauville":
+                    dicas.append("Deauville " + ("escolhido à mão" if cell.deauville_manual else
+                                                 "proposto pelos números (botão direito para trocar)"))
                 if cell is not None and cell.refs:
                     dicas.append("Duplo clique: abrir a imagem desta medida")
                 if dicas:
@@ -241,14 +281,33 @@ class LesionPanel(QWidget):
     def _summary_cell(self, lab: str, ev) -> tuple[str, str]:
         if ev is None:
             return "", ""
-        if lab in ("Soma", "SUVpeak máx."):
+        if lab in ("Soma", "SULpeak máx.", "SUVmáx máx."):
             if ev.total is None:
                 return "", ""
-            return (f"{ev.total:.2f}" if self.crit == "percist" else f"{ev.total:.1f} mm"), ""
+            return (f"{ev.total:.2f}" if self.crit in L.PET_CRITERIA else f"{ev.total:.1f} mm"), ""
+        ref = (getattr(self, "refs", {}) or {}).get(ev.study_uid) or {}
+        if lab in ("Fígado (ref.)", "Mediastino (ref.)"):
+            from ipe.imaging import pet_onco as PO
+            r = ref.get("figado" if lab.startswith("Fígado") else "mediastino")
+            r = PO.em_sul(r) if self.crit == "percist" else r
+            return (f"{r['media']:.2f} ± {r['dp']:.2f}" if r else ""), ""
+        if lab == "Limiar":
+            from ipe.imaging import pet_onco as PO
+            lim, _c = PO.limiar_percist(PO.em_sul(ref.get("figado")), PO.em_sul(ref.get("mediastino")))
+            return ("" if lim is None else f"{lim:.2f}"), ""
+        if lab == "Deauville":
+            esc = [c.deauville for le in self.lesions
+                   if (c := self.cells.get((le["id"], ev.study_uid))) is not None and c.deauville]
+            return (max(esc, key=lambda e: (e.isdigit(), e)) if esc else ""), ""
         if lab == "% da base":
             return ("" if ev.pct_base is None else f"{ev.pct_base:+.0f}%"), ""
         if lab == "% do nadir":
             return ("" if ev.pct_nadir is None else f"{ev.pct_nadir:+.0f}%"), ""
+        if lab == "Nadir":
+            if not ev.nadir_uid or ev.response == "BASE":
+                return "", ""
+            d = next((dd for u, dd in self.studies if u == ev.nadir_uid), "")
+            return fmt_date(d), ""
         if lab == "% do anterior":
             return ("" if ev.pct_prev is None else f"{ev.pct_prev:+.0f}%"), ""
         if lab == "Resposta":
@@ -259,6 +318,14 @@ class LesionPanel(QWidget):
         return "", ""
 
     # ------------------------------------------------------------ ações
+    def _sozinho(self, on: bool) -> None:
+        self.tab.settings.set("lesoes.ligar_sozinho", bool(on))
+        self.tab.settings.save()
+
+    def _raio(self, v: float) -> None:
+        self.tab.settings.set("lesoes.raio_mm", float(v))
+        self.tab.settings.save()
+
     def _criterion_changed(self, _i: int) -> None:
         self.repo.save_lesion_track(self.pid, criterion=self.criterion.currentData())
         self.refresh()
@@ -303,6 +370,19 @@ class LesionPanel(QWidget):
                 act.triggered.connect(lambda _=False, kk=k: self.set_status(le, uid, kk))
                 sm.addAction(act)
             cell = self.cells.get((le["id"], uid))
+            if self.crit == "deauville":
+                from ipe.imaging import pet_onco as PO
+                dm = m.addMenu("Deauville neste exame")
+                atual_d = ((le.get("data") or {}).get("deauville") or {}).get(uid, "")
+                act = QAction("Proposto pelos números" + (f" ({cell.deauville})" if cell is not None and cell.deauville
+                                                          and not cell.deauville_manual else ""),
+                              dm, checkable=True, checked=not atual_d)
+                act.triggered.connect(lambda _=False: self.set_deauville(le, uid, ""))
+                dm.addAction(act)
+                for k, lab in PO.DEAUVILLE.items():
+                    act = QAction(lab, dm, checkable=True, checked=(k == atual_d))
+                    act.triggered.connect(lambda _=False, kk=k: self.set_deauville(le, uid, kk))
+                    dm.addAction(act)
             if cell is not None and cell.refs:
                 o = m.addAction("Abrir a imagem da medida")
                 o.triggered.connect(lambda: self._open_cell(row, col))
@@ -321,6 +401,23 @@ class LesionPanel(QWidget):
         data["status"] = st
         self.repo.save_lesion({"id": le["id"], "data": data})
         self.refresh()
+
+    def set_deauville(self, le: dict, study_uid: str, escore: str) -> None:
+        data = dict(le.get("data") or {})
+        d = dict(data.get("deauville") or {})
+        if escore:
+            d[study_uid] = escore
+        else:
+            d.pop(study_uid, None)
+        data["deauville"] = d
+        self.repo.save_lesion({"id": le["id"], "data": data})
+        self.refresh()
+
+    def abrir_pet(self) -> None:
+        from ipe.ui.viewer.pet_dialog import PetDialog
+        d = PetDialog(self.tab, self)
+        self._pet_dlg = d
+        d.show()
 
     def _edit(self, le: dict) -> None:
         dlg = LesionDialog(le, self)

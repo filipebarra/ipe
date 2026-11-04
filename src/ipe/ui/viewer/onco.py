@@ -89,6 +89,108 @@ class OncoMixin:
             le = next((x for x in self.repo.lesions(panel.pid) if x["id"] == lid), {"name": "Lesão"})
             self._link(vp, ann, lid, le["name"])
 
+    # ---------------------------------------------------------------- seguimento (0.99.59, item 7)
+    def _dados_do_seguimento(self, study_uid: str):
+        """(pid, lesões, anotações, {exame: data}) do paciente do exame."""
+        from ipe.ui.viewer.lesion_panel import patient_key
+        info = self.study_infos.get(study_uid) or self.study_info
+        pid = patient_key(info)
+        if not pid:
+            return "", [], [], {}
+        lesoes = self.repo.lesions(pid)
+        if not lesoes:
+            return pid, [], [], {}
+        rows = self.repo.studies_of_patient(info.get("patient_id", "")) if info.get("patient_id") else []
+        datas = {r.study_uid: r.study_date for r in rows}
+        for u in self.study_order:
+            datas.setdefault(u, (self.study_infos.get(u) or {}).get("study_date", ""))
+        anns = self.repo.annotations_for_studies(list(datas))
+        return pid, lesoes, anns, datas
+
+    def ligar_pela_posicao(self, vp, ann) -> str:
+        """Medida nova: liga sozinha à lesão que estava ali no exame anterior (≤ 10 mm, pelo registro), ou à
+        lesão que o assistente mandou repetir. Devolve o nome da lesão ligada ("" = nenhuma)."""
+        from ipe.imaging import seguimento as SG
+        pend = getattr(self, "_ligar_proxima", None)
+        if pend and pend.get("study") == vp.study_uid:
+            self._ligar_proxima = None
+            self._link(vp, ann, pend["lesion"], pend["name"])
+            vp.ghosts = []
+            return pend["name"]
+        if not bool(self.settings.get("lesoes.ligar_sozinho", True)):
+            return ""
+        try:
+            pid, lesoes, anns, datas = self._dados_do_seguimento(vp.study_uid)
+        except Exception:  # noqa: BLE001
+            log.exception("ligar pela posição")
+            return ""
+        if not lesoes:
+            return ""
+        pos = vp.posicao_mm(ann).get("centro")
+        raio = float(self.settings.get("lesoes.raio_mm", SG.RAIO_PADRAO_MM) or SG.RAIO_PADRAO_MM)
+        cands = SG.candidatos(self.repo, lesoes, anns, datas, vp.study_uid, pos, raio)
+        esc = SG.escolher(cands)
+        if esc is None:
+            if len(cands) > 1:
+                self.status_message.emit("Medida perto de mais de uma lesão: ligue à mão (botão direito ▸ Ligar a "
+                                         "uma lesão).")
+            return ""
+        d, le, m = esc
+        self._link(vp, ann, le["id"], le["name"])
+        dt = datas.get(m["study_uid"], "")
+        self.status_message.emit(f"Medida ligada sozinha a “{le['name']}”: {d:.0f} mm de onde estava em "
+                                 f"{dt[6:8]}/{dt[4:6]}/{dt[:4]} (botão direito na medida para trocar)."
+                                 if len(dt) == 8 else f"Medida ligada sozinha a “{le['name']}”.")
+        return le["name"]
+
+    def repetir_medida(self, lesao: dict, medida: dict, study_uid: str | None = None) -> str:
+        """Assistente ▸ Repetir: vai ao lugar estimado da lesão neste exame (pelo registro), na série equivalente,
+        com o contorno anterior em sombra e a mesma ferramenta; a próxima medida liga sozinha à lesão."""
+        from ipe.imaging import seguimento as SG
+        from ipe.ui.viewer.viewer_tab import match_series
+        study_uid = study_uid or self.study_uid
+        vp = self.active or (self.viewports[0] if self.viewports else None)
+        if vp is None:
+            return "sem quadro"
+        if medida["study_uid"] not in self.study_order:
+            self.add_study_silent(medida["study_uid"])
+        ref = self._series_row(medida.get("series_uid", ""))
+        alvo = match_series(ref, [s for s in self.series if s.study_uid == study_uid])
+        if alvo is None:
+            return "não achei série equivalente neste exame"
+        if vp.series_uid != alvo.series_uid:
+            self.load_series_into(vp, alvo.series_uid, como_serie=True)
+        msg = ""
+        p = SG.transformar(self.repo, medida.get("centro"), medida["study_uid"], study_uid) \
+            if medida.get("centro") else None
+        if p is not None:
+            vp.go_to_point(p, tolerance_mm=50.0)
+            ghost = []
+            for q in medida.get("pontos_mm") or []:
+                t = SG.transformar(self.repo, q, medida["study_uid"], study_uid)
+                uvd = vp.patient_to_pixel(t) if t is not None else None
+                if uvd is not None:
+                    ghost.append((uvd[0], uvd[1]))
+            if len(ghost) >= 2:
+                from PySide6.QtGui import QColor
+                vp.ghosts = [(medida.get("kind") or "line", ghost, QColor(255, 200, 0))]
+            msg = "no lugar estimado pelo registro"
+        else:
+            msg = "sem registro entre os exames: procure a lesão (ligue os quadros para a próxima vez)"
+        self._ligar_proxima = {"lesion": lesao["id"], "name": lesao["name"], "study": study_uid}
+        self.set_left_tool(SG.FERRAMENTA_DO_TIPO.get(medida.get("kind") or "line", "measure"))
+        self._activate(vp)
+        vp.update()
+        self.status_message.emit(f"Repetir “{lesao['name']}”: {msg}. A próxima medida neste exame liga à lesão.")
+        return msg
+
+    def assistente_de_seguimento(self):
+        from ipe.ui.viewer.seguimento_dialog import SeguimentoDialog
+        d = SeguimentoDialog(self, self.study_uid)
+        self._seguimento_dlg = d
+        d.show()
+        return d
+
     def go_to_image(self, study_uid: str, series_uid: str, sop: str, frame: int) -> bool:
         if study_uid not in self.study_order:
             self.add_study_silent(study_uid)
@@ -510,6 +612,14 @@ class OncoMixin:
 
     # ================================================================ segmentação 3D
     def segment_at(self, vp, u: float, v: float) -> None:
+        # 0.99.60: referência do PET (fígado ou mediastino) pedida na janela PET…
+        ref = getattr(self, "_ref_pet_pendente", None)
+        if ref is not None:
+            self._ref_pet_pendente = None
+            dlg, tipo = ref
+            if dlg.isVisible():
+                dlg.clicado(vp, u, v, tipo)
+                return
         # Marcando o mamilo: o próximo clique é o ponto, não uma lesão nova. O médico já está com
         # a ferramenta Segmentar na mão — pedir outra ferramenta só para um clique seria pior.
         pedido = getattr(self, "_mamilo_pendente", None)
@@ -1025,6 +1135,7 @@ class SegmentDialog(QDialog):
         try:
             self.res = segment(self.vol, self.seed, m, lo, hi, self.suv, self.pct.value(), self.abs.value(),
                                self.radius.value(), self.modality)
+            self.res.sul_razao = getattr(self.vp, "sul_razao", None) if self.suv else None
         except Exception as e:  # noqa: BLE001
             log.exception("segmentação")
             self.result.setText(f"Erro: {e}")

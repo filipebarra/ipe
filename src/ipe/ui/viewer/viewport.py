@@ -118,6 +118,7 @@ class ViewportSignals(QObject):
     film_requested = Signal(object)             # ferramenta "enviar ao filme": clique na imagem
     group_action = Signal(object, str)          # "remove_phase" | "ungroup"
     lesion_requested = Signal(object, object)   # viewport, anotação: ligar a uma lesão
+    medida_criada = Signal(object, object)      # 0.99.59: medida nova (régua/ROI) — o seguimento liga sozinho
     clone_roi_requested = Signal(object, object)  # viewport, anotação: clonar a ROI nos outros quadros
     histogram_requested = Signal(object)        # viewport: mostrar o histograma
     anotacoes_requested = Signal(str)           # nível de anotação escolhido no botão direito (0.99.9)
@@ -271,10 +272,12 @@ class Viewport(AnnotationMixin, QWidget):
         self._qimage_key = None
         self._load_current()
         self.suv_factor = None
+        self.sul_razao = None
         mod = (self._img.header.get("Modality", "") if self._img is not None else "") or self.modality
         if frames and mod == "PT":
-            from ipe.imaging.suv import suv_factor_for_file
-            self.suv_factor = suv_factor_for_file(frames[0].path)[0]
+            from ipe.imaging.pet_onco import fatores_do_arquivo
+            fs = fatores_do_arquivo(frames[0].path)
+            self.suv_factor, self.sul_razao = fs["suv"], fs["sul_razao"]
         if frames and mod == "NM" and self.settings is not None \
                 and self.settings.get("nm.invert", True):
             # medicina nuclear se lê com a captação escura; é a convenção da área
