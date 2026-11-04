@@ -6836,5 +6836,19 @@
  "🔒 Tela": "🔒 Screen",
  "Ensino": "Teaching",
  "Publicação": "Publication",
- "Tela": "Screen"
+ "Tela": "Screen",
+ "CAD oculto até você revelar: leia o exame e use CAD/IA ▸ Revelar o CAD.": "CAD hidden until you reveal it: read the study and use CAD/AI ▸ Reveal the CAD.",
+ "CAD revelado.": "CAD revealed.",
+ "Mosaico de cortes": "Slice mosaic",
+ "Mosaico de cortes no quadro (2×2 → 3×3 → 4×4 → desligado)": "Slice mosaic in the viewport (2×2 → 3×3 → 4×4 → off)",
+ "Mosaico desligado.": "Mosaic off.",
+ "Nenhum CAD esperando para ser revelado neste exame.": "No CAD waiting to be revealed in this study.",
+ "Revelar o CAD (ler antes, ver depois)": "Reveal the CAD (read first, see it after)",
+ "👁 Revelar o CAD (ler antes, ver depois)": "👁 Reveal the CAD (read first, see it after)",
+ "CAD revelado depois de {} min {} s de leitura.": "CAD revealed after {} min {} s of reading.",
+ "Mosaico {}×{} · {}–{} de {}": "Mosaic {}×{} · {}–{} of {}",
+ "Mosaico {}×{}: a roda vira a página; duplo clique abre a imagem.": "Mosaic {}×{}: the wheel turns the page; double-click opens the image.",
+ "Mosaico: só para ver. Duplo clique numa imagem volta ao quadro normal nela, para medir.": "Mosaic: view only. Double-click an image to return to the normal viewport on it, to measure.",
+ "Ler antes, ver o CAD depois: as marcas de CAD (mamografia e outros CAD SR) começam ocultas em cada exame": "Read first, see the CAD after: CAD marks (mammography and other CAD SR) start hidden in each study",
+ "O CAD aparece quando você pede: botão CAD/IA ▸ Revelar o CAD, ou a tecla do atalho “Revelar o CAD”. A barra de status diz quanto tempo de leitura houve antes de revelar. As outras sobreposições (SEG, IA do Ipê) não mudam.": "The CAD appears when you ask: CAD/AI button ▸ Reveal the CAD, or the “Reveal the CAD” shortcut key. The status bar says how long you read before revealing. The other overlays (SEG, Ipê AI) do not change."
 }

@@ -1325,6 +1325,100 @@ class Viewport(AnnotationMixin, QWidget):
         return self.display_transform().map(q) if self.is_transformed() else q
 
     # ------------------------------------------------------------ desenho
+    # ------------------------------------------------------------ mosaico (0.99.43, Weasis "tiled")
+    mosaico: tuple | None = None
+    MOSAICOS = ((2, 2), (3, 3), (4, 4))
+
+    def em_mosaico(self) -> bool:
+        return bool(self.mosaico) and len(self.frames) > 1 and self.render3d is None
+
+    def set_mosaico(self, rc) -> None:
+        """Mosaico de cortes seguidos da mesma série dentro deste quadro: (linhas, colunas) ou None.
+        A imagem de cima à esquerda é a atual; a roda vira a página; duplo clique volta ao normal ali."""
+        self.mosaico = tuple(rc) if rc else None
+        self._mosaico_cache = {}
+        self.update()
+
+    def proximo_mosaico(self) -> None:
+        ordem = [None, *self.MOSAICOS]
+        i = ordem.index(self.mosaico) if self.mosaico in ordem else 0
+        self.set_mosaico(ordem[(i + 1) % len(ordem)])
+        r = self.mosaico
+        self.sig.status_message.emit(f"Mosaico {r[0]}×{r[1]}: a roda vira a página; duplo clique abre a imagem."
+                                     if r else "Mosaico desligado.")
+
+    def _celulas_mosaico(self):
+        r, c = self.mosaico
+        w, h = self.width() / c, self.height() / r
+        return [(i, QRectF(col * w, lin * h, w, h)) for i, (lin, col) in
+                enumerate((a, b) for a in range(r) for b in range(c))]
+
+    def mosaico_indice_em(self, pos) -> int | None:
+        if not self.em_mosaico():
+            return None
+        for t, cel in self._celulas_mosaico():
+            if cel.contains(pos):
+                i = self.index + t
+                return i if i < len(self.frames) else None
+        return None
+
+    def _qimage_do_corte(self, i: int) -> QImage | None:
+        fr = self.frames[i]
+        chave = (fr.sop_uid, fr.frame_index, getattr(fr, "path", ""), round(self.state.width, 3),
+                 round(self.state.level, 3), self.state.invert, self.state.cmap)
+        cache = getattr(self, "_mosaico_cache", None)
+        if cache is None:
+            cache = self._mosaico_cache = {}
+        if chave in cache:
+            return cache[chave]
+        try:
+            img = self.cache.get(self.frames[i])
+        except Exception:  # noqa: BLE001
+            return None
+        if img is None or img.pixels is None:
+            return None
+        disp = np.ascontiguousarray(to_display(img, self.state.width, self.state.level, self.state.invert,
+                                               self.state.cmap))
+        hh, ww = disp.shape[:2]
+        fmt = QImage.Format_Grayscale8 if disp.ndim == 2 else QImage.Format_RGB888
+        q = QImage(disp.data, ww, hh, disp.strides[0], fmt).copy()
+        if len(cache) > 64:
+            cache.clear()
+        cache[chave] = q
+        return q
+
+    def _pintar_mosaico(self, p: QPainter) -> None:
+        p.save()
+        p.setRenderHint(QPainter.SmoothPixmapTransform, True)
+        n = len(self.frames)
+        rs, cs = self._spacing()
+        aspect = rs / cs if cs else 1.0
+        font = p.font()
+        font.setPointSizeF(max(7.5, min(10.0, self.width() / (self.mosaico[1] * 18))))
+        p.setFont(font)
+        chaves = getattr(self, "key_frames", set()) or set()
+        for t, cel in self._celulas_mosaico():
+            i = self.index + t
+            if i >= n:
+                break
+            q = self._qimage_do_corte(i)
+            if q is not None:
+                iw, ih = q.width(), q.height() * aspect
+                s = min(cel.width() / iw, cel.height() / ih) if iw and ih else 1.0
+                alvo = QRectF(cel.center().x() - iw * s / 2, cel.center().y() - ih * s / 2, iw * s, ih * s)
+                p.drawImage(alvo, q)
+            p.setPen(QColor(70, 70, 70))
+            p.drawRect(cel.adjusted(0, 0, -1, -1))
+            f = self.frames[i]
+            marca = " ★" if (f.sop_uid, f.frame_index) in chaves else ""
+            p.setPen(QColor(255, 210, 60) if t == 0 else QColor(230, 230, 230))
+            p.drawText(cel.adjusted(4, 2, -4, -2), int(Qt.AlignLeft | Qt.AlignTop), f"{i + 1}{marca}")
+        p.setPen(QColor(200, 200, 200))
+        r, c = self.mosaico
+        p.drawText(QRectF(4, self.height() - 18, self.width() - 8, 16), int(Qt.AlignRight | Qt.AlignBottom),
+                   f"Mosaico {r}×{c} · {self.index + 1}–{min(n, self.index + r * c)} de {n}")
+        p.restore()
+
     def _qimage_for_current(self) -> QImage | None:
         img = self._img
         if img is None:
@@ -1397,7 +1491,9 @@ class Viewport(AnnotationMixin, QWidget):
         self._hotspots = {}
         self._anot_vis = self.anotacoes_visiveis()     # uma consulta às preferências por pintura
         q = self._qimage_for_current()
-        if q is not None:
+        if q is not None and self.em_mosaico():
+            self._pintar_mosaico(p)
+        elif q is not None:
             p.setRenderHint(QPainter.SmoothPixmapTransform, self.state.zoom < 3)
             p.save()
             if self.is_transformed():
@@ -2279,6 +2375,11 @@ class Viewport(AnnotationMixin, QWidget):
                        "moved": False, "hot": hot, "tool": tool}
         if self.render3d is not None and hot is None and self.render3d.press(self, pos, button):
             return
+        if self.em_mosaico() and hot is None and (tool in ANNOT_TOOLS or tool in CLICK_TOOLS or tool == "pincel"):
+            self.sig.status_message.emit("Mosaico: só para ver. Duplo clique numa imagem volta ao quadro "
+                                         "normal nela, para medir.")
+            self._press = None
+            return
         if hot is None and tool in ANNOT_TOOLS and self._img is not None:
             self._annot_press(pos)
         if hot == TOMO_DIAL:
@@ -2716,6 +2817,12 @@ class Viewport(AnnotationMixin, QWidget):
         return False
 
     def mouseDoubleClickEvent(self, e: QMouseEvent) -> None:  # noqa: N802
+        if self.em_mosaico() and e.button() == Qt.LeftButton:
+            i = self.mosaico_indice_em(e.position())
+            self.set_mosaico(None)
+            if i is not None:
+                self.go_to(i)
+            return
         hot = self._hotspot_at(e.position())
         btool = self.button_tool(self._button_name(e.button()))
         if hot is None and btool == "curve":
@@ -2790,6 +2897,9 @@ class Viewport(AnnotationMixin, QWidget):
             self.sig.view_changed.emit(self, "zoom")
         elif action == "scroll5":
             self.step(int(-steps * 5))
+        elif self.em_mosaico():               # mosaico: a roda vira a página (o conjunto anda junto)
+            r, c = self.mosaico
+            self.step((-1 if steps > 0 else 1) * r * c)
         else:
             self.step(int(-steps) if abs(steps) >= 1 else (-1 if steps > 0 else 1))
 
@@ -3085,6 +3195,13 @@ class Viewport(AnnotationMixin, QWidget):
             a = QAction(nome, am, checkable=True, checked=chave == atual)
             a.triggered.connect(lambda _c=False, k=chave: self.sig.anotacoes_requested.emit(k))
             am.addAction(a)
+        if len(self.frames) > 1 and self.render3d is None:
+            mm = menu.addMenu("Mosaico de cortes")
+            for rc in (None, *self.MOSAICOS):
+                a = QAction("Desligado" if rc is None else f"{rc[0]} × {rc[1]}", mm, checkable=True,
+                            checked=self.mosaico == rc)
+                a.triggered.connect(lambda _c=False, x=rc: self.set_mosaico(x))
+                mm.addAction(a)
         wl = menu.addMenu("Janela (presets)")
         self._add_preset_actions(wl)
         if self._img is None or not self._img.is_color:

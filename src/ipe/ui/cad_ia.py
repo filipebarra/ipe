@@ -75,6 +75,14 @@ class CadIaTab(QWidget):
         nota.setWordWrap(True)
         nota.setStyleSheet("color:#9a9a9a")
         lay.addWidget(nota)
+        # 0.99.43 (Sectra/Philips): ler primeiro, ver o CAD depois
+        self.c_ler_antes = QCheckBox("Ler antes, ver o CAD depois: as marcas de CAD (mamografia e outros CAD SR) "
+                                     "começam ocultas em cada exame")
+        self.c_ler_antes.setToolTip("O CAD aparece quando você pede: botão CAD/IA ▸ Revelar o CAD, ou a tecla do "
+                                    "atalho “Revelar o CAD”. A barra de status diz quanto tempo de leitura houve "
+                                    "antes de revelar. As outras sobreposições (SEG, IA do Ipê) não mudam.")
+        self.c_ler_antes.setChecked(bool(settings.get("cad.ler_antes", False)))
+        lay.addWidget(self.c_ler_antes)
 
         esq = QWidget()
         el = QVBoxLayout(esq)
@@ -478,6 +486,7 @@ class CadIaTab(QWidget):
     # ------------------------------------------------------------ gravar
     def save(self) -> None:
         s = self.settings
+        s.set("cad.ler_antes", self.c_ler_antes.isChecked())
         s.set(TS.CHAVE_AUTO, self.c_seg_auto.isChecked())
         s.set(TS.CHAVE_EXAME_CONTEM, self.e_seg_exame.text().strip())
         s.set(TS.CHAVE_MODALIDADES, [m for m, c in (("CT", self.c_seg_ct), ("MR", self.c_seg_mr)) if c.isChecked()])

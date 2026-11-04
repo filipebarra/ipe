@@ -193,6 +193,8 @@ class ViewerTab(OncoMixin, QWidget):
         if self.left_tool not in TOOLS:
             self.left_tool = "wl"
         self.anonymize = False
+        import time as _t
+        self._aberta_em = _t.monotonic()        # para o "CAD revelado depois de N min" (0.99.43)
         self.case_label = ""            # modo reunião
         self._maximized: Viewport | None = None
         self._layout = tuple(layout or settings.get("viewer.default_layout", [1, 1]))
@@ -1075,6 +1077,9 @@ class ViewerTab(OncoMixin, QWidget):
         mon = self._plain("Monitor", "monitor", "Mover este estudo para uma janela em outro monitor")
         mon.triggered.connect(lambda: self.detach_requested.emit(self))
         self._button(tb, mon)
+        self._act("cad.revelar", "Revelar o CAD (ler antes, ver depois)", lambda: self.revelar_cad())
+        self._act("view.mosaico", "Mosaico de cortes no quadro (2×2 → 3×3 → 4×4 → desligado)",
+                  lambda: self._on_active(lambda v: v.proximo_mosaico()))
         self.anon_action = self._act("view.anonymize", "Ocultar dados do paciente",
                                      self.set_anonymize, checkable=True)
         self.anon_action.setIcon(icon("anon"))

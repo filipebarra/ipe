@@ -94,6 +94,8 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("view.strip", "Tira de séries (miniaturas)", "Sincronização"),
     ("study.priors", "Adicionar exame anterior", "Estudos"),
     ("view.anonymize", "Ocultar dados do paciente", "Imagem"),
+    ("cad.revelar", "Revelar o CAD (ler antes, ver depois)", "Imagem"),
+    ("view.mosaico", "Mosaico de cortes no quadro (2×2 → 3×3 → 4×4 → desligado)", "Imagem"),
     ("view.copy", "Copiar a imagem do quadro (área de transferência)", "Imagem"),
     ("view.annot_next", "Anotações: próximo nível (completa, parcial 1, parcial 2, ausente)", "Imagem"),
     ("study.export", "Exportar (DICOM, CD/pendrive, imagens)", "Estudos"),

@@ -252,10 +252,15 @@ class OncoMixin:
                         obj.nosso = True
                     if obj.source in O.tipos_ocultos(self.settings):
                         obj.enabled = False      # escolha do exame anterior: nasce oculto
+                    if obj.source == "CAD" and self.settings is not None and self.settings.get("cad.ler_antes", False):
+                        obj.enabled = False      # 0.99.43: ler antes, ver o CAD depois
+                        obj.aguarda_revelar = True
                     for parte in O.por_segmento(obj):    # SEG de órgãos: um item por órgão (0.98)
                         self.overlay_objects.append(parte)
                         added += 1
         self._so_o_gsps_mais_recente()
+        if any(getattr(o, "aguarda_revelar", False) for o in self.overlay_objects):
+            self.status_message.emit("CAD oculto até você revelar: leia o exame e use CAD/IA ▸ Revelar o CAD.")
         self.carregar_segmentacoes()
         if added:
             self._apply_overlays()
@@ -337,9 +342,32 @@ class OncoMixin:
         obj.enabled = on
         self._apply_overlays()
 
+    def revelar_cad(self) -> int:
+        """Mostra as marcas de CAD que estavam guardadas para depois da leitura (0.99.43)."""
+        import time
+        objs = [o for o in self.overlay_objects if getattr(o, "aguarda_revelar", False)]
+        for o in objs:
+            o.enabled = True
+            o.aguarda_revelar = False
+        if not objs:
+            self.status_message.emit("Nenhum CAD esperando para ser revelado neste exame.")
+            return 0
+        self._apply_overlays()
+        t0 = getattr(self, "_aberta_em", None)
+        if t0 is not None:
+            seg = int(time.monotonic() - t0)
+            self.status_message.emit(f"CAD revelado depois de {seg // 60} min {seg % 60:02d} s de leitura.")
+        else:
+            self.status_message.emit("CAD revelado.")
+        return len(objs)
+
     def _fill_overlay_menu(self, m: QMenu) -> None:
         m.clear()
         objs = self.overlay_objects
+        if any(getattr(o, "aguarda_revelar", False) for o in objs):
+            rv = m.addAction("👁 Revelar o CAD (ler antes, ver depois)")
+            rv.triggered.connect(self.revelar_cad)
+            m.addSeparator()
         if not objs:
             a = m.addAction("Nenhum objeto de CAD/IA, SEG, RTSTRUCT ou GSPS neste exame")
             a.setEnabled(False)

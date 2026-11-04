@@ -240,6 +240,14 @@ Para calibrar à mão: ferramenta **Linha de calibração**, trace sobre uma dis
 - A janela do Doppler espectral não calibra distância: os eixos dela são tempo e velocidade, e o programa a recusa de propósito.
 - Captura secundária de ultrassom (print da tela do aparelho) costuma vir sem região nenhuma: aí a calibração manual é o caminho.
 
+## Mosaico de cortes no quadro
+
+Botão direito no quadro ▸ **Mosaico de cortes** ▸ 2 × 2, 3 × 3 ou 4 × 4 (ou o atalho *Mosaico de cortes no quadro*, que anda pelos tamanhos): o quadro mostra cortes **seguidos** da mesma série, a partir do atual (o primeiro, em cima à esquerda, tem o número em amarelo). Serve para passar os olhos numa série volumétrica sem rolar corte a corte, com outro quadro ao lado rolando normal.
+
+- A rodinha **vira a página**: o conjunto anda junto (4, 9 ou 16 cortes); os quadros sincronizados acompanham pelo primeiro.
+- Janela/nível, inverter e a tabela de cores valem para todas as imagens do mosaico. As imagens-chave aparecem com ★.
+- O mosaico é **só para ver**: as ferramentas de medida não agem nele. **Duplo clique** numa imagem volta ao quadro normal **naquela** imagem.
+
 ## Imagens-chave
 
 K (sugestão) marca e desmarca a imagem do quadro como imagem-chave; Shift+K mostra só as marcadas. Elas entram no laudo em PDF e no filme com um clique.
@@ -1127,6 +1135,8 @@ As IAs do Ipê (órgãos abdominais, níveis da coluna, cefalometria, índices d
 O botão **CAD/IA** reúne o que outro programa escreveu sobre o exame: SEG (segmentações), GSPS (anotações gráficas do aparelho ou da estação), SR (achados de CAD/IA) e RTSTRUCT (contornos de radioterapia). O número no botão diz quantos objetos o exame tem; o menu lista um por um, com *Ir para a imagem* de cada achado.
 
 **Em qualquer plano.** Segmentações (SEG, inclusive as do TotalSegmentator: órgãos, cefalometria), contornos (RTSTRUCT), níveis da coluna, lesões segmentadas e linhas de medida automática aparecem também quando o quadro é reformatado (MPR sagital, coronal, oblíquo) ou noutra série do mesmo exame em outro plano: a máscara guardada corte a corte é empilhada num volume em milímetros e cortada pelo plano do quadro. O que é só 2D (mamografia, CAD de mamografia, anotações gráficas presas a uma imagem) continua só na imagem de origem.
+
+**Ler antes, ver o CAD depois.** Em Configurações ▸ CAD/IA, *Ler antes, ver o CAD depois* faz as marcas de CAD (o CAD de mamografia e outros CAD SR) começarem **ocultas** em cada exame. Leia o exame e use **CAD/IA ▸ Revelar o CAD** (ou a tecla do atalho *Revelar o CAD*): as marcas aparecem e a barra de status diz quanto tempo de leitura houve antes. As outras sobreposições (SEG, as IAs do Ipê) não mudam.
 
 Clicar no botão mostra ou oculta todos. A escolha fica guardada por tipo: se você desligou as segmentações de uma IA, elas nascem ocultas nos próximos exames — e as anotações que o técnico deixou no aparelho continuam aparecendo. Quando algo nasce oculto, a barra de estado avisa quantos estão escondidos.
 

@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.43 — mosaic in the viewport; CAD hidden until revealed
+- **Slice mosaic** (right-click ▸ Mosaic, or shortcut): 2 × 2, 3 × 3 or 4 × 4 consecutive slices of the same
+  series inside one viewport; the wheel turns the page; double-click returns to the normal viewport on that
+  image.
+- **Read first, see the CAD after** (Settings ▸ CAD/AI): CAD marks start hidden in each study; **CAD/AI ▸
+  Reveal the CAD** (or the shortcut) shows them and says how long you read before.
+
 ## 0.99.42 — identity masking profiles
 - **Hide patient data** gets profiles (button arrow): **Hide everything** (as before), **Screen**
   (pseudonym, real dates), **Teaching** (pseudonym, dates shifted by the same number of days for the whole

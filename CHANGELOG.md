@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.43 — mosaico no quadro; CAD oculto até revelar
+- **Mosaico de cortes** (botão direito ▸ Mosaico, ou atalho): 2 × 2, 3 × 3 ou 4 × 4 cortes seguidos da
+  mesma série dentro de um quadro; a roda vira a página; duplo clique volta ao quadro normal na imagem.
+- **Ler antes, ver o CAD depois** (Configurações ▸ CAD/IA): as marcas de CAD começam ocultas em cada
+  exame; **CAD/IA ▸ Revelar o CAD** (ou o atalho) mostra e diz quanto tempo de leitura houve antes.
+
 ## 0.99.42 — perfis de ocultação
 - **Ocultar dados do paciente** ganha perfis (seta do botão): **Ocultar tudo** (o de antes), **Tela**
   (pseudônimo, datas reais), **Ensino** (pseudônimo, datas deslocadas pelo mesmo número de dias para todo o
