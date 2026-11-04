@@ -41,7 +41,68 @@ MAPS: dict[str, tuple[str, str, str, str, str]] = {
     # 0.99.22 (plano AW M10): projeções ao longo das fases, não do espaço
     "mipt": ("MIP temporal", "Maior realce em qualquer fase pós (máximo das subtrações)", "sinal", "sinal", ""),
     "medt": ("Média temporal", "Realce médio das fases pós-contraste", "sinal", "sinal", ""),
+    # 0.99.48 (plano AW M8; pesquisa de visualizadores, item 30 — MITK): descritores da curva
+    "bat": ("Chegada (BAT)", "Tempo até o realce chegar a 10% do pico do voxel", "s", "s", "rainbow"),
+    "wash": ("Lavagem", "Maior inclinação de descida depois do pico", "%/min", "sinal/min", "rainbow"),
+    "iauc": ("iAUC90", "Área sob a curva de realce nos primeiros 90 s", "%·min", "sinal·min", "rainbow"),
+    "mrt": ("Tempo médio (MRT)", "Tempo médio do realce: ∫t·realce / ∫realce", "s", "s", "rainbow"),
 }
+#: os descritores da curva, na ordem da tabela
+DESCRITORES = ("bat", "wash", "iauc", "mrt")
+IAUC_SEG = 90.0
+BAT_FRACAO = 0.10
+
+
+def descritores(e: np.ndarray, t_min: np.ndarray) -> dict:
+    """BAT, lavagem, iAUC90 e MRT de curvas de realce `e` (F, ...) — F fases, a primeira é a pré
+    (realce 0) — com os tempos `t_min` (minutos, a pré em 0). Vetorizado: serve ao mapa e à curva.
+
+    - **BAT** (s): primeiro instante em que o realce passa de 10% do pico do voxel, interpolado entre as
+      fases (a pré não conta);
+    - **lavagem** (unidade do realce por minuto, positiva): a maior inclinação de **descida** depois
+      do pico; 0 quando a curva não desce;
+    - **iAUC90**: integral do realce positivo do zero aos 90 s (a última parte interpolada);
+    - **MRT** (s): tempo médio do realce positivo, ∫t·e⁺ / ∫e⁺.
+    """
+    e = np.asarray(e, np.float32)
+    t = np.asarray(t_min, np.float32).reshape((-1,) + (1,) * (e.ndim - 1))
+    pos = np.clip(e, 0, None)
+    pico = pos.max(axis=0)
+    limiar = pico * BAT_FRACAO
+    acima = (pos[1:] >= limiar) & (pico > 0)
+    j = np.argmax(acima, axis=0) + 1                     # índice na curva (≥ 1)
+    alguma = acima.any(axis=0)
+    e1 = np.take_along_axis(pos, j[None], 0)[0]
+    e0 = np.take_along_axis(pos, (j - 1)[None], 0)[0]
+    t1 = np.take_along_axis(np.broadcast_to(t, pos.shape), j[None], 0)[0]
+    t0 = np.take_along_axis(np.broadcast_to(t, pos.shape), (j - 1)[None], 0)[0]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        f = np.where(e1 > e0, (limiar - e0) / (e1 - e0), 0.0)
+    bat = np.where(alguma, (t0 + np.clip(f, 0, 1) * (t1 - t0)) * 60.0, 0.0)
+    dt = np.diff(t, axis=0)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        desc = -np.diff(e, axis=0) / np.maximum(dt, 1e-6)
+    i_pico = np.argmax(e, axis=0)
+    depois = np.arange(e.shape[0] - 1).reshape((-1,) + (1,) * (e.ndim - 1)) >= i_pico[None]
+    wash = np.clip(np.where(depois, desc, 0.0).max(axis=0) if len(desc) else np.zeros(e.shape[1:]), 0, None)
+    lim = IAUC_SEG / 60.0
+    iauc = np.zeros(e.shape[1:], np.float32)
+    tt = t.reshape(-1)
+    for k in range(len(tt) - 1):
+        a, b = float(tt[k]), float(tt[k + 1])
+        if a >= lim or b <= a:
+            continue
+        pa, pb = pos[k], pos[k + 1]
+        if b > lim:
+            pb = pa + (pb - pa) * (lim - a) / (b - a)
+            b = lim
+        iauc += 0.5 * (pa + pb) * (b - a)
+    num = (0.5 * (pos[1:] * t[1:] + pos[:-1] * t[:-1]) * dt).sum(axis=0)
+    den = (0.5 * (pos[1:] + pos[:-1]) * dt).sum(axis=0)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        mrt = np.where(den > 0, num / den * 60.0, 0.0)
+    return {"bat": bat.astype(np.float32), "wash": wash.astype(np.float32), "iauc": iauc,
+            "mrt": mrt.astype(np.float32)}
 #: mapas que são subtração (janela simétrica do sinal, sem limiar)
 SUBTRACOES = ("sub", "mipt", "medt")
 MASKED = -1.0
@@ -200,9 +261,17 @@ class DynamicMaps:
     def __init__(self, dset: DynamicSet, cache: FrameCache, pre: int = 0, early: int | None = None,
                  late: int | None = None, threshold_pct: float = 50.0, noise_pct: float = 5.0,
                  relative: bool = True, threshold_all: bool = False, motion: bool = False, progress=None,
-                 rapido_pct: float = 100.0, tardio_pct: float = 10.0, sinal_min_pct: float = 10.0):
+                 rapido_pct: float = 100.0, tardio_pct: float = 10.0, sinal_min_pct: float = 10.0,
+                 fases_pre: list[int] | None = None, excluidas=None):
         self.dset, self.cache = dset, cache
         self.pre = pre
+        # 0.99.48 (plano AW M4): a linha de base pode ser a média de várias fases pré, e uma fase com
+        # movimento pode sair da conta. `pre` continua sendo a fase de referência (o tempo zero e o
+        # alinhamento); a linha de base é a média de `fases_pre`.
+        self.fases_pre = sorted({int(i) for i in (fases_pre or [pre]) if 0 <= int(i) <= pre}) or [pre]
+        if pre not in self.fases_pre:
+            self.fases_pre.append(pre)
+        self.excluidas: set[int] = set()
         self.early = dset.default_early(pre) if early is None else early
         self.late = len(dset.phases) - 1 if late is None else late
         self.threshold_pct, self.noise_pct = threshold_pct, noise_pct
@@ -230,6 +299,63 @@ class DynamicMaps:
         self.rotacoes: list[float] = [0.0] * len(dset.phases)
         if motion:
             self.estimate_motion(progress)
+        if excluidas:
+            motivo = self.validar_exclusao(excluidas)
+            if motivo:
+                raise ValueError(motivo)
+            self.excluidas = {int(i) for i in excluidas}
+
+    # ------------------------------------------------------------ fases excluídas e linha de base (0.99.48)
+    def validar_exclusao(self, excluidas) -> str:
+        """"" quando a exclusão serve; senão, o motivo (a AW também não deixa tirar duas seguidas)."""
+        ex = sorted({int(i) for i in excluidas})
+        n = len(self.dset.phases)
+        if any(not 0 <= i < n for i in ex):
+            return f"Fase fora da dinâmica (são {n})."
+        if self.early in ex or self.late in ex:
+            return "A fase inicial e a tardia não podem sair: escolha outras primeiro."
+        if all(i in ex for i in self.fases_pre):
+            return "Pelo menos uma fase pré-contraste tem de ficar."
+        if any(b - a == 1 for a, b in zip(ex, ex[1:])):
+            return "Não dá para tirar duas fases seguidas: a curva perde o trecho inteiro."
+        if len([i for i in range(self.pre + 1, n) if i not in ex]) < 2:
+            return "Sobrariam menos de duas fases depois do contraste."
+        return ""
+
+    def set_excluidas(self, excluidas) -> str:
+        motivo = self.validar_exclusao(excluidas)
+        if motivo:
+            return motivo
+        self.excluidas = {int(i) for i in excluidas}
+        self._maps.clear()
+        self._windows.clear()
+        return ""
+
+    def ativas(self) -> list[int]:
+        return [i for i in range(len(self.dset.phases)) if i not in self.excluidas]
+
+    def avisos_das_fases(self) -> list[str]:
+        out = []
+        pres = [i for i in self.fases_pre if i not in self.excluidas]
+        if len(pres) == 1:
+            out.append("uma fase pré-contraste só: o ruído dela entra inteiro em todos os mapas")
+        if self.excluidas:
+            out.append("fora da conta (movimento): fase " + ", ".join(str(i + 1) for i in sorted(self.excluidas)))
+        return out
+
+    def _reduzir(self, st: np.ndarray):
+        """(fases ativas, tempos em min a partir da referência, índices pre/early/late nelas, linha de base).
+        `st` é (F, ...) com todas as fases."""
+        excl = getattr(self, "excluidas", None) or set()
+        at = [i for i in range(len(st)) if i not in excl]
+        st2 = st[at] if excl else st
+        pos = {f: k for k, f in enumerate(at)}
+        dset = getattr(self, "dset", None)
+        tempos = np.asarray(dset.times, np.float32) if dset is not None else np.arange(len(st), dtype=np.float32) * 60
+        t = tempos[at] / 60.0
+        pres = [pos[i] for i in getattr(self, "fases_pre", None) or [self.pre] if i in pos]
+        s0 = st2[pres].mean(axis=0) if len(pres) > 1 else st2[pos[self.pre]] if self.pre in pos else st2[pres[0]]
+        return st2, t, pos.get(self.pre, pres[-1]), pos[self.early], pos[self.late], s0
 
     # ------------------------------------------------------------ movimento
     def _small_volume(self, i: int, zs: list[int], f: int) -> np.ndarray:
@@ -441,14 +567,12 @@ class DynamicMaps:
         if k in self._maps:
             self._maps.move_to_end(k)
             return self._maps[k]
-        st = self.stack(k)
-        t = self.times_min()
-        s0 = st[self.pre]
+        st, t, pre_i, early_i, late_i, s0 = self._reduzir(self.stack(k))
         noise = self.noise_level()
         valid = st.mean(axis=0) > max(noise, 1e-6)       # média das fases: o ruído do ar não passa
         base = np.maximum(s0, max(noise, 1e-6))
-        post = st[self.pre:]
-        tp = t[self.pre:]
+        post = st[pre_i:]
+        tp = t[pre_i:]
         diff = post - s0
         e = diff / base * 100.0 if self.relative else diff
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -456,7 +580,7 @@ class DynamicMaps:
         msi = np.clip(slopes.max(axis=0), 0, None) if len(slopes) else np.zeros(self.shape, np.float32)
         pos = np.clip(e, 0, None)
         pei = (0.5 * (pos[1:] + pos[:-1]) * np.diff(tp)[:, None, None]).sum(axis=0)
-        s1, s2 = st[self.early], st[self.late]
+        s1, s2 = st[early_i], st[late_i]
         ei_rel = (s1 - s0) / base * 100.0
         enh = valid & (ei_rel >= self.threshold_pct)
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -464,12 +588,14 @@ class DynamicMaps:
         ser = np.where(np.isfinite(ser) & (s2 - s0 > 0), np.clip(ser, 0, 3), 3.0)
         ser = np.where(enh, ser, MASKED)
         ei = ei_rel if self.relative else (s1 - s0)
-        ttp = np.asarray(self.dset.times, np.float32)[self.pre + np.argmax(post, axis=0)] - self.dset.times[self.pre]
-        pos_fases = st[self.pre + 1:] if len(st) > self.pre + 1 else st[self.pre:self.pre + 1]
+        ttp = (tp[np.argmax(post, axis=0)] - tp[0]) * 60.0
+        pos_fases = st[pre_i + 1:] if len(st) > pre_i + 1 else st[pre_i:pre_i + 1]
+        e_desc = np.concatenate([np.zeros((1, *e.shape[1:]), e.dtype), e[1:]])
         out = {"msi": msi, "pei": pei, "ser": ser, "ei": ei, "sub": s1 - s0, "ttp": ttp,
-               "cin": self._cinetica(st, s0, base, valid),
-               "mipt": pos_fases.max(axis=0) - s0, "medt": pos_fases.mean(axis=0) - s0}
-        for key in ("msi", "pei", "ei", "ttp"):
+               "cin": self._cinetica(st, s0, base, valid, early_i, late_i),
+               "mipt": pos_fases.max(axis=0) - s0, "medt": pos_fases.mean(axis=0) - s0,
+               **descritores(e_desc, tp - tp[0])}
+        for key in ("msi", "pei", "ei", "ttp", *DESCRITORES):
             m = enh if self.threshold_all else valid
             out[key] = np.where(m, out[key], 0.0).astype(np.float32)
         out["ser"] = out["ser"].astype(np.float32)
@@ -481,7 +607,8 @@ class DynamicMaps:
             self._maps.popitem(last=False)
         return out
 
-    def _cinetica(self, st: np.ndarray, s0: np.ndarray, base: np.ndarray, valid: np.ndarray) -> np.ndarray:
+    def _cinetica(self, st: np.ndarray, s0: np.ndarray, base: np.ndarray, valid: np.ndarray,
+                  early_i: int | None = None, late_i: int | None = None) -> np.ndarray:
         """Classe de cada voxel: 0 sem cor, 1–3 realce médio, 4–6 realce rápido.
 
         **Pico é a fase inicial escolhida, não o máximo voxel a voxel.** Com o máximo, o tardio
@@ -489,7 +616,8 @@ class DynamicMaps:
         primeira medição no acervo deu 0,00% de persistente em todos os exames.
         """
         tecido = valid & (s0 >= self.reference_level() * self.sinal_min_pct / 100.0)
-        pico, tardio = st[self.early], st[self.late]
+        pico = st[self.early if early_i is None else early_i]
+        tardio = st[self.late if late_i is None else late_i]
         realce = (pico - s0) / base * 100.0
         with np.errstate(divide="ignore", invalid="ignore"):
             var = (tardio - pico) / np.maximum(pico, 1e-6) * 100.0
@@ -517,12 +645,12 @@ class DynamicMaps:
 
     def classe_cinetica(self, valores: np.ndarray) -> str:
         """A classe de uma curva, com os mesmos limiares do mapa — número e cor não podem divergir."""
-        v = np.asarray(valores, float)
-        s0 = v[self.pre]
+        v, _t, _p, early_i, late_i, s0 = self._reduzir(np.asarray(valores, float))
+        s0 = float(s0)
         base = s0 if abs(s0) > 1e-6 else 1e-6
-        realce = (v[self.early] - s0) / abs(base) * 100.0
-        pico = v[self.early]
-        var = (v[self.late] - pico) / (abs(pico) if abs(pico) > 1e-6 else 1e-6) * 100.0
+        realce = (v[early_i] - s0) / abs(base) * 100.0
+        pico = v[early_i]
+        var = (v[late_i] - pico) / (abs(pico) if abs(pico) > 1e-6 else 1e-6) * 100.0
         if realce < self.threshold_pct:
             return CLASSES[0]
         faixa = 0 if realce < self.rapido_pct else 1
@@ -759,8 +887,9 @@ class DynamicMaps:
         Devolve ((x, y) centro do pixel, curva)."""
         if mask is None or not mask.any():
             return None
-        st = box3(self.stack(k)[:, mask_slices[0], mask_slices[1]])
-        s0, s1, s2 = st[self.pre], st[self.early], st[self.late]
+        cheio = box3(self.stack(k)[:, mask_slices[0], mask_slices[1]])
+        st, _t, _p, early_i, late_i, s0 = self._reduzir(cheio)
+        s1, s2 = st[early_i], st[late_i]
         base = np.maximum(s0, max(self.noise_level(), 1e-6))
         ei = (s1 - s0) / base * 100.0
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -774,29 +903,37 @@ class DynamicMaps:
         yy, xx = np.unravel_index(int(np.argmax(score)), score.shape)
         y = yy + mask_slices[0].start
         x = xx + mask_slices[1].start
-        return (x + 0.5, y + 0.5), st[:, yy, xx].copy()
+        return (x + 0.5, y + 0.5), cheio[:, yy, xx].copy()
 
     def curve_stats(self, values: np.ndarray) -> dict:
         """Números da curva: realce inicial/pico (%), SER, MSI, PEI e tipo (BI-RADS)."""
         from ipe.imaging.measure import tic_analysis
-        t = np.asarray(self.dset.times, float)
-        v = np.asarray(values, float)
-        s0 = v[self.pre]
+        cheio = np.asarray(values, float)
+        v, tmin, pre_i, early_i, late_i, s0 = self._reduzir(cheio)
+        v = np.asarray(v, float)
+        s0 = float(s0)
+        t = np.asarray(tmin, float) * 60.0
         base = s0 if abs(s0) > 1e-6 else 1e-6
         e = (v - s0) / abs(base) * 100.0
-        tp = t[self.pre:] / 60.0
-        ep = e[self.pre:] if self.relative else (v - s0)[self.pre:]
+        tp = t[pre_i:] / 60.0
+        ep = e[pre_i:] if self.relative else (v - s0)[pre_i:]
         slopes = np.diff(ep) / np.maximum(np.diff(tp), 1e-6) if len(ep) > 1 else np.array([0.0])
         pos = np.clip(ep, 0, None)
         pei = float((0.5 * (pos[1:] + pos[:-1]) * np.diff(tp)).sum()) if len(ep) > 1 else 0.0
-        den = v[self.late] - s0
-        ser = float((v[self.early] - s0) / den) if den > 0 else None
-        tic = tic_analysis(list(t[self.pre:] - t[self.pre]), list(v[self.pre:]))
-        return {"enh": e, "initial": float(e[self.early]), "peak": float(e.max()),
+        den = v[late_i] - s0
+        ser = float((v[early_i] - s0) / den) if den > 0 else None
+        tic = tic_analysis(list(t[pre_i:] - t[pre_i]), list(v[pre_i:]))
+        d = descritores(np.concatenate([[0.0], ep[1:]]), tp - tp[0])
+        # "enh" fica com todas as fases (o gráfico desenha todas; a excluída aparece marcada)
+        s0_cheio = s0
+        e_cheio = (cheio - s0_cheio) / abs(base) * 100.0
+        return {"enh": e_cheio, "initial": float(e[early_i]), "peak": float(e[pre_i:].max()),
                 "msi": float(max(slopes.max(), 0.0)), "pei": pei, "ser": ser,
                 "type": tic.get("curve_type", ""), "initial_class": tic.get("initial_class", ""),
                 # a mesma régua do mapa: o número da tabela e a cor do pixel não podem divergir
-                "cinetica": self.classe_cinetica(v)}
+                "cinetica": self.classe_cinetica(cheio),
+                "bat": float(d["bat"]), "wash": float(d["wash"]), "iauc": float(d["iauc"]),
+                "mrt": float(d["mrt"])}
 
 
 class MapPlane:

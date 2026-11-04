@@ -3092,6 +3092,26 @@ class Viewport(AnnotationMixin, QWidget):
         """Nome da janela do arquivo em uso (some quando ele arrasta a janela)."""
         return self._janela_arquivo[1] if self._na_janela_do_arquivo() else ""
 
+    def espelhar_roi(self, ann):
+        """ROI do outro lado, no espelho do plano sagital mediano (0.99.48, plano AW M14). A original
+        passa a mostrar a razão lesão / contralateral; a barra de status diz onde ficou o eixo."""
+        from ipe.imaging import clonar_roi as CR
+        xm, como = CR.eixo_de_simetria(self)
+        if xm is None:
+            self.sig.status_message.emit(tr(f"Não espelhei: {tr(como)}."))
+            return None
+        cp, razao = CR.espelhar(self, ann, xm)
+        if cp is None:
+            self.sig.status_message.emit(tr(f"Não espelhei: {tr(razao)}."))
+            return None
+        if razao is not None:
+            txt = f"ROI espelhada (eixo em x = {xm:.1f} mm, {tr(como)}): lesão / contralateral = {razao:.2f}."
+        else:
+            txt = f"ROI espelhada (eixo em x = {xm:.1f} mm, {tr(como)})."
+        self.sig.status_message.emit(tr(txt))
+        self.sig.frame_changed.emit(self)
+        return cp
+
     def menu_do_zoom(self) -> QMenu:
         """Duplo clique no "Zoom N%" do canto (0.99.45): ajustar, 1:1, valores prontos ou digitar."""
         menu = QMenu(self)
@@ -3248,6 +3268,11 @@ class Viewport(AnnotationMixin, QWidget):
                     a_ref = QAction("Usar como ROI de referência (as outras mostram % dela)", menu)
                     a_ref.triggered.connect(lambda: self.marcar_referencia(target))
                 menu.addAction(a_ref)
+            if target.kind in M.ROI_KINDS and self.plane() is not None and target.frame_key == self.frame_key() \
+                    and not (target.meta or {}).get("contralateral_de"):
+                a_esp = QAction("Espelhar no outro lado (razão lesão / contralateral)", menu)
+                a_esp.triggered.connect(lambda: self.espelhar_roi(target))
+                menu.addAction(a_esp)
             if target.kind in M.ROI_KINDS and self.plane() is not None:
                 a_cl = QAction("Clonar esta ROI nos outros quadros (mesma posição no paciente)", menu)
                 a_cl.triggered.connect(lambda: self.sig.clone_roi_requested.emit(self, target))

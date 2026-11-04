@@ -4648,7 +4648,8 @@ class ViewerTab(OncoMixin, QWidget):
                                progress=progress,
                                rapido_pct=params.get("rapido_pct", 100.0),
                                tardio_pct=params.get("tardio_pct", 10.0),
-                               sinal_min_pct=params.get("sinal_min_pct", 10.0))
+                               sinal_min_pct=params.get("sinal_min_pct", 10.0),
+                               fases_pre=params.get("fases_pre"), excluidas=params.get("excluidas"))
             maps.compute(maps.n // 2)
             if dlg is not None:
                 dlg.close()

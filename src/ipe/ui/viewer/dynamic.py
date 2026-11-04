@@ -10,10 +10,11 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPolygonF
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QFileDialog, QFormLayout,
-    QGridLayout, QGroupBox, QHBoxLayout, QHeaderView, QLabel, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
+    QGridLayout, QGroupBox, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
     QSizePolicy, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
+from ipe.core.i18n import tr
 from ipe.imaging import measure as M
 from ipe.imaging import phases as PH
 from ipe.imaging.dynamic import MAPS, DynamicMaps, DynamicSet, split_single_series
@@ -78,6 +79,17 @@ class DynamicDialog(QDialog):
         f.addRow("Pré-contraste:", self.c_pre)
         f.addRow("Fase inicial (SER, realce inicial):", self.c_early)
         f.addRow("Fase tardia (SER):", self.c_late)
+        # 0.99.48 (plano AW M4): linha de base pela média das fases pré e fases fora da conta
+        self.c_base_media = QCheckBox("Linha de base: média de todas as fases até a pré-contraste escolhida")
+        self.c_base_media.setChecked(bool(prev.get("base_media", False)))
+        self.c_base_media.setToolTip("Com duas fases pré-contraste ou mais, a média delas tem menos ruído que uma "
+                                     "fase só. Com uma fase pré, o painel avisa.")
+        f.addRow(self.c_base_media)
+        self.e_excluir = QLineEdit(", ".join(str(i + 1) for i in prev.get("excluidas", []) or []))
+        self.e_excluir.setPlaceholderText("ex.: 4  ou  4, 7")
+        self.e_excluir.setToolTip("Fases com movimento que saem da conta dos mapas e das curvas (o número da "
+                                  "fase, como na lista). Não pode ser a inicial, a tardia, nem duas seguidas.")
+        f.addRow("Fases fora da conta (movimento):", self.e_excluir)
         self.s_thr = QDoubleSpinBox(minimum=0, maximum=500, value=float(prev.get("threshold_pct", 50)),
                                     suffix=" %", decimals=0, singleStep=10)
         self.s_thr.setToolTip("Realce inicial mínimo para calcular o SER (fora disso o mapa fica preto).")
@@ -235,7 +247,27 @@ class DynamicDialog(QDialog):
             QMessageBox.information(self, "Dinâmica", "A fase inicial deve vir depois do pré-contraste, "
                                     "e a tardia não pode vir antes da inicial.")
             return
+        ex = self.excluidas()
+        if ex is None:
+            QMessageBox.information(self, "Dinâmica", "Fases fora da conta: escreva os números das fases, "
+                                    "separados por vírgula.")
+            return
+        motivo = validar_exclusao(len(self.dset.phases), pre, early, late, self.fases_pre(), ex)
+        if motivo:
+            QMessageBox.information(self, "Dinâmica", motivo)
+            return
         self.accept()
+
+    def excluidas(self) -> list[int] | None:
+        txt = self.e_excluir.text().replace(";", ",").replace(" ", ",")
+        try:
+            return sorted({int(x) - 1 for x in txt.split(",") if x.strip()})
+        except ValueError:
+            return None
+
+    def fases_pre(self) -> list[int]:
+        pre = self.c_pre.currentIndex()
+        return list(range(pre + 1)) if self.c_base_media.isChecked() else [pre]
 
     def params(self) -> dict:
         return {"pre": self.c_pre.currentIndex(), "early": self.c_early.currentIndex(),
@@ -247,7 +279,17 @@ class DynamicDialog(QDialog):
                 "motion_rigido": self.c_motion.isChecked() and self.c_rigido.isChecked(),
                 "rapido_pct": self.s_rapido.value(),
                 "tardio_pct": self.s_tardio.value(), "sinal_min_pct": self.s_sinal.value(),
+                "base_media": self.c_base_media.isChecked(), "fases_pre": self.fases_pre(),
+                "excluidas": self.excluidas() or [],
                 "uids": self.checked()}
+
+
+def validar_exclusao(n: int, pre: int, early: int, late: int, fases_pre, excluidas) -> str:
+    """A mesma regra de `DynamicMaps.validar_exclusao`, antes de montar os mapas."""
+    from types import SimpleNamespace
+    falso = SimpleNamespace(dset=SimpleNamespace(phases=[None] * n), pre=pre, early=early, late=late,
+                            fases_pre=list(fases_pre))
+    return DynamicMaps.validar_exclusao(falso, excluidas)
 
 
 # ====================================================================== gráfico
@@ -352,7 +394,8 @@ class TicChart(QWidget):
 
 # ====================================================================== painel
 class DynamicPanel(QWidget):
-    COLS = ["#", "Origem", "Inicial", "Pico", "SER", "Curva", "Cinética", "MSI", "PEI"]
+    COLS = ["#", "Origem", "Inicial", "Pico", "SER", "Curva", "Cinética", "MSI", "PEI", "BAT", "Lavagem",
+            "iAUC90", "MRT"]
 
     def __init__(self, session, parent=None):
         super().__init__(parent)
@@ -451,6 +494,8 @@ class DynamicPanel(QWidget):
         mp = self.s.maps
         for i, (lab, t) in enumerate(zip(mp.dset.labels, mp.dset.times)):
             tag = " (pré)" if i == mp.pre else " (inicial)" if i == mp.early else " (tardia)" if i == mp.late else ""
+            if i in getattr(mp, "excluidas", ()):
+                tag += " (fora da conta)"
             self.c_view.addItem(f"Fase {i + 1}{tag} — {fmt_time(t)} — {lab}", f"ph:{i}")
         i = self.c_view.findData(current)
         if i >= 0:
@@ -481,7 +526,9 @@ class DynamicPanel(QWidget):
         for r, (color, label, st) in enumerate(rows):
             vals = [str(r + 1), label, f"{st['initial']:+.0f}%", f"{st['peak']:+.0f}%",
                     "—" if st["ser"] is None else f"{st['ser']:.2f}", st["type"] or "—",
-                    st.get("cinetica", "—"), f"{st['msi']:.0f} {unit_msi}", f"{st['pei']:.0f} {unit_pei}"]
+                    st.get("cinetica", "—"), f"{st['msi']:.0f} {unit_msi}", f"{st['pei']:.0f} {unit_pei}",
+                    f"{st.get('bat', 0):.0f} s", f"{st.get('wash', 0):.0f} {unit_msi}",
+                    f"{st.get('iauc', 0):.0f} {unit_pei}", f"{st.get('mrt', 0):.0f} s"]
             for c, v in enumerate(vals):
                 it = QTableWidgetItem(v)
                 if c == 0:
@@ -493,13 +540,15 @@ class DynamicPanel(QWidget):
     def copy_values(self) -> None:
         mp = self.s.maps
         head = ["curva"] + [f"{lab} ({fmt_time(t)})" for lab, t in zip(mp.dset.labels, mp.dset.times)] + \
-            ["inicial %", "pico %", "SER", "tipo", "cinética", "MSI", "PEI"]
+            ["inicial %", "pico %", "SER", "tipo", "cinética", "MSI", "PEI", "BAT s", "lavagem", "iAUC90", "MRT s"]
         lines = ["\t".join(head)]
         for label, st, vals in self.rows:
             ser = "" if st["ser"] is None else f"{st['ser']:.3f}"
             lines.append("\t".join([label] + [f"{v:.2f}" for v in vals] +
                                    [f"{st['initial']:.1f}", f"{st['peak']:.1f}", ser, st["type"],
-                                    st.get("cinetica", ""), f"{st['msi']:.2f}", f"{st['pei']:.2f}"]))
+                                    st.get("cinetica", ""), f"{st['msi']:.2f}", f"{st['pei']:.2f}",
+                                    f"{st.get('bat', 0):.1f}", f"{st.get('wash', 0):.2f}", f"{st.get('iauc', 0):.2f}",
+                                    f"{st.get('mrt', 0):.1f}"]))
         QApplication.clipboard().setText("\n".join(lines))
         self.s.tab.status_message.emit("Valores das curvas copiados (cole numa planilha).")
 
@@ -702,6 +751,7 @@ class DynamicSession:
             f"tardia: fase {mp.late + 1} ({fmt_time(d.times[mp.late])}) · limiar {mp.threshold_pct:.0f}%"
             + ("" if d.timed else " · <span style='color:#fc6'>sem horários (1 min/fase)</span>")
             + (self._motion_text() if mp.motion_corrected else "")
+            + "".join(f"<br><span style='color:#fc6'>{tr(a)}</span>" for a in mp.avisos_das_fases())
             + (f"<br>{mp.legenda_cinetica()}" if self._mostra_cinetica() else "") + "</small>")
 
     def _mostra_cinetica(self) -> bool:
@@ -846,6 +896,7 @@ class DynamicSession:
             if vals is not None:
                 curves.append((QColor(200, 200, 200), f"cursor ({int(u)}, {int(v)})", vals, True))
         marks = [(mp.dset.times[mp.early], "inicial"), (mp.dset.times[mp.late], "tardia")]
+        marks += [(mp.dset.times[i], "fora") for i in sorted(getattr(mp, "excluidas", ()))]
         self.panel.chart.set_data(mp.dset.times, curves, self.panel.c_rel.isChecked(), marks)
         self.panel.set_rows(rows)
 
@@ -866,8 +917,10 @@ class DynamicSession:
         d = mp.dset
         mov = " · movimento corrigido" if mp.motion_corrected else ""
         cin = f" · {mp.legenda_cinetica()}" if self._mostra_cinetica() else ""
+        fora = (" · fora da conta: fase " + ", ".join(str(i + 1) for i in sorted(mp.excluidas))) if mp.excluidas else ""
+        base = f" · linha de base: média das fases 1 a {mp.pre + 1}" if len(mp.fases_pre) > 1 else ""
         return (f"Dinâmica: {len(d.phases)} fases · pré fase {mp.pre + 1} · inicial {fmt_time(d.times[mp.early])} · "
-                f"tardia {fmt_time(d.times[mp.late])} · limiar {mp.threshold_pct:.0f}%{mov}{cin}")
+                f"tardia {fmt_time(d.times[mp.late])} · limiar {mp.threshold_pct:.0f}%{base}{fora}{mov}{cin}")
 
     def chart_to_film(self) -> None:
         """Grava o gráfico (com a tabela) como imagem DICOM (captura secundária) no estudo e manda ao filme."""

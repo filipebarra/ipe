@@ -89,3 +89,84 @@ def clonar(src, ann, dst, hub=None) -> str:
     dst._store("save", cp)
     dst.update()
     return ""
+
+
+# ------------------------------------------------------------------ ROI espelhada (0.99.48, plano AW M14)
+def eixo_de_simetria(vp) -> tuple[float | None, str]:
+    """(x do plano sagital mediano, em mm do paciente, ou None; como foi achado).
+
+    - Corte axial ou coronal (as colunas andam em x): o meio do corpo **nesta imagem** — as colunas
+      com sinal acima de 10% do percentil 99, da primeira à última.
+    - Corte sagital (RM de mama bilateral): o meio da faixa de cortes da série em x.
+    Plano oblíquo não tem espelho direito-esquerdo simples: devolve None."""
+    pl = vp.plane()
+    img = getattr(vp, "_img", None)
+    if pl is None or img is None:
+        return None, "sem geometria"
+    _pos, row, col, n = pl
+    if abs(float(n[0])) > 0.9:                         # sagital: o espelho é outro corte
+        xs = [float(f.position[0]) for f in vp.frames if f.position is not None]
+        if len(xs) < 2:
+            return None, "série sagital com um corte só"
+        return (min(xs) + max(xs)) / 2, "meio da faixa de cortes sagitais"
+    if abs(float(row[0])) < 0.9:
+        return None, "plano oblíquo: o espelho direito-esquerdo só vale em axial, coronal ou sagital"
+    px = np.asarray(img.pixels, float)
+    if px.ndim != 2:
+        return None, "imagem colorida"
+    ref = float(np.percentile(px, 99))
+    corpo = px > (px.min() + 0.10 * (ref - px.min()))
+    cols = np.nonzero(corpo.sum(axis=0) > max(3, 0.05 * px.shape[0]))[0]
+    if len(cols) < 4:
+        return None, "não achei o corpo nesta imagem"
+    meio = (cols[0] + cols[-1]) / 2.0
+    p = vp.pixel_to_patient(meio, px.shape[0] / 2)
+    return (None, "sem geometria") if p is None else (float(p[0]), "meio do corpo nesta imagem")
+
+
+def espelhar(vp, ann, xm: float | None = None):
+    """Cria a ROI do outro lado (espelho no plano x = xm) no mesmo quadro. Devolve (ROI nova, motivo)."""
+    if ann.kind not in M.ROI_KINDS:
+        return None, "só ROIs se espelham"
+    if ann.frame_key != vp.frame_key():
+        return None, "a ROI não está no corte à vista"
+    if xm is None:
+        xm, como = eixo_de_simetria(vp)
+        if xm is None:
+            return None, como
+    img = vp._img
+    media_lesao = M.media_da_roi(ann, img.pixels if img is not None and not img.is_color else None,
+                                 vp.measure_spacing(ann))
+    pts = [vp.pixel_to_patient(float(x), float(y)) for x, y in ann.points]
+    if any(p is None for p in pts):
+        return None, "sem geometria"
+    esp = [np.array([2 * xm - p[0], p[1], p[2]], float) for p in pts]
+    centro = np.mean(esp, axis=0)
+    tol = _intervalo(vp) / 2 + 2.0
+    if not vp.go_to_point(centro, tolerance_mm=tol):
+        return None, "o outro lado fica fora dos cortes desta série"
+    novo = []
+    for p in esp:
+        uvd = vp.patient_to_pixel(p)
+        novo.append((uvd[0], uvd[1]))
+    h, w = vp._img.pixels.shape[:2]
+    cx, cy = np.mean([q[0] for q in novo]), np.mean([q[1] for q in novo])
+    if not (0 <= cx < w and 0 <= cy < h):
+        return None, "o outro lado cai fora da imagem"
+    f = vp.current_frame()
+    cp = M.Annotation(ann.kind, vp.frame_key(), novo, text="Contralateral", study_uid=vp.study_uid,
+                      series_uid=(f.series_uid if f is not None and getattr(f, "series_uid", "") else vp.series_uid),
+                      meta={"contralateral_de": True, "eixo_x": round(float(xm), 2)})
+    img2 = vp._img
+    media_contra = M.media_da_roi(cp, img2.pixels if img2 is not None and not img2.is_color else None,
+                                  vp.measure_spacing(cp))
+    vp.annotations.append(cp)
+    vp._store("save", cp)
+    if media_contra is not None:
+        ann.meta = {**(ann.meta or {}), "contralateral": {"media": round(float(media_contra), 4),
+                                                          "eixo_x": round(float(xm), 2)}}
+        ann.cache.clear()
+        vp._store("save", ann)
+    vp.update()
+    razao = (media_lesao / media_contra) if media_lesao is not None and media_contra not in (None, 0) else None
+    return cp, razao

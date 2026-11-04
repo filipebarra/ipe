@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.48 — phases left out, curve descriptors, mirrored ROI
+- **Dynamic ▸ Parameters**: **phases left out** (the one that moved leaves the maps and curves; not the
+  initial, the late, nor two in a row) and **baseline from the mean of the pre phases**; a warning with a
+  single pre phase.
+- **New maps and columns**: contrast arrival (BAT), washout (steepest descent after the peak), iAUC90 and
+  mean enhancement time (MRT).
+- **Mirrored ROI** (right click on the ROI): the ROI on the other side, mirrored about the midline plane — on
+  the same slice (axial/coronal) or on the other side's slice (sagittal) —, with the lesion / contralateral
+  ratio.
+
 ## 0.99.47 — body composition at L3 and liver attenuation
 - **Composition** (abdominal CT): on the axial slice through the middle of L3, muscle area, muscle density,
   visceral, subcutaneous and intermuscular fat; with the height in the file, the muscle index (Prado 2008

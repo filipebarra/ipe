@@ -398,6 +398,12 @@ def linhas_extras(ann: "Annotation", pixels: np.ndarray | None, spacing: tuple[f
         e = perimetro_mm(k, pts, spacing) * pix_mm / 2
         out.append(f"Área ± {e:.1f} mm²")
     if k in ROI_KINDS and pixels is not None:
+        contra = (ann.meta or {}).get("contralateral")       # 0.99.48: ROI espelhada (plano AW M14)
+        if contra and contra.get("media"):
+            mc = media_da_roi(ann, pixels, spacing)
+            if mc is not None:
+                out.append(f"lesão / contralateral {mc / contra['media']:.2f} "
+                           f"(contralateral {contra['media']:.1f})")
         if (ann.meta or {}).get("referencia"):
             out.append("Referência (100%)")
         elif ref_media:

@@ -223,6 +223,7 @@ O botão **Medidas** abre uma janela com tudo o que foi medido no exame: série,
 - **Cortes grossos**: a régua desenhada numa reconstrução de cortes grossos (o sagital de um axial de 5 mm) avisa quando a direção dela tem pixel de 5 mm — a medida craniocaudal herda esse erro, a ântero-posterior não. Na imagem original, a régua menor que a espessura do corte também avisa.
 - **Incerteza** (Configurações ▸ Visualizador ▸ Texto e marcas sobre a imagem): mostra ± o pixel na direção da régua e ± perímetro × pixel ÷ 2 na área da ROI. Desligada de fábrica; os avisos acima aparecem sempre.
 - **Clonar a ROI**: botão direito numa ROI ▸ *Clonar esta ROI nos outros quadros*. Cada quadro à vista recebe uma ROI nova **na mesma posição no paciente** (em mm, não no mesmo pixel: série com outra matriz ou outro FOV recebe a ROI do tamanho certo), no corte mais perto do centro dela, com a média, o desvio e a área da imagem de lá — T2 → ADC, pré → pós, atual → anterior. No mesmo exame vale o Frame of Reference; entre exames diferentes, ligue antes os quadros num grupo de sincronia (ou registre): sem referencial comum, a barra de status diz que não copiou e por quê. Também não copia para plano não paralelo nem para série que não cobre aquele ponto.
+- **ROI espelhada**: botão direito numa ROI ▸ *Espelhar no outro lado (razão lesão / contralateral)*. A ROI nova ("Contralateral") vai para o espelho no plano sagital mediano: num axial ou coronal, o meio do corpo naquela imagem; numa série sagital (RM de mama bilateral), o meio da faixa de cortes — e o quadro vai ao corte do outro lado. A ROI original passa a mostrar *lesão / contralateral* (a média dela sobre a do outro lado), em qualquer mapa: ADC, realce, BPE. A barra de status diz onde ficou o eixo. Plano oblíquo, série que não cobre o outro lado e imagem colorida não espelham, e a barra diz por quê.
 - **ROI de referência**: botão direito numa ROI ▸ *Usar como ROI de referência*. As outras ROIs da série passam a mostrar a média delas em % da referência (lesão/fígado, lesão/aorta, lesão/músculo). Só uma por série; ela fica marcada "Referência (100%)" e acompanha se você a mexer.
 
 ## Escala das medidas e calibração
@@ -490,6 +491,14 @@ Os valores ficam guardados: o próximo exame abre com os últimos que você usou
 | Subtração | pós menos pré |
 | MIP temporal | o maior realce de cada voxel em **qualquer** fase pós-contraste (máximo das subtrações): a lesão aparece no pico dela, mesmo que seja fora da fase inicial |
 | Média temporal | o realce médio das fases pós-contraste |
+| Chegada (BAT) | o tempo (s) até o realce do voxel chegar a 10% do pico dele, interpolado entre as fases |
+| Lavagem | a maior inclinação de **descida** depois do pico (unidade do MSI); 0 quando a curva não desce |
+| iAUC90 | a área sob a curva de realce nos primeiros 90 s (unidade do PEI) |
+| Tempo médio (MRT) | o tempo médio do realce, ∫t·realce / ∫realce (s) |
+
+Os quatro últimos (0.99.48) também saem por curva, nas colunas BAT, Lavagem, iAUC90 e MRT da tabela e em *Copiar valores*.
+
+**Fases fora da conta e linha de base** (botão *Parâmetros…*). Em *Fases fora da conta (movimento)* escreva o número da fase que mexeu (por exemplo `4`, ou `4, 7`): ela sai dos mapas e das contas das curvas, e o resto é recalculado com os tempos de verdade. Não podem sair a fase inicial, a tardia, todas as pré, nem duas fases seguidas (a curva perderia o trecho inteiro). No gráfico a fase continua desenhada, marcada "fora"; na lista das vistas ela aparece "(fora da conta)", e o título do painel e a linha de resumo dizem quais saíram. *Linha de base: média de todas as fases até a pré-contraste escolhida* usa a média das fases pré como linha de base — com duas pré ou mais, menos ruído. Com uma fase pré só, o painel avisa.
 
 **Paisagem.** Com a subtração ligada no menu da fase (canto do quadro), *Paisagem (anatomia na subtração)* devolve 10, 20, 30 ou 50% da anatomia à subtração — para achar o mamilo, o clipe ou a pele sem trocar de série. Vale para todas as fases e aparece no canto ("subtração + 20% anatomia"). A subtração digital (DSA) tem a mesma opção no menu dela.
 

@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.48 — fases fora da conta, descritores da curva, ROI espelhada
+- **Dinâmica ▸ Parâmetros**: **fases fora da conta** (a que mexeu sai dos mapas e das curvas; não a inicial,
+  a tardia nem duas seguidas) e **linha de base pela média das fases pré**; aviso com uma fase pré só.
+- **Mapas e colunas novos**: chegada do contraste (BAT), lavagem (maior descida depois do pico), iAUC90 e
+  tempo médio do realce (MRT).
+- **ROI espelhada** (botão direito na ROI): a ROI do outro lado no espelho do plano mediano — no mesmo
+  corte (axial/coronal) ou no corte do outro lado (sagital) —, com a razão lesão / contralateral.
+
 ## 0.99.47 — composição corporal em L3 e atenuação hepática
 - **Composição** (TC de abdome): no corte axial do meio de L3, área muscular, densidade muscular, gordura
   visceral, subcutânea e intermuscular; com a altura no arquivo, o índice muscular (referência de Prado 2008
