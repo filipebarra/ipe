@@ -131,6 +131,19 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
                 lab[vol == 2000 + cod] = cid
             saida[nome] = (lab, {cid: n for cid, (_c, n) in codigos.items()})
             continue
+        if t.get("nodulos"):                  # 0.99.46: nódulo sólido = 45 HU, vidro fosco = −601, pulmão = −850
+            pulmao = np.isin(vol, (-850, 45, -601))
+            if nome == "lung_nodules":
+                lab[vol == -850] = 1
+                lab[np.isin(vol, (45, -601))] = 2
+                saida[nome] = (lab, {1: "lung", 2: "lung_nodules"})
+            else:
+                metade = np.zeros(vol.shape, bool)
+                metade[:, :, : nx // 2] = True
+                lab[pulmao & metade] = 10
+                lab[pulmao & ~metade] = 11
+                saida[nome] = (lab, {10: "lung_upper_lobe_right", 11: "lung_upper_lobe_left"})
+            continue
         if t.get("neuro"):
             # fantoma do SynthSeg (0.99.17): HU = 1000 + rótulo do FreeSurfer
             lab = np.where(vol >= 1000, np.clip(vol - 1000, 0, 255), 0).astype(np.uint8)

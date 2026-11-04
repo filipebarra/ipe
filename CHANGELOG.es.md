@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.46 — hallazgos de IA revisables; nódulos pulmonares
+- **Hallazgos de IA** (Aplicaciones ▸ Hallazgos de IA): cada candidato que una IA señala queda *sugerido*, con
+  posición, números, modelo, serie y avisos; usted **confirma, corrige o descarta** uno a uno, con quién y
+  cuándo. Solo lo confirmado o corregido va al informe; lo confirmado puede volverse **lesión en seguimiento**.
+  Correr de nuevo no rehace lo ya revisado.
+- **Nódulos pulmonares** en la TC (botón Nódulos, o automático en Configuración ▸ CAD/IA): TotalSegmentator
+  *lung_nodules* — lóbulo, diámetro mayor y medio, volumen, HU medio, parte sólida y consistencia propuesta.
+- El instalador de la segmentación pasa a descargar *lung_nodules* y *total*.
+
 ## 0.99.45 — zoom escrito, ROI clonada, tiempo de duplicación, series derivadas que dicen de dónde vienen
 - **Zoom escrito**: doble clic en el "Zoom N%" de la esquina ▸ ajustar, 1:1, 50 a 400% o *Escribir el
   zoom…* (`150`, `2x`, `1:1`).

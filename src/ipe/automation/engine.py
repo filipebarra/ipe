@@ -212,6 +212,7 @@ class AutomationEngine(QObject):
         self.cefalometria(study_uid, info)
         self.indices_cranio(study_uid, info)
         self.niveis_linfonodais(study_uid, info)
+        self.ias_genericas(study_uid, info)
         self.changed.emit()
 
     # ------------------------------------------------------------ exames importados (0.99.1)
@@ -240,6 +241,7 @@ class AutomationEngine(QObject):
             self.cefalometria(uid, info)
             self.indices_cranio(uid, info)
             self.niveis_linfonodais(uid, info)
+            self.ias_genericas(uid, info)
             feitos.append(uid)
         return feitos
 
@@ -350,6 +352,11 @@ class AutomationEngine(QObject):
         """Preferências ▸ CAD/IA ▸ Níveis linfonodais ▸ automático (0.99.20)."""
         return self._enfileirar(study_uid, "linfonodos", info)
 
+    def ias_genericas(self, study_uid: str, info: dict | None = None) -> list[str]:
+        """As IAs do contrato comum (0.99.46: nódulos pulmonares…), cada uma com o seu automático."""
+        from ipe.ai import ferramentas as FE
+        return [t for t in FE.tipos() if self._enfileirar(study_uid, t, info)]
+
     def _enfileirar(self, study_uid: str, tipo: str, info: dict | None) -> bool:
         """Escolhe a série pela lista de prioridade e roda em segundo plano. **Um exame por vez** — os
         outros esperam na fila. Exame que já tem o resultado daquela ferramenta não é refeito."""
@@ -358,7 +365,8 @@ class AutomationEngine(QObject):
         from ipe.ai import totalseg as TS
         from ipe.ai import linfonodos as LN
         from ipe.ai import neuro as NE
-        mod = {"coluna": COL, "cefalometria": CF, "neuro": NE, "linfonodos": LN}.get(tipo, TS)
+        from ipe.ai import ferramentas as FE
+        mod = FE.modulo(tipo) or {"coluna": COL, "cefalometria": CF, "neuro": NE, "linfonodos": LN}.get(tipo, TS)
         if not mod.config(self.settings, mod.CHAVE_AUTO):
             return False
         if not self._seg_simular and not TS.instalado(self.settings):
@@ -366,16 +374,18 @@ class AutomationEngine(QObject):
         info = info if info is not None else self.repo.study_info(study_uid)
         if info is None or not mod.exame_serve(info, self.settings):
             return False
-        ja = {"coluna": COL.ja_identificado, "cefalometria": CF.ja_feita,
-              "neuro": NE.ja_feita, "linfonodos": LN.ja_feita}.get(tipo, TS.ja_segmentado)(self.repo, study_uid)
+        ja = (mod.ja_feita if FE.modulo(tipo) is not None else
+              {"coluna": COL.ja_identificado, "cefalometria": CF.ja_feita,
+               "neuro": NE.ja_feita, "linfonodos": LN.ja_feita}.get(tipo, TS.ja_segmentado))(self.repo, study_uid)
         if ja:
             return False
         if (study_uid, tipo) not in self._seg_fila:
             self._seg_fila.append((study_uid, tipo))
             # 0.99.32: aparece na janela "Tarefas de IA" desde a fila, e dá para cancelar dali
             from ipe.ai import tarefas as TA
-            titulo = {"coluna": "Níveis da coluna", "cefalometria": "Cefalometria do cavum",
-                      "neuro": "Índices do crânio", "linfonodos": "Níveis linfonodais"}.get(tipo, "Órgãos abdominais")
+            titulo = mod.TITULO if FE.modulo(tipo) is not None else {
+                "coluna": "Níveis da coluna", "cefalometria": "Cefalometria do cavum",
+                "neuro": "Índices do crânio", "linfonodos": "Níveis linfonodais"}.get(tipo, "Órgãos abdominais")
             nome = f"{info.get('patient_name', '')} {info.get('description', '')}".strip()
             chave = (study_uid, tipo)
             tarefa = TA.REGISTRO.nova(titulo, study_uid, nome, "automática",
@@ -412,12 +422,16 @@ class AutomationEngine(QObject):
         from ipe.ai import cefalometria as CF
         from ipe.ai import linfonodos as LN
         from ipe.ai import neuro as NE
-        titulo = {"coluna": "Níveis da coluna", "cefalometria": "Cefalometria do cavum",
-                  "neuro": "Índices do crânio", "linfonodos": "Níveis linfonodais"}.get(tipo, "Órgãos abdominais")
+        from ipe.ai import ferramentas as FE
+        gen = FE.modulo(tipo)                       # 0.99.46: IAs do contrato comum
+        titulo = gen.TITULO if gen is not None else {
+            "coluna": "Níveis da coluna", "cefalometria": "Cefalometria do cavum",
+            "neuro": "Índices do crânio", "linfonodos": "Níveis linfonodais"}.get(tipo, "Órgãos abdominais")
         info = self.repo.study_info(study_uid) or {}
         nome = f"{info.get('patient_name', '')} {info.get('description', '')}".strip()
-        escolher = {"coluna": COL.escolher_serie, "cefalometria": CF.escolher_serie,
-                    "neuro": NE.escolher_serie, "linfonodos": LN.escolher_serie}.get(tipo, TS.escolher_serie)
+        escolher = gen.escolher_serie if gen is not None else {
+            "coluna": COL.escolher_serie, "cefalometria": CF.escolher_serie,
+            "neuro": NE.escolher_serie, "linfonodos": LN.escolher_serie}.get(tipo, TS.escolher_serie)
         serie, motivo = escolher(self.repo, study_uid, self.settings)
         if serie is None:
             TA.REGISTRO.mudar(tid, TA.VAZIO, mensagem=str(motivo or ""))
@@ -436,6 +450,8 @@ class AutomationEngine(QObject):
             t.tarefas_proprias, t.min_cortes, t.modalidades = NE.tarefas, NE.MIN_CORTES, ("MR", "CT")
         if linfo:
             t.tarefas_proprias, t.min_cortes, t.modalidades = LN.tarefas, LN.MIN_CORTES, ("CT",)
+        if gen is not None:
+            FE.preparar_trabalho(t, gen)
         TS.EM_CURSO.add(study_uid)
         inicio = datetime.now()
 
@@ -462,6 +478,8 @@ class AutomationEngine(QObject):
             t.preparar()                # volume montado aqui, fora da tela (cache próprio)
             TA.REGISTRO.mudar(tid, TA.RODANDO, etapa="iniciando o TotalSegmentator")
             t.rodar_aqui(etapa)
+            if gen is not None:
+                return FE.rodar_conta(t, gen, self.settings)
             if cefalo:
                 rotulos, versao, _s = t.ler_rotulos()
                 return CF.calcular(t.vol, rotulos, self.settings), versao
@@ -522,7 +540,12 @@ class AutomationEngine(QObject):
                 if t.cancelado:
                     raise TS.Falhou("Cancelada.")
                 TA.REGISTRO.mudar(tid, TA.GRAVANDO, etapa="gravando as séries no exame")
-                if linfo:
+                if gen is not None:
+                    gres, versao = res
+                    saida = FE.gravar(t, gen, gres, versao, self.db, self.paths.storage, self.repo, self.settings)
+                    resumo, n_itens = gen.resumo(gres), gen.n_itens(gres)
+                    destinos = gen.config(self.settings, gen.CHAVE_DESTINOS)
+                elif linfo:
                     (mk, vols, rotulos), versao = res
                     saida = LN.gravar(t, mk, rotulos, versao, self.db, self.paths.storage, repo=self.repo,
                                       volumes=vols)

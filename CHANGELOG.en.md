@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.46 — reviewable AI findings; lung nodules
+- **AI findings** (Applications ▸ AI findings): each candidate an AI points out is *suggested*, with position,
+  numbers, model, series and warnings; you **confirm, correct or dismiss** them one by one, with who and when.
+  Only what is confirmed or corrected goes to the report; a confirmed one can become a **tracked lesion**.
+  Running again does not redo what was already reviewed.
+- **Lung nodules** on CT (Nodules button, or automatic in Settings ▸ CAD/AI): TotalSegmentator
+  *lung_nodules* — lobe, longest and mean diameter, volume, mean HU, solid part and proposed consistency.
+- The segmentation installer now downloads *lung_nodules* and *total*.
+
 ## 0.99.45 — typed zoom, cloned ROI, doubling time, derived series that say where they came from
 - **Typed zoom**: double click the "Zoom N%" in the corner ▸ fit, 1:1, 50 to 400% or *Type the zoom…*
   (`150`, `2x`, `1:1`).

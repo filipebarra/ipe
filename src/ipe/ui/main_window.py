@@ -1672,6 +1672,8 @@ class MainWindow(QMainWindow):
         for t in self.all_viewer_tabs():
             if study_uid in (getattr(t, "study_order", None) or [t.study_uid]):
                 carregar_na_aba(t, saida)
+                if (saida or {}).get("ferramenta") and hasattr(t, "achados_mudaram"):    # 0.99.46
+                    t.achados_mudaram()
                 if (saida or {}).get("mapa") is not None:          # níveis linfonodais (0.99.20)
                     from ipe.ai import linfonodos as LN
                     t.overlay_objects[:] = [o for o in t.overlay_objects if o.source != LN.FONTE_OVERLAY]

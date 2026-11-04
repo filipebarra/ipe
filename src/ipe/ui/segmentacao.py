@@ -142,7 +142,12 @@ class Segmentacao(QObject):
             self.trabalho.min_cortes = N.MIN_CORTES
             self.trabalho.modalidades = ("MR", "CT")
             self.trabalho.motivo_modalidade = "Os índices do crânio são para RM ou TC."
-        self.titulo = {"coluna": "Identificar vértebras e discos",
+        from ipe.ai import ferramentas as FE
+        self._generica = FE.modulo(tipo)          # 0.99.46: as IAs do contrato comum (nódulos…)
+        if self._generica is not None:
+            FE.preparar_trabalho(self.trabalho, self._generica)
+        self.titulo = self._generica.TITULO if self._generica is not None else {
+                       "coluna": "Identificar vértebras e discos",
                        "cefalometria": "Cefalometria automática",
                        "neuro": "Índices do crânio (IA)",
                        "linfonodos": "Níveis linfonodais (IA)"}.get(tipo, "Segmentar órgãos")
@@ -331,6 +336,9 @@ class Segmentacao(QObject):
             if self.tipo == "linfonodos":
                 self._fim_linfonodos()
                 return
+            if self._generica is not None:
+                self._fim_generica()
+                return
             from ipe.ai import totalseg_saida as SAIDA
             res = self.trabalho.ler()
             saida = SAIDA.gravar(self.trabalho, res, self.repo.db, self.storage)
@@ -377,6 +385,14 @@ class Segmentacao(QObject):
         if res.avisos:
             msg += "\n\nConfira: " + "; ".join(res.avisos) + "."
         self._fim(saida, msg)
+
+    def _fim_generica(self) -> None:
+        from ipe.ai import ferramentas as FE
+        mod = self._generica
+        res, versao = FE.rodar_conta(self.trabalho, mod, self.trabalho.settings)
+        saida = FE.gravar(self.trabalho, mod, res, versao, self.repo.db, self.storage, self.repo,
+                          self.trabalho.settings)
+        self._fim(saida, mod.mensagem(res, (time.monotonic() - self.inicio) / 60))
 
     def _fim_linfonodos(self) -> None:
         from ipe.ai import linfonodos as LN

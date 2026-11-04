@@ -91,8 +91,12 @@ class CadIaTab(QWidget):
         self.l_ferramentas = QListWidget()
         el.addWidget(self.l_ferramentas, 1)
         self.painel = QStackedWidget()
+        from ipe.ai import ferramentas as FE
+        self._gen: dict = {}
+        self.FERRAMENTAS = tuple(self.FERRAMENTAS) + tuple(
+            (FE.modulo(t).NOME_CADIA, t, FE.modulo(t).CHAVE_AUTO) for t in FE.tipos())
         for nome, construtor, _chave in self.FERRAMENTAS:
-            grupo = getattr(self, construtor)()
+            grupo = getattr(self, construtor)() if construtor.startswith("_") else self._grupo_generico(construtor)
             caixa = QWidget()
             cl = QVBoxLayout(caixa)
             cl.setContentsMargins(0, 0, 0, 0)
@@ -120,7 +124,82 @@ class CadIaTab(QWidget):
             self.l_ferramentas.item(k).setText(f"{nome}\n   {'automático na chegada' if auto else 'só à mão'}")
 
     def _caixas_auto(self) -> list:
-        return [self.c_seg_auto, self.c_col_auto, self.c_imp_auto, self.c_cef_auto, self.c_neu_auto, self.c_lin_auto]
+        return [self.c_seg_auto, self.c_col_auto, self.c_imp_auto, self.c_cef_auto, self.c_neu_auto, self.c_lin_auto,
+                *[w["auto"] for w in self._gen.values()]]
+
+    # ------------------------------------------------------------ IAs do contrato comum (0.99.46)
+    def _grupo_generico(self, tipo: str) -> QGroupBox:
+        """Mesmo desenho das outras: automático, descrição do exame, série preferida, filtros, destinos,
+        mais as opções próprias da ferramenta (`OPCOES` do módulo)."""
+        from ipe.ai import ferramentas as FE
+        mod = FE.modulo(tipo)
+        g = QGroupBox(mod.TITULO_CADIA)
+        f = QFormLayout(g)
+
+        def cfg(k):
+            return mod.config(self.settings, k)
+        expl = QLabel(mod.EXPLICACAO_CADIA)
+        expl.setWordWrap(True)
+        expl.setStyleSheet("color: gray")
+        f.addRow(expl)
+        w = {"mod": mod}
+        w["auto"] = QCheckBox("Fazer automaticamente quando o exame chegar (só TC)")
+        w["auto"].setChecked(bool(cfg(mod.CHAVE_AUTO)))
+        f.addRow(w["auto"])
+        w["exame"] = QLineEdit(str(cfg(mod.CHAVE_EXAME_CONTEM) or ""))
+        w["exame"].setPlaceholderText("vazio = qualquer TC")
+        w["exame"].setToolTip("Pedaços da descrição do exame, separados por |, sem diferença de acento ou "
+                              "maiúscula. Vale para o automático.")
+        f.addRow("Descrição do exame contém:", w["exame"])
+        w["ct"] = QLineEdit(str(cfg(mod.CHAVE_PRIOR_CT) or ""))
+        w["ct"].setToolTip("Séries em ordem de preferência, separadas por |: vale a primeira que aparecer na "
+                           "descrição da série; entre iguais, a de mais cortes.")
+        f.addRow("Série preferida na TC:", w["ct"])
+        lf = QHBoxLayout()
+        w["esp"] = QDoubleSpinBox()
+        w["esp"].setRange(0, 20)
+        w["esp"].setDecimals(2)
+        w["esp"].setSuffix(" mm")
+        w["esp"].setSpecialValueText("sem limite")
+        w["esp"].setValue(float(cfg(mod.CHAVE_ESPESSURA) or 0))
+        w["min"] = QSpinBox()
+        w["min"].setRange(mod.MIN_CORTES, 2000)
+        w["min"].setValue(int(cfg(mod.CHAVE_MIN_CORTES) or mod.MIN_CORTES))
+        lf.addWidget(QLabel("espessura até"))
+        lf.addWidget(w["esp"])
+        lf.addWidget(QLabel("  mínimo de"))
+        lf.addWidget(w["min"])
+        lf.addWidget(QLabel("cortes"))
+        lf.addStretch(1)
+        f.addRow("Filtros da série:", lf)
+        w["opcoes"] = {}
+        for chave, rotulo, lo, hi, sufixo, dica in getattr(mod, "OPCOES", ()):
+            sp = QDoubleSpinBox()
+            sp.setRange(lo, hi)
+            sp.setDecimals(1)
+            sp.setSuffix(sufixo)
+            sp.setValue(float(cfg(chave) or 0))
+            sp.setToolTip(dica)
+            w["opcoes"][chave] = sp
+            f.addRow(rotulo, sp)
+        w["dest"] = _lista_de_nos(self.repo, cfg(mod.CHAVE_DESTINOS))
+        w["dest"].setToolTip("A série de resultado vai para os nós marcados depois de feita.")
+        f.addRow("Depois de fazer, enviar para:", w["dest"])
+        self._gen[tipo] = w
+        return g
+
+    def _salvar_genericos(self) -> None:
+        s = self.settings
+        for w in self._gen.values():
+            mod = w["mod"]
+            s.set(mod.CHAVE_AUTO, w["auto"].isChecked())
+            s.set(mod.CHAVE_EXAME_CONTEM, w["exame"].text().strip())
+            s.set(mod.CHAVE_PRIOR_CT, w["ct"].text().strip())
+            s.set(mod.CHAVE_ESPESSURA, round(w["esp"].value(), 2))
+            s.set(mod.CHAVE_MIN_CORTES, w["min"].value())
+            s.set(mod.CHAVE_DESTINOS, _marcados(w["dest"]))
+            for chave, sp in w["opcoes"].items():
+                s.set(chave, round(sp.value(), 2))
 
     def mostrar(self, nome: str) -> None:
         for k, (n, _c, _ch) in enumerate(self.FERRAMENTAS):
@@ -487,6 +566,7 @@ class CadIaTab(QWidget):
     def save(self) -> None:
         s = self.settings
         s.set("cad.ler_antes", self.c_ler_antes.isChecked())
+        self._salvar_genericos()
         s.set(TS.CHAVE_AUTO, self.c_seg_auto.isChecked())
         s.set(TS.CHAVE_EXAME_CONTEM, self.e_seg_exame.text().strip())
         s.set(TS.CHAVE_MODALIDADES, [m for m, c in (("CT", self.c_seg_ct), ("MR", self.c_seg_mr)) if c.isChecked()])

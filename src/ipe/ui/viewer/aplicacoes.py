@@ -180,6 +180,8 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
               descricao="Medidas guiadas: MRPI e MRPI 2.0, índice de Evans, ângulo calosal"),
     Aplicacao("linfonodos", "Linfonodos", frozenset({"CT"}), ((frozenset({"pescoco"}), frozenset()),),
               descricao="Mapa dos níveis linfonodais cervicais (I a VII) e o nível da lesão segmentada"),
+    Aplicacao("nodulos", "Nódulos", frozenset({"CT"}), ((frozenset({"torax"}), frozenset()),),
+              descricao="Nódulos pulmonares (IA): candidatos com volume, eixos e densidade, revisados um a um"),
     Aplicacao("difusao", "Difusão", frozenset({"MR"}), ((frozenset(), frozenset({"difusao"})),),
               descricao="Mapa ADC dos valores de b, DWI sintética e ADC numa ROI (qualquer RM)"),
     Aplicacao("abdome", "Órgãos abdominais", frozenset({"CT", "MR"}),

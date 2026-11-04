@@ -566,6 +566,9 @@ class ViewerTab(OncoMixin, QWidget):
         a = QAction("Tarefas de IA (andamento e cancelar)…", m)          # 0.99.32
         a.triggered.connect(self.abrir_tarefas_ia)
         m.addAction(a)
+        a = QAction("Achados de IA (revisar, confirmar, descartar)…", m)  # 0.99.46
+        a.triggered.connect(self.abrir_achados)
+        m.addAction(a)
         a = QAction("Configurar a barra e as aplicações…", m)
         a.triggered.connect(self._configurar_barra)
         m.addAction(a)
@@ -1228,6 +1231,19 @@ class ViewerTab(OncoMixin, QWidget):
         lin.setIcon(icon("measure"))
         lin.setIconText("Linfonodos")
         self._button(tb, lin, None, app="linfonodos")
+        # nódulos pulmonares (0.99.46): achados revisáveis
+        menu_nod = self._menu()
+        a_nod = QAction("Procurar nódulos pulmonares nesta série (IA)…", self)
+        a_nod.triggered.connect(self._nodulos_do_ativo)
+        menu_nod.addAction(a_nod)
+        a_ach = QAction("Achados de IA (revisar, confirmar, descartar)…", self)
+        a_ach.triggered.connect(self.abrir_achados)
+        menu_nod.addAction(a_ach)
+        nod = self._act("nodulos.auto", "Nódulos pulmonares (IA)", self.nodulos_botao)
+        nod.setIcon(icon("measure"))
+        nod.setIconText("Nódulos")
+        self._button(tb, nod, menu_nod, app="nodulos")
+        self._act("achados.abrir", "Achados de IA: revisar, confirmar, descartar", self.abrir_achados)
         # órgãos abdominais (0.99.32, pedido dele: também no botão Aplicações)
         menu_abd = self._menu()
         a_abd = QAction("Segmentar órgãos abdominais desta série (IA)…", self)
@@ -5422,6 +5438,39 @@ class ViewerTab(OncoMixin, QWidget):
         from ipe.ui.viewer.difusao_painel import abrir
         return abrir(self)
 
+    def abrir_achados(self, achado_id: int | None = None):
+        """Achados de IA (0.99.46): a lista revisável do exame."""
+        from ipe.ui.viewer.achados_painel import abrir
+        return abrir(self, achado_id if isinstance(achado_id, int) and not isinstance(achado_id, bool) else None)
+
+    def _nodulos_do_ativo(self):
+        return self.nodulos_automatico(self.active)
+
+    def nodulos_automatico(self, vp=None, simular: bool = False):
+        """Procura nódulos pulmonares na série do quadro (TotalSegmentator lung_nodules)."""
+        vp = vp or self.active or next((v for v in self.viewports if v.frames), None)
+        if vp is None:
+            return None
+        return self.segmentar_orgaos(vp, simular=simular, tipo="nodulos")
+
+    def nodulos_botao(self):
+        """O botão: com achados no exame, abre a lista; sem, procura na série do quadro ativo."""
+        try:
+            tem = any(self.repo.achados(u, "nodulos") for u in (getattr(self, "study_order", None) or [self.study_uid]))
+        except Exception:  # noqa: BLE001
+            tem = False
+        if tem:
+            return self.abrir_achados()
+        return self.nodulos_automatico(self.active)
+
+    def achados_mudaram(self) -> None:
+        p = getattr(self, "achados_painel", None)
+        if p is not None:
+            try:
+                p.recarregar()
+            except RuntimeError:
+                self.achados_painel = None
+
     def abrir_tarefas_ia(self):
         """A janela "Tarefas de IA" (0.99.32): uma só para o programa todo."""
         from ipe.ui.tarefas_ia import abrir
@@ -5444,6 +5493,16 @@ class ViewerTab(OncoMixin, QWidget):
             if not seg.janela_viva():
                 # 0.99.34: o exame foi fechado enquanto rodava. O resultado já está gravado no exame
                 # (aparece ao abrir de novo); só falta mandar aos destinos de CAD/IA.
+                if saida is not None and saida.get("ferramenta") and net is not None:
+                    try:
+                        from ipe.ai import ferramentas as FE
+                        from ipe.automation import destinos as DEST
+                        mod = FE.modulo(saida["ferramenta"])
+                        DEST.enviar(net, repo, seg.trabalho.study_uid, saida.get("series"),
+                                    mod.config(settings, mod.CHAVE_DESTINOS), mod.TITULO)
+                    except Exception:  # noqa: BLE001
+                        log.exception("enviar os achados aos destinos (exame fechado)")
+                    return
                 if saida is not None and tipo in ("abdome", "coluna") and net is not None:
                     try:
                         from ipe.ai import coluna as COL
@@ -5471,6 +5530,18 @@ class ViewerTab(OncoMixin, QWidget):
                 if hasattr(self, "_apply_overlays"):
                     self._apply_overlays()
                 self.status_message.emit(msg)
+                QMessageBox.information(self, seg.titulo, msg)
+                return
+            if saida is not None and saida.get("ferramenta"):          # 0.99.46: IAs do contrato comum
+                carregar_na_aba(self, saida)
+                from ipe.ai import ferramentas as FE
+                from ipe.automation import destinos as DEST
+                mod = FE.modulo(saida["ferramenta"])
+                if mod is not None and DEST.enviar(self.net, self.repo, seg.trabalho.study_uid, saida.get("series"),
+                                                   mod.config(self.settings, mod.CHAVE_DESTINOS), mod.TITULO):
+                    msg += " Enviado também aos destinos escolhidos em Configurações ▸ CAD/IA."
+                self.status_message.emit(msg)
+                self.abrir_achados()
                 QMessageBox.information(self, seg.titulo, msg)
                 return
             if saida is not None and tipo == "neuro":

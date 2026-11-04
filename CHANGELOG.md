@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.46 — achados de IA revisáveis; nódulos pulmonares
+- **Achados de IA** (Aplicações ▸ Achados de IA): cada candidato que uma IA aponta fica *sugerido*, com posição,
+  números, modelo, série e avisos; você **confirma, corrige ou descarta** um a um, com quem e quando. Só o
+  confirmado ou corrigido vai ao laudo; o confirmado pode virar **lesão acompanhada**. Rodar de novo não refaz
+  o que já foi revisado.
+- **Nódulos pulmonares** na TC (botão Nódulos, ou automático em Configurações ▸ CAD/IA): TotalSegmentator
+  *lung_nodules* — lobo, diâmetro maior e médio, volume, HU médio, parte sólida e consistência proposta.
+- O instalador da segmentação passa a baixar *lung_nodules* e *total*.
+
 ## 0.99.45 — zoom digitado, ROI clonada, tempo de duplicação, séries derivadas que dizem de onde vieram
 - **Zoom digitado**: duplo clique no "Zoom N%" do canto ▸ ajustar, 1:1, 50 a 400% ou *Digitar o zoom…*
   (`150`, `2x`, `1:1`).

@@ -1137,6 +1137,32 @@ As IAs do Ipê (órgãos abdominais, níveis da coluna, cefalometria, índices d
 - **No banco de dados**, o exame que tem resultado de IA ganha **✦** ao lado do nome (a dica diz quais: "IA: órgãos abdominais, coluna"), e o que tem IA na fila ou rodando, **⚙**. A coluna **IA** (Colunas ▾) mostra as duas coisas por escrito.
 - **Órgãos abdominais** no visualizador: botão **Órgãos** (TC/RM de abdome ou pelve; nos outros exames, pelo botão **Aplicações**) ▸ *Segmentar órgãos abdominais desta série (IA)*. Grava as máscaras e a tabela de volumes no exame, como pelo botão direito no quadro.
 
+## Achados de IA e nódulos pulmonares
+
+As IAs que **apontam** alguma coisa (a primeira é a de nódulos pulmonares) não escrevem no laudo: cada candidato vira um **achado sugerido**, revisado um a um na janela **Achados de IA** (botão **Aplicações** ▸ *Achados de IA…*, ou o menu do botão **Nódulos**).
+
+- Cada linha diz o rótulo (N1, N2…), o tipo, o local, as medidas, o **estado** — *sugerido* (âmbar), *confirmado* (verde), *corrigido* (azul) ou *descartado* (cinza) — e quem revisou e quando. Embaixo, de onde veio: o modelo e a versão, a série usada e os avisos (corte grosso, por exemplo).
+- **Ir até** (ou duplo clique) leva o quadro com a série usada pela IA ao corte do achado, com o cursor 3D em cima.
+- **Confirmar**, **Descartar**, **Voltar a sugerido**. **Corrigir…** abre os números para você trocar (diâmetro, volume, consistência) e uma observação; o achado fica *corrigido* e o laudo leva os seus números.
+- **Acompanhar como lesão** (só no confirmado ou corrigido): cria a lesão no acompanhamento ("N1 (IA)", com o lobo como local) e uma medida — um círculo do diâmetro, com o volume — no corte do achado. Daí em diante ele entra no seguimento e no tempo de duplicação, como qualquer lesão.
+- **Mandar ao laudo** leva só os confirmados e os corrigidos, uma frase por achado ("Nódulo sólido no lobo inferior direito, diâmetro médio de 6,2 mm e volume de 120 mm³ (N1)."). Sem laudo aberto, o texto vai para a área de transferência.
+- Rodar a IA de novo troca só os **sugeridos**. O que você já revisou fica, com o rótulo dele, e não volta como sugestão (o candidato a menos de 5 mm, ou de meio diâmetro, de um achado revisado é o mesmo achado).
+
+**Nódulos pulmonares** (botão **Nódulos**, na TC de tórax; ou Configurações ▸ CAD/IA ▸ Nódulos pulmonares, para rodar sozinho quando o exame chega). Usa a tarefa aberta *lung_nodules* do TotalSegmentator (modelo da BLUEMIND AI, treinado em 1353 TCs, parte do LIDC-IDRI) e os lobos da tarefa *total*. Em cada candidato:
+
+| Número | Como sai |
+|---|---|
+| Diâmetro maior e eixos | os três eixos perpendiculares da máscara |
+| Diâmetro médio | média dos dois maiores eixos (o "diâmetro médio" do Fleischner e do Lung-RADS) |
+| Volume | voxels × volume do voxel |
+| HU médio e parte sólida | média do HU; parte sólida = voxels a partir de −300 HU |
+| Consistência (pelo HU) | proposta: ≥ 80% sólido, ≤ 20% vidro fosco, no meio parcialmente sólido |
+| Lobo | o lobo do centro (ou o mais perto, até 10 mm) |
+
+Candidatos menores que o **diâmetro mínimo** (3 mm de fábrica, da esfera de mesmo volume) não entram; ficam no máximo os 30 maiores. A série preferida é a de pulmão de cortes finos; cortes acima de 2,5 mm geram aviso (o Fleischner pede até 1,5 mm para nódulos pequenos). A consistência pelo HU é proposta: em nódulo de poucos milímetros o volume parcial baixa o HU, e um nódulo sólido pode parecer vidro fosco. A SEG "Nódulos pulmonares · TotalSegmentator" fica no exame, um segmento por candidato.
+
+Para quem já tinha instalado a segmentação: rode de novo o *instalar_segmentacao* para baixar os modelos *lung_nodules* e *total* (ou eles baixam sozinhos na primeira vez, com internet).
+
 ## CAD, IA e anotações de outros sistemas
 
 O botão **CAD/IA** reúne o que outro programa escreveu sobre o exame: SEG (segmentações), GSPS (anotações gráficas do aparelho ou da estação), SR (achados de CAD/IA) e RTSTRUCT (contornos de radioterapia). O número no botão diz quantos objetos o exame tem; o menu lista um por um, com *Ir para a imagem* de cada achado.
