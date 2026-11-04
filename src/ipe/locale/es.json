@@ -6821,5 +6821,20 @@
  "Gravado no exame: {} imagem(ns)-chave (KO) e {} medida(s)/anotação(ões) (GSPS). Vai ao PACS junto com o exame.": "Guardado en el estudio: {} imagen(es) clave (KO) y {} medida(s)/anotación(es) (GSPS). Va al PACS junto con el estudio.",
  "Gravado no exame: {} imagem(ns)-chave (KO). Vai ao PACS junto com o exame.": "Guardado en el estudio: {} imagen(es) clave (KO). Va al PACS junto con el estudio.",
  "Gravado no exame: {} medida(s)/anotação(ões) (GSPS). Vai ao PACS junto com o exame.": "Guardado en el estudio: {} medida(s)/anotación(es) (GSPS). Va al PACS junto con el estudio.",
- "{} estados de apresentação (GSPS): mostrando o mais recente — os outros no botão CAD/IA.": "{} estados de presentación (GSPS): mostrando el más reciente; los otros en el botón CAD/IA."
+ "{} estados de apresentação (GSPS): mostrando o mais recente — os outros no botão CAD/IA.": "{} estados de presentación (GSPS): mostrando el más reciente; los otros en el botón CAD/IA.",
+ "Ao ocultar, mostrar:": "Al ocultar, mostrar:",
+ "Deslocar as datas (mesmo intervalo entre os exames)": "Desplazar las fechas (mismo intervalo entre estudios)",
+ "Todas as datas do mesmo paciente andam para trás o mesmo número de dias (30 a 329, sorteado por paciente): a data real some, o intervalo entre o atual e o anterior fica. É o perfil Ensino da tela.": "Todas las fechas del mismo paciente retroceden el mismo número de días (30 a 329, sorteado por paciente): la fecha real desaparece y el intervalo entre el actual y el anterior se mantiene. Es el perfil Enseñanza de la pantalla.",
+ "Ensino (datas deslocadas)": "Enseñanza (fechas desplazadas)",
+ "Ocultar na tela não muda os arquivos: o que sai passa pela anonimização.": "Ocultar en la pantalla no cambia los archivos: lo que sale pasa por la anonimización.",
+ "Ocultar tudo": "Ocultar todo",
+ "Publicação (sem datas)": "Publicación (sin fechas)",
+ "Tela (pseudônimo)": "Pantalla (seudónimo)",
+ "🔒 Dados ocultos": "🔒 Datos ocultos",
+ "🔒 Ensino": "🔒 Enseñanza",
+ "🔒 Publicação": "🔒 Publicación",
+ "🔒 Tela": "🔒 Pantalla",
+ "Ensino": "Enseñanza",
+ "Publicação": "Publicación",
+ "Tela": "Pantalla"
 }

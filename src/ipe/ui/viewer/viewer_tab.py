@@ -147,6 +147,7 @@ def _image_series(rows: list) -> list:
 class ViewerTab(OncoMixin, QWidget):
     detach_requested = Signal(object)      # pede à janela principal para mover a aba de monitor
     status_message = Signal(str)
+    perfil_mudou = Signal(str)            # perfil de ocultação escolhido (0.99.42): as outras abas e o banco
     implante_salvo = Signal(int)          # cópias sem silicone gravadas pelo botão Implante (0.97.1)
     open_prior_requested = Signal(object, str)   # abrir anterior no monitor de comparação
     film_requested = Signal(dict)                # pedido ao compositor de filmes (a janela principal liga)
@@ -1078,7 +1079,10 @@ class ViewerTab(OncoMixin, QWidget):
                                      self.set_anonymize, checkable=True)
         self.anon_action.setIcon(icon("anon"))
         self.anon_action.setIconText("Ocultar")
-        self._button(tb, self.anon_action, opcional="view.anonymize")
+        # 0.99.42: perfis de ocultação (Ocultar tudo / Tela / Ensino / Publicação), na seta do botão
+        self.perfil_menu = self._menu()
+        self.perfil_menu.aboutToShow.connect(self._encher_menu_de_perfis)
+        self._button(tb, self.anon_action, self.perfil_menu, opcional="view.anonymize")
 
         # --- anotações da tela (0.99.9): completa / parcial 1 / parcial 2 / ausente
         from ipe.ui.viewer import anotacoes as AN
@@ -1442,6 +1446,35 @@ class ViewerTab(OncoMixin, QWidget):
             return False
         self.status_message.emit(f"Imagem copiada ({tam[0]} × {tam[1]} px) — cole com Ctrl+V.")
         return True
+
+    def _encher_menu_de_perfis(self) -> None:
+        from PySide6.QtGui import QActionGroup
+        from ipe.core import mascara as MK
+        m = self.perfil_menu
+        m.clear()
+        cab = m.addAction("Ao ocultar, mostrar:")
+        cab.setEnabled(False)
+        g = QActionGroup(m)
+        atual = MK.perfil_de(self.settings)
+        for chave, nome in MK.PERFIS.items():
+            a = m.addAction(nome)
+            a.setCheckable(True)
+            a.setChecked(chave == atual)
+            a.setEnabled(not self.case_label)
+            g.addAction(a)
+            a.triggered.connect(lambda _=False, k=chave: self.set_perfil_de_ocultacao(k))
+        m.addSeparator()
+        nota = m.addAction("Ocultar na tela não muda os arquivos: o que sai passa pela anonimização.")
+        nota.setEnabled(False)
+
+    def set_perfil_de_ocultacao(self, perfil: str, ligar: bool = True) -> None:
+        """Escolhe o perfil (vale para todas as abas e para a lista do banco) e liga o Ocultar."""
+        from ipe.core import mascara as MK
+        self.settings.set(MK.CHAVE, MK.normalizar(perfil))
+        if ligar and not self.anonymize:
+            self.anon_action.setChecked(True)
+        self.set_anonymize(self.anonymize)
+        self.perfil_mudou.emit(MK.normalizar(perfil))
 
     def set_anonymize(self, on: bool) -> None:
         if self.case_label and not on:
@@ -5642,6 +5675,13 @@ class ViewerTab(OncoMixin, QWidget):
         if self.case_label:
             return self.case_label
         if self.anonymize:
+            from ipe.core import mascara as MK
+            perfil = MK.perfil_de(self.settings)
+            if perfil != "oculto":
+                nome = MK.mascarar_info(self.study_info, perfil)["patient_name"]
+                desc = self.study_info.get("description", "")
+                return f"{nome} — {desc} [{MK.PERFIS[perfil].split(' (')[0]}]" if desc else \
+                    f"{nome} [{MK.PERFIS[perfil].split(' (')[0]}]"
             return f"Estudo — {self.study_info.get('description', '')}".strip(" —")
         name = self.study_info.get("patient_name", "")
         desc = self.study_info.get("description", "")

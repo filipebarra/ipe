@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.42 — identity masking profiles
+- **Hide patient data** gets profiles (button arrow): **Hide everything** (as before), **Screen**
+  (pseudonym, real dates), **Teaching** (pseudonym, dates shifted by the same number of days for the whole
+  patient — the interval between studies stays) and **Publication** (no dates or device). They apply to the
+  viewport, the tab title and the database list; the viewport corner shows the profile in use.
+- Anonymized export gets **Shift the dates**, checked automatically in the Teaching profile.
+
 ## 0.99.41 — key images and annotations in DICOM; draft measurements
 - **Save key images and annotations in the study** (Key button): key images are written as a **KO** and
   measurements, arrows and texts as a **GSPS**, with each measurement's value beside it; they go to the

@@ -1737,6 +1737,7 @@ class MainWindow(QMainWindow):
         tab.film_requested.connect(lambda req, t=tab: self.film_request(req, t))
         tab.preferences_requested.connect(self.open_preferences)
         tab.anotacoes_mudaram.connect(lambda _n: [t.reflect_anotacoes() for t in self.all_viewer_tabs()])
+        tab.perfil_mudou.connect(lambda _p: self._perfil_mudou())
         tab.compare_handler_connected = True
         tab.net = self.net
         tab.storage_root = self.storage
@@ -1766,6 +1767,17 @@ class MainWindow(QMainWindow):
         self.meeting = mc
         if not mc.start(start):
             self.meeting = None
+
+    def _perfil_mudou(self) -> None:
+        """Perfil de ocultação novo: as abas ocultas e a lista do banco redesenham."""
+        for t in self.all_viewer_tabs():
+            if t.anonymize:
+                t.set_anonymize(True)
+        try:
+            self.browser.model.beginResetModel()
+            self.browser.model.endResetModel()
+        except Exception:  # noqa: BLE001
+            pass
 
     def set_privacy(self, on: bool, case_names: dict[str, str] | None = None) -> None:
         """Esconde os dados do paciente em todo o programa (banco, abas, quadros, filme, PACS)."""

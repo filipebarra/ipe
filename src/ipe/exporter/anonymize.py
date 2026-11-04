@@ -38,6 +38,9 @@ class AnonOptions:
     keep_sex: bool = True
     keep_age: bool = True              # idade (0010,1010); o nascimento sempre sai
     keep_dates: bool = False           # datas do exame (senão: data ficam em branco)
+    #: 0.99.42: datas deslocadas — o mesmo número de dias (30 a 329) para todo o paciente nesta sessão;
+    #: o intervalo entre os exames continua o mesmo (o perfil Ensino)
+    shift_dates: bool = False
     keep_descriptions: bool = True     # descrição do exame/série (pode conter nome em alguns serviços)
     keep_institution: bool = False
     remove_private: bool = True
@@ -70,6 +73,7 @@ def anonymize(ds, opts: AnonOptions, n: int, salt: str) -> None:
     """Anonimiza o dataset na memória. `n` = número do paciente/exame nesta exportação."""
     if not opts.enabled:
         return
+    chave_original = str(ds.get("PatientID", "") or ds.get("PatientName", "") or "")
     ds.PatientName = _fmt(opts.name, n)[:64] or "ANONIMO"
     ds.PatientID = _fmt(opts.patient_id, n)[:64] or f"ANON{n:03d}"
     if "PatientBirthDate" in ds:
@@ -85,7 +89,13 @@ def anonymize(ds, opts: AnonOptions, n: int, salt: str) -> None:
     for kw in STAFF_PLACE:
         if kw in ds and not (opts.keep_institution and kw in ("InstitutionName", "InstitutionalDepartmentName")):
             delattr(ds, kw)
-    if not opts.keep_dates:
+    if opts.shift_dates and not opts.keep_dates:
+        from ipe.core import mascara as MK
+        dias = MK.dias_de_deslocamento(chave_original)
+        for kw in DATES:
+            if kw in ds and ds.data_element(kw).value:
+                setattr(ds, kw, MK.deslocar_data(str(ds.data_element(kw).value), dias))
+    elif not opts.keep_dates:
         for kw in DATES:
             if kw in ds:
                 setattr(ds, kw, "")

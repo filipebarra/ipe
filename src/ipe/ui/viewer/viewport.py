@@ -1576,6 +1576,13 @@ class Viewport(AnnotationMixin, QWidget):
             vis = self.anotacoes_visiveis()
         return item in vis
 
+    def perfil_de_ocultacao(self) -> str:
+        """O perfil de ocultação em uso (0.99.42). Na reunião é sempre "ocultar tudo" (o nome do caso)."""
+        if not self.anonymize or self.case_label:
+            return "oculto"
+        from ipe.core import mascara as MK
+        return MK.perfil_de(self.settings)
+
     def _text_lines(self) -> dict[str, list[tuple[str, str | None]]]:
         """Linhas do overlay por canto. Cada linha: (texto, hotspot ou None).
 
@@ -1585,7 +1592,16 @@ class Viewport(AnnotationMixin, QWidget):
         img = self._img
         hdr = img.header if img else {}
         n = len(self.frames)
-        if self.anonymize:
+        perfil = self.perfil_de_ocultacao()
+        if self.anonymize and perfil != "oculto":
+            # 0.99.42: perfis de ocultação — pseudônimo, sexo/idade, datas deslocadas ou sem datas
+            from ipe.core import mascara as MK
+            si = MK.mascarar_info(si, perfil, self.case_label)
+            tl = [(si.get("patient_name", ""), None, "nome"),
+                  *([(f"ID {si['patient_id']}", None, "id")] if si.get("patient_id") else []),
+                  (" ".join(x for x in (si.get("sex", ""), si.get("patient_age", "")) if x), None, "sexo_idade"),
+                  (MK.selo(perfil), None, "nome")]
+        elif self.anonymize:
             # "Ocultar dados do paciente" continua valendo por cima do nível: só o rótulo do caso
             tl = [(self.case_label or "Paciente oculto", None, "nome")]
         else:
@@ -1604,7 +1620,7 @@ class Viewport(AnnotationMixin, QWidget):
               *([(f"Fase {self.phase + 1}: {self.phase_labels[self.phase]}", "phase", "fase_nome")]
                 if self.phases and self.phase < len(self.phase_labels)
                 and self.phase_labels[self.phase] not in (self.series_label or "") else []),
-              (date_fmt if not self.anonymize else "", None, "data")]
+              (date_fmt if not self.anonymize or perfil in ("tela", "ensino") else "", None, "data")]
         bl = [(f"Im {self.index + 1}/{n}", "scroll", "imagem")]
         trng = getattr(self, "tomo_range", None)
         if trng is not None:
@@ -1829,7 +1845,11 @@ class Viewport(AnnotationMixin, QWidget):
         if callable(layout) and self.study_info:
             from ipe.ui import compare_studies as CS
             if CS.pacientes_diferentes([self.study_info, *layout()]):
-                nome = (self.case_label or "Paciente oculto") if self.anonymize else CS.nome_curto(self.study_info)
+                if self.anonymize and self.perfil_de_ocultacao() != "oculto":
+                    from ipe.core import mascara as MK
+                    nome = MK.mascarar_info(self.study_info, self.perfil_de_ocultacao())["patient_name"]
+                else:
+                    nome = (self.case_label or "Paciente oculto") if self.anonymize else CS.nome_curto(self.study_info)
                 out.insert(0, SL.selo_de_mistura(nome))
         return out
 

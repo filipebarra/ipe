@@ -635,6 +635,22 @@ Serve para percorrer os casos de uma lista um a um com os dados do paciente ocul
 
 O botão **Ocultar** da tela inicial faz o mesmo esconder dos dados fora de uma reunião.
 
+### Perfis de ocultação
+
+A seta do botão **Ocultar** (no visualizador) escolhe **o que** fica escondido. A escolha vale para todas as abas e para a lista do banco (botão Ocultar da tela inicial); a reunião usa sempre *Ocultar tudo*, com o nome do caso.
+
+| Perfil | Nome | ID | Nascimento | Sexo e idade | Data do exame | Instituição, acesso, médico | Aparelho |
+|---|---|---|---|---|---|---|---|
+| **Ocultar tudo** (o de sempre) | "Paciente oculto" | — | — | — | — | — | aparece |
+| **Tela** | pseudônimo | pseudônimo | — | aparecem | aparece | — | aparece |
+| **Ensino** | pseudônimo | — | — | aparecem | **deslocada** | — | aparece |
+| **Publicação** | "Paciente" | — | — | aparecem | — | — | — |
+
+- **Pseudônimo**: `PACIENTE-` e seis caracteres, o mesmo para o mesmo paciente enquanto o programa está aberto (o atual e o anterior do mesmo paciente têm o mesmo pseudônimo); não é gravado em lugar nenhum.
+- **Data deslocada**: todas as datas do mesmo paciente andam para trás o mesmo número de dias (30 a 329, sorteado por paciente) — a data real some, o intervalo entre os exames fica.
+- O canto do quadro mostra o perfil em uso (um cadeado e **Ensino**, por exemplo), e o título da aba também.
+- **Ocultar na tela não muda os arquivos.** Para levar o exame, use Exportar: com a tela oculta a exportação sai anonimizada, e no perfil Ensino a opção **Deslocar as datas** já vem marcada (o mesmo deslocamento da tela).
+
 # Chamada externa (RIS, link e API)
 
 A chamada externa é o que faz o RIS, um script ou um botão numa página abrir o exame certo no Ipê. São três portas de entrada — linha de comando, link `ipe://` e API HTTP local — e as três geram o mesmo pedido internamente.

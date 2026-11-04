@@ -6821,5 +6821,20 @@
  "Gravado no exame: {} imagem(ns)-chave (KO) e {} medida(s)/anotação(ões) (GSPS). Vai ao PACS junto com o exame.": "Saved in the study: {} key image(s) (KO) and {} measurement(s)/annotation(s) (GSPS). It goes to the PACS with the study.",
  "Gravado no exame: {} imagem(ns)-chave (KO). Vai ao PACS junto com o exame.": "Saved in the study: {} key image(s) (KO). It goes to the PACS with the study.",
  "Gravado no exame: {} medida(s)/anotação(ões) (GSPS). Vai ao PACS junto com o exame.": "Saved in the study: {} measurement(s)/annotation(s) (GSPS). It goes to the PACS with the study.",
- "{} estados de apresentação (GSPS): mostrando o mais recente — os outros no botão CAD/IA.": "{} presentation states (GSPS): showing the most recent — the others are in the CAD/AI button."
+ "{} estados de apresentação (GSPS): mostrando o mais recente — os outros no botão CAD/IA.": "{} presentation states (GSPS): showing the most recent — the others are in the CAD/AI button.",
+ "Ao ocultar, mostrar:": "When hiding, show:",
+ "Deslocar as datas (mesmo intervalo entre os exames)": "Shift the dates (same interval between studies)",
+ "Todas as datas do mesmo paciente andam para trás o mesmo número de dias (30 a 329, sorteado por paciente): a data real some, o intervalo entre o atual e o anterior fica. É o perfil Ensino da tela.": "All dates of the same patient move back by the same number of days (30 to 329, drawn per patient): the real date disappears, the interval between the current and prior study remains. It is the screen's Teaching profile.",
+ "Ensino (datas deslocadas)": "Teaching (shifted dates)",
+ "Ocultar na tela não muda os arquivos: o que sai passa pela anonimização.": "Hiding on screen does not change the files: whatever leaves goes through anonymization.",
+ "Ocultar tudo": "Hide everything",
+ "Publicação (sem datas)": "Publication (no dates)",
+ "Tela (pseudônimo)": "Screen (pseudonym)",
+ "🔒 Dados ocultos": "🔒 Data hidden",
+ "🔒 Ensino": "🔒 Teaching",
+ "🔒 Publicação": "🔒 Publication",
+ "🔒 Tela": "🔒 Screen",
+ "Ensino": "Teaching",
+ "Publicação": "Publication",
+ "Tela": "Screen"
 }

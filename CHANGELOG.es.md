@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.42 — perfiles de ocultación
+- **Ocultar datos del paciente** gana perfiles (flecha del botón): **Ocultar todo** (el de antes),
+  **Pantalla** (seudónimo, fechas reales), **Enseñanza** (seudónimo, fechas desplazadas el mismo número de
+  días para todo el paciente — el intervalo entre estudios se mantiene) y **Publicación** (sin fechas ni
+  equipo). Valen para el cuadro, el título de la pestaña y la lista de la base; la esquina del cuadro
+  muestra el perfil en uso.
+- Exportar anonimizado gana **Desplazar las fechas**, marcado solo en el perfil Enseñanza.
+
 ## 0.99.41 — imágenes clave y anotaciones en DICOM; medida borrador
 - **Guardar imágenes clave y anotaciones en el estudio** (botón Clave): las imágenes clave salen como
   **KO** y las medidas, flechas y textos como **GSPS**, con el número de cada medida al lado; van al PACS

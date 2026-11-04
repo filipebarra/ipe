@@ -167,6 +167,14 @@ class ExportDialog(QDialog):
         self.a_age.setChecked(a.keep_age)
         self.a_dates = QCheckBox("Manter datas do exame")
         self.a_dates.setChecked(a.keep_dates)
+        self.a_shift = QCheckBox("Deslocar as datas (mesmo intervalo entre os exames)")
+        self.a_shift.setToolTip("Todas as datas do mesmo paciente andam para trás o mesmo número de dias (30 a "
+                                "329, sorteado por paciente): a data real some, o intervalo entre o atual e o "
+                                "anterior fica. É o perfil Ensino da tela.")
+        from ipe.core import mascara as MK
+        self.a_shift.setChecked(bool(a.shift_dates) or (force_anonymize and MK.perfil_de(settings) == "ensino"))
+        self.a_dates.toggled.connect(self.a_shift.setDisabled)
+        self.a_shift.setEnabled(not self.a_dates.isChecked())
         self.a_desc = QCheckBox("Manter descrições (exame/série)")
         self.a_desc.setChecked(a.keep_descriptions)
         self.a_inst = QCheckBox("Manter instituição")
@@ -186,7 +194,7 @@ class ExportDialog(QDialog):
         al.addRow("ID do paciente:", self.a_id)
         grid = QHBoxLayout()
         col1, col2 = QVBoxLayout(), QVBoxLayout()
-        for w in (self.a_sex, self.a_age, self.a_dates, self.a_desc):
+        for w in (self.a_sex, self.a_age, self.a_dates, self.a_shift, self.a_desc):
             col1.addWidget(w)
         for w in (self.a_inst, self.a_priv, self.a_uids):
             col2.addWidget(w)
@@ -286,6 +294,7 @@ class ExportDialog(QDialog):
         return AnonOptions(enabled=self.g_anon.isChecked(), name=self.a_name.text().strip() or "ANONIMO",
                            patient_id=self.a_id.text().strip() or "ANON{n:03d}", keep_sex=self.a_sex.isChecked(),
                            keep_age=self.a_age.isChecked(), keep_dates=self.a_dates.isChecked(),
+                           shift_dates=self.a_shift.isChecked() and not self.a_dates.isChecked(),
                            keep_descriptions=self.a_desc.isChecked(), keep_institution=self.a_inst.isChecked(),
                            remove_private=self.a_priv.isChecked(), new_uids=self.a_uids.isChecked(),
                            burned=self.a_burn.currentData(), top_pct=self._top_pct)

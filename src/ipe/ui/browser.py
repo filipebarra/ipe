@@ -116,6 +116,7 @@ class StudyTableModel(QAbstractTableModel):
         self.rows: list[StudyRow] = []
         self.anonymize = False
         self.case_names: dict[str, str] = {}      # modo reunião: nome amigável no lugar do paciente
+        self.settings = None                      # para o perfil de ocultação (0.99.42)
 
     def set_rows(self, rows: list[StudyRow]) -> None:
         self.beginResetModel()
@@ -133,11 +134,27 @@ class StudyTableModel(QAbstractTableModel):
             return COLUMNS[section][1]
         return None
 
+    def perfil(self) -> str:
+        from ipe.core import mascara as MK
+        return MK.perfil_de(self.settings) if not self.case_names else "oculto"
+
     def data(self, index, role=Qt.DisplayRole):
         r = self.rows[index.row()]
         key, _label, kind = COLUMNS[index.column()]
         if role in (Qt.DisplayRole, Qt.UserRole):
             v = getattr(r, key, "")
+            perfil = self.perfil() if self.anonymize and not self.case_names.get(r.study_uid) else "oculto"
+            if self.anonymize and perfil != "oculto" and key in SENSITIVE | {"study_date"}:
+                # 0.99.42: perfil de ocultação — pseudônimo, datas deslocadas ou sem datas
+                from ipe.core import mascara as MK
+                info = {"patient_name": r.patient_name, "patient_id": getattr(r, "patient_id", ""),
+                        "study_date": getattr(r, "study_date", "")}
+                if key in ("patient_name", "patient_id", "study_date"):
+                    mv = MK.mascarar_info(info, perfil).get(key, "")
+                    if role == Qt.UserRole or not mv:
+                        return mv or ("•••" if key != "study_date" else "")
+                    return fmt_date(mv) if key == "study_date" else mv
+                return "•••"
             if self.anonymize and key == "patient_name":
                 return self.case_names.get(r.study_uid) or "Paciente oculto"
             if self.anonymize and key in SENSITIVE:
@@ -298,6 +315,7 @@ class Browser(QWidget):
 
         # --- tabela de estudos
         self.model = StudyTableModel()
+        self.model.settings = self.settings
         self.proxy = FilterProxy([c[2] for c in COLUMNS])
         self.proxy.setSourceModel(self.model)
         self.proxy.setSortRole(Qt.UserRole)
