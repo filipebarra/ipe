@@ -3,6 +3,10 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.76 — mamografía: el doble clic encuadra bien
+- En el 1×1 del doble clic en una incidencia, la mama quedaba alta y con parte oculta: el zoom y la alineación
+  por el pezón venían de los cuadros ocultos. Ahora el cuadro ampliado se encuadra solo, para su tamaño.
+
 ## 0.99.75 — cambiar la carpeta de la base sin el "WinError 32"
 - **Mover los archivos** (Configuración ▸ Base de datos ▸ Cambiar la carpeta de la base) fallaba en Windows con
   *WinError 32* (la base abierta por los servicios de fondo) y dejaba el programa en la carpeta nueva con solo

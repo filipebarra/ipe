@@ -3,6 +3,10 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.76 — mammography: double-click frames correctly
+- In the 1×1 view from double-clicking a view, the breast sat too high with part of it hidden: the zoom and the
+  nipple alignment came from the hidden frames. Now the enlarged frame is framed on its own, for its size.
+
 ## 0.99.75 — changing the database folder without "WinError 32"
 - **Move the files** (Settings ▸ Database ▸ Change the database folder) failed on Windows with *WinError 32* (the
   database held open by background services) and left the program in the new folder with only part of the

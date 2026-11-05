@@ -3,6 +3,10 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.76 — mamografia: duplo clique enquadra direito
+- No 1×1 do duplo clique numa incidência, a mama ficava alta e com parte escondida: o zoom e o alinhamento pelo
+  mamilo vinham dos quadros escondidos. Agora o quadro ampliado é enquadrado sozinho, para o tamanho dele.
+
 ## 0.99.75 — mudar a pasta do banco sem o "WinError 32"
 - **Mover os arquivos** (Configurações ▸ Banco de dados ▸ Mudar a pasta do banco) falhava no Windows com
   *WinError 32* (o banco aberto pelos serviços de fundo) e deixava o programa na pasta nova só com parte do banco.

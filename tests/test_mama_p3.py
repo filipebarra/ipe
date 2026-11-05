@@ -178,3 +178,33 @@ def test_marcadores_cc_mlo_e_laudo(janela):
     assert len(fs) == 1 and fs[0]["type"] == "Calcificações" and fs[0]["location"].startswith("quadrante superolateral")
     assert d.mandar_ao_laudo() == 1 and len(rw.birads.findings) == 1     # mandar de novo troca, não duplica
     d.close()
+
+
+def test_duplo_clique_amplia_e_reenquadra(janela):
+    """0.99.76 — pedido dele: no 1x1 do duplo clique a mama ficava alta e cortada (o zoom e o alinhamento pelo
+    mamilo vinham dos quadros escondidos)."""
+    from ipe.imaging import mammo as M
+    app, w, tab, st = janela
+    s = tab.mg_session
+    s.proto.setdefault("steps", M.passos_do_protocolo(s.proto))
+    s.proto["steps"][s.step] = {"name": "t", "rows": 1, "cols": 2, "cells": ["CCD", "CCE"]}
+    s.apply_step(s.step)
+    for _ in range(5):
+        app.processEvents()
+    cc = tab.viewports[0]
+    tab.toggle_maximize(cc)
+    import time
+    for _ in range(20):
+        app.processEvents()
+        time.sleep(0.01)
+    tab._refazer_enquadre()
+    app.processEvents()
+    assert tab._maximized is cc and cc.mg_dy == 0.0
+    h, wi = cc._img.pixels.shape[:2]
+    x0, y0, x1, y1 = cc.quadrant_box()
+    from PySide6.QtCore import QPointF
+    topo, base = cc.image_to_widget(QPointF(x0, y0)), cc.image_to_widget(QPointF(x1, y1))
+    assert -2 <= min(topo.y(), base.y()) and max(topo.y(), base.y()) <= cc.height() + 2   # a mama inteira na tela
+    tab.toggle_maximize(cc)
+    app.processEvents()
+    assert tab._maximized is None

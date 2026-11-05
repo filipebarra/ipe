@@ -343,7 +343,7 @@ Mamografia não usa o protocolo de exibição genérico dos outros exames. Ela t
 
 1. **+ Novo** e dê um **Nome:** (ex.: "Rastreamento 2 telas").
 2. **Descrição do exame contém:** — vazio vale para qualquer mamografia; `RASTREAMENTO|DIAGNOSTICA` casa com qualquer uma das duas palavras. É isto que escolhe o protocolo quando o exame abre.
-3. Marque **Ativo**. As outras três caixas são de apresentação: *Parede torácica voltada para o centro* (espelha a imagem quando precisa, para as duas mamas se olharem), *Encostar a imagem na borda da parede torácica* e *Zoom por quadrante em todos os quadros juntos*. **Alinhar na vertical:** (0.99.61) — *pelo mamilo* (de fábrica: na mesma linha da tela, o mamilo das duas mamas fica na mesma altura) ou *pelo meio da mama* (como era antes).
+3. Marque **Ativo**. As outras três caixas são de apresentação: *Parede torácica voltada para o centro* (espelha a imagem quando precisa, para as duas mamas se olharem), *Encostar a imagem na borda da parede torácica* e *Zoom por quadrante em todos os quadros juntos*. **Alinhar na vertical:** (0.99.61) — *pelo mamilo* (de fábrica: na mesma linha da tela, o mamilo das duas mamas fica na mesma altura) ou *pelo meio da mama* (como era antes). **Duplo clique** numa incidência mostra só ela (1×1) e a reenquadra para o quadro grande, sem o alinhamento com a outra mama; outro duplo clique volta à etapa.
 4. No grupo **Etapas**, **+ Etapa**. Dê um **Nome da etapa:** — ele aparece no combo do exame (ex.: "CC atual × anterior").
 5. Defina o **Layout** (linhas × colunas) da etapa.
 6. Preencha os quadros: ou pelo campo **Em texto:**, ou pela grade de combos, um por quadro.

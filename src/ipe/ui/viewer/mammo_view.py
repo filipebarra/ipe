@@ -142,6 +142,11 @@ class MgSession:
         st = self.steps[self.step] if st is None and self.steps else st
         modo = M.enquadre_da_etapa(st)
         vps = [vp for vp in self.tab.viewports if vp.mg_cell is not None and vp._img is not None]
+        # 0.99.76: com um quadro ampliado (duplo clique), só ele conta. Os escondidos guardavam o tamanho pequeno:
+        # o zoom comum saía do menor deles e o alinhamento pelo mamilo empurrava a mama para cima.
+        mostrados = self.tab._shown()
+        if getattr(self.tab, "_maximized", None) is not None:
+            vps = [vp for vp in vps if vp in mostrados]
         if so_pendentes:
             # Refazendo por mudança de tamanho: só os quadros que **ainda** estão no enquadramento
             # automático. Quem mexeu no zoom à mão não quer o zoom de volta.
