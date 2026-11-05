@@ -1,0 +1,17 @@
+name: checar-iss
+on:
+  push:
+    branches: [checar-instalador]
+jobs:
+  iss:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist\Ipe | Out-Null
+          Set-Content dist\Ipe\Ipe.exe "x"
+          Set-Content dist\Ipe\ipe-cli.exe "x"
+          choco install innosetup --no-progress -y
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DVersao=0.0.1" installer\ipe.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
