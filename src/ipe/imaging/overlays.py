@@ -246,6 +246,10 @@ class OverlayObject:
     findings: list = field(default_factory=list)      # textos dos achados (lista no menu / laudo)
     stats: dict = field(default_factory=dict)         # volume, SUV… (segmentação feita aqui)
     version: int = 0
+    # 0.99.65: a série de onde o objeto saiu (SEG: ReferencedSeriesSequence) e, quando preenchido, a única
+    # série onde ele aparece — as IAs que ele quer ver só na série calculada (órgãos abdominais, níveis linfonodais)
+    series_ref: str = ""
+    so_series: str = ""
 
     def graphics_for(self, sop: str, frame: int) -> list[Graphic]:
         return self.by_frame.get((sop, frame), []) + self.by_frame.get((sop, -1), []) + self.all_frames
@@ -472,10 +476,35 @@ def parse_rtstruct(ds) -> OverlayObject:
 
 
 # ------------------------------------------------------------------ SEG
+def serie_referenciada(ds_ou_caminho) -> str:
+    """A série de origem de uma SEG/RTSTRUCT (ReferencedSeriesSequence), ou ""."""
+    ds = ds_ou_caminho
+    if isinstance(ds, (str, bytes)) or hasattr(ds, "__fspath__"):
+        try:
+            ds = pydicom.dcmread(ds, stop_before_pixels=True, force=True)
+        except Exception:  # noqa: BLE001
+            return ""
+    try:
+        rs = ds.get("ReferencedSeriesSequence") or []
+        return str(rs[0].get("SeriesInstanceUID", "") or "") if rs else ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def serie_do_quadro(vp) -> str:
+    """A série original do quadro (a reconstrução MPR conta como a série de onde veio)."""
+    uid = getattr(vp, "series_uid", "") or ""
+    if uid.startswith("mpr:"):
+        return uid.split(":")[1] if len(uid.split(":")) > 1 else ""
+    f = vp.current_frame() if hasattr(vp, "current_frame") else None
+    return (getattr(f, "series_uid", "") if f is not None else "") or uid
+
+
 def parse_seg(ds, path: str | None = None) -> OverlayObject:
     obj = OverlayObject(str(ds.get("SOPInstanceUID", "")), "SEG",
                         str(ds.get("SeriesDescription", "") or ds.get("ContentLabel", "") or "Segmentação"),
                         (80, 200, 255), study_uid=str(ds.get("StudyInstanceUID", "")))
+    obj.series_ref = serie_referenciada(ds)
     segs = {}
     for k, s in enumerate(ds.get("SegmentSequence", []) or []):
         num = int(s.get("SegmentNumber", k + 1))
@@ -557,7 +586,8 @@ def por_segmento(obj: "OverlayObject") -> list:
     for lab in rotulos:
         mfs = [mf for mf in obj.masks if mf.label == lab]
         out.append(OverlayObject(f"{obj.key}#{lab}", "SEG", lab, tuple(mfs[0].color), obj.enabled,
-                                 obj.study_uid, masks=mfs, findings=[lab]))
+                                 obj.study_uid, masks=mfs, findings=[lab], series_ref=obj.series_ref,
+                                 so_series=obj.so_series))
     return out
 
 

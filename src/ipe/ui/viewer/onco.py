@@ -23,6 +23,9 @@ from PySide6.QtWidgets import (
 from ipe.imaging import overlays as O
 from ipe import MARCAS_NOSSAS
 
+#: 0.99.65 (pedido dele): estas SEGs aparecem só na série em que foram calculadas, não em todas as do exame
+SO_NA_SERIE = ("Órgãos abdominais · TotalSegmentator", "Níveis linfonodais · TotalSegmentator")
+
 log = logging.getLogger(__name__)
 SEG_COLORS = [(90, 220, 255), (255, 120, 90), (140, 255, 120), (255, 210, 70), (220, 130, 255)]
 
@@ -346,7 +349,10 @@ class OncoMixin:
                     if lido is not None:
                         marcos_, vols = lido
                         self.overlay_objects[:] = [o for o in self.overlay_objects if o.source != LN.FONTE_OVERLAY]
-                        self.overlay_objects.append(LN.objeto(marcos_, study, volumes=vols))
+                        obj_ln = LN.objeto(marcos_, study, volumes=vols)
+                        insts = self.repo.instances_for_series(s.series_uid)
+                        obj_ln.so_series = O.serie_referenciada(insts[0]["path"]) if insts else ""
+                        self.overlay_objects.append(obj_ln)
                         self.marcos_linfonodais = marcos_
                         added += 1
                 if (s.modality or "").upper() not in O.OVERLAY_MODALITIES:
@@ -373,6 +379,8 @@ class OncoMixin:
                     if obj is None:
                         continue
                     obj.study_uid = obj.study_uid or study
+                    if (s.description or "") in SO_NA_SERIE and obj.series_ref:
+                        obj.so_series = obj.series_ref          # 0.99.65: só na série em que foi calculado
                     if obj.source in ("SR", "GSPS") and any(m in (s.description or "") for m in MARCAS_NOSSAS):
                         obj.enabled = False      # o nosso: as medidas já estão no banco (desenhá-las de novo dobraria)
                         obj.nosso = True

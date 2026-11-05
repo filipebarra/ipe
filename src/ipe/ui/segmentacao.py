@@ -634,6 +634,12 @@ def carregar_na_aba(tab, saida: dict) -> None:
     obj = O.load_object(caminho)
     if obj is None:
         return
+    from ipe.ui.viewer.onco import SO_NA_SERIE
+    if obj.label in SO_NA_SERIE and obj.series_ref:
+        obj.so_series = obj.series_ref                   # 0.99.65: só na série em que foi calculado
+    mapa = (saida or {}).get("mapa")
+    if mapa is not None and not getattr(mapa, "so_series", ""):
+        mapa.so_series = obj.series_ref
     ja = {o.key for o in tab.overlay_objects}
     novos = [p for p in O.por_segmento(obj) if p.key not in ja]
     tab.overlay_objects.extend(novos)

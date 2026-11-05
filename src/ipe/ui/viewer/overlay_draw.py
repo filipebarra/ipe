@@ -51,7 +51,20 @@ def _mask_image(mf: O.MaskFrame) -> QImage:
 def active_overlays(vp) -> list:
     # A segmentação passou a levar o exame (0.68): ela é desenhada em mm, e em outro exame (um
     # anterior aberto ao lado) as mesmas coordenadas não são a mesma mama.
-    return [o for o in getattr(vp, "overlays", []) or [] if o.enabled and (not o.study_uid or o.study_uid == vp.study_uid)]
+    # 0.99.65: e os de `so_series` (órgãos abdominais, níveis linfonodais) só na série em que foram calculados —
+    # em outra série a mesma posição em mm não cai no mesmo lugar (o paciente mexe entre as séries).
+    serie = None
+    out = []
+    for o in getattr(vp, "overlays", []) or []:
+        if not o.enabled or (o.study_uid and o.study_uid != vp.study_uid):
+            continue
+        if getattr(o, "so_series", ""):
+            if serie is None:
+                serie = O.serie_do_quadro(vp)
+            if serie != o.so_series:
+                continue
+        out.append(o)
+    return out
 
 
 def draw_masks(vp, p: QPainter) -> None:

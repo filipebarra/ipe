@@ -3,6 +3,10 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.65 — órganos abdominales y niveles ganglionares solo en la serie calculada
+- La segmentación de los órganos abdominales y el mapa de los niveles ganglionares aparecen solo en la serie en
+  que se calcularon (y en sus reconstrucciones), ya no en todas las series del examen, donde caían fuera de lugar.
+
 ## 0.99.64 — mama: fusión por arrastre, mapas en color, hallazgos por marcadores
 - **Fusionar por arrastre**: soltar la serie en la esquina "Fusionar encima" del cuadro; y clic derecho ▸
   Fusionar este cuadro sobre… para cualquier mapa de la dinámica, fase o ADC sobre otro cuadro.

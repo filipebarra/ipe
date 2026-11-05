@@ -3,6 +3,10 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.65 — abdominal organs and lymph node levels only on the computed series
+- The abdominal organ segmentation and the lymph node level map appear only on the series they were computed on
+  (and its reconstructions), no longer on every series of the study, where they fell out of place.
+
 ## 0.99.64 — breast: fuse by dragging, colour maps, findings by markers
 - **Fuse by dragging**: drop the series on the viewport's "Fuse on top" corner; and right-click ▸ Fuse this
   viewport over… for any dynamic map, phase or ADC over another viewport.

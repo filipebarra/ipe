@@ -3,6 +3,10 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.65 — órgãos abdominais e níveis linfonodais só na série calculada
+- A segmentação dos órgãos abdominais e o mapa dos níveis linfonodais aparecem só na série em que foram
+  calculados (e nas reconstruções dela), não mais em todas as séries do exame, onde caíam fora do lugar.
+
 ## 0.99.64 — mama: fusão por arrastar, mapas em cor, achados por marcadores
 - **Fundir por arrastar**: soltar a série no canto "Fundir por cima" do quadro; e botão direito ▸ Fundir este
   quadro sobre… para qualquer mapa da dinâmica, fase ou ADC sobre outro quadro.
