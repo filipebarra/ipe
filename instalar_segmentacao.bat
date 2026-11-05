@@ -15,59 +15,84 @@ set "TOTALSEG_HOME_DIR=%BASE%\pesos"
 echo Pasta: %BASE%
 echo.
 
+rem 0.99.69: variaveis do sistema que apontam para outro Python (um Python 3.5 antigo, um
+rem programa que instalou o Python dele) fazem QUALQUER Python quebrar ao abrir
+rem ("No module named 'encodings'"). Aqui elas nao valem.
+if defined PYTHONHOME echo Aviso: o Windows tem PYTHONHOME=!PYTHONHOME! ^(ignorado aqui; ele quebra outros Pythons^)
+if defined PYTHONPATH echo Aviso: o Windows tem PYTHONPATH=!PYTHONPATH! ^(ignorado aqui^)
+set "PYTHONHOME="
+set "PYTHONPATH="
+set "PYTHONSTARTUP="
+set "PYTHONEXECUTABLE="
+set "VIRTUAL_ENV="
+set "CONDA_PREFIX="
+
+echo Pythons deste computador:
+where python 2>nul
+py -0p 2>nul
+echo.
+
 rem --- achar um Python que sirva (3.10 a 3.13) ------------------------------------
 rem 0.99.7: um PC com o Python 3.5 no PATH fazia o instalador usar o 3.5, que o PyTorch
-rem e o TotalSegmentator nao aceitam. Agora so serve 3.10-3.13; se nao houver, o instalador
+rem e o TotalSegmentator nao aceitam. So serve 3.10-3.13; se nao houver, o instalador
 rem baixa um Python 3.12 so para a segmentacao (pelo "uv"), sem mexer no Python do PC.
+rem 0.99.69: o teste agora exige que o Python ABRA de verdade e responda (um Python quebrado
+rem ou o atalho da Microsoft Store nao contam).
+if not exist "%BASE%" mkdir "%BASE%"
+set "SONDA=%BASE%\sonda_python.py"
+> "%SONDA%" echo import sys, encodings
+>> "%SONDA%" echo print("IPE_PY_OK" if (3, 10) ^<= sys.version_info[:2] ^<= (3, 13) else "IPE_PY_VELHO")
 set "PYEXE="
 for %%V in (3.12 3.11 3.13 3.10) do (
-  if not defined PYEXE (
-    py -%%V -c "import sys" >nul 2>nul && set "PYEXE=py -%%V"
-  )
+  if not defined PYEXE call :testa py -%%V
 )
 if not defined PYEXE call :testa python
 if not defined PYEXE call :testa python3
 if not defined PYEXE (
-  for %%D in ("%LOCALAPPDATA%\Programs\Python\Python312" "%LOCALAPPDATA%\Programs\Python\Python311" "%LOCALAPPDATA%\Programs\Python\Python313" "%LOCALAPPDATA%\Programs\Python\Python310" "%ProgramFiles%\Python312" "%ProgramFiles%\Python311" "%ProgramFiles%\Python313" "%ProgramFiles%\Python310") do (
+  for /d %%D in ("%LOCALAPPDATA%\Programs\Python\Python3*" "%ProgramFiles%\Python3*" "%ProgramFiles(x86)%\Python3*" "C:\Python3*" "%USERPROFILE%\AppData\Local\Programs\Python\Python3*") do (
     if not defined PYEXE if exist "%%~D\python.exe" call :testa "%%~D\python.exe"
   )
 )
-
-rem ambiente antigo criado com um Python que nao serve: apaga e refaz
-if exist "%VENV%\Scripts\python.exe" (
-  "%VENV%\Scripts\python.exe" -c "import sys; sys.exit(0 if (3,10) <= sys.version_info[:2] <= (3,13) else 1)" >nul 2>nul
-  if errorlevel 1 (
-    echo O ambiente que existia foi criado com um Python antigo: refazendo.
-    rmdir /s /q "%VENV%"
-  )
+if defined PYEXE (
+  echo Python que vai ser usado:
+  %PYEXE% --version
+) else (
+  echo Nenhum Python 3.10 a 3.13 que funcione neste computador.
 )
+echo.
 
-rem ambiente incompleto (instalacao interrompida, ou apagado pela metade): apaga antes de refazer
-if exist "%VENV%" if not exist "%VENV%\Scripts\python.exe" (
-  echo O ambiente que existia estava incompleto: apagando e refazendo.
-  rmdir /s /q "%VENV%" 2>nul
-  if exist "%VENV%" (
-    echo [ERRO] Nao consegui apagar %VENV%
-    echo        Feche o Ipe ^(e qualquer segmentacao em andamento^), apague essa pasta e rode de novo.
-    goto :fim
+rem ambiente que existe mas nao abre (Python antigo, ou o Python de onde ele veio sumiu): apaga e refaz
+if exist "%VENV%" (
+  call :venv_ok
+  if not defined VENV_OK (
+    echo O ambiente que existia nao funciona ^(Python antigo, quebrado ou incompleto^): apagando e refazendo.
+    call :apagar_venv
+    if exist "%VENV%" goto :fim
   )
 )
 
 if not exist "%VENV%\Scripts\python.exe" (
   if defined PYEXE (
-    echo Python encontrado:
-    %PYEXE% --version
     echo Criando o ambiente...
     %PYEXE% -m venv "%VENV%"
-  ) else (
-    echo Nenhum Python 3.10 a 3.13 neste computador. Baixando um Python 3.12 so para a
-    echo segmentacao, dentro de %BASE% ^(o Python do computador nao e tocado^)...
-    call :python_proprio
+    call :venv_ok
+    if not defined VENV_OK (
+      echo O ambiente criado com esse Python nao abriu. Tentando com um Python proprio da segmentacao.
+      call :apagar_venv
+      if exist "%VENV%" goto :fim
+    )
   )
 )
 if not exist "%VENV%\Scripts\python.exe" (
-  echo [ERRO] Nao consegui criar o ambiente em %VENV%
-  echo        Instale o Python 3.12 de https://www.python.org/downloads/ e rode de novo.
+  echo Baixando um Python 3.12 so para a segmentacao, dentro de %BASE%
+  echo ^(o Python do computador nao e tocado^)...
+  call :python_proprio
+)
+call :venv_ok
+if not defined VENV_OK (
+  echo [ERRO] Nao consegui criar um ambiente que funcione em %VENV%
+  echo        Instale o Python 3.12 de https://www.python.org/downloads/ ^(marque "Add python.exe to PATH"^)
+  echo        e rode este instalador de novo.
   goto :fim
 )
 set "PY=%VENV%\Scripts\python.exe"
@@ -77,12 +102,21 @@ set "PY=%VENV%\Scripts\python.exe"
 echo.
 echo [1/3] PyTorch (versao para CPU)...
 "%PY%" -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-if errorlevel 1 ( echo [ERRO] Falha instalando o PyTorch. & goto :fim )
+if errorlevel 1 (
+  echo [ERRO] Falha instalando o PyTorch.
+  echo        Se for a rede ^(mensagens com "connection", "timeout", "SSL" ou "proxy"^): libere
+  echo        download.pytorch.org, pypi.org e files.pythonhosted.org, ou rode de outra rede.
+  goto :fim
+)
 
 echo.
 echo [2/3] TotalSegmentator...
 "%PY%" -m pip install "TotalSegmentator>=2.18"
 if errorlevel 1 ( echo [ERRO] Falha instalando o TotalSegmentator. & goto :fim )
+if not exist "%VENV%\Scripts\totalseg_download_weights.exe" (
+  echo [ERRO] O TotalSegmentator nao ficou instalado ^(falta o totalseg_download_weights^). Veja as mensagens acima.
+  goto :fim
+)
 
 echo.
 echo [3/3] Modelos: orgaos abdominais (TC e RM), segmentos do figado, coluna (vertebras e discos) e cabeca/pescoco (cefalometria)...
@@ -114,10 +148,34 @@ echo.
 pause
 exit /b
 
-rem --- serve? (Python 3.10 a 3.13) ---------------------------------------------------
+rem --- serve? (Python 3.10 a 3.13, e abre de verdade). Uso: call :testa comando do python ----------
+rem o Python tem que RESPONDER a sonda; um Python quebrado, o atalho da Microsoft Store ou um
+rem comando que nao existe nao respondem
 :testa
-"%~1" -c "import sys; sys.exit(0 if (3,10) <= sys.version_info[:2] <= (3,13) else 1)" >nul 2>nul
-if not errorlevel 1 set "PYEXE="%~1""
+set "T_OK="
+for /f "usebackq delims=" %%O in (`call %* "%SONDA%" 2^>nul`) do if "%%O"=="IPE_PY_OK" set "T_OK=1"
+if defined T_OK set "PYEXE=%*"
+goto :eof
+
+rem --- o ambiente da segmentacao abre? -------------------------------------------------
+:venv_ok
+set "VENV_OK="
+if not exist "%VENV%\Scripts\python.exe" goto :eof
+for /f "usebackq delims=" %%O in (`call "%VENV%\Scripts\python.exe" "%SONDA%" 2^>nul`) do if "%%O"=="IPE_PY_OK" set "VENV_OK=1"
+goto :eof
+
+rem --- apagar o ambiente (e, se nao der, tirar do caminho) ------------------------------
+:apagar_venv
+rmdir /s /q "%VENV%" 2>nul
+if exist "%VENV%" (
+  set "VELHO=venv_velho_%RANDOM%"
+  ren "%VENV%" "!VELHO!" 2>nul
+  if not exist "%VENV%" echo   ^(nao deu para apagar; ficou em %BASE%\!VELHO! - apague depois^)
+)
+if exist "%VENV%" (
+  echo [ERRO] Nao consegui apagar nem renomear %VENV%
+  echo        Feche o Ipe ^(e qualquer segmentacao em andamento^), apague essa pasta e rode de novo.
+)
 goto :eof
 
 rem --- sem Python que sirva: um 3.12 proprio, baixado pelo uv (astral.sh) -----------------

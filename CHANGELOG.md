@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.69 — instalador da segmentação: acha o Python certo
+- O `instalar_segmentacao.bat` testa se cada Python **abre de verdade** e responde (antes, um Python quebrado
+  ou um comando inexistente podiam passar), lista os Pythons do computador e ignora PYTHONHOME e PYTHONPATH do
+  Windows, que quebravam qualquer Python com *No module named 'encodings'*.
+- Um ambiente antigo que não abre é apagado e refeito (ou renomeado, se a pasta estiver presa). Se o Python do
+  computador não servir, baixa um 3.12 só para a segmentação. Mensagem de rede mais clara.
+
 ## 0.99.68 — exportar e importar as configurações
 - **Configurações ▸ Sistema ▸ Exportar as configurações…** e **Importar configurações…**: um arquivo `.ipeconfig`
   que vai do Windows para o Linux e ao contrário. Leva as configurações do computador e as pessoais, protocolos,

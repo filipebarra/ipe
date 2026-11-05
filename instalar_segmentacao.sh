@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Linux: o mesmo do instalar_segmentacao.bat — ambiente próprio com PyTorch (CPU) e TotalSegmentator.
 set -e
+unset PYTHONHOME PYTHONPATH PYTHONSTARTUP VIRTUAL_ENV   # 0.99.69: variáveis de outro Python quebram o novo
 BASE="${XDG_DATA_HOME:-$HOME/.local/share}/DicomViewer/segmentacao"
 VENV="$BASE/venv"
 export TOTALSEG_HOME_DIR="$BASE/pesos"

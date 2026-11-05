@@ -1267,6 +1267,12 @@ As IAs do Ipê (órgãos abdominais, níveis da coluna, cefalometria, índices d
 - **No banco de dados**, o exame que tem resultado de IA ganha **✦** ao lado do nome (a dica diz quais: "IA: órgãos abdominais, coluna"), e o que tem IA na fila ou rodando, **⚙**. A coluna **IA** (Colunas ▾) mostra as duas coisas por escrito.
 - **Órgãos abdominais** no visualizador: botão **Órgãos** (TC/RM de abdome ou pelve; nos outros exames, pelo botão **Aplicações**) ▸ *Segmentar órgãos abdominais desta série (IA)*. Grava as máscaras e a tabela de volumes no exame, como pelo botão direito no quadro.
 
+### Instalar a segmentação (TotalSegmentator)
+
+As IAs de órgãos, coluna, cabeça e pescoço, nódulos e crânio rodam num ambiente Python à parte, instalado uma vez por **Configurações ▸ CAD/IA ▸ Instalar a segmentação de órgãos (TotalSegmentator)…**. Dá também para rodar o instalador fora do Ipê: o arquivo `instalar_segmentacao.bat` fica na pasta do programa, dentro de `_internal\ipe` (na versão do código-fonte, na pasta do projeto). Precisa de internet e de uns 5 GB.
+
+O instalador procura um Python de 3.10 a 3.13 que **abra de verdade** (um Python quebrado ou o atalho da Microsoft Store não contam) e, se não houver, baixa um Python 3.12 só para a segmentação. No começo ele lista os Pythons do computador. As variáveis PYTHONHOME e PYTHONPATH do Windows, que fazem qualquer Python quebrar com *No module named 'encodings'*, são ignoradas e aparecem como aviso. Um ambiente antigo que não abre é apagado e refeito; se a pasta estiver presa, ele a renomeia. Se ainda assim falhar, instale o Python 3.12 de python.org (marcando *Add python.exe to PATH*) e rode de novo. Se a falha for de rede (mensagens com *connection*, *timeout*, *SSL* ou *proxy*), libere download.pytorch.org, pypi.org e files.pythonhosted.org.
+
 ## Achados de IA e nódulos pulmonares
 
 As IAs que **apontam** alguma coisa (a primeira é a de nódulos pulmonares) não escrevem no laudo: cada candidato vira um **achado sugerido**, revisado um a um na janela **Achados de IA** (botão **Aplicações** ▸ *Achados de IA…*, ou o menu do botão **Nódulos**).
