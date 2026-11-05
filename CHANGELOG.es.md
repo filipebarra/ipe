@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.74 — HTTPS en la red interna, con certificado del propio Ipê
+- **Servidor central ▸ Generar certificado para la red interna…**: Ipê crea una AC interna del servicio y el
+  certificado del servidor (nombre e IP del equipo), y el servidor pasa a usar HTTPS.
+- **Cliente ▸ Confiar en el certificado de este servidor…**: descarga la AC del servidor, muestra la huella digital
+  para comprobar y pasa a exigir HTTPS comprobado con ella. **Guardar la AC (.crt)** para instalar en Windows
+  (navegador y otros visores DICOMweb).
+- Nueva dependencia: cryptography.
+
 ## 0.99.73 — Configuración: la ventana del grupo
 - Hacer clic en el nombre de un grupo del menú Configuración (Visualizador, Protocolos de examen, CAD/IA,
   Informes…) abre una ventana con todos los pasos de ese grupo en una lista a la izquierda. El ítem del submenú

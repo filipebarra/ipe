@@ -433,6 +433,12 @@ class _Handler(BaseHTTPRequestHandler):
         c = self.central
         if path == "/api/ping":
             return self._json(200, {"ok": True, "app": APP_NAME, "version": __version__, "name": c.name}, raw=True)
+        if path == "/api/ac" and method == "GET":         # 0.99.74: a AC interna, para o cliente confiar (público)
+            from ipe.core.certificados import ac_ao_lado
+            pem = ac_ao_lado(c.certfile)
+            if pem is None:
+                return self._error(404, "este servidor não tem AC interna")
+            return self._send(200, pem, "application/x-pem-file")
         if path == "/api/login" and method == "POST":
             try:
                 data = json.loads(self._body() or b"{}")

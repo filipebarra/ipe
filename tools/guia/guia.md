@@ -938,6 +938,16 @@ A aba **Histórico** mostra o que cada regra fez e quando.
 
 **Configurações ▸ Rede ▸ Servidor central…** põe uma instalação no papel de servidor, com login e banco compartilhado; as outras entram como cliente. É para um grupo pequeno na mesma rede — o banco é SQLite.
 
+### HTTPS na rede interna (certificado do Ipê)
+
+Sem certificado, o servidor central usa HTTP e a senha de cada login passa aberta pela rede. Um certificado de autoridade pública não serve para um endereço como 192.168.1.10, então o próprio Ipê faz o papel de **autoridade certificadora (AC) interna**:
+
+1. **No servidor:** Configurações ▸ Rede ▸ Servidor central ▸ **Gerar certificado para a rede interna…**. Na primeira vez ele cria a AC do serviço (vale 10 anos) e, com ela, o certificado do servidor, válido para o nome do computador e todos os IPs dele (825 dias). Os campos Certificado e Chave são preenchidos sozinhos. A janela mostra a **impressão digital** da AC: anote-a. Dê OK e feche e abra o programa: o servidor passa a responder em `https://`.
+2. **Em cada cliente:** troque o endereço para `https://…` e clique em **Confiar no certificado deste servidor…**. O Ipê baixa a AC do servidor e mostra a impressão digital: confira que é a mesma do servidor e confirme. Daí em diante o cliente só aceita aquele servidor (outro computador na rede não consegue se passar por ele).
+3. **Navegadores e outros visualizadores DICOMweb:** **Salvar a AC (.crt)…** no servidor e, no Windows de cada cliente, duplo clique no arquivo ▸ Instalar certificado ▸ Máquina local (ou Usuário atual) ▸ Autoridades de Certificação Raiz Confiáveis.
+
+Gerar de novo (por exemplo, quando o servidor mudar de IP) troca só o certificado do servidor; a AC continua a mesma e os clientes não precisam fazer nada. A chave da AC fica só no servidor, na pasta `certificados` das configurações; guarde uma cópia dela junto com o backup.
+
 ### Perfis por grupo e computador
 
 **Configurações ▸ Usuários ▸ Perfis por grupo e computador…** (quem gerencia usuários) monta perfis de preferências que o servidor manda para as estações: cada perfil diz para quais **computadores** vale (nomes, com coringa: `SALA-MAMO*`, `TC-0?`), para quais **usuários** e quais **perfis de acesso** (vazio = todos), e quais preferências leva — mouse, texto sobre a imagem, atalhos, colunas do banco, monitores, dinâmica da mama, CAD/IA, idioma… O jeito mais fácil é arrumar um computador como deve ficar e usar **Capturar deste computador…**; dá também para escrever chave e valor à mão (o valor em JSON).

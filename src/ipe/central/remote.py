@@ -23,7 +23,7 @@ class Unauthorized(RemoteError):
 
 
 class RemoteClient:
-    def __init__(self, url: str, verify_tls: bool = True, timeout: float = 30.0):
+    def __init__(self, url: str, verify_tls: bool = True, timeout: float = 30.0, ca_pem: str = ""):
         self.url = url.rstrip("/")
         if "://" not in self.url:
             self.url = "http://" + self.url
@@ -32,7 +32,10 @@ class RemoteClient:
         self.username = ""
         self.on_unauthorized = None          # callback() -> bool (pede login de novo)
         self._ctx = None
-        if self.url.startswith("https") and not verify_tls:
+        if self.url.startswith("https") and ca_pem:
+            # 0.99.74: a AC interna do servidor (Confiar neste servidor): HTTPS conferido de verdade
+            self._ctx = ssl.create_default_context(cadata=ca_pem)
+        elif self.url.startswith("https") and not verify_tls:
             self._ctx = ssl.create_default_context()
             self._ctx.check_hostname = False
             self._ctx.verify_mode = ssl.CERT_NONE
@@ -64,6 +67,30 @@ class RemoteClient:
             if self.on_unauthorized is not None and self.on_unauthorized():
                 return fn()
             raise
+
+    @staticmethod
+    def buscar_ac(url: str, timeout: float = 10.0) -> str:
+        """A AC interna que o servidor publica em /api/ac (0.99.74). Baixada sem conferir: quem confere é a
+        pessoa, pela impressão digital mostrada na tela."""
+        url = url.rstrip("/")
+        if "://" not in url:
+            url = "https://" + url
+        if not url.startswith("https://"):
+            raise RemoteError("O servidor precisa estar em https:// para usar a AC interna.")
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        try:
+            with urllib.request.urlopen(url + "/api/ac", timeout=timeout, context=ctx) as r:
+                pem = r.read().decode("ascii", "replace")
+        except urllib.error.HTTPError as e:
+            raise RemoteError("O servidor não publica uma AC interna (gere o certificado nele)." if e.code == 404
+                              else f"HTTP {e.code}") from None
+        except (urllib.error.URLError, OSError) as e:
+            raise RemoteError(f"Servidor central inacessível ({url}): {getattr(e, 'reason', e)}") from None
+        if "BEGIN CERTIFICATE" not in pem:
+            raise RemoteError("A resposta do servidor não é um certificado.")
+        return pem
 
     # ------------------------------------------------------------------ sessão
     def ping(self) -> dict:

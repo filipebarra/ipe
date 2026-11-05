@@ -5775,7 +5775,24 @@
   "Installed",
   "Clique para abrir todas as configurações deste grupo",
   "Esta configuração tem uma janela própria.",
-  "Você não tem permissão para esta configuração."
+  "Você não tem permissão para esta configuração.",
+  "A resposta do servidor não é um certificado.",
+  "Baixa a AC interna do servidor (gerada nele pelo Ipê) e passa a conferir o HTTPS com ela",
+  "Certificado",
+  "Certificado (*.crt)",
+  "Confiar no certificado deste servidor…",
+  "Confiar no servidor",
+  "Falta o pacote \"cryptography\" (pip install cryptography).",
+  "Gerar certificado para a rede interna…",
+  "Gere primeiro o certificado para a rede interna.",
+  "O certificado da AC interna, para instalar no Windows dos clientes (navegador e outros visualizadores DICOMweb)",
+  "O servidor não publica uma AC interna (gere o certificado nele).",
+  "Salvar a AC (.crt)…",
+  "Salvar a AC interna",
+  "Sem nome nem IP para o certificado.",
+  "este servidor não tem AC interna",
+  "Ipê — AC interna",
+  "BEGIN CERTIFICATE"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7276,6 +7293,11 @@
   "O download parou: {}",
   "Saiu a versão {} do Ipê (você está na {}).",
   "Você já está na versão mais nova ({}).",
-  "Falta neste computador o Microsoft Visual C++ Redistributable (x64), que o PyTorch precisa. O instalador tenta instalá-lo sozinho; se preferir, instale antes:\n{}"
+  "Falta neste computador o Microsoft Visual C++ Redistributable (x64), que o PyTorch precisa. O instalador tenta instalá-lo sozinho; se preferir, instale antes:\n{}",
+  "<small>Confiando na AC interna do servidor: {}…</small>",
+  "<small>Vale para: <b>{}</b> · até {} · com AC interna (os clientes podem confiar pelo botão deles)</small>",
+  "<small>Vale para: <b>{}</b> · até {}</small>",
+  "Impressão digital da AC do servidor:\n\n{}\n\nConfira que é a mesma mostrada no servidor quando o certificado foi gerado. Confiar?",
+  "Certificado gerado para: {} (vale até {}).\n\nDê OK e feche e abra o programa: o servidor passa a usar HTTPS. Nos clientes, troque o começo do endereço para https e use Confiar no certificado deste servidor. Confira que a impressão digital é esta:\n\n{}"
  ]
 }

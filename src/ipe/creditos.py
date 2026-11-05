@@ -80,6 +80,9 @@ CREDITOS: tuple[Credito, ...] = (
             onde="opcional"),
     Credito("API da Anthropic (Claude)", "modelo de linguagem para a IA no texto do laudo, com chave própria do "
             "serviço", "serviço da Anthropic", "https://docs.claude.com", onde="opcional"),
+    Credito("cryptography", "a AC interna e os certificados HTTPS da rede (0.99.74)",
+            "Apache-2.0 ou BSD-3-Clause", "https://cryptography.io", pacotes=("cryptography",),
+            modulos=("cryptography",)),
     Credito("7-Zip", "abrir RAR, 7z, ISO e ZIP em Deflate64 na importação (0.99.66), se instalado no computador",
             "LGPL-2.1 (código do unRAR com restrição própria)", "https://www.7-zip.org", onde="opcional"),
     Credito("libarchive (bsdtar, o tar.exe do Windows 10/11)", "abrir RAR, 7z e ISO na importação (0.99.66) "

@@ -25,7 +25,8 @@ def open_client_window(paths, settings, login=True):
     from ipe.ui.login import LoginDialog
     from ipe.ui.main_window import MainWindow
     url = settings.get("central.url", "")
-    client = RemoteClient(url, verify_tls=bool(settings.get("central.verify_tls", False)))
+    client = RemoteClient(url, verify_tls=bool(settings.get("central.verify_tls", False)),
+                          ca_pem=settings.get("central.ca_pem", "") or "")
     auth = RemoteAuth(client)
     dlg = LoginDialog(auth, settings, where=f"Servidor central: {client.url}")
     if dlg.exec() != QDialog.Accepted or dlg.session is None:

@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.74 — HTTPS on the internal network, with Ipê's own certificate
+- **Central server ▸ Generate a certificate for the internal network…**: Ipê creates an internal CA for the
+  service and the server certificate (computer name and IPs), and the server switches to HTTPS.
+- **Client ▸ Trust this server's certificate…**: downloads the server's CA, shows the fingerprint to check and then
+  requires HTTPS verified with it. **Save the CA (.crt)** to install on Windows (browser and other DICOMweb viewers).
+- New dependency: cryptography.
+
 ## 0.99.73 — Settings: the group window
 - Clicking a group name in the Settings menu (Viewer, Exam protocols, CAD/AI, Reports…) opens a window with all
   the steps of that group in a list on the left. A submenu item still opens only itself, and *All preferences*

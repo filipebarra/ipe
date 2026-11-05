@@ -25,6 +25,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [platformdirs](https://github.com/tox-dev/platformdirs) | as pastas de dados e de configuração de cada sistema | MIT |
 | [RapidOCR](https://github.com/RapidAI/RapidOCR) | OCR das folhas de impressão recebidas (identificar o paciente) | Apache-2.0 |
 | [ONNX Runtime](https://onnxruntime.ai) | roda as redes neurais na CPU (OCR, densidade mamária) | MIT |
+| [cryptography](https://cryptography.io) | a AC interna e os certificados HTTPS da rede (0.99.74) | Apache-2.0 ou BSD-3-Clause |
 
 ## Opcional, instalado à parte
 
