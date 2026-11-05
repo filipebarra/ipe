@@ -85,10 +85,12 @@ SECOES_DA_GERAL = ("Ao abrir o programa", "Texto e marcas sobre a imagem",
 
 
 class PreferencesDialog(QDialog):
-    def __init__(self, settings, parent=None, pagina: str = ""):
+    def __init__(self, settings, parent=None, pagina: str = "", paginas=None):
         super().__init__(parent)
         self.settings = settings
         self.pagina = pagina if pagina in PAGINAS else ""
+        #: 0.99.73: várias páginas (as de um grupo do menu Configurações), uma de cada vez por mostrar()
+        self.paginas = [p for p in (paginas or []) if p in PAGINAS]
         self.setWindowTitle("Preferências")
         self.resize(720, 560)
         tabs = QTabWidget()
@@ -133,29 +135,42 @@ class PreferencesDialog(QDialog):
         lay = QVBoxLayout(self)
         lay.addWidget(tabs)
         lay.addWidget(bb)
+        self.bb = bb
         if self.pagina:
             self._so_a_pagina(bb)
+        elif self.paginas:
+            self.tabs.tabBar().hide()
+            self.tabs.setDocumentMode(True)
+            bb.button(QDialogButtonBox.RestoreDefaults).hide()
+            self.mostrar(self.paginas[0])
 
     def _so_a_pagina(self, bb) -> None:
         """Mostra só a página pedida pelo menu Configurações: sem as outras abas e sem as outras
         seções da aba. O resto continua montado por baixo (e é gravado igual a como estava), para
         que salvar uma página nunca mexa no que as outras guardam."""
-        titulo, aba, secoes = PAGINAS[self.pagina]
+        titulo, _aba, secoes = PAGINAS[self.pagina]
         self.setWindowTitle(f"Configurações — {titulo}")
+        self.tabs.tabBar().hide()
+        self.tabs.setDocumentMode(True)
+        self.mostrar(self.pagina)
+        if secoes:
+            self.resize(620, 360)
+        # "Restaurar padrões" volta **tudo** aos de fábrica: numa janela de um assunto só, não
+        bb.button(QDialogButtonBox.RestoreDefaults).hide()
+
+    def mostrar(self, pid: str) -> None:
+        """Põe na frente a página `pid` (a aba dela e, na Geral, só as seções dela)."""
+        if pid not in PAGINAS:
+            return
+        _titulo, aba, secoes = PAGINAS[pid]
         for i in range(self.tabs.count()):
             if mesmo(self.tabs.tabText(i), aba):
                 self.tabs.setCurrentIndex(i)
                 break
-        self.tabs.tabBar().hide()
-        self.tabs.setDocumentMode(True)
-        if secoes:
-            pagina = self.tabs.currentWidget()
-            for g in pagina.findChildren(QGroupBox):
-                if any(mesmo(g.title(), x) for x in SECOES_DA_GERAL):
-                    g.setVisible(any(mesmo(g.title(), x) for x in secoes))
-            self.resize(620, 360)
-        # "Restaurar padrões" volta **tudo** aos de fábrica: numa janela de um assunto só, não
-        bb.button(QDialogButtonBox.RestoreDefaults).hide()
+        pagina = self.tabs.currentWidget()
+        for g in pagina.findChildren(QGroupBox):
+            if any(mesmo(g.title(), x) for x in SECOES_DA_GERAL):
+                g.setVisible(not secoes or any(mesmo(g.title(), x) for x in secoes))
 
     # ------------------------------------------------------------ abas
     def _mouse_tab(self) -> QWidget:

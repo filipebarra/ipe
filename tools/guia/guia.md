@@ -1488,6 +1488,8 @@ Com C2 e costelas juntas, a costela confere a contagem: a última costela em L1 
 
 Tudo o que se configura mora no menu **Configurações** (e no botão Configurações da tela inicial), com um submenu por assunto: **Visualizador** (barra e aplicações, botões extras, mouse, atalhos, presets de janela, anotações, texto sobre a imagem, sincronização), **Protocolos de exame** (protocolos de exibição, mamografia, dinâmica da mama, dinâmicos, regiões do corpo), **CAD/IA**, **Monitores** (papel, layout, ordem e calibração GSDF), **Rede** (nós DICOM, automação, servidor central, link ipe://), **Impressão** (impressoras DICOM e configurações de impressão), **Banco de dados** (importação, pasta do banco), **Usuários** e **Sistema** (ao abrir o programa, desempenho, módulos, idioma). Cada item abre a sua própria janela, só com aquele assunto. Os menus Exibir, Rede, Impressão e Usuário ficam só com ações.
 
+**Clicar no nome do grupo** (Visualizador, Protocolos de exame, CAD/IA, Laudos…) abre uma janela só daquele grupo, com as etapas dele numa lista à esquerda: as páginas de preferências aparecem ali mesmo e são gravadas juntas no OK; as que têm janela própria (Barra de ferramentas, Nós DICOM…) mostram um botão **Abrir…**. Clicar num item do submenu continua abrindo só aquele item.
+
 A janela completa, com todas as abas, continua em **Configurações ▸ Todas as preferências** (Ctrl+,):
 
 | Aba | O que tem |

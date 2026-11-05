@@ -7767,5 +7767,8 @@
  "Saiu a versão {} do Ipê (você está na {}).": "Salió la versión {} de Ipê (usted está en la {}).",
  "Você já está na versão mais nova ({}).": "Ya tiene la versión más nueva ({}).",
  "Installed": "Installed",
- "Falta neste computador o Microsoft Visual C++ Redistributable (x64), que o PyTorch precisa. O instalador tenta instalá-lo sozinho; se preferir, instale antes:\n{}": "A este equipo le falta el Microsoft Visual C++ Redistributable (x64), que PyTorch necesita. El instalador intenta instalarlo solo; si prefiere, instálelo antes:\n{}"
+ "Falta neste computador o Microsoft Visual C++ Redistributable (x64), que o PyTorch precisa. O instalador tenta instalá-lo sozinho; se preferir, instale antes:\n{}": "A este equipo le falta el Microsoft Visual C++ Redistributable (x64), que PyTorch necesita. El instalador intenta instalarlo solo; si prefiere, instálelo antes:\n{}",
+ "Clique para abrir todas as configurações deste grupo": "Haga clic para abrir toda la configuración de este grupo",
+ "Esta configuração tem uma janela própria.": "Esta configuración tiene una ventana propia.",
+ "Você não tem permissão para esta configuração.": "No tiene permiso para esta configuración."
 }

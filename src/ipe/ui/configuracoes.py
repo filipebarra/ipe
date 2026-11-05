@@ -17,8 +17,10 @@ O mesmo catálogo monta o menu da barra de menus e o do botão Configurações d
 """
 from __future__ import annotations
 
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QMenu
+from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QMenu,
+                               QPushButton, QStackedWidget, QVBoxLayout, QWidget)
 
 #: (submenu, [(texto, alvo, permissão)]); permissão "" = qualquer um, "configure", "users"
 CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
@@ -113,6 +115,124 @@ def _pode(permissao: str) -> bool:
     return bool(S.can(permissao))
 
 
+# ------------------------------------------------------------------ 0.99.73: a janela de um grupo
+def itens_do_grupo(win, nome: str) -> list[tuple[str, object, bool]]:
+    """(texto, alvo, pode) dos itens do grupo que aparecem no menu (módulo desligado fica de fora)."""
+    from ipe import modules as MOD
+    desligados = MOD.desligados(win.settings)
+    for n, itens in CATALOGO:
+        if n == nome:
+            return [(t, a, _pode(p)) for t, a, p in itens if MODULO_DO_ITEM.get(t) not in desligados]
+    return []
+
+
+class GrupoDialog(QDialog):
+    """Clique no nome do grupo (Visualizador, CAD/IA…): uma janela com as etapas do grupo à esquerda. As páginas
+    de preferências aparecem ali mesmo e são gravadas juntas no OK; as que têm janela própria abrem pelo botão."""
+
+    def __init__(self, win, nome: str):
+        super().__init__(win)
+        self.win, self.nome = win, nome
+        self.setWindowTitle(f"Configurações — {nome}")
+        self.resize(980, 640)
+        self.itens = itens_do_grupo(win, nome)
+        pids = [a[2:] for _t, a, ok in self.itens if isinstance(a, str) and a.startswith("p:") and ok]
+        self.lista = QListWidget()
+        self.lista.setMaximumWidth(300)
+        for texto, _alvo, ok in self.itens:
+            it = QListWidgetItem(texto.rstrip("…"))
+            if not ok:
+                it.setFlags(it.flags() & ~Qt.ItemIsEnabled)
+                it.setToolTip("Você não tem permissão para esta configuração.")
+            self.lista.addItem(it)
+        self.pilha = QStackedWidget()
+        self.prefs = None
+        if pids:
+            from ipe.ui.preferences import PreferencesDialog
+            self.prefs = PreferencesDialog(win.settings, win, paginas=pids)
+            self.prefs.setWindowFlags(Qt.Widget)
+            self.prefs.bb.hide()
+            self.pilha.addWidget(self.prefs)
+        self.cartao = QWidget()
+        c = QVBoxLayout(self.cartao)
+        self.c_titulo = QLabel()
+        self.c_titulo.setStyleSheet("font-size:16px;font-weight:bold")
+        self.c_texto = QLabel("Esta configuração tem uma janela própria.")
+        self.c_texto.setWordWrap(True)
+        self.c_botao = QPushButton("Abrir…")
+        self.c_botao.clicked.connect(self._abrir_atual)
+        c.addWidget(self.c_titulo)
+        c.addWidget(self.c_texto)
+        c.addWidget(self.c_botao, 0, Qt.AlignLeft)
+        c.addStretch(1)
+        self.pilha.addWidget(self.cartao)
+        h = QHBoxLayout()
+        h.addWidget(self.lista)
+        h.addWidget(self.pilha, 1)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.button(QDialogButtonBox.Cancel).setText("Cancelar")
+        bb.accepted.connect(self._ok)
+        bb.rejected.connect(self.reject)
+        if self.prefs is None:                         # nada para gravar aqui: só Fechar
+            bb.button(QDialogButtonBox.Ok).hide()
+            bb.button(QDialogButtonBox.Cancel).setText("Fechar")
+        lay = QVBoxLayout(self)
+        lay.addLayout(h, 1)
+        lay.addWidget(bb)
+        self.lista.currentRowChanged.connect(self._mostrar)
+        primeiro = next((i for i, (_t, _a, ok) in enumerate(self.itens) if ok), 0)
+        self.lista.setCurrentRow(primeiro)
+
+    def _mostrar(self, linha: int) -> None:
+        if not (0 <= linha < len(self.itens)):
+            return
+        texto, alvo, ok = self.itens[linha]
+        if isinstance(alvo, str) and alvo.startswith("p:") and self.prefs is not None and ok:
+            self.prefs.mostrar(alvo[2:])
+            self.pilha.setCurrentWidget(self.prefs)
+            return
+        self.c_titulo.setText(texto.rstrip("…"))
+        self.c_botao.setEnabled(ok)
+        self.pilha.setCurrentWidget(self.cartao)
+
+    def _abrir_atual(self) -> None:
+        linha = self.lista.currentRow()
+        if 0 <= linha < len(self.itens) and self.itens[linha][2]:
+            executar(self.win, self.itens[linha][1])
+
+    def _ok(self) -> None:
+        if self.prefs is not None:
+            self.prefs._save()
+            if self.prefs.result() != QDialog.Accepted:
+                return                                  # o _save avisou o que corrigir
+            self.win._preferencias_salvas()
+        self.accept()
+
+
+class _CliqueNoGrupo(QObject):
+    """Clique (soltar o botão) no nome de um submenu do Configurações abre a janela do grupo."""
+
+    def __init__(self, win, menu: QMenu):
+        super().__init__(menu)
+        self.win, self.menu = win, menu
+
+    def eventFilter(self, obj, e) -> bool:  # noqa: N802
+        if e.type() == QEvent.MouseButtonRelease and e.button() == Qt.LeftButton:
+            a = self.menu.actionAt(e.position().toPoint())
+            nome = a.data() if a is not None and a.menu() is not None else None
+            if isinstance(nome, str) and nome:
+                self.menu.close()
+                QTimer.singleShot(0, lambda: abrir_grupo(self.win, nome))
+                return True
+        return False
+
+
+def abrir_grupo(win, nome: str):
+    d = GrupoDialog(win, nome)
+    d.exec()
+    return d
+
+
 def montar(win, menu: QMenu, dono=None, acao_todas: QAction | None = None) -> QMenu:
     """Enche `menu` com os submenus. `dono` é o pai das QActions (a janela que mostra o menu).
 
@@ -125,6 +245,8 @@ def montar(win, menu: QMenu, dono=None, acao_todas: QAction | None = None) -> QM
     desligados = MOD.desligados(win.settings)
     for nome, itens in CATALOGO:
         sub = menu.addMenu(nome)
+        sub.menuAction().setData(nome)               # 0.99.73: clicar no nome abre a janela do grupo
+        sub.menuAction().setToolTip("Clique para abrir todas as configurações deste grupo")
         for texto, alvo, permissao in itens:
             if MODULO_DO_ITEM.get(texto) in desligados:
                 continue
@@ -132,6 +254,9 @@ def montar(win, menu: QMenu, dono=None, acao_todas: QAction | None = None) -> QM
             a.setEnabled(_pode(permissao))
             a.triggered.connect(lambda _=False, al=alvo: executar(win, al))
             sub.addAction(a)
+    if not getattr(menu, "_clique_no_grupo", None):
+        menu._clique_no_grupo = _CliqueNoGrupo(win, menu)
+        menu.installEventFilter(menu._clique_no_grupo)
     menu.addSeparator()
     if acao_todas is None:
         acao_todas = QAction("Todas as preferências (janela completa)…", dono)

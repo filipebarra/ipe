@@ -5772,7 +5772,10 @@
   "Pular esta versão",
   "Ver a página",
   "Versão nova",
-  "Installed"
+  "Installed",
+  "Clique para abrir todas as configurações deste grupo",
+  "Esta configuração tem uma janela própria.",
+  "Você não tem permissão para esta configuração."
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

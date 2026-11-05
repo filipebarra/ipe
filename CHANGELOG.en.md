@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.73 — Settings: the group window
+- Clicking a group name in the Settings menu (Viewer, Exam protocols, CAD/AI, Reports…) opens a window with all
+  the steps of that group in a list on the left. A submenu item still opens only itself, and *All preferences*
+  still opens everything.
+
 ## 0.99.72 — the installer warns about Visual C++
 - Ipê's installer checks for the Microsoft Visual C++ Redistributable (x64) and, if missing, offers to open the
   Microsoft download. Only the segmentation (PyTorch) needs it; Ipê and Python do not. *Install the segmentation*

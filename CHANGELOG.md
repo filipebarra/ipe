@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.73 — Configurações: a janela do grupo
+- Clicar no nome do grupo do menu Configurações (Visualizador, Protocolos de exame, CAD/IA, Laudos…) abre uma
+  janela com todas as etapas daquele grupo, numa lista à esquerda. O item do submenu continua abrindo só ele, e
+  *Todas as preferências* continua abrindo tudo.
+
 ## 0.99.72 — o instalador avisa do Visual C++
 - O instalador do Ipê confere se o Microsoft Visual C++ Redistributable (x64) existe e, faltando, oferece abrir o
   download da Microsoft. Ele só é preciso para a segmentação (PyTorch); o Ipê e o Python não precisam. O
