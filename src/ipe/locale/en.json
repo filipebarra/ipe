@@ -7646,5 +7646,19 @@
  "diâmetro médio {} → {} mm ({} mm)": "mean diameter {} → {} mm ({} mm)",
  "tempo de duplicação {} dias": "doubling time {} days",
  "volume {} → {} mm³ ({}%)": "volume {} → {} mm³ ({}%)",
- "O nódulo {} entrou na lesão “{}”, que já vinha sendo acompanhada: {}.": "Nodule {} joined the lesion “{}”, already being followed: {}."
+ "O nódulo {} entrou na lesão “{}”, que já vinha sendo acompanhada: {}.": "Nodule {} joined the lesion “{}”, already being followed: {}.",
+ "Ainda não revisados": "Not yet reviewed",
+ "Em leitura": "Being read",
+ "Em leitura ✎": "Being read ✎",
+ "Estado do exame": "Study status",
+ "Exame marcado como revisado.": "Study marked as reviewed.",
+ "Exame: marcar como revisado (ou voltar ao automático)": "Study: mark as reviewed (or back to automatic)",
+ "Não lido": "Unread",
+ "Não lido ✎": "Unread ✎",
+ "Não lidos": "Unread",
+ "Revisado": "Reviewed",
+ "Trocado à mão (botão direito ▸ Estado do exame ▸ Automático volta ao automático)": "Changed by hand (right-click ▸ Study status ▸ Automatic goes back to automatic)",
+ "Urgente ✎": "Urgent ✎",
+ "Estado do exame de volta ao automático: {}.": "Study status back to automatic: {}.",
+ "Não deu para trocar o estado do exame: {}": "Could not change the study status: {}"
 }

@@ -93,6 +93,7 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("view.reflines", "Linhas de referência", "Sincronização"),
     ("view.strip", "Tira de séries (miniaturas)", "Sincronização"),
     ("study.priors", "Adicionar exame anterior", "Estudos"),
+    ("study.revisado", "Exame: marcar como revisado (ou voltar ao automático)", "Estudos"),
     ("view.anonymize", "Ocultar dados do paciente", "Imagem"),
     ("cad.revelar", "Revelar o CAD (ler antes, ver depois)", "Imagem"),
     ("view.mosaico", "Mosaico de cortes no quadro (2×2 → 3×3 → 4×4 → desligado)", "Imagem"),

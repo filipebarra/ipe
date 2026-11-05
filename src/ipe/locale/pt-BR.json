@@ -5686,7 +5686,19 @@
   "pelo registro",
   "provável, sem registro (confira)",
   "sem números para comparar",
-  "tempo de duplicação não se aplica (não cresceu)"
+  "tempo de duplicação não se aplica (não cresceu)",
+  "Ainda não revisados",
+  "Em leitura",
+  "Em leitura ✎",
+  "Estado do exame",
+  "Exame marcado como revisado.",
+  "Exame: marcar como revisado (ou voltar ao automático)",
+  "Não lido",
+  "Não lido ✎",
+  "Não lidos",
+  "Revisado",
+  "Trocado à mão (botão direito ▸ Estado do exame ▸ Automático volta ao automático)",
+  "Urgente ✎"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7152,6 +7164,8 @@
   "diâmetro médio {} → {} mm ({} mm)",
   "tempo de duplicação {} dias",
   "volume {} → {} mm³ ({}%)",
-  "O nódulo {} entrou na lesão “{}”, que já vinha sendo acompanhada: {}."
+  "O nódulo {} entrou na lesão “{}”, que já vinha sendo acompanhada: {}.",
+  "Estado do exame de volta ao automático: {}.",
+  "Não deu para trocar o estado do exame: {}"
  ]
 }

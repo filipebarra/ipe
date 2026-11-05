@@ -57,7 +57,7 @@ RPC_METHODS: dict[str, str] = {
     "encerrar_buscas_do_exame": "sign_report", "conferir_retornos_busca_ativa": "view",
     "busca_ativa_por_exame": "view",
     # 0.99.52: prioridade e subespecialidade do exame (onda B4)
-    "set_study_priority": "report",
+    "set_study_priority": "report", "set_estado_leitura": "report", "estado_do_exame": "view",
     # 0.99.53: painel de produtividade (onda B6)
     "produtividade_dados": "view",
     # 0.99.56: perfil da estação e atualizações (tratados no próprio servidor, com a sessão de quem pede)

@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.63 — study status
+- **Status** column in the database: unread, being read, urgent, reviewed — automatic, from access, report and
+  priority; change it by hand with a right-click (✎), filters in **Work ▾** and the "mark as reviewed" action in
+  the viewer.
+
 ## 0.99.62 — complete lung nodule
 - **Click nodule** on CT (right-click ▸ Lung nodule here): threshold segmentation, separated from vessels and
   pleura, optional ground glass; the same numbers as the AI; save as a confirmed finding or follow it as a lesion

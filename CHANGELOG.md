@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.63 — estado do exame
+- Coluna **Estado** no banco: não lido, em leitura, urgente, revisado — sozinha, pelo acesso, pelo laudo e pela
+  prioridade; troca à mão no botão direito (✎), filtros em **Trabalho ▾** e a ação "marcar como revisado" no
+  visualizador.
+
 ## 0.99.62 — nódulo pulmonar completo
 - **Nódulo por clique** na TC (botão direito ▸ Nódulo pulmonar aqui): segmentação pelo limiar, separando dos
   vasos e da pleura, com vidro fosco opcional; os mesmos números da IA; guardar como achado confirmado ou já

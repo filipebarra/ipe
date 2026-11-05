@@ -85,6 +85,8 @@ class StudyRow:
     prazo: str = ""               # prazo do laudo, AAAAMMDDHHMM
     sla: str = ""                 # "faltam 5 h", "atrasado 2 h", "no prazo"
     sla_estado: str = ""          # ok, atencao, atrasado, no_prazo, fora_do_prazo
+    estado: str = ""              # 0.99.63: nao_lido, em_leitura, revisado, urgente (core/estado_exame)
+    estado_manual: str = ""       # o trocado à mão ("" = automático)
 
 
 @dataclass
@@ -194,6 +196,7 @@ class Repository:
             mama: dict[str, tuple[str, str]] = {}
             buscas: dict[str, str] = {}
             laudado: dict = {}
+            from ipe.core import estado_exame as _EST
             from ipe.core import sla as _SLA
             cfg_sla = _SLA.config(self)
             agora = datetime.now()
@@ -273,6 +276,9 @@ class Repository:
                     ia=", ".join(ias.get(st.study_uid, [])),
                     birads=mama.get(st.study_uid, ("", ""))[0], densidade=mama.get(st.study_uid, ("", ""))[1],
                     busca=buscas.get(st.study_uid, ""), **sla,
+                    estado=_EST.estado(st.estado_leitura or "", reports.get(st.study_uid, ""), sla.get("prioridade", ""),
+                                       bool(st.unread)),
+                    estado_manual=st.estado_leitura or "",
                     **{k: "; ".join(v) for k, v in details.get(st.study_uid, {}).items()}))
             return rows
 
@@ -458,6 +464,37 @@ class Repository:
         """0.99.56 (onda B2): os perfis que casam com este computador e esta pessoa, juntos."""
         from ipe.core import perfis as PF
         return PF.juntar(self.get_app_setting(PF.CHAVE, []) or [], computador, usuario, papel)
+
+    def estado_do_exame(self, study_uid: str) -> dict:
+        """0.99.63: {estado, manual} do exame (o mesmo cálculo da coluna Estado)."""
+        from ipe.core import estado_exame as EST
+        from ipe.core import sla as SLA
+        with self.db.session() as s:
+            st = s.scalar(select(Study).where(Study.study_uid == study_uid))
+            if st is None:
+                return {"estado": "", "manual": ""}
+            manual, unread = st.estado_leitura or "", bool(st.unread)
+            desc, mods, prio, sub, chegada = st.description or "", st.modalities or "", st.prioridade or "", \
+                st.subespecialidade or "", st.date_added
+        with self.db.session() as s:
+            sts = {r for r in s.scalars(select(Report.status).where(Report.study_uid == study_uid))}
+        rep = "retificado" if "amended" in sts else "assinado" if "final" in sts else "rascunho" if sts else ""
+        prioridade = SLA.resolver({"description": desc, "modalities": mods, "prioridade_manual": prio,
+                                   "subesp_manual": sub, "chegada": chegada, "laudado_em": None},
+                                  SLA.config(self)).get("prioridade", "")
+        return {"estado": EST.estado(manual, rep, prioridade, unread), "manual": manual}
+
+    def set_estado_leitura(self, study_uids, estado: str = "") -> int:
+        """0.99.63: troca à mão o estado do exame ("" = automático)."""
+        from ipe.core import estado_exame as EST
+        if estado and estado not in EST.ESTADOS:
+            raise ValueError(f"estado desconhecido: {estado}")
+        n = 0
+        with self.db.session() as s:
+            for st in s.scalars(select(Study).where(Study.study_uid.in_(list(study_uids or [])))):
+                st.estado_leitura = estado or ""
+                n += 1
+        return n
 
     def set_study_priority(self, study_uids, prioridade: str | None = None, subespecialidade: str | None = None) -> int:
         """0.99.52 (onda B4): troca à mão a prioridade ("" = a da regra) e/ou a subespecialidade."""

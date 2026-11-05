@@ -7646,5 +7646,19 @@
  "diâmetro médio {} → {} mm ({} mm)": "diámetro medio {} → {} mm ({} mm)",
  "tempo de duplicação {} dias": "tiempo de duplicación {} días",
  "volume {} → {} mm³ ({}%)": "volumen {} → {} mm³ ({}%)",
- "O nódulo {} entrou na lesão “{}”, que já vinha sendo acompanhada: {}.": "El nódulo {} entró en la lesión “{}”, que ya se venía siguiendo: {}."
+ "O nódulo {} entrou na lesão “{}”, que já vinha sendo acompanhada: {}.": "El nódulo {} entró en la lesión “{}”, que ya se venía siguiendo: {}.",
+ "Ainda não revisados": "Aún no revisados",
+ "Em leitura": "En lectura",
+ "Em leitura ✎": "En lectura ✎",
+ "Estado do exame": "Estado del examen",
+ "Exame marcado como revisado.": "Examen marcado como revisado.",
+ "Exame: marcar como revisado (ou voltar ao automático)": "Examen: marcar como revisado (o volver al automático)",
+ "Não lido": "No leído",
+ "Não lido ✎": "No leído ✎",
+ "Não lidos": "No leídos",
+ "Revisado": "Revisado",
+ "Trocado à mão (botão direito ▸ Estado do exame ▸ Automático volta ao automático)": "Cambiado a mano (clic derecho ▸ Estado del examen ▸ Automático vuelve al automático)",
+ "Urgente ✎": "Urgente ✎",
+ "Estado do exame de volta ao automático: {}.": "Estado del examen de vuelta al automático: {}.",
+ "Não deu para trocar o estado do exame: {}": "No se pudo cambiar el estado del examen: {}"
 }

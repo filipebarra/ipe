@@ -64,6 +64,8 @@ class Study(Base):
     # 0.99.52 (onda B4): troca manual da prioridade e da subespecialidade ("" = a da regra)
     prioridade: Mapped[str] = mapped_column(String(16), default="")
     subespecialidade: Mapped[str] = mapped_column(String(64), default="")
+    # 0.99.63: estado do exame trocado à mão ("" = automático; nao_lido, em_leitura, revisado, urgente)
+    estado_leitura: Mapped[str] = mapped_column(String(16), default="")
 
     patient: Mapped[Patient] = relationship(back_populates="studies")
     series: Mapped[list["Series"]] = relationship(back_populates="study",

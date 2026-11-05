@@ -33,7 +33,7 @@ COLUMNS = [
     ("report", "Laudo", "text"), ("banco", "Banco", "banco"), ("ia", "IA", "ia"),
     ("birads", "BI-RADS", "text"), ("densidade", "Densidade", "text"), ("busca", "Busca ativa", "busca"),
     ("prioridade", "Prioridade", "prioridade"), ("subesp", "Subespecialidade", "text"),
-    ("prazo", "Prazo do laudo", "datetime"), ("sla", "SLA", "text"),
+    ("prazo", "Prazo do laudo", "datetime"), ("sla", "SLA", "text"), ("estado", "Estado", "estado"),
     ("case_n", "Nº", "int"), ("case_name", "Caso (lista)", "text"),
 ]
 LIST_ONLY = ["case_n", "case_name"]          # aparecem sozinhas quando uma lista está aberta
@@ -185,6 +185,10 @@ class StudyTableModel(QAbstractTableModel):
             if kind == "prioridade":
                 from ipe.core import sla as SLA
                 return SLA.PRIORIDADES.get(v, v)
+            if kind == "estado":
+                from ipe.core import estado_exame as EST
+                txt = EST.rotulo(v)
+                return txt + (" ✎" if getattr(r, "estado_manual", "") else "") if txt else ""
             if kind in ("int", "float") and not v:
                 return ""
             if key == "patient_name":
@@ -199,6 +203,17 @@ class StudyTableModel(QAbstractTableModel):
             if cor:
                 from PySide6.QtGui import QColor
                 return QColor(*cor)
+        if role == Qt.ForegroundRole and key == "estado":
+            from ipe.core import estado_exame as EST
+            cor = EST.CORES.get(getattr(r, "estado", ""))
+            if cor:
+                from PySide6.QtGui import QColor
+                return QColor(*cor)
+        if role == Qt.ToolTipRole and key == "estado" and getattr(r, "estado_manual", ""):
+            return "Trocado à mão (botão direito ▸ Estado do exame ▸ Automático volta ao automático)"
+        if role == Qt.UserRole + 1 and key == "estado":
+            from ipe.core import estado_exame as EST
+            return EST.ORDEM.get(getattr(r, "estado", ""), 9)
         if role == Qt.UserRole + 1 and key == "prioridade":
             from ipe.core import sla as SLA
             return SLA.ORDEM.get(getattr(r, "prioridade", ""), 9)
@@ -656,6 +671,11 @@ class Browser(QWidget):
         m.addAction("Atrasados", lambda: self.filtro_trabalho("atrasados"))
         m.addAction("Vencem em menos de 2 h", lambda: self.filtro_trabalho("vencendo"))
         m.addAction("Urgências e emergências sem laudo", lambda: self.filtro_trabalho("urgentes"))
+        m.addSeparator()
+        m.addAction("Não lidos", lambda: self.filtro_trabalho("nao_lidos"))            # 0.99.63
+        m.addAction("Em leitura", lambda: self.filtro_trabalho("em_leitura"))
+        m.addAction("Ainda não revisados", lambda: self.filtro_trabalho("nao_revisados"))
+        m.addSeparator()
         minhas = self.minhas_subesp()
         a = m.addAction("Minhas subespecialidades" + (f" ({', '.join(minhas)})" if minhas else ""),
                         lambda: self.filtro_trabalho("minhas"))
@@ -670,10 +690,14 @@ class Browser(QWidget):
         filtro = {"sem_laudo": sem_laudo, "atrasados": {**sem_laudo, "sla": "atrasado"},
                   "vencendo": {**sem_laudo, "sla": "vence em"},
                   "urgentes": {**sem_laudo, "prioridade": {"Urgente", "Emergência"}},
-                  "minhas": {**sem_laudo, "subesp": set(self.minhas_subesp())}}[qual]
+                  "minhas": {**sem_laudo, "subesp": set(self.minhas_subesp())},
+                  "nao_lidos": {"estado": {"Não lido", "Não lido ✎"}},
+                  "em_leitura": {"estado": {"Em leitura", "Em leitura ✎"}},
+                  "nao_revisados": {"estado": {"Não lido", "Em leitura", "Urgente", "Não lido ✎", "Em leitura ✎",
+                                               "Urgente ✎"}}}[qual]
         self.aplicar_filtro_mama(filtro)
         visiveis = self.visible_columns()
-        faltam = [k for k in ("prioridade", "subesp", "prazo", "sla") if k not in visiveis]
+        faltam = [k for k in ("estado", "prioridade", "subesp", "prazo", "sla") if k not in visiveis]
         if faltam:
             self.set_columns(visiveis + faltam)
         self.table.sortByColumn(KEY_INDEX["prazo"], Qt.AscendingOrder)
@@ -704,9 +728,25 @@ class Browser(QWidget):
         ms.addSeparator()
         for n in nomes:
             ms.addAction(n, lambda n=n: self._trocar_prioridade(uids, subespecialidade=n))
+        me = menu.addMenu("Estado do exame")               # 0.99.63
+        from ipe.core import estado_exame as EST
+        me.addAction("Automático", lambda: self._trocar_estado(uids, ""))
+        me.addSeparator()
+        for k, rot in EST.ESTADOS.items():
+            me.addAction(rot, lambda e=k: self._trocar_estado(uids, e))
         from ipe.auth import session as S
         mp.setEnabled(S.can("report"))
         ms.setEnabled(S.can("report"))
+        me.setEnabled(S.can("report"))
+
+    def _trocar_estado(self, uids, estado: str) -> None:
+        try:
+            self.repo.set_estado_leitura(uids, estado)
+        except Exception as e:  # noqa: BLE001
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Estado do exame", f"Não deu para trocar: {e}")
+            return
+        self.refresh()
 
     def _trocar_prioridade(self, uids, prioridade=None, subespecialidade=None) -> None:
         try:

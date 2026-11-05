@@ -1077,6 +1077,8 @@ class ViewerTab(OncoMixin, QWidget):
         self.priors_action.setToolTip("Linha do tempo do paciente (banco e PACS); seta: menu rápido")
         self.priors_action.toggled.connect(self.toggle_priors_panel)
         self._button(tb, self.priors_action, self.priors_menu)
+        self._act("study.revisado", "Exame: marcar como revisado (ou voltar ao automático)",
+                  lambda: self.marcar_revisado())
         self._act("study.priors", "Adicionar exame anterior",
                   lambda: self.priors_menu.exec(self.mapToGlobal(self.rect().center())))
         self.measures_action = self._act("measures.panel", "Medidas", self.toggle_measures_panel,
@@ -4777,6 +4779,24 @@ class ViewerTab(OncoMixin, QWidget):
             v.update()
         self._fill_strip()
         self.status_message.emit("Imagem-chave marcada ★" if on else "Imagem-chave desmarcada")
+
+    def marcar_revisado(self, study_uid: str | None = None) -> str:
+        """0.99.63: o exame do quadro ativo passa a "Revisado" à mão; de novo, volta ao automático."""
+        vp = self.active
+        uid = study_uid or ((vp.study_uid if vp is not None and vp.study_uid else None) or self.study_uid)
+        try:
+            atual = self.repo.estado_do_exame(uid)
+            novo = "" if atual.get("manual") == "revisado" else "revisado"
+            self.repo.set_estado_leitura([uid], novo)
+            depois = self.repo.estado_do_exame(uid)
+        except Exception as e:  # noqa: BLE001
+            log.exception("estado do exame")
+            self.status_message.emit(f"Não deu para trocar o estado do exame: {e}")
+            return ""
+        from ipe.core import estado_exame as EST
+        self.status_message.emit("Exame marcado como revisado." if novo else
+                                 f"Estado do exame de volta ao automático: {EST.rotulo(depois.get('estado', ''))}.")
+        return depois.get("estado", "")
 
     def gravar_ko_gsps(self, perguntar: bool = True) -> list[str]:
         """Imagens-chave (KO) e medidas/anotações (GSPS) do exame do quadro ativo, gravadas no exame como
