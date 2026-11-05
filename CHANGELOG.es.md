@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.77 — enfisema por lóbulo y fractura vertebral (Genant)
+- **Enfisema** (TC de tórax): %LAA−950, Perc15 y volumen por lóbulo, por pulmón y en total, con la distribución
+  (superior, inferior u homogénea); avisos de corte grueso, filtro duro, contraste y calibración del aire
+  (tráquea). Las áreas por debajo de −950 HU en una SEG solo de la serie calculada.
+- **Genant** (TC o RM de columna): altura anterior, media y posterior de cada cuerpo vertebral y la pérdida de
+  altura (cuña, bicóncava, aplastamiento), con el grado de Genant de T4 a L5.
+- Los dos resultados entran en Hallazgos de IA para revisar; solo lo confirmado va al informe.
+
 ## 0.99.76 — mamografía: el doble clic encuadra bien
 - En el 1×1 del doble clic en una incidencia, la mama quedaba alta y con parte oculta: el zoom y la alineación
   por el pezón venían de los cuadros ocultos. Ahora el cuadro ampliado se encuadra solo, para su tamaño.

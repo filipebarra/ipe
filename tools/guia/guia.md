@@ -1349,6 +1349,18 @@ Para quem já tinha instalado a segmentação: rode de novo o *instalar_segmenta
 - A fração de sinal da dupla eco **não é PDFF**: não corrige T1 nem T2*. Em fase com sinal menor que fora de fase sugere ferro — e aí a gordura sai subestimada.
 - Mapa de gordura em 0–1000 (alguns fabricantes) é lido como décimos de porcento, com aviso. À mão continua valendo: uma ROI no próprio mapa mostra a média em % (ou em s⁻¹ no de R2*).
 
+### Enfisema por lobo (0.99.77)
+
+Na TC de tórax, o botão **Enfisema** (ou Aplicações ▸ Enfisema) separa os cinco lobos pela IA e mede, em cada lobo, em cada pulmão e no total, a **%LAA−950** (fração do volume abaixo de −950 HU), o **Perc15** (o HU do percentil 15) e o volume, e diz a distribuição (predomínio superior, inferior ou homogêneo). O resultado vai para os Achados de IA, como um achado "Enfisema (%LAA−950)", e as áreas abaixo de −950 HU ficam numa SEG que aparece só na série calculada.
+
+O número depende da técnica, e a revisão avisa: corte fino (≤ 1,5 mm), filtro suave (B30, STANDARD; filtro de pulmão ou osso aumenta o ruído e a %LAA), sem contraste e em inspiração plena; a mediana do ar da traqueia confere a calibração (perto de −1000 HU). Use de preferência a série fina de filtro suave, se houver. A referência (limiar de −950 HU validado por Gevenois et al., 1996; %LAA acima de ~5–6% costuma ser tratada como enfisema relevante) vai como texto ao lado, não como veredito.
+
+### Fratura vertebral — Genant (0.99.77)
+
+Na TC ou na RM com a coluna torácica ou lombar, o botão **Genant** (ou Aplicações ▸ Genant) nomeia as vértebras (a mesma regra da Coluna, com a IA em resolução cheia), mede a altura anterior, média e posterior de cada corpo e calcula a perda de altura: **cunha** (anterior contra posterior), **bicôncava** (média contra posterior) ou **esmagamento** (posterior contra a média das duas vizinhas). De T4 a L5, 20–25% é grau 1 (leve), 25–40% grau 2 (moderada) e mais de 40% grau 3 (acentuada), pela classificação semiquantitativa de Genant (1993).
+
+Cada vértebra com grau 1 ou mais vira um achado "Fratura vertebral (Genant)" para confirmar, corrigir ou descartar — deformidade não é sinônimo de fratura (variante, Scheuermann, nódulo de Schmorl, degeneração), então confira na sagital. Um achado de resumo diz quantas vértebras foram medidas; confirmado sem alteradas, ele entra no laudo como "corpos vertebrais sem redução de altura de 20% ou mais". Vértebra já revisada não volta como sugestão quando a IA roda de novo.
+
 ## CAD, IA e anotações de outros sistemas
 
 O botão **CAD/IA** reúne o que outro programa escreveu sobre o exame: SEG (segmentações), GSPS (anotações gráficas do aparelho ou da estação), SR (achados de CAD/IA) e RTSTRUCT (contornos de radioterapia). O número no botão diz quantos objetos o exame tem; o menu lista um por um, com *Ir para a imagem* de cada achado.

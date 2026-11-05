@@ -143,6 +143,26 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
                 lab[vol == 500] = 1
                 saida[nome] = (lab, {5: "liver", 1: "spleen"})
             continue
+        if t.get("enfisema"):                # 0.99.77: pulmão = −998 a −700 HU, traqueia = −999
+            pulmao = (vol >= -998) & (vol <= -700)
+            ks = np.nonzero(pulmao.any(axis=(1, 2)))[0]
+            if len(ks):
+                k0, k1 = int(ks[0]), int(ks[-1]) + 1
+                kk = np.arange(nz)[:, None, None]
+                dir_ = np.zeros(vol.shape, bool)
+                dir_[:, :, : nx // 2] = True
+                terco1, terco2 = k0 + (k1 - k0) / 3.0, k0 + 2 * (k1 - k0) / 3.0
+                meio = (k0 + k1) / 2.0
+                lab[pulmao & dir_ & (kk < terco1)] = 3            # inferior direito (k cresce para cima)
+                lab[pulmao & dir_ & (kk >= terco1) & (kk < terco2)] = 2
+                lab[pulmao & dir_ & (kk >= terco2)] = 1
+                lab[pulmao & ~dir_ & (kk < meio)] = 5
+                lab[pulmao & ~dir_ & (kk >= meio)] = 4
+            lab[vol == -999] = 6
+            saida[nome] = (lab, {1: "lung_upper_lobe_right", 2: "lung_middle_lobe_right",
+                                 3: "lung_lower_lobe_right", 4: "lung_upper_lobe_left", 5: "lung_lower_lobe_left",
+                                 6: "trachea"})
+            continue
         if t.get("composicao"):              # 0.99.47: L3 = 701, fígado = 61, baço = 51, cavidade = −101/61/51/21
             if nome == "trunk_cavities":
                 lab[np.isin(vol, (-101, 61, 51, 21))] = 1

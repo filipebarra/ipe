@@ -127,6 +127,8 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("nodulos.auto", "Nódulos pulmonares (IA)", "Medidas"),
     ("composicao.auto", "Composição corporal em L3 e esteatose (IA)", "Medidas"),
     ("figado_rm.auto", "Gordura e ferro hepáticos na RM (IA)", "Medidas"),
+    ("enfisema.auto", "Enfisema: % abaixo de −950 HU por pulmão e lobo (IA)", "Medidas"),
+    ("genant.auto", "Fratura vertebral — Genant (IA)", "Medidas"),
     ("achados.abrir", "Achados de IA: revisar, confirmar, descartar", "Medidas"),
     ("estruturas.abrir", "Estruturas: editar máscaras (SEG / RTSTRUCT)", "Medidas"),
 ]

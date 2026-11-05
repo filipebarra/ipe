@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.77 — emphysema per lobe and vertebral fracture (Genant)
+- **Emphysema** (chest CT): %LAA−950, Perc15 and volume per lobe, per lung and in total, with the distribution
+  (upper, lower or even); warnings for thick slices, sharp kernel, contrast and air calibration (trachea). The
+  areas below −950 HU in a SEG shown only on the computed series.
+- **Genant** (spine CT or MR): anterior, middle and posterior height of each vertebral body and the height loss
+  (wedge, biconcave, crush), with the Genant grade from T4 to L5.
+- Both results go to AI findings for review; only what is confirmed goes into the report.
+
 ## 0.99.76 — mammography: double-click frames correctly
 - In the 1×1 view from double-clicking a view, the breast sat too high with part of it hidden: the zoom and the
   nipple alignment came from the hidden frames. Now the enlarged frame is framed on its own, for its size.

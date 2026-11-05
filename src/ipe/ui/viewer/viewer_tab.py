@@ -1270,6 +1270,23 @@ class ViewerTab(OncoMixin, QWidget):
         fig.setIcon(icon("measure"))
         fig.setIconText("Fígado")
         self._button(tb, fig, menu_fig, app="figado_rm")
+        # enfisema e Genant (0.99.77): o mesmo molde da composição
+        for tipo, rotulo_menu, nome_acao, texto_icone in (
+                ("enfisema", "Medir o enfisema (% abaixo de −950 HU por lobo) nesta série (IA)…",
+                 "Enfisema: % abaixo de −950 HU por pulmão e lobo (IA)", "Enfisema"),
+                ("genant", "Medir as alturas vertebrais (Genant) nesta série (IA)…",
+                 "Fratura vertebral — Genant (IA)", "Genant")):
+            menu_x = self._menu()
+            a_x = QAction(rotulo_menu, self)
+            a_x.triggered.connect(lambda _=False, tp=tipo: self.ferramenta_ia(tp, self.active))
+            menu_x.addAction(a_x)
+            a_r = QAction("Achados de IA (revisar, confirmar, descartar)…", self)
+            a_r.triggered.connect(self.abrir_achados)
+            menu_x.addAction(a_r)
+            bx = self._act(f"{tipo}.auto", nome_acao, lambda _=False, tp=tipo: self.ferramenta_ia_botao(tp))
+            bx.setIcon(icon("measure"))
+            bx.setIconText(texto_icone)
+            self._button(tb, bx, menu_x, app=tipo)
         # órgãos abdominais (0.99.32, pedido dele: também no botão Aplicações)
         menu_abd = self._menu()
         a_abd = QAction("Segmentar órgãos abdominais desta série (IA)…", self)
@@ -5736,6 +5753,23 @@ class ViewerTab(OncoMixin, QWidget):
         if tem:
             return self.abrir_achados()
         return self.composicao_automatica(self.active)
+
+    def ferramenta_ia(self, tipo: str, vp=None, simular: bool = False):
+        """0.99.77: roda uma IA do contrato comum (enfisema, Genant…) na série do quadro."""
+        vp = vp or self.active or next((v for v in self.viewports if v.frames), None)
+        if vp is None:
+            return None
+        return self.segmentar_orgaos(vp, simular=simular, tipo=tipo)
+
+    def ferramenta_ia_botao(self, tipo: str):
+        """O botão: com achados desta IA no exame, abre a revisão; sem, roda."""
+        try:
+            tem = any(self.repo.achados(u, tipo) for u in (getattr(self, "study_order", None) or [self.study_uid]))
+        except Exception:  # noqa: BLE001
+            tem = False
+        if tem:
+            return self.abrir_achados()
+        return self.ferramenta_ia(tipo, self.active)
 
     def _figado_rm_do_ativo(self):
         return self.figado_rm_automatico(self.active)
