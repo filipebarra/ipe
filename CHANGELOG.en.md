@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.75 — changing the database folder without "WinError 32"
+- **Move the files** (Settings ▸ Database ▸ Change the database folder) failed on Windows with *WinError 32* (the
+  database held open by background services) and left the program in the new folder with only part of the
+  database. Now the move happens at the next start, before the database opens; if something fails, what had
+  moved goes back and the program stays in the previous folder.
+
 ## 0.99.74 — HTTPS on the internal network, with Ipê's own certificate
 - **Central server ▸ Generate a certificate for the internal network…**: Ipê creates an internal CA for the
   service and the server certificate (computer name and IPs), and the server switches to HTTPS.

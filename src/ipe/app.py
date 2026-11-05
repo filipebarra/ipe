@@ -261,6 +261,22 @@ def run_gui(external: dict | None = None, minimized: bool = False) -> int:
     settings = Settings(paths.settings_file)
     if not paths.settings_file.exists():
         settings.save()          # cria o arquivo para o usuário poder editar
+    # 0.99.75: a mudança da pasta do banco marcada com o programa aberto é feita agora, antes de abrir o banco
+    from ipe.core import mover_banco as MB
+    if MB.pendente(settings) is not None:
+        from PySide6.QtWidgets import QMessageBox, QProgressDialog
+        prog = QProgressDialog("Movendo o banco para a pasta nova…", "", 0, 0)
+        prog.setCancelButton(None)
+        prog.setMinimumDuration(0)
+        prog.show()
+        app.processEvents()
+        feito = MB.executar_pendente(settings, paths, lambda _n: app.processEvents())
+        prog.close()
+        if feito is not None:
+            ok, msg = feito
+            (QMessageBox.information if ok else QMessageBox.warning)(None, "Pasta do banco", msg)
+            paths = get_paths()
+            settings = Settings(paths.settings_file)
     from ipe.core.config import publicar_pasta_do_banco
     publicar_pasta_do_banco(paths)           # 0.99.67: o instalador mostra esta pasta numa atualização
     _dark_palette(app)

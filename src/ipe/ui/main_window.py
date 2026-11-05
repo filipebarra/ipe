@@ -2989,6 +2989,24 @@ class MainWindow(QMainWindow):
         if caixa.clickedButton() is b_cancel:
             return
         mover = caixa.clickedButton() is b_mover
+        if mover:
+            # 0.99.75: com o programa aberto o Windows não deixa mover o banco (WinError 32: os serviços de fundo
+            # o mantêm aberto). A mudança fica marcada e é feita na próxima abertura, antes de abrir o banco.
+            from ipe.core import mover_banco as MB
+            conflito = [i for i in MB.itens_de(atual) if (nova / i).exists()]
+            if conflito:
+                QMessageBox.warning(self, "Pasta do banco",
+                                    f"A pasta nova já tem {', '.join(conflito)}. Escolha uma pasta vazia, ou use "
+                                    f"Só apontar para usar o banco que já está lá.")
+                return
+            MB.marcar(self.settings, atual, nova)
+            r = QMessageBox.question(
+                self, "Pasta do banco",
+                "O banco vai ser movido na próxima vez que o programa abrir, antes de tudo (com ele aberto o "
+                "Windows não deixa). Se algo falhar, nada muda.\n\nFechar o programa agora?")
+            if r == QMessageBox.Yes:
+                QTimer.singleShot(0, self.quit_app)
+            return
         if self.all_viewer_tabs():
             for i in range(self.tabs.count() - 1, 0, -1):
                 self.tabs.removeTab(i)
@@ -2996,32 +3014,6 @@ class MainWindow(QMainWindow):
         antigo = self.db
         antigo.close()
         nova.mkdir(parents=True, exist_ok=True)
-        if mover:
-            dlg = QProgressDialog("Movendo o banco…", "", 0, len(itens), self)
-            dlg.setCancelButton(None)
-            dlg.setWindowModality(Qt.WindowModal)
-            try:
-                import shutil
-                for i, d in enumerate(itens):
-                    dlg.setValue(i)
-                    QApplication.processEvents()
-                    destino = nova / d
-                    if destino.exists():
-                        QMessageBox.warning(self, "Pasta do banco",
-                                            f"Já existe “{d}” na pasta nova; nada foi movido.")
-                        self._use_database(Database(self.paths.database), self.paths.storage,
-                                           self.paths.data / "Lixeira")
-                        return
-                    shutil.move(str(atual / d), str(destino))
-                for extra in atual.glob("dicomviewer.sqlite-*"):     # WAL e índice do SQLite
-                    shutil.move(str(extra), str(nova / extra.name))
-            except Exception as e:  # noqa: BLE001
-                log.exception("mover o banco")
-                QMessageBox.warning(self, "Pasta do banco",
-                                    f"Não foi possível mover tudo:\n{e}\n\n"
-                                    "O programa vai usar a pasta nova com o que já foi para lá.")
-            finally:
-                dlg.close()
         self.settings.set("data_dir", "" if nova.resolve() == Path(default_data_dir()).resolve()
                           else str(nova))
         self.settings.save()

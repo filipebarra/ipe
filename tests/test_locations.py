@@ -182,15 +182,26 @@ def test_mudar_a_pasta_do_banco_padrao(env, sample_dir, tmp_path, monkeypatch):
         monkeypatch.setattr(QMessageBox, "clickedButton",
                             lambda self: (self.buttons() or [None])[0])
         monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
+        monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.No))
         w.move_default_database()
-        # o banco e os arquivos foram para a pasta nova
-        assert Path(w.paths.data) == nova and (nova / "dicomviewer.sqlite").exists()
-        assert (nova / "Storage").is_dir() and not (antiga / "dicomviewer.sqlite").exists()
-        assert w.storage == nova / "Storage" and w.location.path == nova
-        assert len(w.repo.search_studies("", "", "", "", limit=50)) == antes   # os exames vieram junto
-        assert w.net.repo is w.repo and w.browser.repo is w.repo
-        # a escolha fica gravada e o programa a encontra ao abrir de novo
-        assert st.get("data_dir") == str(nova)
-        assert C.chosen_data_dir(paths.config) == nova
+        # 0.99.75: com o programa aberto nada se move; a mudança fica marcada para a próxima abertura
+        from ipe.core import mover_banco as MB
+        assert MB.pendente(st) == {"de": str(antiga), "para": str(nova)}
+        assert (antiga / "dicomviewer.sqlite").exists() and Path(w.paths.data) == antiga
     finally:
         w.close()
+    db.close()
+    # a próxima abertura: move antes de abrir o banco
+    ok, _msg = MB.executar_pendente(Settings(paths.settings_file), paths)
+    assert ok and (nova / "dicomviewer.sqlite").exists() and (nova / "Storage").is_dir()
+    assert not (antiga / "dicomviewer.sqlite").exists()
+    assert C.chosen_data_dir(paths.config) == nova
+    from ipe.core.config import AppPaths
+    from ipe.db.repository import Repository
+    from ipe.db.session import Database
+    p2 = AppPaths(nova, paths.config, paths.logs)
+    db2 = Database(p2.database)
+    try:
+        assert len(Repository(db2).search_studies("", "", "", "", limit=50)) == antes   # os exames vieram junto
+    finally:
+        db2.close()

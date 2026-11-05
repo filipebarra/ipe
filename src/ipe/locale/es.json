@@ -7792,5 +7792,13 @@
  "<small>Vale para: <b>{}</b> · até {} · com AC interna (os clientes podem confiar pelo botão deles)</small>": "<small>Vale para: <b>{}</b> · hasta {} · con AC interna (los clientes pueden confiar con su botón)</small>",
  "<small>Vale para: <b>{}</b> · até {}</small>": "<small>Vale para: <b>{}</b> · hasta {}</small>",
  "Impressão digital da AC do servidor:\n\n{}\n\nConfira que é a mesma mostrada no servidor quando o certificado foi gerado. Confiar?": "Huella digital de la AC del servidor:\n\n{}\n\nCompruebe que es la misma mostrada en el servidor cuando se generó el certificado. ¿Confiar?",
- "Certificado gerado para: {} (vale até {}).\n\nDê OK e feche e abra o programa: o servidor passa a usar HTTPS. Nos clientes, troque o começo do endereço para https e use Confiar no certificado deste servidor. Confira que a impressão digital é esta:\n\n{}": "Certificado generado para: {} (válido hasta {}).\n\nPulse OK y cierre y abra el programa: el servidor pasa a usar HTTPS. En los clientes, cambie el comienzo de la dirección a https y use Confiar en el certificado de este servidor. Compruebe que la huella digital es esta:\n\n{}"
+ "Certificado gerado para: {} (vale até {}).\n\nDê OK e feche e abra o programa: o servidor passa a usar HTTPS. Nos clientes, troque o começo do endereço para https e use Confiar no certificado deste servidor. Confira que a impressão digital é esta:\n\n{}": "Certificado generado para: {} (válido hasta {}).\n\nPulse OK y cierre y abra el programa: el servidor pasa a usar HTTPS. En los clientes, cambie el comienzo de la dirección a https y use Confiar en el certificado de este servidor. Compruebe que la huella digital es esta:\n\n{}",
+ "A mudança da pasta do banco foi cancelada: o banco já não está na pasta marcada.": "El cambio de carpeta de la base se canceló: la base ya no está en la carpeta marcada.",
+ "Movendo o banco para a pasta nova…": "Moviendo la base a la carpeta nueva…",
+ "O banco vai ser movido na próxima vez que o programa abrir, antes de tudo (com ele aberto o Windows não deixa). Se algo falhar, nada muda.\n\nFechar o programa agora?": "La base se moverá la próxima vez que se abra el programa, antes de todo (con él abierto Windows no lo permite). Si algo falla, nada cambia.\n\n¿Cerrar el programa ahora?",
+ "A pasta nova já tem {}. Escolha uma pasta vazia, ou use Só apontar para usar o banco que já está lá.": "La carpeta nueva ya tiene {}. Elija una carpeta vacía, o use Solo apuntar para usar la base que ya está allí.",
+ "A pasta nova já tem {}; nada foi movido.": "La carpeta nueva ya tiene {}; no se movió nada.",
+ "Não foi possível mover o banco ({}). Nada mudou: o programa continua na pasta de antes.": "No se pudo mover la base ({}). Nada cambió: el programa sigue en la carpeta anterior.",
+ "Não há banco em {}.": "No hay base en {}.",
+ "O banco foi movido para {}.": "La base se movió a {}."
 }

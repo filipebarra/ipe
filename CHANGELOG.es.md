@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.75 — cambiar la carpeta de la base sin el "WinError 32"
+- **Mover los archivos** (Configuración ▸ Base de datos ▸ Cambiar la carpeta de la base) fallaba en Windows con
+  *WinError 32* (la base abierta por los servicios de fondo) y dejaba el programa en la carpeta nueva con solo
+  parte de la base. Ahora el cambio se hace en la próxima apertura, antes de abrir la base; si algo falla, lo que
+  ya se había movido vuelve y el programa sigue en la carpeta anterior.
+
 ## 0.99.74 — HTTPS en la red interna, con certificado del propio Ipê
 - **Servidor central ▸ Generar certificado para la red interna…**: Ipê crea una AC interna del servicio y el
   certificado del servidor (nombre e IP del equipo), y el servidor pasa a usar HTTPS.

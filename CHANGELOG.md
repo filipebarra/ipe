@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.75 — mudar a pasta do banco sem o "WinError 32"
+- **Mover os arquivos** (Configurações ▸ Banco de dados ▸ Mudar a pasta do banco) falhava no Windows com
+  *WinError 32* (o banco aberto pelos serviços de fundo) e deixava o programa na pasta nova só com parte do banco.
+  Agora a mudança é feita na próxima abertura, antes de o banco abrir; se algo falhar, o que já tinha ido volta e
+  o programa continua na pasta de antes.
+
 ## 0.99.74 — HTTPS na rede interna, com certificado do próprio Ipê
 - **Servidor central ▸ Gerar certificado para a rede interna…**: o Ipê cria uma AC interna do serviço e o
   certificado do servidor (nome e IPs do computador), e o servidor passa a usar HTTPS.

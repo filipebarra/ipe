@@ -5792,7 +5792,10 @@
   "Sem nome nem IP para o certificado.",
   "este servidor não tem AC interna",
   "Ipê — AC interna",
-  "BEGIN CERTIFICATE"
+  "BEGIN CERTIFICATE",
+  "A mudança da pasta do banco foi cancelada: o banco já não está na pasta marcada.",
+  "Movendo o banco para a pasta nova…",
+  "O banco vai ser movido na próxima vez que o programa abrir, antes de tudo (com ele aberto o Windows não deixa). Se algo falhar, nada muda.\n\nFechar o programa agora?"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7298,6 +7301,11 @@
   "<small>Vale para: <b>{}</b> · até {} · com AC interna (os clientes podem confiar pelo botão deles)</small>",
   "<small>Vale para: <b>{}</b> · até {}</small>",
   "Impressão digital da AC do servidor:\n\n{}\n\nConfira que é a mesma mostrada no servidor quando o certificado foi gerado. Confiar?",
-  "Certificado gerado para: {} (vale até {}).\n\nDê OK e feche e abra o programa: o servidor passa a usar HTTPS. Nos clientes, troque o começo do endereço para https e use Confiar no certificado deste servidor. Confira que a impressão digital é esta:\n\n{}"
+  "Certificado gerado para: {} (vale até {}).\n\nDê OK e feche e abra o programa: o servidor passa a usar HTTPS. Nos clientes, troque o começo do endereço para https e use Confiar no certificado deste servidor. Confira que a impressão digital é esta:\n\n{}",
+  "A pasta nova já tem {}. Escolha uma pasta vazia, ou use Só apontar para usar o banco que já está lá.",
+  "A pasta nova já tem {}; nada foi movido.",
+  "Não foi possível mover o banco ({}). Nada mudou: o programa continua na pasta de antes.",
+  "Não há banco em {}.",
+  "O banco foi movido para {}."
  ]
 }

@@ -7792,5 +7792,13 @@
  "<small>Vale para: <b>{}</b> · até {} · com AC interna (os clientes podem confiar pelo botão deles)</small>": "<small>Valid for: <b>{}</b> · until {} · with internal CA (clients can trust it with their button)</small>",
  "<small>Vale para: <b>{}</b> · até {}</small>": "<small>Valid for: <b>{}</b> · until {}</small>",
  "Impressão digital da AC do servidor:\n\n{}\n\nConfira que é a mesma mostrada no servidor quando o certificado foi gerado. Confiar?": "Fingerprint of the server's CA:\n\n{}\n\nCheck that it is the same one shown on the server when the certificate was generated. Trust it?",
- "Certificado gerado para: {} (vale até {}).\n\nDê OK e feche e abra o programa: o servidor passa a usar HTTPS. Nos clientes, troque o começo do endereço para https e use Confiar no certificado deste servidor. Confira que a impressão digital é esta:\n\n{}": "Certificate generated for: {} (valid until {}).\n\nClick OK and close and reopen the program: the server switches to HTTPS. On the clients, change the start of the address to https and use Trust this server's certificate. Check that the fingerprint is this one:\n\n{}"
+ "Certificado gerado para: {} (vale até {}).\n\nDê OK e feche e abra o programa: o servidor passa a usar HTTPS. Nos clientes, troque o começo do endereço para https e use Confiar no certificado deste servidor. Confira que a impressão digital é esta:\n\n{}": "Certificate generated for: {} (valid until {}).\n\nClick OK and close and reopen the program: the server switches to HTTPS. On the clients, change the start of the address to https and use Trust this server's certificate. Check that the fingerprint is this one:\n\n{}",
+ "A mudança da pasta do banco foi cancelada: o banco já não está na pasta marcada.": "The database folder change was cancelled: the database is no longer in the marked folder.",
+ "Movendo o banco para a pasta nova…": "Moving the database to the new folder…",
+ "O banco vai ser movido na próxima vez que o programa abrir, antes de tudo (com ele aberto o Windows não deixa). Se algo falhar, nada muda.\n\nFechar o programa agora?": "The database will be moved the next time the program opens, before anything else (Windows does not allow it while it is open). If something fails, nothing changes.\n\nClose the program now?",
+ "A pasta nova já tem {}. Escolha uma pasta vazia, ou use Só apontar para usar o banco que já está lá.": "The new folder already has {}. Choose an empty folder, or use Just point to it to use the database already there.",
+ "A pasta nova já tem {}; nada foi movido.": "The new folder already has {}; nothing was moved.",
+ "Não foi possível mover o banco ({}). Nada mudou: o programa continua na pasta de antes.": "Could not move the database ({}). Nothing changed: the program stays in the previous folder.",
+ "Não há banco em {}.": "There is no database in {}.",
+ "O banco foi movido para {}.": "The database was moved to {}."
 }
