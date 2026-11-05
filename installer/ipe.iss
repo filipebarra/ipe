@@ -132,15 +132,19 @@ Name: "{autodesktop}\{#Nome}"; Filename: "{app}\{#Exe}"; Tasks: desktopicon
 [Run]
 ; Quem usa este computador. "single" abre sem pedir login; o cadastro de usuários continua lá,
 ; e no dia em que existir um usuário cadastrado o login volta a ser pedido.
+; 0.99.70: numa atualização silenciosa (pelo GitHub ou pelo servidor central) a página não aparece e nada disto roda:
+; o modo de uso e o idioma ficam como estavam (antes, voltavam para "só eu" e para o inglês).
 Filename: "{app}\{#Cli}"; Parameters: "set-mode single"; Flags: runhidden waituntilterminated; Check: EhUmUsuarioSo
 Filename: "{app}\{#Cli}"; Parameters: "set-mode multi"; Flags: runhidden waituntilterminated; Check: NaoEhUmUsuarioSo
-; O idioma do programa: o mesmo escolhido na primeira tela do instalador.
-Filename: "{app}\{#Cli}"; Parameters: "set-language en"; Flags: runhidden waituntilterminated; Languages: english
-Filename: "{app}\{#Cli}"; Parameters: "set-language pt-BR"; Flags: runhidden waituntilterminated; Languages: brazilianportuguese
-Filename: "{app}\{#Cli}"; Parameters: "set-language es"; Flags: runhidden waituntilterminated; Languages: spanish
+; O idioma do programa: o mesmo escolhido na primeira tela do instalador (só na primeira instalação).
+Filename: "{app}\{#Cli}"; Parameters: "set-language en"; Flags: runhidden waituntilterminated; Languages: english; Check: NaoEhAtualizacao
+Filename: "{app}\{#Cli}"; Parameters: "set-language pt-BR"; Flags: runhidden waituntilterminated; Languages: brazilianportuguese; Check: NaoEhAtualizacao
+Filename: "{app}\{#Cli}"; Parameters: "set-language es"; Flags: runhidden waituntilterminated; Languages: spanish; Check: NaoEhAtualizacao
 ; Registra o link ipe:// para este usuário (HKCU, sem administrador).
 Filename: "{app}\{#Cli}"; Parameters: "register-url"; Flags: runhidden waituntilterminated; Tasks: urlscheme
 Filename: "{app}\{#Exe}"; Description: "{cm:AbrirAgora}"; Flags: nowait postinstall skipifsilent
+; 0.99.70: a atualização pedida pelo programa (/REABRIR=1) abre a versão nova no fim
+Filename: "{app}\{#Exe}"; Flags: nowait; Check: Reabrir
 
 [UninstallRun]
 Filename: "{app}\{#Cli}"; Parameters: "unregister-url"; Flags: runhidden; RunOnceId: "tiraurl"
@@ -152,6 +156,14 @@ Filename: "{app}\{#Cli}"; Parameters: "unregister-url"; Flags: runhidden; RunOnc
 // Na instalação: a pasta do banco (0.99.67) e se este computador é seu ou de mais gente.
 var PaginaQuemUsa: TInputOptionWizardPage;
 var PaginaBanco: TInputDirWizardPage;
+// 0.99.70: lido ANTES de instalar (depois, a chave do desinstalador já existe também na primeira instalação)
+var JaInstalado: Boolean;
+
+function InitializeSetup(): Boolean;
+begin
+  JaInstalado := RegKeyExists(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{7B3A9C2E-5D41-4C8A-9E17-DC0F2A6B8E41}_is1');
+  Result := True;
+end;
 
 // A pasta de agora: o programa grava em HKCU\Software\Ipe (DataDir) ao abrir; sem isso, a padrão.
 function PastaDoBanco(): String;
@@ -217,12 +229,34 @@ begin
   PaginaQuemUsa.SelectedValueIndex := 0;
 end;
 
+// Já havia o Ipê instalado para este usuário (a chave do desinstalador existe)?
+function EhAtualizacao(): Boolean;
+begin
+  Result := JaInstalado;
+end;
+
+function NaoEhAtualizacao(): Boolean;
+begin
+  Result := not EhAtualizacao();
+end;
+
+// a pergunta "quem usa" só vale quando foi vista: numa atualização silenciosa, o modo fica como estava
+function PerguntaQuemUsaValeu(): Boolean;
+begin
+  Result := not (WizardSilent() and EhAtualizacao());
+end;
+
 function EhUmUsuarioSo(): Boolean;
 begin
-  Result := PaginaQuemUsa.SelectedValueIndex = 0;
+  Result := PerguntaQuemUsaValeu() and (PaginaQuemUsa.SelectedValueIndex = 0);
 end;
 
 function NaoEhUmUsuarioSo(): Boolean;
 begin
-  Result := not EhUmUsuarioSo();
+  Result := PerguntaQuemUsaValeu() and (PaginaQuemUsa.SelectedValueIndex = 1);
+end;
+
+function Reabrir(): Boolean;
+begin
+  Result := ExpandConstant('{param:REABRIR|0}') = '1';
 end;

@@ -142,7 +142,8 @@ def rodar_instalador(caminho: Path, popen=None) -> bool:
     fecha o programa em seguida)."""
     if not instalador_do_windows(caminho):
         return False
-    args = [str(caminho), "/SILENT", "/CLOSEAPPLICATIONS", "/NORESTART"]
+    # 0.99.70: /REABRIR=1 = o instalador (0.99.70 em diante) abre o programa de novo no fim
+    args = [str(caminho), "/SILENT", "/CLOSEAPPLICATIONS", "/NORESTART", "/REABRIR=1"]
     popen = popen or subprocess.Popen
     kw = {}
     if sys.platform == "win32":

@@ -5760,7 +5760,18 @@
   "exportar as configurações do banco",
   "exportar as identidades",
   "exportar as regras",
-  "exportar os nós"
+  "exportar os nós",
+  "Avisar quando sair versão nova",
+  "Baixando a versão nova…",
+  "Baixar e instalar",
+  "Download cancelado.",
+  "Este programa roda do código-fonte: atualize pelo git (ou pelo pacote de atualização), não pelo GitHub.",
+  "O arquivo baixado não confere com o do GitHub (SHA-256 diferente). Tente de novo.",
+  "O release não tem o pacote deste tipo de instalação. Baixe pela página.",
+  "Procurar versão nova (GitHub)…",
+  "Pular esta versão",
+  "Ver a página",
+  "Versão nova"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7252,6 +7263,14 @@
   "Pastas do outro sistema que não foram gravadas: {}.",
   "grupos: {}",
   "itens: {}",
-  "nó {}: {}"
+  "nó {}: {}",
+  "Baixado em:\n{}\n\nFeche o programa e troque a pasta pela do pacote novo (o banco e as configurações ficam fora dela).",
+  "Baixar ({} MB) e instalar agora? O programa fecha, instala e abre de novo; pastas, banco, idioma e usuários continuam como estão.",
+  "Baixar o pacote ({} MB)? A versão portátil se troca à mão: a pasta abre quando terminar.",
+  "Não deu para abrir o instalador: {}\n\n{}",
+  "Não deu para falar com o GitHub: {}",
+  "O download parou: {}",
+  "Saiu a versão {} do Ipê (você está na {}).",
+  "Você já está na versão mais nova ({})."
  ]
 }

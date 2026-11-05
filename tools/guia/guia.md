@@ -35,6 +35,16 @@ Menu **Ajuda ▸ Abrir pasta de dados** mostra onde estão o banco (SQLite), as 
 
 O programa não roda como administrador, e nunca precisa: tudo o que ele escreve fica no perfil do usuário.
 
+### Versão nova pelo GitHub
+
+Ao abrir (uma vez por dia), o Ipê procura no GitHub se saiu versão nova; **Ajuda ▸ Procurar versão nova (GitHub)…** procura na hora, e **Ajuda ▸ Avisar quando sair versão nova** liga e desliga o aviso. Havendo versão nova, a janela mostra o número (e as novidades, em *Mostrar detalhes*) e oferece:
+
+- **Baixar e instalar** (Windows, instalado pelo instalador): baixa o instalador, confere o SHA-256 que o GitHub publica, fecha o programa, instala sem perguntas e abre a versão nova. A pasta do programa, a do banco, o idioma e o modo de uso continuam como estavam.
+- **Baixar** (versão portátil do Windows e Linux): baixa o pacote e abre a pasta; trocar a pasta do programa é à mão (o banco e as configurações ficam fora dela).
+- **Pular esta versão**: o aviso automático não volta para ela (a procura pelo menu continua mostrando). **Depois**: pergunta de novo no dia seguinte. **Ver a página**: abre o release no navegador.
+
+No modo cliente quem decide a versão é o servidor central (Ajuda ▸ Procurar atualização no servidor central…), e o aviso do GitHub não aparece. A consulta manda ao GitHub só o nome do programa e a versão.
+
 ### Levar as configurações para outro computador
 
 **Configurações ▸ Sistema ▸ Exportar as configurações…** grava um arquivo `.ipeconfig` com o que você escolher: as configurações deste computador (janela, mouse, impressão, exportação, rede), as suas preferências, os protocolos de exibição e de mamografia, os modelos de laudo e de folha, perfis, SLA e busca ativa, os nós DICOM, as identidades AE, a automação e as traduções próprias. O arquivo é o mesmo no Windows e no Linux: exporte num e importe no outro.

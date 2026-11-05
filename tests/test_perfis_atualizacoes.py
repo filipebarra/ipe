@@ -64,7 +64,7 @@ def test_loja_de_atualizacoes(tmp_path):
         loja.info("beta")
     chamado = []
     assert AT.rodar_instalador(pac, popen=lambda args, **k: chamado.append(args))
-    assert chamado[0][1:] == ["/SILENT", "/CLOSEAPPLICATIONS", "/NORESTART"]
+    assert chamado[0][1:] == ["/SILENT", "/CLOSEAPPLICATIONS", "/NORESTART", "/REABRIR=1"]
     assert not AT.rodar_instalador(tmp_path / "x.zip", popen=lambda *a, **k: None)
     ruim = tmp_path / "ruim.exe"
     ruim.write_bytes(b"outro")

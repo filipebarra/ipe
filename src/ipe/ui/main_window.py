@@ -409,6 +409,14 @@ class MainWindow(QMainWindow):
         a = QAction("Abrir pasta de dados", j)
         a.triggered.connect(self._open_data_folder)
         h.addAction(a)
+        a = QAction("Procurar versão nova (GitHub)…", j)                     # 0.99.70
+        a.triggered.connect(lambda: self.procurar_versao_github(silencioso=False))
+        h.addAction(a)
+        a = QAction("Avisar quando sair versão nova", j)
+        a.setCheckable(True)
+        a.setChecked(bool(self.settings.get("atualizacao.github", True)))
+        a.toggled.connect(lambda v: (self.settings.set("atualizacao.github", bool(v)), self.settings.save()))
+        h.addAction(a)
         a = QAction("Procurar atualização no servidor central…", j)        # 0.99.56 (onda B1)
         a.triggered.connect(lambda: self.procurar_atualizacao(silencioso=False))
         h.addAction(a)
@@ -1067,6 +1075,8 @@ class MainWindow(QMainWindow):
         self.browser.set_banco("visivel")
         if self._central is not None and self.settings.get("central.atualizar_ao_entrar", True):
             QTimer.singleShot(4000, lambda: self.procurar_atualizacao(silencioso=True))   # 0.99.56 (onda B1)
+        elif self._central is None:
+            QTimer.singleShot(8000, lambda: self.procurar_versao_github(silencioso=True))  # 0.99.70
 
     # ------------------------------------------------------------------ perfis e atualizações (0.99.56)
     _perfil: dict = {}
@@ -1121,6 +1131,11 @@ class MainWindow(QMainWindow):
         d = AtualizacoesDialog(b, self)
         d.exec()
         return d
+
+    def procurar_versao_github(self, silencioso: bool = False) -> None:
+        """0.99.70: o último release do GitHub; no Windows instalado, baixa e instala com um clique."""
+        from ipe.ui import atualizar_github_ui as G
+        G.procurar(self, silencioso)
 
     def procurar_atualizacao(self, silencioso: bool = False) -> str:
         """No modo cliente: a versão do meu canal no servidor é mais nova? Oferece baixar e instalar.

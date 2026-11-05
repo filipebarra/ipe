@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.70 — versión nueva desde GitHub, con un clic
+- Al abrir (una vez al día) y en **Ayuda ▸ Buscar versión nueva (GitHub)…**, Ipê busca el último release. En
+  Windows instalado, **Descargar e instalar** descarga el instalador, comprueba el SHA-256, cierra, instala sin
+  preguntas y abre la versión nueva. En la versión portátil y en Linux, descarga el paquete y abre la carpeta.
+  *Saltar esta versión*, y **Ayuda ▸ Avisar cuando salga una versión nueva** para desactivarlo.
+- La actualización sin preguntas (desde GitHub o desde el servidor central) ya no vuelve el modo de uso a "solo
+  yo" ni el idioma al inglés, y el instalador abre el programa al final.
+
 ## 0.99.69 — instalador de la segmentación: encuentra el Python correcto
 - `instalar_segmentacao.bat` comprueba que cada Python **abra de verdad** y responda (antes, un Python roto o un
   comando inexistente podían pasar), lista los Python del equipo e ignora PYTHONHOME y PYTHONPATH de Windows, que

@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.70 — new version from GitHub, in one click
+- On opening (once a day) and under **Help ▸ Check for a new version (GitHub)…**, Ipê looks for the latest
+  release. On installed Windows, **Download and install** downloads the installer, checks the SHA-256, closes,
+  installs silently and opens the new version. On the portable version and on Linux, it downloads the package and
+  opens the folder. *Skip this version*, and **Help ▸ Notify me of new versions** to turn it off.
+- A silent update (from GitHub or from the central server) no longer resets the usage mode to "only me" or the
+  language to English, and the installer opens the program at the end.
+
 ## 0.99.69 — segmentation installer: finds the right Python
 - `instalar_segmentacao.bat` checks that each Python **really starts** and answers (before, a broken Python or a
   missing command could pass), lists the computer's Pythons and ignores Windows PYTHONHOME and PYTHONPATH, which

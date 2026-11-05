@@ -28,6 +28,12 @@ def env(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _sem_github(monkeypatch):
+    """0.99.70: a janela não procura versão nova no GitHub durante os testes."""
+    monkeypatch.setenv("IPE_SEM_GITHUB", "1")
+
+
+@pytest.fixture(autouse=True)
 def _system_user():
     """Cada teste começa com o usuário "sistema" (todas as permissões)."""
     from ipe.auth import session as S
