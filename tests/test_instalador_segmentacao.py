@@ -13,3 +13,9 @@ def test_bat_limpa_o_ambiente_e_testa_o_python_de_verdade():
     assert "IPE_PY_OK" in t and "for /f" in t                # a resposta da sonda, não o código de saída
     assert ":apagar_venv" in t and "ren " in t               # ambiente preso: tira do caminho
     assert "totalseg_download_weights.exe\" (" in t or 'totalseg_download_weights.exe" (' in t
+
+
+def test_bat_confere_o_pytorch_e_o_visual_cpp():
+    t = BAT.read_bytes().decode("utf-8")
+    assert t.index('-c "import torch"') < t.index("[2/3] TotalSegmentator")
+    assert ":vcredist" in t and "vc_redist.x64.exe" in t and "/install /passive /norestart" in t

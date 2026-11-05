@@ -109,6 +109,27 @@ if errorlevel 1 (
   goto :fim
 )
 
+
+rem 0.99.71: o PyTorch do Windows precisa do "Microsoft Visual C++ Redistributable" (2015-2022, x64). Sem
+rem ele, "import torch" falha com "WinError 126 ... shm.dll or one of its dependencies" (Windows Server e
+rem Windows recem-instalados). Confere aqui e, faltando, baixa e instala o da Microsoft.
+echo Conferindo se o PyTorch abre...
+"%PY%" -c "import torch" >nul 2>&1
+if errorlevel 1 (
+  echo O PyTorch nao abriu: quase sempre falta o Microsoft Visual C++ Redistributable.
+  call :vcredist
+  "%PY%" -c "import torch" >nul 2>&1
+  if errorlevel 1 (
+    echo.
+    echo [ERRO] O PyTorch continua sem abrir. A mensagem dele:
+    "%PY%" -c "import torch"
+    echo.
+    echo        Instale o Visual C++ Redistributable x64 de https://aka.ms/vs/17/release/vc_redist.x64.exe
+    echo        reinicie o Windows e rode este instalador de novo.
+    goto :fim
+  )
+)
+echo PyTorch ok.
 echo.
 echo [2/3] TotalSegmentator...
 "%PY%" -m pip install "TotalSegmentator>=2.18"
@@ -176,6 +197,24 @@ if exist "%VENV%" (
   echo [ERRO] Nao consegui apagar nem renomear %VENV%
   echo        Feche o Ipe ^(e qualquer segmentacao em andamento^), apague essa pasta e rode de novo.
 )
+goto :eof
+
+rem --- Visual C++ Redistributable (o que o PyTorch precisa no Windows) -------------------
+:vcredist
+set "VCR=%BASE%\vc_redist.x64.exe"
+if not exist "%VCR%" (
+  echo Baixando o Visual C++ Redistributable da Microsoft...
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile '%VCR%'"
+)
+if not exist "%VCR%" (
+  echo [ERRO] Nao consegui baixar o Visual C++ Redistributable ^(aka.ms bloqueado?^).
+  goto :eof
+)
+echo Instalando o Visual C++ Redistributable ^(o Windows pode pedir permissao de administrador^)...
+"%VCR%" /install /passive /norestart
+set "VCRC=!errorlevel!"
+if "!VCRC!"=="3010" echo   Instalado; o Windows pede reinicio. Se o PyTorch ainda nao abrir, reinicie e rode de novo.
+if "!VCRC!"=="1638" echo   Ja havia uma versao igual ou mais nova instalada.
 goto :eof
 
 rem --- sem Python que sirva: um 3.12 proprio, baixado pelo uv (astral.sh) -----------------
