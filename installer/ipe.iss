@@ -74,6 +74,8 @@ english.BancoRotulo=Database folder:
 english.ProgFilesAviso=The program installs without administrator rights, so it cannot go into Program Files. Choose a folder of your own (the suggested one, or e.g. D:\Ipe).
 english.BancoDentroApp=Choose a database folder outside the program folder (the program folder is replaced on every update).
 english.BancoNaoTrocou=The database folder was not changed: the current one (%1) already has studies and the new one is empty. To take the studies to the new folder, open the program and use Settings ▸ Database ▸ Change the folder of this computer's database.
+english.VcTitulo=Visual C++ Redistributable
+english.VcTexto=This computer does not have the Microsoft Visual C++ Redistributable (x64). Ipê opens without it, but the organ segmentation (TotalSegmentator/PyTorch) needs it.%n%nOpen the Microsoft download page now? (Install it before running the segmentation installer.)
 brazilianportuguese.TarefaAtalho=Criar atalho na área de trabalho
 brazilianportuguese.GrupoAtalhos=Atalhos:
 brazilianportuguese.TarefaUrl=Abrir links ipe:// (e os antigos dicomviewer://) com este programa
@@ -91,6 +93,8 @@ brazilianportuguese.BancoRotulo=Pasta do banco:
 brazilianportuguese.ProgFilesAviso=O programa instala sem administrador e por isso não pode ir para Arquivos de Programas. Escolha uma pasta sua (a sugerida, ou por exemplo D:\Ipe).
 brazilianportuguese.BancoDentroApp=Escolha a pasta do banco fora da pasta do programa (a pasta do programa é trocada a cada atualização).
 brazilianportuguese.BancoNaoTrocou=A pasta do banco não foi trocada: a de agora (%1) já tem exames e a nova está vazia. Para levar os exames para a pasta nova, abra o programa e use Configurações ▸ Banco de dados ▸ Mudar a pasta do banco deste computador.
+brazilianportuguese.VcTitulo=Visual C++ Redistributable
+brazilianportuguese.VcTexto=Este computador não tem o Microsoft Visual C++ Redistributable (x64). O Ipê abre sem ele, mas a segmentação de órgãos (TotalSegmentator/PyTorch) precisa dele.%n%nAbrir agora o download da Microsoft? (Instale antes de rodar o instalador da segmentação.)
 spanish.TarefaAtalho=Crear un acceso directo en el escritorio
 spanish.GrupoAtalhos=Accesos directos:
 spanish.TarefaUrl=Abrir los enlaces ipe:// (y los antiguos dicomviewer://) con este programa
@@ -108,6 +112,8 @@ spanish.BancoRotulo=Carpeta de la base:
 spanish.ProgFilesAviso=El programa se instala sin administrador y por eso no puede ir a Archivos de programa. Elija una carpeta suya (la sugerida o, por ejemplo, D:\Ipe).
 spanish.BancoDentroApp=Elija la carpeta de la base fuera de la carpeta del programa (la carpeta del programa se reemplaza en cada actualización).
 spanish.BancoNaoTrocou=La carpeta de la base no se cambió: la actual (%1) ya tiene estudios y la nueva está vacía. Para llevar los estudios a la carpeta nueva, abra el programa y use Configuración ▸ Base de datos ▸ Cambiar la carpeta de la base de este equipo.
+spanish.VcTitulo=Visual C++ Redistributable
+spanish.VcTexto=Este equipo no tiene el Microsoft Visual C++ Redistributable (x64). Ipê abre sin él, pero la segmentación de órganos (TotalSegmentator/PyTorch) lo necesita.%n%n¿Abrir ahora la descarga de Microsoft? (Instálelo antes de ejecutar el instalador de la segmentación.)
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:TarefaAtalho}"; GroupDescription: "{cm:GrupoAtalhos}"
@@ -198,11 +204,31 @@ begin
   end;
 end;
 
+// 0.99.72: o PyTorch da segmentação precisa do Visual C++ 2015-2022 x64 (o Ipê em si, não)
+const URL_VCREDIST = 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
+
+function TemVisualCpp(): Boolean;
+var V: Cardinal;
+begin
+  Result := (RegQueryDWordValue(HKLM64, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64', 'Installed', V) and (V = 1))
+    or (FileExists(ExpandConstant('{sys}\vcruntime140_1.dll')) and FileExists(ExpandConstant('{sys}\msvcp140.dll')));
+end;
+
+procedure AvisarVisualCpp();
+var Rc: Integer;
+begin
+  if WizardSilent() or TemVisualCpp() then
+    exit;
+  if MsgBox(CustomMessage('VcTexto'), mbConfirmation, MB_YESNO) = IDYES then
+    ShellExec('open', URL_VCREDIST, '', '', SW_SHOWNORMAL, ewNoWait, Rc);
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var Pasta: String; Rc: Integer;
 begin
   if CurStep <> ssPostInstall then
     exit;
+  AvisarVisualCpp();
   Pasta := PaginaBanco.Values[0];
   if Pasta = '' then
     exit;
