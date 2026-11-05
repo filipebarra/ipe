@@ -1084,6 +1084,31 @@ class Repository:
             s.commit()
             return ids
 
+    def adicionar_achado(self, study_uid: str, ferramenta: str, item: dict, estado: str = "confirmado",
+                         revisor: str = "") -> dict:
+        """0.99.62: um achado feito à mão (nódulo segmentado por clique), sem tocar nos outros. O rótulo, sem
+        um dado, é o próximo livre da ferramenta no exame (N1, N2…)."""
+        import json
+        import re as _re
+        with self.db.session() as s:
+            rotulo = item.get("rotulo") or ""
+            if not rotulo:
+                usados = [a.rotulo for a in s.scalars(select(AchadoIA).where(AchadoIA.study_uid == study_uid,
+                                                                             AchadoIA.ferramenta == ferramenta))]
+                nums = [int(m.group(1)) for r in usados if (m := _re.match(r"^[A-Z]+(\d+)$", r or ""))]
+                rotulo = f"{item.get('prefixo', 'N')}{max(nums, default=0) + 1}"
+            a = AchadoIA(study_uid=study_uid, ferramenta=ferramenta, series_uid=item.get("series_uid", ""),
+                         rotulo=rotulo, tipo=item.get("tipo", ""), local=item.get("local", ""),
+                         posicao=json.dumps(item.get("posicao")) if item.get("posicao") is not None else "",
+                         numeros=json.dumps(item.get("numeros") or {}, ensure_ascii=False),
+                         modelo=item.get("modelo", ""), versao=item.get("versao", ""),
+                         elegibilidade=item.get("elegibilidade", ""), segmento=0, estado=estado,
+                         revisor=revisor or "", revisado_em=None if estado == "sugerido" else datetime.now(),
+                         nota=item.get("nota", ""))
+            s.add(a)
+            s.commit()
+            return self._achado_dict(a)
+
     def revisar_achado(self, achado_id: int, estado: str, revisor: str = "", corrigidos: dict | None = None,
                        nota: str | None = None, lesao_id: int | None = None) -> dict | None:
         import json

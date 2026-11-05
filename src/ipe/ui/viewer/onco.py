@@ -184,6 +184,30 @@ class OncoMixin:
         self.status_message.emit(f"Repetir “{lesao['name']}”: {msg}. A próxima medida neste exame liga à lesão.")
         return msg
 
+    def nodulo_no_clique(self, vp, u: float, v: float):
+        """0.99.62: segmenta o nódulo pulmonar no ponto clicado e abre a janela com os números."""
+        from ipe.ui.viewer.nodulo_dialog import NoduloDialog
+        uid = self._source_series(vp)
+        if uid is None:
+            self.status_message.emit("Este quadro não tem série original para segmentar o nódulo.")
+            return None
+        vol = self._volume_for(vp, uid)
+        if vol is None:
+            self.status_message.emit("O volume 3D desta série não foi montado.")
+            return None
+        p = vp.pixel_to_patient(u - 0.5, v - 0.5)
+        if p is None:
+            return None
+        i, j, k = (int(round(x)) for x in vol.patient_to_voxel(p))
+        nz, ny, nx = vol.data.shape
+        if not (0 <= k < nz and 0 <= j < ny and 0 <= i < nx):
+            self.status_message.emit("O ponto clicado caiu fora do volume montado.")
+            return None
+        d = NoduloDialog(self, vp, vol, (k, j, i), uid)
+        self._nodulo_dlgs = [x for x in getattr(self, "_nodulo_dlgs", []) if x.isVisible()] + [d]
+        d.show()
+        return d
+
     def assistente_de_seguimento(self):
         from ipe.ui.viewer.seguimento_dialog import SeguimentoDialog
         d = SeguimentoDialog(self, self.study_uid)

@@ -1272,6 +1272,14 @@ Candidatos menores que o **diâmetro mínimo** (3 mm de fábrica, da esfera de m
 
 Para quem já tinha instalado a segmentação: rode de novo o *instalar_segmentacao* para baixar os modelos *lung_nodules* e *total* (ou eles baixam sozinhos na primeira vez, com internet).
 
+**Nódulo por clique e crescimento entre exames** (0.99.62). Na TC, botão direito no nódulo ▸ *Nódulo pulmonar aqui (segmentar por clique)…*. Não precisa da IA:
+
+- A janela segmenta a partir do ponto: os voxels ligados acima do limiar (−500 HU, a parte sólida; marque *Incluir o vidro fosco* para −750 HU), numa caixa de 25 mm de raio. *Separar dos vasos e da pleura* faz uma abertura de 1 voxel, que corta a ponte fina entre o nódulo e o vaso. A máscara aparece por cima da imagem, em qualquer plano; se encostar na borda da caixa, a janela avisa que vazou.
+- Os números são os mesmos dos candidatos da IA: diâmetro maior e médio, volume, HU médio, parte sólida, consistência pelo HU, eixos; e o lobo, quando o exame tem a segmentação dos lobos.
+- **Guardar como achado** põe o nódulo na lista de Achados de IA, já **confirmado** (modelo "Ipê: segmentação por clique"). Rodar a IA de novo não o apaga. **Guardar e acompanhar como lesão** já o põe no acompanhamento.
+- **O mesmo nódulo no exame anterior**: os nódulos confirmados ou corrigidos dos outros exames do paciente, levados a este pelo registro, até 10 mm. Sem registro entre os dois exames, vale o mesmo lobo e até 25 mm, marcado "provável, sem registro (confira)". A janela e a lista de Achados mostram o crescimento: diâmetro médio, volume e o **tempo de duplicação do volume** (TD = Δt · ln 2 / ln(V2/V1)).
+- Se o nódulo anterior já estava no acompanhamento, *Acompanhar como lesão* põe a medida nova **na mesma lesão**. A tabela das lesões ganha a coluna do exame novo, com o tempo de duplicação. *Mandar ao laudo* acrescenta "Em relação ao exame de dd/mm/aaaa (N1): …".
+
 **Composição corporal em L3 e atenuação hepática** (botão **Composição**, na TC de abdome; ou automático em Configurações ▸ CAD/IA ▸ Composição corporal). Os números aparecem como dois achados na mesma janela — "Composição corporal (L3)" e "Atenuação hepática" —, para conferir, corrigir e mandar ao laudo como os outros.
 
 - **Onde mede**: o corte axial do meio craniocaudal da vértebra L3 (achada pelo TotalSegmentator). A série tem de ser axial; se não for, a composição não sai (o fígado sai assim mesmo). *Ir até* leva ao corte de L3, e a SEG "Composição corporal · TotalSegmentator" mostra os quatro compartimentos nele.

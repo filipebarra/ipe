@@ -188,10 +188,38 @@ def _consistencia(frac_solida: float) -> str:
     return "parcialmente sólido"
 
 
+def numeros_do_nodulo(vol, m: np.ndarray, off, fatia=None) -> tuple[dict, np.ndarray]:
+    """Os números de um nódulo (máscara recortada `m` com deslocamento `off` no volume): os mesmos da IA e da
+    segmentação por clique (0.99.62). Devolve (números, centro em mm)."""
+    from ipe.ai import cefalometria as CF
+    from ipe.imaging.segment import tres_eixos
+    vox = float(vol.dx * vol.dy * vol.dz)
+    nv = int(m.sum())
+    vol_mm3 = nv * vox
+    eq = (6 * vol_mm3 / math.pi) ** (1 / 3)
+    pts = CF.pontos(vol, m, off)
+    eixos = tres_eixos(pts, (vol.dx, vol.dy, vol.dz)) if len(pts) > 1 else (eq, eq, eq)
+    if fatia is None:
+        k0, j0, i0 = (int(v) for v in off)
+        fatia = (slice(k0, k0 + m.shape[0]), slice(j0, j0 + m.shape[1]), slice(i0, i0 + m.shape[2]))
+    hu = np.asarray(vol.data[fatia][m], float)
+    solido = float((hu >= LIMIAR_SOLIDO).mean()) if len(hu) else 0.0
+    nums = {
+        "diametro_mm": AC.numero(round(float(eixos[0]), 1), "mm", "Diâmetro maior"),
+        "medio_mm": AC.numero(round(float((eixos[0] + eixos[1]) / 2), 1), "mm", "Diâmetro médio"),
+        "volume_mm3": AC.numero(round(vol_mm3, 0), "mm³", "Volume"),
+        "consistencia": AC.numero(_consistencia(solido), "", "Consistência (pelo HU)"),
+        "hu_medio": AC.numero(round(float(hu.mean()), 0) if len(hu) else None, "HU", "HU médio"),
+        "solido_mm3": AC.numero(round(solido * vol_mm3, 0), "mm³", "Parte sólida"),
+        "eixos_mm": AC.numero([round(float(x), 1) for x in eixos], "mm", "Eixos"),
+        "equivalente_mm": AC.numero(round(eq, 1), "mm", "Diâmetro equivalente"),
+    }
+    return nums, pts.mean(axis=0)
+
+
 def calcular(t, rotulos: dict, settings=None) -> Resultado:
     from ipe.ai import cefalometria as CF
     from ipe.imaging import estruturas as E
-    from ipe.imaging.segment import tres_eixos
     vol = t.vol
     ms = CF.Mascaras(vol, rotulos)
     res = Resultado(versao=getattr(t, "versao", ""), series_uid=t.series_uid)
@@ -200,7 +228,6 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
     if nod is None:
         return res
     vox = float(vol.dx * vol.dy * vol.dz)
-    voxel_mm = (vol.dx, vol.dy, vol.dz)
     lobos = {nome: ms.get(nome) for nome in LOBOS}
     lobos = {k: v for k, v in lobos.items() if v is not None}
     dmin = float(config(settings, CHAVE_DIAMETRO_MIN) or 0)
@@ -215,11 +242,7 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
         if eq < dmin:
             res.descartados_pequenos += 1
             continue
-        pts = CF.pontos(vol, m, off)
-        eixos = tres_eixos(pts, voxel_mm) if len(pts) > 1 else (eq, eq, eq)
-        hu = np.asarray(vol.data[fat][m], float)
-        solido = float((hu >= LIMIAR_SOLIDO).mean()) if len(hu) else 0.0
-        centro = pts.mean(axis=0)
+        nums, centro = numeros_do_nodulo(vol, m, off, fat)
         k, j, i = (np.argwhere(m).mean(axis=0) + np.asarray(off)).round().astype(int)
         lobo = ""
         for nome, mk in lobos.items():
@@ -239,16 +262,6 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
                         melhor = (d, nome)
             if melhor[0] <= 10.0:
                 lobo = melhor[1]
-        nums = {
-            "diametro_mm": AC.numero(round(float(eixos[0]), 1), "mm", "Diâmetro maior"),
-            "medio_mm": AC.numero(round(float((eixos[0] + eixos[1]) / 2), 1), "mm", "Diâmetro médio"),
-            "volume_mm3": AC.numero(round(vol_mm3, 0), "mm³", "Volume"),
-            "consistencia": AC.numero(_consistencia(solido), "", "Consistência (pelo HU)"),
-            "hu_medio": AC.numero(round(float(hu.mean()), 0) if len(hu) else None, "HU", "HU médio"),
-            "solido_mm3": AC.numero(round(solido * vol_mm3, 0), "mm³", "Parte sólida"),
-            "eixos_mm": AC.numero([round(float(x), 1) for x in eixos], "mm", "Eixos"),
-            "equivalente_mm": AC.numero(round(eq, 1), "mm", "Diâmetro equivalente"),
-        }
         cands.append(Candidato("", [float(x) for x in centro], nv, nums, lobo, m, off))
     cands.sort(key=lambda c: -c.voxels)
     if len(cands) > MAX_CANDIDATOS:

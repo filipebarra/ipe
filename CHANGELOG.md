@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.62 — nódulo pulmonar completo
+- **Nódulo por clique** na TC (botão direito ▸ Nódulo pulmonar aqui): segmentação pelo limiar, separando dos
+  vasos e da pleura, com vidro fosco opcional; os mesmos números da IA; guardar como achado confirmado ou já
+  acompanhar como lesão.
+- **O mesmo nódulo no exame anterior** (pelo registro, ou provável pelo lobo e pela distância): crescimento do
+  diâmetro médio e do volume e tempo de duplicação, na janela, na lista de Achados e no laudo. A medida nova entra
+  na lesão que já era acompanhada.
+
 ## 0.99.61 — rodada mama P2
 - **Alinhamento pelo mamilo** na mamografia: na mesma linha da tela, as duas mamas com o mamilo na mesma altura
   (opção do protocolo; "pelo meio da mama" como antes). **Zoom e pan** espelhados agora também na barra.

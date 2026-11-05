@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.62 — complete lung nodule
+- **Click nodule** on CT (right-click ▸ Lung nodule here): threshold segmentation, separated from vessels and
+  pleura, optional ground glass; the same numbers as the AI; save as a confirmed finding or follow it as a lesion
+  right away.
+- **The same nodule in the prior study** (by the registration, or probable by lobe and distance): growth of the
+  mean diameter and volume and doubling time, in the dialog, the Findings list and the report. The new
+  measurement joins the lesion already being followed.
+
 ## 0.99.61 — breast round P2
 - **Nipple alignment** in mammography: in the same screen row, both breasts with the nipple at the same height
   (protocol option; "by the middle of the breast" as before). Mirrored **zoom and pan** now also on the bar.

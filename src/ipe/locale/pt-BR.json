@@ -5666,7 +5666,27 @@
   "Última US",
   "★ Corte",
   "nenhum exame do paciente",
-  "sem imagens"
+  "sem imagens",
+  ", separado dos vasos",
+  "Este quadro não tem série original para segmentar o nódulo.",
+  "Guardar como achado",
+  "Guardar e acompanhar como lesão",
+  "Incluir o vidro fosco (limiar −750 HU)",
+  "Ipê: segmentação por clique",
+  "Nada segmentado: clique no meio do nódulo, ou baixe o limiar.",
+  "Nenhum nódulo revisado num exame anterior neste lugar.",
+  "Nódulo (clique)",
+  "Nódulo pulmonar (segmentação por clique)",
+  "Nódulo pulmonar aqui (segmentar por clique)…",
+  "Separar dos vasos e da pleura (abertura de 1 voxel)",
+  "exame anterior",
+  "nada acima do limiar a até 3 mm do clique",
+  "nada acima do limiar perto do clique",
+  "nódulo muito pequeno para separar dos vasos: confira a máscara",
+  "pelo registro",
+  "provável, sem registro (confira)",
+  "sem números para comparar",
+  "tempo de duplicação não se aplica (não cresceu)"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7123,6 +7143,15 @@
   "Corte {} de {} da tomossíntese marcado como imagem-chave ★{}.",
   "Corte ★ {} de {}.",
   "Eixo de simetria marcado em x = {} mm nesta série.",
-  "Não achei a mama em {} quadro(s): ficaram como estavam."
+  "Não achei a mama em {} quadro(s): ficaram como estavam.",
+  "Mesmo nódulo que {} de {} ({}): {}.",
+  "Mesmo nódulo que {} de {} ({}, {} mm): {}.",
+  "Nódulo {} guardado nos Achados de IA, confirmado.",
+  "a região chegou à borda da caixa de {} mm: deve ter vazado para um vaso ou para a pleura — confira e, se precisar, corrija nas Estruturas",
+  "clique no ponto, limiar {} HU",
+  "diâmetro médio {} → {} mm ({} mm)",
+  "tempo de duplicação {} dias",
+  "volume {} → {} mm³ ({}%)",
+  "O nódulo {} entrou na lesão “{}”, que já vinha sendo acompanhada: {}."
  ]
 }

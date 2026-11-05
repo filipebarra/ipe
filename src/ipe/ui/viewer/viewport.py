@@ -118,7 +118,8 @@ class ViewportSignals(QObject):
     film_requested = Signal(object)             # ferramenta "enviar ao filme": clique na imagem
     group_action = Signal(object, str)          # "remove_phase" | "ungroup"
     lesion_requested = Signal(object, object)   # viewport, anotação: ligar a uma lesão
-    medida_criada = Signal(object, object)      # 0.99.59: medida nova (régua/ROI) — o seguimento liga sozinho
+    medida_criada = Signal(object, object)
+    nodulo_requested = Signal(object, float, float)      # 0.99.62: nódulo pulmonar por clique (u, v da imagem)      # 0.99.59: medida nova (régua/ROI) — o seguimento liga sozinho
     clone_roi_requested = Signal(object, object)  # viewport, anotação: clonar a ROI nos outros quadros
     histogram_requested = Signal(object)        # viewport: mostrar o histograma
     anotacoes_requested = Signal(str)           # nível de anotação escolhido no botão direito (0.99.9)
@@ -3407,6 +3408,12 @@ class Viewport(AnnotationMixin, QWidget):
                 a_tic.triggered.connect(lambda: self.sig.tic_requested.emit(self, target))
                 menu.addAction(a_tic)
             menu.addSeparator()
+        if local_pos is not None and self._img is not None and (self.modality or "").upper() == "CT" \
+                and self.render3d is None and self.frames and self.plane() is not None:
+            ip_nod = self.widget_to_image(local_pos)
+            a_nod = QAction("Nódulo pulmonar aqui (segmentar por clique)…", menu)       # 0.99.62
+            a_nod.triggered.connect(lambda: self.sig.nodulo_requested.emit(self, ip_nod.x(), ip_nod.y()))
+            menu.addAction(a_nod)
         if local_pos is not None and self._img is not None and self.plane() is not None \
                 and (self.modality or "").upper() in ("MR", "CT", "PT") and self.mpr_plane is None:
             em = menu.addMenu("Eixo de simetria (ROI espelhada)")          # 0.99.61

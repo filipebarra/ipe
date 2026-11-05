@@ -50,6 +50,41 @@ def _modulo(ferramenta: str):
         return None
 
 
+def carregar_outros(tab, repo, exames) -> tuple[dict, list]:
+    """(datas dos exames do paciente, achados de nódulo já revisados neles) — 0.99.62."""
+    datas: dict[str, str] = {}
+    outros: list[dict] = []
+    for uid in exames:
+        datas[uid] = ((getattr(tab, "study_infos", {}) or {}).get(uid) or {}).get("study_date", "") or ""
+    try:
+        rows = repo.other_studies_same_patient(tab.study_uid)
+    except Exception:  # noqa: BLE001
+        rows = []
+    uids = set(exames)
+    for r in rows:
+        datas.setdefault(r.study_uid, r.study_date or "")
+        if "CT" in (r.modalities or "").upper():
+            uids.add(r.study_uid)
+    for uid in uids:
+        try:
+            lista = repo.achados(uid, "nodulos")
+        except Exception:  # noqa: BLE001
+            lista = []
+        outros += [a for a in lista if a["estado"] in AC.VALEM]
+    return datas, outros
+
+
+def correspondencia(repo, a: dict, outros: list, datas: dict) -> dict | None:
+    if a is None or a.get("ferramenta") != "nodulos":
+        return None
+    from ipe.imaging import nodulo_clique as NC
+    c = NC.correspondente(repo, a, [b for b in outros if b["id"] != a["id"]], datas)
+    if c is not None:
+        b = c["achado"]
+        c["crescimento"] = NC.crescimento(b, a, datas.get(b["study_uid"], ""), datas.get(a["study_uid"], ""))
+    return c
+
+
 class CorrigirDialog(QDialog):
     """Os números do achado, editáveis. Volta {chave: valor} só do que mudou."""
 
@@ -167,6 +202,7 @@ class AchadosPainel(QDialog):
             except Exception:  # noqa: BLE001
                 log.exception("ler os achados de IA")
         self.todos = todos
+        self._carregar_outros()
         filtro = self.c_filtro.currentData()
         self.achados = [a for a in todos if not filtro or a["estado"] == filtro]
         sel = self.atual()
@@ -195,6 +231,22 @@ class AchadosPainel(QDialog):
                     self.t.selectRow(r)
         self._escolheu()
 
+    # ------------------------------------------------------------ o mesmo nódulo em outro exame (0.99.62)
+    def _carregar_outros(self) -> None:
+        self.datas, self.outros = carregar_outros(self.tab, self.repo, self.exames())
+        self._corr: dict[int, dict | None] = {}
+
+    def correspondencia(self, a: dict) -> dict | None:
+        """{achado, distancia, como, crescimento} do mesmo nódulo num exame anterior, ou None."""
+        if a is None:
+            return None
+        cache = getattr(self, "_corr", None)
+        if cache is None:
+            cache = self._corr = {}
+        if a["id"] not in cache:
+            cache[a["id"]] = correspondencia(self.repo, a, self.outros, self.datas)
+        return cache[a["id"]]
+
     def atual(self) -> dict | None:
         r = self.t.currentRow() if hasattr(self, "t") else -1
         return self.achados[r] if 0 <= r < len(getattr(self, "achados", [])) else None
@@ -217,7 +269,14 @@ class AchadosPainel(QDialog):
             self.l_origem.setText("")
             return
         txt = f"{a.get('modelo', '')} {a.get('versao', '')}".strip()
-        self.l_origem.setText(tr(f"{txt} — {a.get('elegibilidade', '')}" if txt else a.get("elegibilidade", "")))
+        linhas = [tr(f"{txt} — {a.get('elegibilidade', '')}" if txt else a.get("elegibilidade", ""))]
+        c = self.correspondencia(a)
+        if c is not None:
+            b, cr = c["achado"], c["crescimento"]
+            partes = "; ".join(tr(x) for x in cr.get("lista") or []) or tr(cr["partes"])
+            linhas.append(tr(f"Mesmo nódulo que {b['rotulo']} de {cr['quando']} ({tr(c['como'])}, "
+                             f"{c['distancia']:.0f} mm): {partes}."))
+        self.l_origem.setText("\n".join(x for x in linhas if x))
 
     # ------------------------------------------------------------ ações
     def _quadro(self, a: dict):
@@ -309,8 +368,16 @@ class AchadosPainel(QDialog):
         rx, ry = float(diam) / 2 / cs, float(diam) / 2 / rs
         u, v = uvd[0], uvd[1]
         nome = f"{a.get('rotulo', '')} (IA)".strip()
-        lid = self.repo.save_lesion({"patient_id": pid, "name": nome, "location": a.get("local", ""),
-                                     "kind": "target", "data": {"achado_ia": a["id"]}})
+        c = self.correspondencia(a)
+        anterior = c["achado"] if c is not None and c["achado"].get("lesao_id") else None
+        existente = None
+        if anterior is not None:            # 0.99.62: o mesmo nódulo já acompanhado: a medida entra na mesma lesão
+            existente = next((le for le in self.repo.lesions(pid) if le["id"] == anterior["lesao_id"]), None)
+        if existente is not None:
+            lid, nome = existente["id"], existente["name"]
+        else:
+            lid = self.repo.save_lesion({"patient_id": pid, "name": nome, "location": a.get("local", ""),
+                                         "kind": "target", "data": {"achado_ia": a["id"]}})
         f = vp.current_frame()
         ann = M.Annotation("ellipse", vp.frame_key(), [(u - rx, v - ry), (u + rx, v + ry)],
                            study_uid=vp.study_uid, series_uid=(f.series_uid if f is not None else vp.series_uid),
@@ -327,7 +394,12 @@ class AchadosPainel(QDialog):
         except Exception:  # noqa: BLE001
             pass
         self.recarregar()
-        self.tab.status_message.emit(tr(f"{nome} entrou no acompanhamento de lesões."))
+        if existente is not None:
+            partes = "; ".join(tr(x) for x in c["crescimento"].get("lista") or []) or tr(c["crescimento"]["partes"])
+            self.tab.status_message.emit(tr(f"O nódulo {a.get('rotulo', '')} entrou na lesão “{nome}”, que já vinha sendo "
+                                            f"acompanhada: {partes}."))
+        else:
+            self.tab.status_message.emit(tr(f"{nome} entrou no acompanhamento de lesões."))
         return lid
 
     def texto_do_laudo(self) -> str:
@@ -337,10 +409,24 @@ class AchadosPainel(QDialog):
             por_ferramenta.setdefault(a["ferramenta"], []).append(a)
         for ferr, lista in por_ferramenta.items():
             mod = _modulo(ferr)
-            txt = AC.texto_do_laudo(lista, getattr(mod, "frase", None))
+            fr = getattr(mod, "frase", None)
+            if ferr == "nodulos" and fr is not None:
+                fr = self._frase_com_crescimento(fr)
+            txt = AC.texto_do_laudo(lista, fr)
             if txt:
                 partes.append(txt)
         return "\n".join(partes)
+
+    def _frase_com_crescimento(self, fr):
+        def f(a: dict) -> str:
+            base = fr(a)
+            c = self.correspondencia(a)
+            if c is None:
+                return base
+            cr = c["crescimento"]
+            extra = f"Em relação ao exame de {cr['quando']} ({c['achado']['rotulo']}): {cr['partes']}."
+            return (base.rstrip() + " " + extra).strip()
+        return f
 
     def mandar_ao_laudo(self) -> bool:
         txt = self.texto_do_laudo()
