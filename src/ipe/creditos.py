@@ -80,6 +80,12 @@ CREDITOS: tuple[Credito, ...] = (
             onde="opcional"),
     Credito("API da Anthropic (Claude)", "modelo de linguagem para a IA no texto do laudo, com chave própria do "
             "serviço", "serviço da Anthropic", "https://docs.claude.com", onde="opcional"),
+    Credito("7-Zip", "abrir RAR, 7z, ISO e ZIP em Deflate64 na importação (0.99.66), se instalado no computador",
+            "LGPL-2.1 (código do unRAR com restrição própria)", "https://www.7-zip.org", onde="opcional"),
+    Credito("libarchive (bsdtar, o tar.exe do Windows 10/11)", "abrir RAR, 7z e ISO na importação (0.99.66) "
+            "quando não há 7-Zip", "BSD-2-Clause", "https://www.libarchive.org", onde="opcional"),
+    Credito("UnRAR (WinRAR)", "abrir RAR na importação (0.99.66), se o WinRAR estiver instalado",
+            "licença freeware do UnRAR", "https://www.rarlab.com", onde="opcional"),
     Credito("ReportLab", "o guia do usuário em PDF", "BSD", "https://www.reportlab.com/opensource/",
             onde="desenvolvimento", modulos=("reportlab",)),
     # ------------------------------------------------------------------ inteligência artificial

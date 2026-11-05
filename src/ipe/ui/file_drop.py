@@ -1,4 +1,4 @@
-"""Arrastar arquivos, pastas ou ZIPs do Explorer/gerenciador de arquivos para o programa.
+"""Arrastar arquivos, pastas ou compactados (ZIP, RAR, 7z…) do Explorer/gerenciador de arquivos para o programa.
 
 Um filtro de eventos na aplicação intercepta o arrasto de arquivos em qualquer
 ponto das janelas do programa (banco de dados, viewer, janelas de outros
@@ -49,13 +49,14 @@ def local_paths(mime) -> list[Path]:
 
 def describe(paths: list[Path]) -> str:
     n_dirs = sum(1 for p in paths if p.is_dir())
-    n_zip = sum(1 for p in paths if p.is_file() and p.suffix.lower() == ".zip")
+    from ipe.importer import compactados as CP
+    n_zip = sum(1 for p in paths if CP.e_compactado(p))
     n_files = len(paths) - n_dirs - n_zip
     parts = []
     if n_dirs:
         parts.append(f"{n_dirs} pasta" + ("s" if n_dirs > 1 else ""))
     if n_zip:
-        parts.append(f"{n_zip} ZIP")
+        parts.append(f"{n_zip} compactado" + ("s" if n_zip > 1 else ""))
     if n_files:
         parts.append(f"{n_files} arquivo" + ("s" if n_files > 1 else ""))
     return ", ".join(parts)

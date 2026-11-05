@@ -7689,5 +7689,19 @@
  "A{} (já em {})": "A{} (already on {})",
  "A{} ({}, mama {}): {} mm do mamilo.": "A{} ({}, {} breast): {} mm from the nipple.",
  "Quadro {}: {}": "Viewport {}: {}",
- "Achados no laudo BI-RADS: {}. Complete descrição, tamanho e categoria de cada um.": "Findings in the BI-RADS report: {}. Complete the description, size and category of each."
+ "Achados no laudo BI-RADS: {}. Complete descrição, tamanho e categoria de cada um.": "Findings in the BI-RADS report: {}. Complete the description, size and category of each.",
+ ";;Todos (*)": ";;All (*)",
+ "Compactados (*.zip *.rar *.7z *.tar *.tgz *.tar.gz *.tar.bz2 *.tar.xz *.iso *.cab *.001)": "Archives (*.zip *.rar *.7z *.tar *.tgz *.tar.gz *.tar.bz2 *.tar.xz *.iso *.cab *.001)",
+ "Importar compactado": "Import archive",
+ "Importar compactado (ZIP, RAR, 7z)…": "Import archive (ZIP, RAR, 7z)…",
+ "Para abrir RAR, 7z ou ISO o programa usa o 7-Zip ou o tar do Windows 10/11, e nenhum dos dois foi encontrado neste computador. Instale o 7-Zip (7-zip.org) e importe de novo.": "To open RAR, 7z or ISO the program uses 7-Zip or the Windows 10/11 tar, and neither was found on this computer. Install 7-Zip (7-zip.org) and import again.",
+ "tar (libarchive)": "tar (libarchive)",
+ "wrong password": "wrong password",
+ "Não consegui abrir o compactado {} ({}).": "Could not open the archive {} ({}).",
+ "O ZIP {} tem senha. Descompacte-o fora do programa e importe a pasta.": "The ZIP {} is password-protected. Extract it outside the program and import the folder.",
+ "O compactado {} tem senha. Descompacte-o fora do programa e importe a pasta.": "The archive {} is password-protected. Extract it outside the program and import the folder.",
+ "Para abrir {} ({}) o programa precisa do 7-Zip (7-zip.org) ou do tar do Windows 10/11. Instale o 7-Zip e importe de novo.": "To open {} ({}) the program needs 7-Zip (7-zip.org) or the Windows 10/11 tar. Install 7-Zip and import again.",
+ "tarfile: {}": "tarfile: {}",
+ "zipfile: {}": "zipfile: {}",
+ "{} compactado": "{} archive"
 }

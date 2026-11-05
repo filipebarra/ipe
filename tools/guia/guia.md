@@ -23,7 +23,9 @@ O programa tem uma aba fixa, **Banco de dados**, e uma aba por exame aberto. Tud
 
 ## Importar exames
 
-Menu **Arquivo**: **Importar pasta…** (Ctrl+I), **Importar arquivos…** e **Importar ZIP…**. Também dá para arrastar arquivos ou pastas para cima da janela.
+Menu **Arquivo**: **Importar pasta…** (Ctrl+I), **Importar arquivos…** e **Importar compactado (ZIP, RAR, 7z)…**. Também dá para arrastar arquivos, pastas ou compactados para cima da janela.
+
+> **Compactados.** ZIP e TAR (.tar, .tar.gz, .tgz, .tar.bz2, .tar.xz) o programa abre sozinho. RAR, 7z, ISO e CAB ele abre com o **7-Zip**, se estiver instalado (7-zip.org), ou com o **tar que já vem no Windows 10/11**; para RAR, o WinRAR instalado também serve. Se nenhum dos dois existir, o programa avisa. Compactado em partes (.part1.rar, .part2.rar…, ou .7z.001, .7z.002…): mande todas as partes, ou só a primeira, com as outras na mesma pasta. Um compactado dentro de outro também é aberto. Arquivo com senha não abre: o programa avisa, e aí é descompactar fora e importar a pasta.
 
 > **Copiar ou referenciar?** Em Configurações ▸ Banco de dados ▸ Importação, a caixa *Copiar os arquivos para o armazenamento do programa* decide se o DICOM é copiado para a pasta do programa ou apenas referenciado onde está. Desmarcada, o programa nunca escreve no arquivo original — e nunca o apaga.
 

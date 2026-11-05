@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.66 — importar RAR, 7z y otros comprimidos
+- **Archivo ▸ Importar comprimido (ZIP, RAR, 7z)…** y el arrastre ahora también abren RAR, 7z, TAR (gz/bz2/xz),
+  ISO y CAB. RAR, 7z e ISO usan 7-Zip, si está instalado, o el tar que ya trae Windows 10/11; WinRAR también
+  sirve para RAR.
+- Los ZIP en Deflate64 (los que Windows hace con archivos grandes) ahora abren con 7-Zip o con el tar de Windows.
+- Comprimido en partes (.part1.rar, .7z.001): basta enviar todas las partes, o solo la primera. Un comprimido
+  dentro de otro también abre. Un archivo con contraseña avisa, en vez de trabarse.
+
 ## 0.99.65 — órganos abdominales y niveles ganglionares solo en la serie calculada
 - La segmentación de los órganos abdominales y el mapa de los niveles ganglionares aparecen solo en la serie en
   que se calcularon (y en sus reconstrucciones), ya no en todas las series del examen, donde caían fuera de lugar.

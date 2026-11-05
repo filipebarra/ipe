@@ -258,7 +258,7 @@ class MainWindow(QMainWindow):
         for text, fn, sc in (
             ("Importar pasta…", self.import_folder, "Ctrl+I"),
             ("Importar arquivos…", self.import_files, None),
-            ("Importar ZIP…", self.import_zip, None),
+            ("Importar compactado (ZIP, RAR, 7z)…", self.import_zip, None),
             (None, None, None),
             ("Importar lista de casos (pacote)…", lambda: self.import_case_list(None), None),
             ("Exportar (DICOM, CD/pendrive, imagens)…", self.export_current, None),
@@ -3679,8 +3679,17 @@ class MainWindow(QMainWindow):
             self.start_import([Path(f) for f in files])
 
     def import_zip(self) -> None:
-        files, _ = QFileDialog.getOpenFileNames(self, "Importar ZIP", filter="ZIP (*.zip)")
+        from ipe.importer import compactados as CP
+        files, _ = QFileDialog.getOpenFileNames(self, "Importar compactado",
+                                                filter=CP.FILTRO_DIALOGO + ";;Todos (*)")
         if files:
+            fmts = {CP.formato(f) for f in files} - {"zip", "tar", ""}
+            if fmts and not (CP.sete_zip() or CP.bsdtar() or (fmts == {"rar"} and CP.unrar())):
+                QMessageBox.warning(self, "Importar compactado",
+                                    "Para abrir RAR, 7z ou ISO o programa usa o 7-Zip ou o tar do Windows 10/11, e "
+                                    "nenhum dos dois foi encontrado neste computador. Instale o 7-Zip (7-zip.org) e "
+                                    "importe de novo.")
+                return
             self.start_import([Path(f) for f in files])
 
     def make_samples(self) -> None:

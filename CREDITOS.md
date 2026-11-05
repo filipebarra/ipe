@@ -35,6 +35,9 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [Ollama](https://ollama.com) | modelo de linguagem local para a IA no texto do laudo (0.99.54), se instalado à parte | MIT |
 | [API compatível com OpenAI (LM Studio, vLLM, llama.cpp)](https://platform.openai.com/docs/api-reference) | servidor de modelo de linguagem para a IA no texto do laudo, se o serviço tiver um | conforme o servidor |
 | [API da Anthropic (Claude)](https://docs.claude.com) | modelo de linguagem para a IA no texto do laudo, com chave própria do serviço | serviço da Anthropic |
+| [7-Zip](https://www.7-zip.org) | abrir RAR, 7z, ISO e ZIP em Deflate64 na importação (0.99.66), se instalado no computador | LGPL-2.1 (código do unRAR com restrição própria) |
+| [libarchive (bsdtar, o tar.exe do Windows 10/11)](https://www.libarchive.org) | abrir RAR, 7z e ISO na importação (0.99.66) quando não há 7-Zip | BSD-2-Clause |
+| [UnRAR (WinRAR)](https://www.rarlab.com) | abrir RAR na importação (0.99.66), se o WinRAR estiver instalado | licença freeware do UnRAR |
 
 ## Ambiente da segmentação, baixado à parte
 

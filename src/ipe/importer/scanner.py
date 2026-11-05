@@ -1,4 +1,4 @@
-"""Importação de arquivos DICOM: pastas, arquivos soltos, CD (DICOMDIR) e ZIP.
+"""Importação de arquivos DICOM: pastas, arquivos soltos, CD (DICOMDIR) e compactados (ZIP, RAR, 7z…).
 
 - Lê só o cabeçalho (stop_before_pixels) para indexar rápido.
 - Deduplica pelo SOPInstanceUID.
@@ -175,16 +175,14 @@ class Importer:
         result = ImportResult()
         tmp_dirs: list[Path] = []
         try:
-            expanded: list[Path] = []
-            for p in map(Path, paths):
-                if p.is_file() and p.suffix.lower() == ".zip":
-                    tmp = Path(tempfile.mkdtemp(prefix="dv_zip_"))
-                    tmp_dirs.append(tmp)
-                    with zipfile.ZipFile(p) as zf:
-                        _safe_extract(zf, tmp)
-                    expanded.append(tmp)
-                else:
-                    expanded.append(p)
+            # 0.99.66: ZIP, RAR, 7z, TAR, ISO… (importer/compactados.py)
+            from ipe.importer import compactados as CP
+            expanded, temps, erros = CP.expandir(paths, lambda: tempfile.mkdtemp(prefix="dv_zip_"))
+            tmp_dirs.extend(temps)
+            for e in erros:
+                log.warning("Compactado: %s", e)
+                result.errors += 1
+                result.error_files.append(e)
             files: list[Path] = []
             for f in iter_candidate_files(expanded):
                 if self._cancel:
@@ -192,7 +190,7 @@ class Importer:
                 files.append(f)
                 if on_scan and len(files) % 200 == 0:
                     on_scan(len(files))
-            # arquivos de ZIP precisam ser copiados (a pasta temporária some)
+            # arquivos de compactados precisam ser copiados (a pasta temporária some)
             force_copy = {str(t) for t in tmp_dirs}
             total = len(files)
             with self.db.session() as s:

@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.66 — importar RAR, 7z e outros compactados
+- **Arquivo ▸ Importar compactado (ZIP, RAR, 7z)…** e o arrasto também abrem RAR, 7z, TAR (gz/bz2/xz), ISO e CAB.
+  RAR, 7z e ISO usam o 7-Zip, se instalado, ou o tar que já vem no Windows 10/11; o WinRAR também serve para RAR.
+- ZIP em Deflate64 (o que o Windows faz com arquivos grandes) passa a abrir pelo 7-Zip ou pelo tar do Windows.
+- Compactado em partes (.part1.rar, .7z.001): basta mandar todas as partes, ou só a primeira. Compactado dentro
+  de compactado também abre. Arquivo com senha avisa, em vez de travar.
+
 ## 0.99.65 — órgãos abdominais e níveis linfonodais só na série calculada
 - A segmentação dos órgãos abdominais e o mapa dos níveis linfonodais aparecem só na série em que foram
   calculados (e nas reconstruções dela), não mais em todas as séries do exame, onde caíam fora do lugar.

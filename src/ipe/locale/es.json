@@ -7689,5 +7689,19 @@
  "A{} (já em {})": "A{} (ya en {})",
  "A{} ({}, mama {}): {} mm do mamilo.": "A{} ({}, mama {}): {} mm del pezón.",
  "Quadro {}: {}": "Cuadro {}: {}",
- "Achados no laudo BI-RADS: {}. Complete descrição, tamanho e categoria de cada um.": "Hallazgos en el informe BI-RADS: {}. Complete descripción, tamaño y categoría de cada uno."
+ "Achados no laudo BI-RADS: {}. Complete descrição, tamanho e categoria de cada um.": "Hallazgos en el informe BI-RADS: {}. Complete descripción, tamaño y categoría de cada uno.",
+ ";;Todos (*)": ";;Todos (*)",
+ "Compactados (*.zip *.rar *.7z *.tar *.tgz *.tar.gz *.tar.bz2 *.tar.xz *.iso *.cab *.001)": "Comprimidos (*.zip *.rar *.7z *.tar *.tgz *.tar.gz *.tar.bz2 *.tar.xz *.iso *.cab *.001)",
+ "Importar compactado": "Importar comprimido",
+ "Importar compactado (ZIP, RAR, 7z)…": "Importar comprimido (ZIP, RAR, 7z)…",
+ "Para abrir RAR, 7z ou ISO o programa usa o 7-Zip ou o tar do Windows 10/11, e nenhum dos dois foi encontrado neste computador. Instale o 7-Zip (7-zip.org) e importe de novo.": "Para abrir RAR, 7z o ISO el programa usa 7-Zip o el tar de Windows 10/11, y ninguno de los dos se encontró en este equipo. Instale 7-Zip (7-zip.org) e importe de nuevo.",
+ "tar (libarchive)": "tar (libarchive)",
+ "wrong password": "wrong password",
+ "Não consegui abrir o compactado {} ({}).": "No pude abrir el comprimido {} ({}).",
+ "O ZIP {} tem senha. Descompacte-o fora do programa e importe a pasta.": "El ZIP {} tiene contraseña. Descomprímalo fuera del programa e importe la carpeta.",
+ "O compactado {} tem senha. Descompacte-o fora do programa e importe a pasta.": "El comprimido {} tiene contraseña. Descomprímalo fuera del programa e importe la carpeta.",
+ "Para abrir {} ({}) o programa precisa do 7-Zip (7-zip.org) ou do tar do Windows 10/11. Instale o 7-Zip e importe de novo.": "Para abrir {} ({}) el programa necesita 7-Zip (7-zip.org) o el tar de Windows 10/11. Instale 7-Zip e importe de nuevo.",
+ "tarfile: {}": "tarfile: {}",
+ "zipfile: {}": "zipfile: {}",
+ "{} compactado": "{} comprimido"
 }

@@ -5723,7 +5723,14 @@
   "Tabela dos achados marcados…",
   "Tempo em cor",
   "Vermelho = fase inicial, verde = intermediária, azul = tardia (realce de cada uma)",
-  "Vistas"
+  "Vistas",
+  ";;Todos (*)",
+  "Compactados (*.zip *.rar *.7z *.tar *.tgz *.tar.gz *.tar.bz2 *.tar.xz *.iso *.cab *.001)",
+  "Importar compactado",
+  "Importar compactado (ZIP, RAR, 7z)…",
+  "Para abrir RAR, 7z ou ISO o programa usa o 7-Zip ou o tar do Windows 10/11, e nenhum dos dois foi encontrado neste computador. Instale o 7-Zip (7-zip.org) e importe de novo.",
+  "tar (libarchive)",
+  "wrong password"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7195,6 +7202,13 @@
   "A{} (já em {})",
   "A{} ({}, mama {}): {} mm do mamilo.",
   "Quadro {}: {}",
-  "Achados no laudo BI-RADS: {}. Complete descrição, tamanho e categoria de cada um."
+  "Achados no laudo BI-RADS: {}. Complete descrição, tamanho e categoria de cada um.",
+  "Não consegui abrir o compactado {} ({}).",
+  "O ZIP {} tem senha. Descompacte-o fora do programa e importe a pasta.",
+  "O compactado {} tem senha. Descompacte-o fora do programa e importe a pasta.",
+  "Para abrir {} ({}) o programa precisa do 7-Zip (7-zip.org) ou do tar do Windows 10/11. Instale o 7-Zip e importe de novo.",
+  "tarfile: {}",
+  "zipfile: {}",
+  "{} compactado"
  ]
 }

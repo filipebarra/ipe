@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.66 — import RAR, 7z and other archives
+- **File ▸ Import archive (ZIP, RAR, 7z)…** and drag-and-drop now also open RAR, 7z, TAR (gz/bz2/xz), ISO and CAB.
+  RAR, 7z and ISO use 7-Zip, if installed, or the tar that ships with Windows 10/11; WinRAR also works for RAR.
+- Deflate64 ZIPs (what Windows makes for large files) now open through 7-Zip or the Windows tar.
+- Split archives (.part1.rar, .7z.001): send all the parts, or just the first. An archive inside an archive also
+  opens. Password-protected archives give a message instead of hanging.
+
 ## 0.99.65 — abdominal organs and lymph node levels only on the computed series
 - The abdominal organ segmentation and the lymph node level map appear only on the series they were computed on
   (and its reconstructions), no longer on every series of the study, where they fell out of place.
