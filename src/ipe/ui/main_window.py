@@ -3680,6 +3680,15 @@ class MainWindow(QMainWindow):
         if files:
             self.start_import([Path(f) for f in files])
 
+    def exportar_configuracoes(self):
+        """0.99.68: um arquivo com as configurações, para outro computador (Windows ou Linux)."""
+        from ipe.ui import config_pacote_dialog as D
+        return D.exportar(self)
+
+    def importar_configuracoes(self, caminho: str | None = None):
+        from ipe.ui import config_pacote_dialog as D
+        return D.importar(self, caminho)
+
     def import_zip(self) -> None:
         from ipe.importer import compactados as CP
         files, _ = QFileDialog.getOpenFileNames(self, "Importar compactado",

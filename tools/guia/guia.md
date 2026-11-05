@@ -35,6 +35,14 @@ Menu **Ajuda ▸ Abrir pasta de dados** mostra onde estão o banco (SQLite), as 
 
 O programa não roda como administrador, e nunca precisa: tudo o que ele escreve fica no perfil do usuário.
 
+### Levar as configurações para outro computador
+
+**Configurações ▸ Sistema ▸ Exportar as configurações…** grava um arquivo `.ipeconfig` com o que você escolher: as configurações deste computador (janela, mouse, impressão, exportação, rede), as suas preferências, os protocolos de exibição e de mamografia, os modelos de laudo e de folha, perfis, SLA e busca ativa, os nós DICOM, as identidades AE, a automação e as traduções próprias. O arquivo é o mesmo no Windows e no Linux: exporte num e importe no outro.
+
+**Configurações ▸ Sistema ▸ Importar configurações…** abre o arquivo, mostra o que ele tem e importa as partes marcadas. O que já existe aqui com o mesmo nome (um nó, uma regra, um protocolo) é atualizado; o resto continua. Antes de importar, as configurações de agora ficam numa cópia, em `backups_config` na pasta de configurações (para voltar, importe a cópia). Depois, feche e abra o programa.
+
+O que **não** vai, porque é de cada computador: os exames e a pasta do banco, os locais, os monitores, o login guardado, o título AE e o token deste computador, o papel de servidor ou cliente e a posição das janelas. Uma pasta do outro sistema (`C:\...` chegando no Linux, `/home/...` chegando no Windows) não é gravada. As **senhas** dos nós DICOM e da IA do laudo só vão se você marcar *Levar as senhas*: nesse caso o arquivo as leva em texto claro, então guarde-o com cuidado. A parte do serviço, os nós e a automação pedem a permissão de configurar o computador.
+
 ### Instalar e desinstalar no Windows
 
 O instalador pergunta duas pastas: a **do programa** (sugere `AppData\Local\Programs\Ipe` do usuário; pode ser outro disco, como `D:\Ipe`, mas não Arquivos de Programas, porque ele instala sem administrador) e a **do banco de dados** (sugere a de agora; pode ser outro disco ou um HD externo, mas fora da pasta do programa). Numa atualização as duas já vêm preenchidas com as de antes. Se o banco de agora já tem exames e a pasta escolhida está vazia, o instalador não troca e avisa: para levar os exames, use **Configurações ▸ Banco de dados ▸ Mudar a pasta do banco deste computador…**, que move os arquivos. Pela linha de comando: `ipe-cli set-data-dir PASTA`.

@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.68 — exportar e importar la configuración
+- **Configuración ▸ Sistema ▸ Exportar la configuración…** e **Importar configuración…**: un archivo `.ipeconfig`
+  que va de Windows a Linux y al revés. Lleva la configuración del equipo y la personal, protocolos, plantillas de
+  informe y de hoja, perfiles, SLA, búsqueda activa, nodos DICOM, identidades AE, automatización y traducciones.
+- No lleva lo que es de cada equipo (base, monitores, inicio de sesión, título AE, token, servidor/cliente,
+  ventanas) ni las carpetas del otro sistema. Contraseñas solo si se marca. El mismo nombre se actualiza, no se
+  duplica; antes de importar queda una copia de la configuración actual.
+
 ## 0.99.67 — el instalador pregunta la carpeta del programa y la de la base
 - El instalador de Windows pregunta siempre la **carpeta del programa** y la **carpeta de la base de datos** (en
   una actualización, ya rellenadas con las anteriores). No acepta Archivos de programa (instala sin administrador)

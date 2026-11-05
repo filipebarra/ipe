@@ -88,6 +88,8 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         ("Desempenho…", "p:desempenho", "configure"),
         ("Módulos…", "p:modulos", ""),
         ("Idioma…", "p:idioma", ""),
+        ("Exportar as configurações…", "f:exportar_configuracoes", ""),
+        ("Importar configurações…", "f:importar_configuracoes", ""),
     ]),
 ]
 

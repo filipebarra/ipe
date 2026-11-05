@@ -2098,6 +2098,11 @@ class Repository:
             except ValueError:
                 return default
 
+    def app_setting_keys(self) -> list[str]:
+        """As chaves das configurações do banco (0.99.68: exportar as configurações)."""
+        with self.db.session() as s:
+            return sorted(s.scalars(select(AppSetting.key)))
+
     def set_app_setting(self, key: str, value) -> None:
         import json
         with self.db.session() as s:

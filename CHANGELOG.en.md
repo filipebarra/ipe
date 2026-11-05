@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.68 — export and import settings
+- **Settings ▸ System ▸ Export settings…** and **Import settings…**: one `.ipeconfig` file that goes from Windows
+  to Linux and back. It carries the computer and personal settings, protocols, report and sheet templates,
+  profiles, SLA, active follow-up, DICOM nodes, AE identities, automation and translations.
+- It leaves out what belongs to each computer (database, monitors, login, AE title, token, server/client,
+  windows) and folders of the other system. Passwords only if ticked. The same name is updated, not duplicated;
+  a copy of the current settings is kept before importing.
+
 ## 0.99.67 — the installer asks for the program folder and the database folder
 - The Windows installer always asks for the **program folder** and the **database folder** (on an update, already
   filled in with the previous ones). It refuses Program Files (it installs without administrator rights) and a

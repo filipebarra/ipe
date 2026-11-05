@@ -39,7 +39,7 @@ RPC_METHODS: dict[str, str] = {
     "set_locked": "delete", "delete_study": "delete",
     # usuários e configurações centrais
     "users": "users", "user_count": "users", "save_user": "users", "set_password": "users",
-    "delete_user": "users", "access_log": "users", "set_app_setting": "users", "get_app_setting": "",
+    "delete_user": "users", "access_log": "users", "set_app_setting": "users", "get_app_setting": "", "app_setting_keys": "users",
     "audit": "",
     # 0.99.28: banco pessoal × compartilhado no servidor (as regras de quem pode o quê ficam no servidor)
     "set_study_scope": "view", "donos_de_exames": "users", "transferir_banco": "users",
