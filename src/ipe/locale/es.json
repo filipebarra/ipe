@@ -7884,5 +7884,12 @@
  "corpo vertebral de {}": "cuerpo vertebral de {}",
  "cortes de {} mm: a %LAA−950 é validada em cortes finos (≤ 1,5 mm); corte grosso a subestima": "cortes de {} mm: el %LAA−950 está validado en cortes finos (≤ 1,5 mm); el corte grueso lo subestima",
  "filtro {} (duro): o ruído aumenta a %LAA; o padrão é filtro suave (ex.: B30, STANDARD)": "filtro {} (duro): el ruido aumenta el %LAA; el estándar es filtro suave (p. ej., B30, STANDARD)",
- "Áreas de baixa atenuação pulmonar (< −950 HU) em {}% do volume pulmonar": "Áreas de baja atenuación pulmonar (< −950 HU) en el {}% del volumen pulmonar"
+ "Áreas de baixa atenuação pulmonar (< −950 HU) em {}% do volume pulmonar": "Áreas de baja atenuación pulmonar (< −950 HU) en el {}% del volumen pulmonar",
+ "Desenhar": "Dibujar",
+ "Documentos": "Documentos",
+ "Mais cores": "Más colores",
+ "Medir": "Medir",
+ "Navegar": "Navegar",
+ "Organizar": "Organizar",
+ "Identificar vértebras e discos desta série (IA)…": "Identificar vértebras y discos en esta serie (IA)…"
 }

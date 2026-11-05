@@ -4,6 +4,7 @@ Pedido dele: banco compartilhado e "do meu usuário", com botão direito como na
 compartilhado, compartilhar com…, mover para o pessoal). Decisões: o administrador vê o banco dos
 outros, e cada exame pessoal alheio que ele abre fica no registro de acesso.
 """
+from _menus import submenu, todas  # noqa: F401
 import pytest
 from pydicom.uid import generate_uid
 from PySide6.QtWidgets import QApplication
@@ -136,14 +137,14 @@ def test_botao_direito_e_painel_locais(env, sample_dir, monkeypatch):
         b = w.browser
         rows = [r for r in b.model.rows if r.study_uid == uids[0]]
         m = b.menu_do_exame(rows)
-        sub = next(a.menu() for a in m.actions() if a.text() == "Banco")
+        sub = submenu(m, "Organizar/Banco")
         acoes = {a.text(): a for a in sub.actions()}
         # médico não tira exame do compartilhado (esconderia dos outros)
         assert not acoes["Mover para o meu banco (pessoal)"].isEnabled()
         # o administrador tira, e passa para a Ana
         w.start_session(UserSession(username="adm", role="admin", perms=permissions_for("admin")))
         rows = [r for r in b.model.rows if r.study_uid == uids[0]]
-        sub = next(a.menu() for a in b.menu_do_exame(rows).actions() if a.text() == "Banco")
+        sub = submenu(b.menu_do_exame(rows), "Organizar/Banco")
         passar = next(a.menu() for a in sub.actions() if a.text() == "Passar para o banco de")
         next(a for a in passar.actions() if a.text() == "ana").trigger()
         assert repo.study_info(uids[0])["dono"] == "ana"
@@ -161,7 +162,7 @@ def test_botao_direito_e_painel_locais(env, sample_dir, monkeypatch):
         w.escolher_banco("meu")
         assert {r.study_uid for r in b.model.rows} == {uids[0]}
         rows = [r for r in b.model.rows if r.study_uid == uids[0]]
-        sub = next(a.menu() for a in b.menu_do_exame(rows).actions() if a.text() == "Banco")
+        sub = submenu(b.menu_do_exame(rows), "Organizar/Banco")
         next(a for a in sub.actions() if a.text() == "Mover para o compartilhado").trigger()
         assert repo.study_info(uids[0])["dono"] == ""
     finally:

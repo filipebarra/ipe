@@ -74,6 +74,8 @@ CLICK_TOOLS = {"cross", "film", "oblique", "curve", "quadzoom", "loupe", "grow"}
 FERRAMENTAS_DE_MEDIDA = ("pick", "measure", "polyline", "angle", "cobb", "ellipse", "rect",
                          "polygon", "probe", "ruler3d", "height", "ctr", "spine", "tic", "calibration",
                          "grow", "pincel", "arrow", "text", "pencil")
+#: as que só desenham (0.99.78): vão para "Desenhar" no menu do botão direito
+FERRAMENTAS_DE_DESENHO = ("arrow", "text", "pencil", "pincel")
 
 
 def ferramentas_divididas() -> tuple[dict, dict]:

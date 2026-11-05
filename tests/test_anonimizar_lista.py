@@ -2,6 +2,7 @@
 
 Anonimizar é sempre cópia: o pedido vem da lista, mas nenhum arquivo do acervo é tocado.
 """
+from _menus import submenu, todas  # noqa: F401
 import pytest
 from PySide6.QtWidgets import QApplication
 
@@ -23,11 +24,11 @@ def janela(env, sample_dir):
 
 
 def _textos(menu):
-    return [a.text() for a in menu.actions() if not a.isSeparator()]
+    return [a.text() for a in todas(menu) if not a.isSeparator()]
 
 
 def _acao(menu, prefixo: str):
-    return next(a for a in menu.actions() if a.text().startswith(prefixo))
+    return next(a for a in todas(menu) if a.text().startswith(prefixo))
 
 
 def test_o_menu_da_lista_oferece_anonimizar(janela, monkeypatch):

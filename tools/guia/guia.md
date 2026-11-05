@@ -76,11 +76,15 @@ Para desinstalar: **Configurações do Windows ▸ Aplicativos ▸ Aplicativos i
 
 A tabela central lista os exames do local selecionado. Em cima dela: o campo **Buscar**, o botão **Colunas ▾** (escolhe quais colunas aparecem) e **Limpar filtros**. O painel da direita mostra as séries do exame selecionado.
 
-Botão direito num exame (ou em vários selecionados):
+Botão direito num exame (ou em vários selecionados), arrumado em grupos desde a 0.99.78:
 
-- **Enviar para ▸** um nó ▸ *como este programa* ou *como* uma das identidades cadastradas (capítulo 9);
-- **Anonimizar uma cópia deste exame…** — exporta anonimizado ou guarda uma cópia anonimizada no banco (capítulo 14);
-- laudo, listas de casos, proteção, apagar e o resto das ações do exame.
+- **Abrir**, **Abrir escolhendo séries…** e **Laudo…** em cima;
+- **Organizar ▸** listas de casos, prioridade, subespecialidade, estado do exame, comentário e o banco (pessoal ou compartilhado);
+- **Documentos ▸** anexar PDF ou imagem, os documentos do exame e o histórico;
+- **Enviar para ▸** um nó ▸ *como este programa* ou *como* uma das identidades cadastradas (capítulo 9), e **Exportar…**;
+- **Filme ▸**, só quando o exame tem imagens-chave ou filme salvo;
+- **Ferramentas ▸** **Anonimizar uma cópia deste exame…** (exporta anonimizado ou guarda uma cópia anonimizada no banco, capítulo 14), **Corrigir tags…** e, só em mamografia, **Apagar implante**;
+- no fim, **Proteger** (ou **Remover proteção**, se já estiver protegido) e **Apagar do banco…**.
 
 ### Recolher os painéis dos lados
 
@@ -110,7 +114,7 @@ Botões: **+ Lista**, **+ Pasta**, **▶ Modo reunião**. Botão direito na árv
 
 - **Adicionar comentário** escreve uma nota no exame, que aparece na lista.
 - O **cadeado** protege o exame: ele não entra na limpeza automática e não pode ser apagado enquanto estiver protegido.
-- **Histórico do exame…** (botão direito no exame) mostra quem fez o quê **neste** exame — abriu, baixou, exportou, enviou, imprimiu, mudou de banco, apagou imagem, assumiu o laudo — e quando os laudos foram criados e assinados.
+- **Histórico do exame…** (botão direito no exame ▸ Documentos) mostra quem fez o quê **neste** exame — abriu, baixou, exportou, enviou, imprimiu, mudou de banco, apagou imagem, assumiu o laudo — e quando os laudos foram criados e assinados.
 
 ## Botões da tela inicial
 
@@ -152,7 +156,20 @@ Shift e Ctrl emprestam o botão esquerdo: a ferramenta escolhida na barra não m
 
 ## As ferramentas
 
-A ferramenta do botão esquerdo se escolhe na barra, no menu do botão direito do quadro — em **Mouse (botão esquerdo)**, o que move a imagem, e em **Medidas**, o que mede — ou clicando no canto que mostra a ferramenta atual.
+A ferramenta do botão esquerdo se escolhe na barra, no menu do botão direito do quadro — em **Ferramenta do botão esquerdo ▸ Navegar** (o que move a imagem), **▸ Medir** (o que mede) e **▸ Desenhar** (seta, texto, lápis, pincel) — ou clicando no canto que mostra a ferramenta atual.
+
+### O menu do botão direito no quadro (0.99.78)
+
+Arrumado para caber numa olhada:
+
+- **em cima, o que depende do lugar clicado**: a medida debaixo do mouse (apagar, rascunho, lesão, referência, espelhar, clonar, perfil), *Nódulo pulmonar aqui* (TC de tórax), *Achado BI-RADS aqui* e *Achar o implante* (mamografia), *Eixo de simetria* (RM de mama, ou quando há ROI no corte), *Subtração digital (DSA)* (só angiografia, XA/RF), *Numeração da coluna*, *Cardíaco 4D*, salvar a reconstrução do MPR e *Tirar a mesa da TC*;
+- **Marcar imagem-chave ★** e **Copiar a imagem**;
+- **Imagem ▸** janela (só os presets da modalidade do quadro), cor (as mais usadas da modalidade e *Mais cores ▸* com as outras), inverter, filtro, girar/espelhar, mosaico de cortes, histograma, ajustar à janela e restaurar;
+- **Quadro ▸** fundir este quadro sobre outro, linhas de corte, grupo de sincronização, cine e a lista das medidas da série;
+- **Anotações ▸**, **Ferramenta do botão esquerdo ▸** e **Informações DICOM (tags)…**;
+- no fim, separado, o que apaga: **Apagar medidas deste corte** e **Apagar esta imagem…**.
+
+As aplicações de IA (órgãos, coluna, nódulos…) ficam só nos botões da barra e no botão **Aplicações**. Cada aplicação tem o seu desenho na barra, e as que usam IA levam um ✦ dourado no canto.
 
 A coluna *tecla* abaixo é sugestão: quase toda a lista de atalhos vem de fábrica vazia, e cada tecla é escolhida em Configurações ▸ Visualizador ▸ Atalhos de teclado (capítulo 14). Das ferramentas, só o zoom por quadrante tem tecla de fábrica (Q).
 
@@ -275,7 +292,7 @@ Para calibrar à mão: ferramenta **Linha de calibração**, trace sobre uma dis
 
 ## Mosaico de cortes no quadro
 
-Botão direito no quadro ▸ **Mosaico de cortes** ▸ 2 × 2, 3 × 3 ou 4 × 4 (ou o atalho *Mosaico de cortes no quadro*, que anda pelos tamanhos): o quadro mostra cortes **seguidos** da mesma série, a partir do atual (o primeiro, em cima à esquerda, tem o número em amarelo). Serve para passar os olhos numa série volumétrica sem rolar corte a corte, com outro quadro ao lado rolando normal.
+Botão direito no quadro ▸ **Imagem ▸ Mosaico de cortes** ▸ 2 × 2, 3 × 3 ou 4 × 4 (ou o atalho *Mosaico de cortes no quadro*, que anda pelos tamanhos): o quadro mostra cortes **seguidos** da mesma série, a partir do atual (o primeiro, em cima à esquerda, tem o número em amarelo). Serve para passar os olhos numa série volumétrica sem rolar corte a corte, com outro quadro ao lado rolando normal.
 
 - A rodinha **vira a página**: o conjunto anda junto (4, 9 ou 16 cortes); os quadros sincronizados acompanham pelo primeiro.
 - Janela/nível, inverter e a tabela de cores valem para todas as imagens do mosaico. As imagens-chave aparecem com ★.
@@ -1038,13 +1055,13 @@ Pedido médico, termo de consentimento, laudo anterior de outro serviço, foto d
 
 - **arrastar sobre o visualizador** — vai para o exame aberto (o do quadro ativo);
 - **arrastar no banco de dados com um exame selecionado** — o programa pergunta antes ("Anexar 2 arquivos ao exame de …?"), para não cair no paciente errado;
-- **botão direito no exame ▸ Anexar documento (PDF ou imagem)…**, ou, no visualizador, o menu de séries do quadro ▸ **Anexar documento…**.
+- **botão direito no exame ▸ Documentos ▸ Anexar documento (PDF ou imagem)…**, ou, no visualizador, o menu de séries do quadro ▸ **Anexar documento…**.
 
 O **PDF** vira um documento PDF encapsulado em DICOM (modalidade DOC), na série **Documentos anexados**, com o nome do arquivo como título. Cada **imagem** (JPG, PNG, TIFF — cada página vira uma —, BMP, GIF, WEBP) vira uma imagem DICOM (captura secundária, modalidade OT) na série **Imagens anexadas**, e aparece no visualizador como qualquer outra série. Os dados do paciente e do exame são os do próprio exame. Word, Excel e outros formatos ficam de fora, com o aviso: salve como PDF antes.
 
 O anexo segue as **regras de roteamento** do exame (Configurações ▸ Rede ▸ Automação): se o exame iria para um nó, o anexo vai também. Quem anexou fica no registro de acesso.
 
-Para ler os PDF do exame — anexados, laudos guardados em PDF ou PDF que vieram de outro sistema —: botão direito no exame ▸ **Documentos do exame…**, duplo clique na série de documentos no painel de séries, ou o menu de séries do quadro ▸ **Documentos do exame…**. O PDF abre dentro do programa; há também **Abrir no programa do sistema** e **Salvar o PDF…**.
+Para ler os PDF do exame — anexados, laudos guardados em PDF ou PDF que vieram de outro sistema —: botão direito no exame ▸ **Documentos ▸ Documentos do exame…**, duplo clique na série de documentos no painel de séries, ou o menu de séries do quadro ▸ **Documentos do exame…**. O PDF abre dentro do programa; há também **Abrir no programa do sistema** e **Salvar o PDF…**.
 
 ## Laudo em andamento (servidor central)
 
@@ -1064,11 +1081,11 @@ Ao **assinar** um laudo com o formulário BI-RADS, a categoria final decide se a
 
 Cada exame do banco tem uma **prioridade** (rotina, urgente, emergência), uma **subespecialidade** (mama, neuro, cabeça e pescoço, tórax, musculoesquelético, abdome, medicina nuclear ou geral) e um **prazo do laudo**: a chegada ao banco + as horas da prioridade (de fábrica, rotina 48 h, urgente 4 h, emergência 1 h; a rotina pode ter horas próprias por subespecialidade, como "Mama=72"). As colunas **Prioridade**, **Subespecialidade**, **Prazo do laudo** e **SLA** mostram isso; o SLA diz "faltam 5 h", "vence em 40 min" (laranja, a menos de 2 h), "atrasado 3 h" (vermelho) e, depois de assinado, "no prazo" ou "fora do prazo (+5 h)". Urgente aparece em laranja e emergência em vermelho.
 
-A prioridade sai das palavras da descrição do exame (de fábrica "URGENTE", "PS", "PRONTO SOCORRO", "UTI" → urgente; "EMERGÊNCIA", "CÓDIGO AVC", "TRAUMA" → emergência) e a subespecialidade da primeira regra que casar (modalidades + palavras da descrição). Tudo se ajusta em **Configurações ▸ Laudos ▸ Prioridade, subespecialidade e prazos (SLA)…**; em cada exame, **botão direito ▸ Prioridade** ou **▸ Subespecialidade** troca à mão ("Da regra" volta ao automático).
+A prioridade sai das palavras da descrição do exame (de fábrica "URGENTE", "PS", "PRONTO SOCORRO", "UTI" → urgente; "EMERGÊNCIA", "CÓDIGO AVC", "TRAUMA" → emergência) e a subespecialidade da primeira regra que casar (modalidades + palavras da descrição). Tudo se ajusta em **Configurações ▸ Laudos ▸ Prioridade, subespecialidade e prazos (SLA)…**; em cada exame, **botão direito ▸ Organizar ▸ Prioridade** ou **▸ Subespecialidade** troca à mão ("Da regra" volta ao automático).
 
 O botão **Trabalho ▾**, no banco de dados, filtra e ordena pelo prazo: **sem laudo** (o que vence primeiro em cima), **atrasados**, **vencem em menos de 2 h**, **urgências e emergências** e **minhas subespecialidades** (escolha as suas uma vez em *Escolher minhas subespecialidades…*). No servidor central as regras valem para todas as estações.
 
-**Estado do exame** (0.99.63): a coluna **Estado** (Colunas ▾) mostra *Não lido* (nunca aberto e sem laudo), *Em leitura* (aberto, ou com rascunho), *Urgente* (sem laudo assinado e com prioridade urgente ou emergência) e *Revisado* (laudo assinado), em cores, e ordena nessa ordem. O botão direito ▸ **Estado do exame** troca à mão — o revisado sem laudo (segunda leitura, reunião), o que voltou para leitura —, e a coluna marca o trocado com ✎; *Automático* volta ao cálculo. Em **Trabalho ▾**: *Não lidos*, *Em leitura* e *Ainda não revisados*. No visualizador, a ação *Exame: marcar como revisado* (escolha uma tecla em Atalhos ▸ Estudos) marca o exame do quadro ativo; de novo, volta ao automático.
+**Estado do exame** (0.99.63): a coluna **Estado** (Colunas ▾) mostra *Não lido* (nunca aberto e sem laudo), *Em leitura* (aberto, ou com rascunho), *Urgente* (sem laudo assinado e com prioridade urgente ou emergência) e *Revisado* (laudo assinado), em cores, e ordena nessa ordem. O botão direito ▸ **Organizar ▸ Estado do exame** troca à mão — o revisado sem laudo (segunda leitura, reunião), o que voltou para leitura —, e a coluna marca o trocado com ✎; *Automático* volta ao cálculo. Em **Trabalho ▾**: *Não lidos*, *Em leitura* e *Ainda não revisados*. No visualizador, a ação *Exame: marcar como revisado* (escolha uma tecla em Atalhos ▸ Estudos) marca o exame do quadro ativo; de novo, volta ao automático.
 
 ## Produtividade
 
@@ -1285,7 +1302,7 @@ As IAs do Ipê (órgãos abdominais, níveis da coluna, cefalometria, índices d
 - **Cancelar a escolhida** (ou **Cancelar todas**): na fila, ela não começa; rodando, o processo é derrubado e **nada é gravado** no exame. O cancelamento fica no histórico da gestão automática. A janela não é modal: dá para continuar trabalhando com ela aberta.
 - **Fechar o exame não interrompe a IA pedida nele**: ela continua rodando e grava o resultado no exame, que aparece ao abrir de novo. Se o trabalho não parar em 15 segundos depois do Cancelar (por exemplo, o processo travou), a tarefa é fechada à força e o exame fica livre para as outras IAs. Com uma só tarefa ativa, Cancelar a escolhida funciona sem escolher a linha.
 - **No banco de dados**, o exame que tem resultado de IA ganha **✦** ao lado do nome (a dica diz quais: "IA: órgãos abdominais, coluna"), e o que tem IA na fila ou rodando, **⚙**. A coluna **IA** (Colunas ▾) mostra as duas coisas por escrito.
-- **Órgãos abdominais** no visualizador: botão **Órgãos** (TC/RM de abdome ou pelve; nos outros exames, pelo botão **Aplicações**) ▸ *Segmentar órgãos abdominais desta série (IA)*. Grava as máscaras e a tabela de volumes no exame, como pelo botão direito no quadro.
+- **Órgãos abdominais** no visualizador: botão **Órgãos** (TC/RM de abdome ou pelve; nos outros exames, pelo botão **Aplicações**) ▸ *Segmentar órgãos abdominais desta série (IA)*. Grava as máscaras e a tabela de volumes no exame.
 
 ### Instalar a segmentação (TotalSegmentator)
 
@@ -1394,7 +1411,7 @@ Ao fechar com estruturas alteradas e não gravadas, a janela pergunta se grava c
 
 Botão **Fusão**: sobrepõe uma série a outra no quadro ativo (PET sobre a TC, por exemplo), com opacidade, tabela de cores e limites mínimo e máximo, e a opção de ocultar o que está abaixo do mínimo.
 
-**Fundir por arrastar** (0.99.64): arraste uma série da tira até o **canto inferior esquerdo** do quadro ("Fundir por cima") — ela entra como fusão, em cores e com transparência, em vez de trocar a série. Para fundir o que outro quadro mostra — um mapa da dinâmica (SER, realce, cinético…), uma fase, o ADC —, botão direito nele ▸ **Fundir este quadro sobre…** ▸ o quadro de destino (ADC sobre a T2, cinético sobre a DWI). A fusão usa as coordenadas do paciente: séries de referenciais diferentes ganham o aviso para conferir o alinhamento.
+**Fundir por arrastar** (0.99.64): arraste uma série da tira até o **canto inferior esquerdo** do quadro ("Fundir por cima") — ela entra como fusão, em cores e com transparência, em vez de trocar a série. Para fundir o que outro quadro mostra — um mapa da dinâmica (SER, realce, cinético…), uma fase, o ADC —, botão direito nele ▸ **Quadro ▸ Fundir este quadro sobre…** ▸ o quadro de destino (ADC sobre a T2, cinético sobre a DWI). A fusão usa as coordenadas do paciente: séries de referenciais diferentes ganham o aviso para conferir o alinhamento.
 
 # Medidas guiadas
 
@@ -1476,7 +1493,7 @@ Todas as janelas de configuração **diminuem e maximizam** (botões de maximiza
 
 ## Níveis da coluna e vértebra de transição
 
-**Identificar vértebras e discos desta série** (botão direito no quadro de uma TC ou RM da coluna) dá nome a cada vértebra e disco. Os nomes aparecem em qualquer série e plano do exame.
+**Identificar vértebras e discos desta série** (na seta do botão **Genant** da barra — ou do botão **Aplicações** —, ou no botão direito da série no banco, numa TC ou RM da coluna) dá nome a cada vértebra e disco. Os nomes aparecem em qualquer série e plano do exame.
 
 **De onde vem a numeração** — a janela final e a lista do objeto dizem qual foi usada:
 
@@ -1566,7 +1583,7 @@ Com várias pessoas (ou servidor), o cadastro de **nós DICOM**, **identidades**
 Com várias pessoas (ou servidor), o painel **Locais** ganha o grupo **Banco**: *Tudo o que vejo*, *Meu banco*, *Compartilhado* e *Compartilhados comigo*. O administrador vê também **Banco de fulano (n)** para cada um que tem exames pessoais.
 
 - O exame existe **uma vez só** no banco do computador: "pessoal" é uma marca. Mover entre os bancos não copia imagem. Laudos, medidas e anotações acompanham o exame.
-- **Botão direito no exame ▸ Banco**: *Mover para o meu banco (pessoal)*, *Mover para o compartilhado*, *Compartilhar com…* (escolher usuários) e, para o administrador, *Passar para o banco de…*. Tirar um exame do compartilhado esconde dos outros, por isso só quem configura o computador faz isso — para juntar casos, use as listas.
+- **Botão direito no exame ▸ Organizar ▸ Banco**: *Mover para o meu banco (pessoal)*, *Mover para o compartilhado*, *Compartilhar com…* (escolher usuários) e, para o administrador, *Passar para o banco de…*. Tirar um exame do compartilhado esconde dos outros, por isso só quem configura o computador faz isso — para juntar casos, use as listas.
 - **Para onde vão os exames novos**: o que chega pela rede no AE de uma **identidade pessoal** (o "AE do Dr. Fulano", com *Visível para: Só eu*) vai para o banco do dono; o que chega no AE do serviço, para o compartilhado. O que **você** importa ou baixa do PACS segue a sua escolha em **Locais ▸ botão direito num banco ▸ Exames que eu importo ou baixo vão para** (de fábrica, o compartilhado).
 - **O administrador** abre o banco pessoal de qualquer um; abrir esse banco e cada exame dele fica no **registro de acesso**. Quando alguém sai do serviço: botão direito em *Banco de fulano ▸ Passar o banco de fulano para* outro usuário ou o compartilhado.
 - **Atenção**: no mesmo computador, "pessoal" esconde o exame **dentro do programa**, mas os arquivos continuam na pasta do banco — quem abrir a pasta pelo sistema vê as imagens. Sigilo de verdade só no modo servidor.
@@ -1633,7 +1650,7 @@ A anonimização é opção da janela — e obrigatória para quem não tem a pe
 
 ### Anonimizar
 
-Botão direito num exame — ou em vários — e **Anonimizar uma cópia deste exame…**. A janela abre já marcada para anonimizar, e há três destinos: DICOM, Imagens, ou **Cópia anonimizada no meu banco** — vira outro exame na lista, e nada sai da máquina.
+Botão direito num exame — ou em vários — e **Ferramentas ▸ Anonimizar uma cópia deste exame…**. A janela abre já marcada para anonimizar, e há três destinos: DICOM, Imagens, ou **Cópia anonimizada no meu banco** — vira outro exame na lista, e nada sai da máquina.
 
 | Escolha | O que acontece |
 |---|---|

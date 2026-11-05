@@ -1,4 +1,5 @@
 """Shift e Ctrl emprestam o botão esquerdo, sem trocar a ferramenta da barra."""
+from _menus import submenu, todas  # noqa: F401
 import pytest
 from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtTest import QTest
@@ -215,7 +216,7 @@ def test_o_menu_do_botao_direito_monta(viewer):
     """A linha de corte entrou no menu com o sinal errado e derrubava o menu inteiro."""
     app, w, tab, vp = viewer
     m = vp.build_context_menu(None)
-    textos = [a.text() for a in m.actions()]
+    textos = [a.text() for a in todas(m)]
     assert len(textos) > 5
     assert any("Linhas de corte" in t for t in textos)
     m.deleteLater()

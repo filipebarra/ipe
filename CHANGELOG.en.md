@@ -3,6 +3,19 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.78 — cleaner right-click menus and AI app icons
+- **Viewport**: on top, only what depends on where you clicked (measurement, nodule, BI-RADS finding, symmetry
+  axis, DSA); then key image and copy; **Image ▸** (window, color, invert, filter, rotate, mosaic, histogram),
+  **Frame ▸** (fuse, reference lines, sync, cine), **Annotations ▸**, **Left button tool ▸** (Navigate, Measure,
+  Draw) and the tags; destructive items at the end. Color shows the modality's most used maps plus
+  *More colors ▸*. Segmentation left the right-click menu (it stays on the buttons; *Identify vertebrae and discs*
+  moved to the Genant button's arrow). DSA only in angiography; symmetry axis on breast MR or with a ROI on the slice.
+- **Database**: Open and Report on top; **Organize ▸** (lists, priority, subspecialty, status, comment, database),
+  **Documents ▸**, Send/Export, **Tools ▸** (anonymize, fix tags, remove implant only for mammography); Protect
+  and Remove protection became a single item.
+- **Icons**: each toolbar app has its own drawing (nodules, emphysema, composition, liver, organs, Genant,
+  lymph nodes, cephalometry, indices, diffusion), with a gold ✦ on the AI ones.
+
 ## 0.99.77 — emphysema per lobe and vertebral fracture (Genant)
 - **Emphysema** (chest CT): %LAA−950, Perc15 and volume per lobe, per lung and in total, with the distribution
   (upper, lower or even); warnings for thick slices, sharp kernel, contrast and air calibration (trachea). The

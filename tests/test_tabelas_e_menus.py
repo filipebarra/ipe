@@ -5,6 +5,7 @@ outra: Medidas com opção de escolher as medidas (régua, segmentar, seta…)"*
 que tem tabela no programa: dimensões ajustáveis das colunas (sei que em configurações de nós dicom
 hoje não tem como ajustar)"*.
 """
+from _menus import submenu, todas  # noqa: F401
 import io
 import pathlib
 import re
@@ -109,13 +110,14 @@ def test_o_menu_do_quadro_tem_os_dois(env, sample_dir, monkeypatch):
     vp = w.all_viewer_tabs()[-1].viewports[0]
     menu = vp.build_context_menu()
     titulos = [a.text() for a in menu.actions()]
-    assert "Mouse (botão esquerdo)" in titulos, titulos
-    assert "Medidas" in titulos, titulos
-    assert "Ferramenta do botão esquerdo" not in titulos
-    sub = {a.text(): a.menu() for a in menu.actions() if a.menu() is not None}
+    # 0.99.78: um submenu só, com navegar, medir e desenhar
+    assert "Ferramenta do botão esquerdo" in titulos, titulos
+    assert "Mouse (botão esquerdo)" not in titulos and "Medidas" not in titulos
+    sub = {"Medidas": submenu(menu, "Ferramenta do botão esquerdo/Medir"),
+           "Mouse (botão esquerdo)": submenu(menu, "Ferramenta do botão esquerdo/Navegar")}
     nomes_medidas = [x.text() for x in sub["Medidas"].actions()]
     assert TOOLS["measure"] in nomes_medidas and TOOLS["grow"] in nomes_medidas
-    assert TOOLS["arrow"] in nomes_medidas
+    assert TOOLS["arrow"] in [x.text() for x in submenu(menu, "Ferramenta do botão esquerdo/Desenhar").actions()]
     nomes_mouse = [x.text() for x in sub["Mouse (botão esquerdo)"].actions()]
     assert TOOLS["zoom"] in nomes_mouse and TOOLS["measure"] not in nomes_mouse
     # escolher no menu troca a ferramenta de verdade

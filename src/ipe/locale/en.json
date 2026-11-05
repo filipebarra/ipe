@@ -7884,5 +7884,12 @@
  "corpo vertebral de {}": "{} vertebral body",
  "cortes de {} mm: a %LAA−950 é validada em cortes finos (≤ 1,5 mm); corte grosso a subestima": "{} mm slices: %LAA−950 is validated on thin slices (≤ 1.5 mm); thick slices underestimate it",
  "filtro {} (duro): o ruído aumenta a %LAA; o padrão é filtro suave (ex.: B30, STANDARD)": "kernel {} (sharp): noise raises %LAA; the standard is a smooth kernel (e.g. B30, STANDARD)",
- "Áreas de baixa atenuação pulmonar (< −950 HU) em {}% do volume pulmonar": "Low-attenuation lung areas (< −950 HU) in {}% of lung volume"
+ "Áreas de baixa atenuação pulmonar (< −950 HU) em {}% do volume pulmonar": "Low-attenuation lung areas (< −950 HU) in {}% of lung volume",
+ "Desenhar": "Draw",
+ "Documentos": "Documents",
+ "Mais cores": "More colors",
+ "Medir": "Measure",
+ "Navegar": "Navigate",
+ "Organizar": "Organize",
+ "Identificar vértebras e discos desta série (IA)…": "Identify vertebrae and discs in this series (AI)…"
 }

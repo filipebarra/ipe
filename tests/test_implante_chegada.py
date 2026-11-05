@@ -4,6 +4,7 @@ Pedido dele: "quando uma mamografia chegar, verifique se existe implante de sili
 aplique o filtro de cortar o implante para agilizar. Salve a imagem sem silicone no banco de dados
 local."
 """
+from _menus import submenu, todas  # noqa: F401
 import hashlib
 from types import SimpleNamespace
 
@@ -235,7 +236,7 @@ def test_menu_do_banco_apaga_o_implante(env, tmp_path, monkeypatch):
         b.refresh()
         rows = [r for r in repo.search_studies(limit=50) if r.study_uid == uid]
         menu = b.menu_do_exame(rows)
-        acao = next(a for a in menu.actions() if a.text().startswith("Apagar implante"))
+        acao = next(a for a in todas(menu) if a.text().startswith("Apagar implante"))
         assert acao.isEnabled()
         acao.trigger()
         app.processEvents()

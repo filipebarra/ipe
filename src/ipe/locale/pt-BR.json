@@ -5858,7 +5858,14 @@
   "sem medida — ",
   "série com contraste: a densidade do parênquima sobe um pouco e a %LAA cai",
   "trocar a SEG de enfisema anterior",
-  "vértebras (1,5 mm)"
+  "vértebras (1,5 mm)",
+  "Desenhar",
+  "Documentos",
+  "Mais cores",
+  "Medir",
+  "Navegar",
+  "Organizar",
+  "Identificar vértebras e discos desta série (IA)…"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

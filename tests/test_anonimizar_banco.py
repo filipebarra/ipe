@@ -3,6 +3,7 @@
 O original nunca muda. A cópia no banco precisa de UIDs novos (senão cairia dentro do original)
 e de um ID de paciente que não repita os que já estão no banco.
 """
+from _menus import submenu, todas  # noqa: F401
 import hashlib
 from pathlib import Path
 
@@ -154,7 +155,7 @@ def test_pelo_menu_da_lista_criar_copia_atualiza_a_lista(janela, monkeypatch):
         return 1
     monkeypatch.setattr(ExportDialog, "exec", exec_)
     menu = b.menu_do_exame(b.selected_rows())
-    next(a for a in menu.actions() if a.text().startswith("Anonimizar")).trigger()
+    next(a for a in todas(menu) if a.text().startswith("Anonimizar")).trigger()
     assert avisos and avisos[0].startswith("Cópia anonimizada criada: 1 exame(s)")
     assert b.model.rowCount() == n_antes + 1, "a lista mostra a cópia sem precisar atualizar à mão"
 

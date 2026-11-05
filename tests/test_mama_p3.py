@@ -1,5 +1,6 @@
 """0.99.64 — mama: fusão de qualquer mapa por arrastar (AW M6), mapas de tempo em cor (AW M9) e achados BI-RADS
 por marcadores CC/MLO com a distância ao mamilo (PV 20)."""
+from _menus import submenu, todas  # noqa: F401
 import numpy as np
 import pytest
 from pydicom.uid import generate_uid
@@ -108,7 +109,7 @@ def test_fusao_por_arrastar_e_de_quadro(env, tmp_path):
         assert tab.fundir_por_arrastar(v0, serie.series_uid) is not None and v0.fusion is not None
         assert tab.fundir_por_arrastar(v0, f"key:{uid}") is None
         menu = v0.build_context_menu(v0.rect().center())
-        assert any(a_.text() == "Fundir este quadro sobre…" for a_ in menu.actions()) or len(tab._shown()) == 1
+        assert any(a_.text() == "Fundir este quadro sobre…" for a_ in todas(menu)) or len(tab._shown()) == 1
     finally:
         w.close()
 

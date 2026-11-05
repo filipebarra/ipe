@@ -4,6 +4,7 @@ Pedido dele: identificar automaticamente os discos em TC e RM, para "ler e lauda
 qualquer corte". O trabalhador roda no modo simular: o fantoma tem faixas de osso (300) e de disco
 (150) ao longo do eixo; as faixas de osso viram L1, L2… de cima para baixo.
 """
+from _menus import submenu, todas  # noqa: F401
 import time
 
 import numpy as np
@@ -161,8 +162,8 @@ def test_tela_identifica_e_renumera(env, tmp_path, monkeypatch):
         tab = w.tabs.currentWidget()
         app.processEvents()
         vp = next(v for v in tab.viewports if v.frames)
-        menu = [a.text() for a in vp.build_context_menu().actions()]
-        assert any(t.startswith("Identificar vértebras e discos") for t in menu)
+        menu = [a.text() for a in todas(vp.build_context_menu())]
+        assert not any(t.startswith("Identificar vértebras e discos") for t in menu)   # 0.99.78: só no botão
         assert not any(t.startswith("Numeração da coluna") for t in menu)  # ainda não há níveis
         assert any(a.text().startswith("Identificar vértebras") and a.isEnabled()
                    for a in w.browser.series_menu(uid, [serie]).actions())
@@ -174,7 +175,7 @@ def test_tela_identifica_e_renumera(env, tmp_path, monkeypatch):
         assert avisos and avisos[-1].startswith("Níveis identificados"), avisos
         col = [o for o in tab.overlay_objects if o.source == "Coluna"]
         assert len(col) == 1 and "L4-L5" in [mv.label for mv in col[0].volumes]
-        menu = [a.text() for a in vp.build_context_menu().actions()]
+        menu = [a.text() for a in todas(vp.build_context_menu())]
         assert any(t.startswith("Numeração da coluna") for t in menu)
         assert tab.renumerar_coluna(vp, 1) == 1
         assert "L5-S1" in [mv.label for mv in col[0].volumes] and "L1" not in [mv.label for mv in col[0].volumes]

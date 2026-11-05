@@ -1,4 +1,5 @@
 """0.99.63 — estado do exame: não lido, em leitura, revisado, urgente (automático e à mão)."""
+from _menus import submenu, todas  # noqa: F401
 import pytest
 from PySide6.QtWidgets import QApplication
 
@@ -57,7 +58,7 @@ def test_no_banco_na_tela_e_no_visualizador(env, sample_dir):
         br.filtro_trabalho("em_leitura")
         assert br.proxy.rowCount() == 0
         menu = br.menu_do_exame([rows[0]])
-        sub = next(a.menu() for a in menu.actions() if a.menu() is not None and a.text() == "Estado do exame")
+        sub = submenu(menu, "Organizar/Estado do exame")
         assert [a.text() for a in sub.actions() if a.text()] == ["Automático", "Não lido", "Em leitura", "Revisado",
                                                                  "Urgente"]
         br._trocar_estado([outro], "em_leitura")

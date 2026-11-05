@@ -1,4 +1,5 @@
 """0.99.52 — onda B4: prioridade, subespecialidade e prazo do laudo (SLA) na lista de exames."""
+from _menus import submenu, todas  # noqa: F401
 from datetime import datetime, timedelta
 
 import pytest
@@ -85,7 +86,7 @@ def test_no_banco_e_na_tela(env, sample_dir):
         assert br.proxy.rowCount() == esperado               # o que foi trocado para mama já foi laudado
         textos = [a.text() for a in br.menu_trabalho().actions()]
         assert any(t.startswith("Minhas subespecialidades (Mama)") for t in textos)
-        sub = [a.text() for a in br.menu_do_exame([rows[0]]).actions() if a.menu() is not None]
+        sub = [a.text() for a in todas(br.menu_do_exame([rows[0]])) if a.menu() is not None]
         assert "Prioridade" in sub and "Subespecialidade" in sub
         from ipe.ui.sla_dialog import SlaConfigDialog
         dlg = SlaConfigDialog(repo)

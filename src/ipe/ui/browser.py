@@ -1647,24 +1647,9 @@ class Browser(QWidget):
         a_rep.triggered.connect(lambda: self.report_requested.emit(rows[0].study_uid))
         a_rep.setEnabled(len(rows) == 1)
         menu.addAction(a_rep)
-        a_anx = QAction("Anexar documento (PDF ou imagem)…", menu)          # 0.99.57
-        a_anx.triggered.connect(lambda: self.anexar_requested.emit(rows[0].study_uid))
-        a_anx.setEnabled(len(rows) == 1)
-        menu.addAction(a_anx)
-        a_docs = QAction("Documentos do exame…", menu)
-        a_docs.triggered.connect(lambda: self.documentos_requested.emit(rows[0].study_uid))
-        a_docs.setEnabled(len(rows) == 1)
-        menu.addAction(a_docs)
-        a_com = QAction("Adicionar comentário…", menu)
-        a_com.triggered.connect(self._add_comment)
-        a_com.setEnabled(len(rows) == 1)
-        menu.addAction(a_com)
-        a_hist = QAction("Histórico do exame…", menu)          # 0.99.31 (onda A6)
-        a_hist.triggered.connect(lambda: self.historico(rows[0]))
-        a_hist.setEnabled(len(rows) == 1)
-        menu.addAction(a_hist)
         node = self.tree.node(self.current_list)
         if node is not None and node["kind"] != "folder":
+            menu.addSeparator()
             a = QAction("Editar caso (nome, história, resposta)…" if node["kind"] != "smart"
                         else "Editar filtro da lista…", menu)
             a.triggered.connect(lambda: self.edit_list(self.current_list))
@@ -1679,13 +1664,12 @@ class Browser(QWidget):
                 a = QAction(f"Tirar da lista “{node['name']}”", menu)
                 a.triggered.connect(lambda: self._remove_from_current(rows))
                 menu.addAction(a)
-            menu.addSeparator()
-        if self.other_locations:
-            loc_menu = menu.addMenu("Copiar para o local")
-            for lid, lname in self.other_locations:
-                loc_menu.addAction(lname, lambda u=[r.study_uid for r in rows], i=lid:
-                                   self.copy_to_location.emit(u, i))
-        lists_menu = menu.addMenu("Adicionar à lista")
+        menu.addSeparator()
+        from ipe.auth import session as S
+
+        # ---- Organizar ▸ (0.99.78): listas, prioridade, subespecialidade, estado, comentário, banco
+        org = menu.addMenu("Organizar")
+        lists_menu = org.addMenu("Adicionar à lista")
         a_new = QAction("Nova lista…", lists_menu)
         a_new.triggered.connect(lambda: self._add_to_new_list(rows))
         lists_menu.addAction(a_new)
@@ -1694,55 +1678,80 @@ class Browser(QWidget):
             a = QAction(name, lists_menu)
             a.triggered.connect(lambda _=False, l=lid, k=kind: self._add_to_list(l, k, rows))
             lists_menu.addAction(a)
+        lists_menu.setEnabled(S.can("case_lists"))
+        self.menu_prioridade(org, rows)
+        a_com = QAction("Adicionar comentário…", org)
+        a_com.triggered.connect(self._add_comment)
+        a_com.setEnabled(len(rows) == 1)
+        org.addAction(a_com)
+        self.acoes_de_banco(org, rows)
 
-        self.menu_prioridade(menu, rows)
-        self.acoes_de_banco(menu, rows)
+        # ---- Documentos ▸
+        if len(rows) == 1:
+            dm = menu.addMenu("Documentos")
+            a_anx = QAction("Anexar documento (PDF ou imagem)…", dm)          # 0.99.57
+            a_anx.triggered.connect(lambda: self.anexar_requested.emit(rows[0].study_uid))
+            dm.addAction(a_anx)
+            a_docs = QAction("Documentos do exame…", dm)
+            a_docs.triggered.connect(lambda: self.documentos_requested.emit(rows[0].study_uid))
+            dm.addAction(a_docs)
+            a_hist = QAction("Histórico do exame…", dm)          # 0.99.31 (onda A6)
+            a_hist.triggered.connect(lambda: self.historico(rows[0]))
+            dm.addAction(a_hist)
+        menu.addSeparator()
+
+        # ---- saídas
         send_menu = menu.addMenu("Enviar para")
         self.fill_send_menu(send_menu, rows)
-        from ipe.auth import session as S
         send_menu.setEnabled(S.can("send"))
-        lists_menu.setEnabled(S.can("case_lists"))
+        if self.other_locations:
+            loc_menu = menu.addMenu("Copiar para o local")
+            for lid, lname in self.other_locations:
+                loc_menu.addAction(lname, lambda u=[r.study_uid for r in rows], i=lid:
+                                   self.copy_to_location.emit(u, i))
         a_exp = QAction("Exportar (DICOM, CD/pendrive, imagens)…", menu)
         a_exp.setEnabled(S.can("export"))
         a_exp.triggered.connect(lambda: self.export_rows(rows))
         menu.addAction(a_exp)
-        a_anon = QAction("Anonimizar cópias destes {} exames…".format(len(rows)) if len(rows) > 1
-                         else "Anonimizar uma cópia deste exame…", menu)
-        a_anon.setEnabled(S.can("export"))
-        a_anon.triggered.connect(lambda: self.export_rows(rows, anonimizar=True))
-        menu.addAction(a_anon)
-        film_menu = menu.addMenu("Filme")
-        film_menu.setEnabled(len(rows) == 1)
         if len(rows) == 1:
             st = rows[0].study_uid
-            a = film_menu.addAction("Imagens-chave no filme",
-                                    lambda: self.film_requested.emit({"kind": "keys", "study_uid": st}))
-            a.setEnabled(bool(rows[0].key_images))
-            n = len(self.repo.films(st))
-            a = film_menu.addAction(f"Filmes salvos deste exame ({n})…",
-                                    lambda: self.film_requested.emit({"kind": "saved", "study_uid": st}))
-            a.setEnabled(bool(n))
-        mgs = [r for r in rows if "MG" in (r.modalities or "").upper()]
-        a_imp = QAction("Apagar implante (salvar a mamografia sem o silicone)" if len(mgs) <= 1
-                        else f"Apagar implante ({len(mgs)} mamografias; salvar sem o silicone)", menu)
-        a_imp.setToolTip("Grava, no mesmo exame, uma cópia de cada imagem com prótese com o silicone "
-                         "corrigido. A original não muda e a cópia não vai ao PACS.")
-        a_imp.setEnabled(bool(mgs))
-        a_imp.triggered.connect(lambda: self.apagar_implante(mgs))
-        menu.addAction(a_imp)
-        a_tags = QAction("Corrigir tags (nome, lado, data)…", menu)
+            n_filmes = len(self.repo.films(st))
+            if rows[0].key_images or n_filmes:
+                film_menu = menu.addMenu("Filme")
+                a = film_menu.addAction("Imagens-chave no filme",
+                                        lambda: self.film_requested.emit({"kind": "keys", "study_uid": st}))
+                a.setEnabled(bool(rows[0].key_images))
+                a = film_menu.addAction(f"Filmes salvos deste exame ({n_filmes})…",
+                                        lambda: self.film_requested.emit({"kind": "saved", "study_uid": st}))
+                a.setEnabled(bool(n_filmes))
+
+        # ---- Ferramentas ▸
+        fm = menu.addMenu("Ferramentas")
+        a_anon = QAction("Anonimizar cópias destes {} exames…".format(len(rows)) if len(rows) > 1
+                         else "Anonimizar uma cópia deste exame…", fm)
+        a_anon.setEnabled(S.can("export"))
+        a_anon.triggered.connect(lambda: self.export_rows(rows, anonimizar=True))
+        fm.addAction(a_anon)
+        a_tags = QAction("Corrigir tags (nome, lado, data)…", fm)
         a_tags.setEnabled(len(rows) == 1)
         a_tags.triggered.connect(lambda: self.fix_tags_requested.emit(rows[0].study_uid))
-        menu.addAction(a_tags)
+        fm.addAction(a_tags)
+        mgs = [r for r in rows if "MG" in (r.modalities or "").upper()]
+        if mgs:
+            a_imp = QAction("Apagar implante (salvar a mamografia sem o silicone)" if len(mgs) <= 1
+                            else f"Apagar implante ({len(mgs)} mamografias; salvar sem o silicone)", fm)
+            a_imp.setToolTip("Grava, no mesmo exame, uma cópia de cada imagem com prótese com o silicone "
+                             "corrigido. A original não muda e a cópia não vai ao PACS.")
+            a_imp.triggered.connect(lambda: self.apagar_implante(mgs))
+            fm.addAction(a_imp)
+
+        # ---- proteger / apagar
         menu.addSeparator()
-        a_lock = QAction("Proteger (não apagar)", menu)
-        a_lock.triggered.connect(lambda: [self.repo.set_locked(r.study_uid, True) for r in rows])
-        menu.addAction(a_lock)
-        a_unlock = QAction("Remover proteção", menu)
-        a_unlock.triggered.connect(lambda: [self.repo.set_locked(r.study_uid, False) for r in rows])
-        menu.addAction(a_unlock)
+        todos_protegidos = all(bool(getattr(r, "locked", False)) for r in rows)
+        a_lock = QAction("Remover proteção" if todos_protegidos else "Proteger (não apagar)", menu)
+        a_lock.triggered.connect(lambda: [self.repo.set_locked(r.study_uid, not todos_protegidos) for r in rows])
         a_lock.setEnabled(S.can("delete"))
-        a_unlock.setEnabled(S.can("delete"))
+        menu.addAction(a_lock)
         a_del = QAction("Apagar do banco…", menu)
         a_del.setEnabled(S.can("delete"))
         a_del.triggered.connect(lambda: self._delete(rows))

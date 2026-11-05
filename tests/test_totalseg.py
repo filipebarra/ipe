@@ -5,6 +5,7 @@ O modelo de verdade roda num ambiente próprio, no Windows dele. Aqui o trabalha
 metades do bloco = segmentos 7 e 8). Isso confere o que é do programa: a grade (LPS → RAS e de volta),
 os volumes, a SEG, a máscara voltando ao lugar certo, a tabela e o envio ao PACS.
 """
+from _menus import submenu, todas  # noqa: F401
 from types import SimpleNamespace
 
 import numpy as np
@@ -207,7 +208,8 @@ def test_tela_banco_e_quadro(env, tmp_path, monkeypatch):
         menu = w.browser.series_menu(uid, [serie])
         assert any(a.text().startswith("Segmentar órgãos") and a.isEnabled() for a in menu.actions())
         vp = next(v for v in tab.viewports if v.frames)
-        assert any(a.text().startswith("Segmentar órgãos") for a in vp.build_context_menu().actions())
+        # 0.99.78: a segmentação saiu do botão direito; fica no botão da barra
+        assert not any(a.text().startswith("Segmentar órgãos") for a in todas(vp.build_context_menu()))
 
         seg = w.browser.segmentar_orgaos(uid, serie, simular=True)
         _esperar(app, lambda: bool(avisos))

@@ -4,6 +4,7 @@ Pedido dele: no modo servidor, o banco pessoal fica no computador da pessoa (sem
 casos) **ou** no servidor — as duas opções. E as migrações: o banco de um computador que passou a ser
 cliente vai para o servidor; trocar de modo não perde nada. Laudos, medidas e anotações acompanham o exame.
 """
+from _menus import submenu, todas  # noqa: F401
 import pytest
 from PySide6.QtWidgets import QApplication
 
@@ -235,7 +236,7 @@ def test_janela_do_cliente_troca_entre_servidor_e_este_computador(grupo, tmp_pat
         assert w.location.is_central and w.repo is cliente
         rows = list(w.browser.model.rows)
         assert rows
-        sub = next(a.menu() for a in w.browser.menu_do_exame(rows[:1]).actions() if a.text() == "Banco")
+        sub = submenu(w.browser.menu_do_exame(rows[:1]), "Organizar/Banco")
         textos = [a.text() for a in sub.actions()]
         assert "Copiar para este computador" in textos
         mover = next(a for a in sub.actions() if a.text().startswith("Mover para este computador"))
@@ -247,8 +248,8 @@ def test_janela_do_cliente_troca_entre_servidor_e_este_computador(grupo, tmp_pat
         assert w.switch_location("default")
         assert not getattr(w.repo, "remote", False)
         assert uid in {r.study_uid for r in w.browser.model.rows}
-        sub = next(a.menu() for a in w.browser.menu_do_exame(
-            [r for r in w.browser.model.rows if r.study_uid == uid]).actions() if a.text() == "Banco")
+        sub = submenu(w.browser.menu_do_exame(
+            [r for r in w.browser.model.rows if r.study_uid == uid]), "Organizar/Banco")
         assert "Enviar ao servidor central…" in [a.text() for a in sub.actions()]
         monkeypatch.setattr(w, "_perguntar_banco_do_envio", lambda n, como_estao=False: True)
         repo.set_study_scope([uid], "")

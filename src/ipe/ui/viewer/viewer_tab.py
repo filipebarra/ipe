@@ -1208,7 +1208,7 @@ class ViewerTab(OncoMixin, QWidget):
             menu_idx.addAction(a)
         idx = self._act("roteiro.mrpi", "Medidas guiadas: MRPI e MRPI 2.0",
                         lambda: self.abrir_roteiro("mrpi"))
-        idx.setIcon(icon("measure"))
+        idx.setIcon(icon("app_indices"))
         idx.setIconText("Índices")
         self._button(tb, idx, menu_idx, app="indices")
         # cefalometria do cavum (0.99.15): automática (TotalSegmentator) ou à mão — TC de face/pescoço
@@ -1224,13 +1224,13 @@ class ViewerTab(OncoMixin, QWidget):
         menu_cef.addAction(a_mao)
         menu_cef.aboutToShow.connect(lambda: a_res.setEnabled(self.cefalometria_do_exame() is not None))
         cef = self._act("cefalometria.auto", "Cefalometria do cavum (automática)", self.cefalometria_botao)
-        cef.setIcon(icon("measure"))
+        cef.setIcon(icon("app_cefalometria"))
         cef.setIconText("Cefalometria")
         self._button(tb, cef, menu_cef, app="cefalometria")
         # níveis linfonodais (0.99.20): mapa na TC de pescoço; a lesão segmentada ganha o nível
         lin = self._act("linfonodos.auto", "Mapa dos níveis linfonodais (IA)",
                         lambda: self.linfonodos_automatico(self.active))
-        lin.setIcon(icon("measure"))
+        lin.setIcon(icon("app_linfonodos"))
         lin.setIconText("Linfonodos")
         self._button(tb, lin, None, app="linfonodos")
         # nódulos pulmonares (0.99.46): achados revisáveis
@@ -1242,7 +1242,7 @@ class ViewerTab(OncoMixin, QWidget):
         a_ach.triggered.connect(self.abrir_achados)
         menu_nod.addAction(a_ach)
         nod = self._act("nodulos.auto", "Nódulos pulmonares (IA)", self.nodulos_botao)
-        nod.setIcon(icon("measure"))
+        nod.setIcon(icon("app_nodulos"))
         nod.setIconText("Nódulos")
         self._button(tb, nod, menu_nod, app="nodulos")
         self._act("achados.abrir", "Achados de IA: revisar, confirmar, descartar", self.abrir_achados)
@@ -1255,7 +1255,7 @@ class ViewerTab(OncoMixin, QWidget):
         a_ach2.triggered.connect(self.abrir_achados)
         menu_comp.addAction(a_ach2)
         comp = self._act("composicao.auto", "Composição corporal em L3 e esteatose (IA)", self.composicao_botao)
-        comp.setIcon(icon("measure"))
+        comp.setIcon(icon("app_composicao"))
         comp.setIconText("Composição")
         self._button(tb, comp, menu_comp, app="composicao")
         # gordura e ferro hepáticos na RM (0.99.49)
@@ -1267,7 +1267,7 @@ class ViewerTab(OncoMixin, QWidget):
         a_ach3.triggered.connect(self.abrir_achados)
         menu_fig.addAction(a_ach3)
         fig = self._act("figado_rm.auto", "Gordura e ferro hepáticos na RM (IA)", self.figado_rm_botao)
-        fig.setIcon(icon("measure"))
+        fig.setIcon(icon("app_figado"))
         fig.setIconText("Fígado")
         self._button(tb, fig, menu_fig, app="figado_rm")
         # enfisema e Genant (0.99.77): o mesmo molde da composição
@@ -1283,8 +1283,13 @@ class ViewerTab(OncoMixin, QWidget):
             a_r = QAction("Achados de IA (revisar, confirmar, descartar)…", self)
             a_r.triggered.connect(self.abrir_achados)
             menu_x.addAction(a_r)
+            if tipo == "genant":            # 0.99.78: saiu do botão direito do quadro, fica aqui
+                a_col = QAction("Identificar vértebras e discos desta série (IA)…", self)
+                a_col.triggered.connect(lambda: self.active is not None
+                                        and self.segmentar_orgaos(self.active, tipo="coluna"))
+                menu_x.addAction(a_col)
             bx = self._act(f"{tipo}.auto", nome_acao, lambda _=False, tp=tipo: self.ferramenta_ia_botao(tp))
-            bx.setIcon(icon("measure"))
+            bx.setIcon(icon(f"app_{tipo}"))
             bx.setIconText(texto_icone)
             self._button(tb, bx, menu_x, app=tipo)
         # órgãos abdominais (0.99.32, pedido dele: também no botão Aplicações)
@@ -1297,12 +1302,12 @@ class ViewerTab(OncoMixin, QWidget):
         menu_abd.addAction(a_tar)
         abd = self._act("abdome.auto", "Segmentar órgãos abdominais (IA)",
                         lambda: self.segmentar_orgaos(self.active))
-        abd.setIcon(icon("measure"))
+        abd.setIcon(icon("app_orgaos"))
         abd.setIconText("Órgãos")
         self._button(tb, abd, menu_abd, app="abdome")
         # difusão (0.99.37, pedido dele: em todas as RM, não só na mama)
         dwi = self._act("difusao.abrir", "Difusão: ADC, DWI sintética e ADC na ROI", self.abrir_difusao)
-        dwi.setIcon(icon("measure"))
+        dwi.setIcon(icon("app_difusao"))
         dwi.setIconText("Difusão")
         self._button(tb, dwi, None, app="difusao")
         self._montar_bloco_de_aplicacoes(tb)

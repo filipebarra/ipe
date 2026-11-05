@@ -414,8 +414,179 @@ def _draw(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por ícone
         p.drawRect(QRectF(24, 6, 16, 8))
         p.setPen(_pen(GREEN, 4))
         p.drawPolyline(QPolygonF([P(20, 34), P(29, 43), P(45, 24)]))
+    elif name in _APPS_IA:          # aplicações da barra (0.99.78): um desenho por aplicação
+        _draw_app(name, p)
     else:  # desconhecido: quadrado
         p.drawRect(QRectF(12, 12, 40, 40))
+
+
+#: aplicações com pictograma próprio; as marcadas com True levam o selo ✦ de IA
+_APPS_IA = {"app_nodulos": True, "app_enfisema": True, "app_composicao": True, "app_figado": True,
+            "app_orgaos": True, "app_genant": True, "app_linfonodos": True, "app_cefalometria": True,
+            "app_indices": True, "app_difusao": False}
+
+
+def _pulmoes(p: QPainter) -> None:
+    """Dois pulmões e a traqueia, no traço comum."""
+    p.setPen(_pen(FG, 3.5))
+    p.drawLine(P(32, 6), P(32, 22))
+    p.drawLine(P(32, 22), P(26, 28))
+    p.drawLine(P(32, 22), P(38, 28))
+    esq = QPainterPath()
+    esq.moveTo(27, 16)
+    esq.cubicTo(14, 14, 6, 34, 8, 52)
+    esq.cubicTo(14, 56, 22, 54, 28, 50)
+    esq.closeSubpath()
+    dir_ = QPainterPath()
+    dir_.moveTo(37, 16)
+    dir_.cubicTo(50, 14, 58, 34, 56, 52)
+    dir_.cubicTo(50, 56, 42, 54, 36, 50)
+    dir_.closeSubpath()
+    p.drawPath(esq)
+    p.drawPath(dir_)
+
+
+def _vertebra(p: QPainter, y: float, cunha: bool = False) -> None:
+    if cunha:              # anterior (esquerda) mais baixa que a posterior: fratura em cunha
+        p.drawPolygon(QPolygonF([P(14, y + 5), P(40, y), P(40, y + 13), P(14, y + 10)]))
+    else:
+        p.drawRoundedRect(QRectF(14, y, 26, 12), 3, 3)
+
+
+def _brilho(p: QPainter) -> None:
+    """Selo ✦ dourado no canto superior direito: a aplicação usa IA."""
+    cx, cy, r = 54.0, 10.0, 9.0
+    path = QPainterPath()
+    path.moveTo(cx, cy - r)
+    for ang in range(4):
+        a = math.radians(90 * ang)
+        b = math.radians(90 * ang + 90)
+        path.quadTo(cx, cy, cx + r * math.sin(b), cy - r * math.cos(b))
+        _ = a
+    path.closeSubpath()
+    p.setPen(Qt.NoPen)
+    p.setBrush(GOLD)
+    p.drawPath(path)
+
+
+def _draw_app(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por aplicação
+    if name == "app_nodulos":           # pulmões com um ponto azul
+        _pulmoes(p)
+        p.setPen(Qt.NoPen)
+        p.setBrush(ACCENT)
+        p.drawEllipse(QRectF(42, 34, 9, 9))
+    elif name == "app_enfisema":        # pulmões com bolhas vazias no lobo superior
+        _pulmoes(p)
+        p.setPen(_pen(ACCENT, 2.5))
+        for x, y, r in ((14, 26, 5), (20, 33, 4), (44, 26, 5), (49, 34, 4)):
+            p.drawEllipse(QRectF(x - r, y - r, 2 * r, 2 * r))
+    elif name == "app_composicao":      # corte axial do abdome: gordura, músculo e a vértebra L3
+        p.setPen(_pen(FG, 3.5))
+        p.drawEllipse(QRectF(6, 12, 52, 40))
+        p.setPen(_pen(ACCENT, 5))
+        p.drawArc(QRectF(13, 18, 38, 28), 200 * 16, 140 * 16)
+        p.setPen(_pen(FG, 3))
+        p.setBrush(QColor(232, 232, 232, 90))
+        p.drawEllipse(QRectF(26, 36, 12, 10))
+    elif name == "app_figado":          # contorno do fígado com uma gota (gordura / ferro)
+        p.setPen(_pen(FG, 3.5))
+        path = QPainterPath()
+        path.moveTo(6, 26)
+        path.cubicTo(10, 12, 40, 8, 56, 18)
+        path.cubicTo(52, 30, 36, 50, 18, 52)
+        path.cubicTo(8, 46, 4, 36, 6, 26)
+        p.drawPath(path)
+        gota = QPainterPath()
+        gota.moveTo(30, 22)
+        gota.cubicTo(24, 32, 24, 40, 30, 40)
+        gota.cubicTo(36, 40, 36, 32, 30, 22)
+        p.setPen(Qt.NoPen)
+        p.setBrush(ACCENT)
+        p.drawPath(gota)
+    elif name == "app_orgaos":          # fígado, rim e baço
+        p.setPen(_pen(FG, 3.5))
+        fig = QPainterPath()
+        fig.moveTo(4, 20)
+        fig.cubicTo(8, 8, 28, 8, 34, 14)
+        fig.cubicTo(30, 26, 18, 34, 8, 34)
+        fig.closeSubpath()
+        p.drawPath(fig)
+        p.drawEllipse(QRectF(40, 10, 16, 22))
+        p.setPen(_pen(ACCENT, 3.5))
+        rim = QPainterPath()
+        rim.moveTo(24, 38)
+        rim.cubicTo(14, 38, 14, 58, 24, 58)
+        rim.cubicTo(30, 58, 28, 50, 26, 48)
+        rim.cubicTo(28, 46, 30, 38, 24, 38)
+        p.drawPath(rim)
+    elif name == "app_genant":          # três vértebras, a do meio em cunha, com a seta da altura
+        p.setPen(_pen(FG, 3.5))
+        _vertebra(p, 6)
+        p.setPen(_pen(ACCENT, 3.5))
+        _vertebra(p, 25, cunha=True)
+        p.setPen(_pen(FG, 3.5))
+        _vertebra(p, 44)
+        p.setPen(_pen(ACCENT, 2.5))
+        p.drawLine(P(50, 25), P(50, 38))
+        p.drawLine(P(47, 28), P(50, 25))
+        p.drawLine(P(53, 28), P(50, 25))
+        p.drawLine(P(47, 35), P(50, 38))
+        p.drawLine(P(53, 35), P(50, 38))
+    elif name == "app_linfonodos":      # perfil do pescoço com as faixas dos níveis
+        p.setPen(_pen(FG, 3.5))
+        path = QPainterPath()
+        path.moveTo(20, 4)
+        path.cubicTo(8, 8, 8, 24, 16, 30)
+        path.lineTo(18, 60)
+        p.drawPath(path)
+        p.drawLine(P(44, 22), P(44, 60))
+        p.setPen(_pen(ACCENT, 3))
+        for y in (32, 42, 52):
+            p.drawLine(P(20, y), P(42, y - 2))
+        p.setPen(Qt.NoPen)
+        p.setBrush(ACCENT)
+        p.drawEllipse(QRectF(27, 34, 7, 6))
+    elif name == "app_cefalometria":    # perfil do crânio com a linha de medida
+        p.setPen(_pen(FG, 3.5))
+        path = QPainterPath()
+        path.moveTo(50, 50)
+        path.cubicTo(58, 30, 50, 6, 30, 6)
+        path.cubicTo(14, 6, 8, 18, 10, 28)
+        path.lineTo(6, 34)
+        path.lineTo(11, 37)
+        path.cubicTo(10, 46, 14, 52, 22, 54)
+        p.drawPath(path)
+        p.setPen(_pen(ACCENT, 3))
+        p.drawLine(P(14, 30), P(46, 18))
+        p.setBrush(ACCENT)
+        p.drawEllipse(QRectF(12, 28, 5, 5))
+        p.drawEllipse(QRectF(44, 16, 5, 5))
+    elif name == "app_indices":         # corte do encéfalo com uma régua
+        p.setPen(_pen(FG, 3.5))
+        p.drawEllipse(QRectF(8, 8, 48, 44))
+        p.drawLine(P(32, 10), P(32, 50))
+        p.setPen(_pen(FG, 2.5))
+        p.drawArc(QRectF(20, 22, 10, 12), 30 * 16, 300 * 16)
+        p.drawArc(QRectF(34, 22, 10, 12), 210 * 16, 300 * 16)
+        p.setPen(_pen(ACCENT, 3.5))
+        p.drawLine(P(8, 58), P(56, 58))
+        for x in (8, 20, 32, 44, 56):
+            p.drawLine(P(x, 58), P(x, 53))
+    elif name == "app_difusao":         # três setas saindo de um ponto
+        p.setPen(_pen(ACCENT, 4))
+        cx, cy = 22.0, 40.0
+        for ang in (-60, -20, 20):
+            a = math.radians(ang)
+            x2, y2 = cx + 32 * math.cos(a), cy + 32 * math.sin(a)
+            p.drawLine(P(cx, cy), P(x2, y2))
+            for d in (150, -150):
+                b = a + math.radians(d)
+                p.drawLine(P(x2, y2), P(x2 + 8 * math.cos(b), y2 + 8 * math.sin(b)))
+        p.setPen(Qt.NoPen)
+        p.setBrush(FG)
+        p.drawEllipse(QRectF(cx - 5, cy - 5, 10, 10))
+    if _APPS_IA.get(name):
+        _brilho(p)
 
 
 @lru_cache(maxsize=None)

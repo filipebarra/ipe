@@ -1,4 +1,5 @@
 """0.99.57 — PDF e imagens anexados ao exame, convertidos para DICOM (Encapsulated PDF e Secondary Capture)."""
+from _menus import submenu, todas  # noqa: F401
 from pathlib import Path
 
 import numpy as np
@@ -111,9 +112,9 @@ def test_na_janela_principal(env, sample_dir, tmp_path, monkeypatch):
         assert d.pdf.status() in (QPdfDocument.Status.Ready, QPdfDocument.Status.Loading)
         d.close()
         # menu do exame e da série no visualizador
-        textos = [a.text() for a in w.browser.menu_do_exame([w.browser.selected_rows()[0]]
+        textos = [a.text() for a in todas(w.browser.menu_do_exame([w.browser.selected_rows()[0]]
                                                               if w.browser.selected_rows() else
-                                                              [repo.search_studies()[0]]).actions()]
+                                                              [repo.search_studies()[0]]))]
         assert "Anexar documento (PDF ou imagem)…" in textos and "Documentos do exame…" in textos
         w.open_study(uid)
         app.processEvents()

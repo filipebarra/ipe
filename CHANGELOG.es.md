@@ -3,6 +3,20 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.78 — menús del botón derecho más limpios e íconos de las aplicaciones de IA
+- **Cuadro**: arriba, solo lo que depende del lugar del clic (medida, nódulo, hallazgo BI-RADS, eje de simetría,
+  DSA); después imagen clave y copiar; **Imagen ▸** (ventana, color, invertir, filtro, girar, mosaico,
+  histograma), **Cuadro ▸** (fusionar, líneas de corte, sincronización, cine), **Anotaciones ▸**, **Herramienta
+  del botón izquierdo ▸** (Navegar, Medir, Dibujar) y las etiquetas; lo que borra queda al final. El color muestra
+  los más usados de la modalidad y *Más colores ▸*. La segmentación salió del botón derecho (queda en los botones;
+  *Identificar vértebras y discos* pasó a la flecha del botón Genant). DSA solo en angiografía; eje de simetría en
+  la RM de mama o con ROI en el corte.
+- **Banco**: Abrir e Informe arriba; **Organizar ▸** (listas, prioridad, subespecialidad, estado, comentario,
+  banco), **Documentos ▸**, Enviar/Exportar, **Herramientas ▸** (anonimizar, corregir etiquetas, borrar implante
+  solo en mamografía); Proteger y Quitar protección son un solo ítem.
+- **Íconos**: cada aplicación de la barra tiene su dibujo (nódulos, enfisema, composición, hígado, órganos,
+  Genant, ganglios, cefalometría, índices, difusión), con un ✦ dorado en las que usan IA.
+
 ## 0.99.77 — enfisema por lóbulo y fractura vertebral (Genant)
 - **Enfisema** (TC de tórax): %LAA−950, Perc15 y volumen por lóbulo, por pulmón y en total, con la distribución
   (superior, inferior u homogénea); avisos de corte grueso, filtro duro, contraste y calibración del aire
