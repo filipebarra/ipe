@@ -119,7 +119,8 @@ class ViewportSignals(QObject):
     group_action = Signal(object, str)          # "remove_phase" | "ungroup"
     lesion_requested = Signal(object, object)   # viewport, anotação: ligar a uma lesão
     medida_criada = Signal(object, object)
-    nodulo_requested = Signal(object, float, float)      # 0.99.62: nódulo pulmonar por clique (u, v da imagem)      # 0.99.59: medida nova (régua/ROI) — o seguimento liga sozinho
+    nodulo_requested = Signal(object, float, float)      # 0.99.62: nódulo pulmonar por clique (u, v da imagem)
+    fusion_requested = Signal(object, str)                # 0.99.64: série solta no canto de fundir      # 0.99.59: medida nova (régua/ROI) — o seguimento liga sozinho
     clone_roi_requested = Signal(object, object)  # viewport, anotação: clonar a ROI nos outros quadros
     histogram_requested = Signal(object)        # viewport: mostrar o histograma
     anotacoes_requested = Signal(str)           # nível de anotação escolhido no botão direito (0.99.9)
@@ -3422,6 +3423,36 @@ class Viewport(AnnotationMixin, QWidget):
             a_auto = em.addAction("Voltar ao eixo automático")
             a_auto.setEnabled(self.eixo_manual() is not None)
             a_auto.triggered.connect(self.esquecer_eixo)
+        tab_f = self.parentWidget()
+        while tab_f is not None and not hasattr(tab_f, "fundir_quadro"):
+            tab_f = tab_f.parentWidget()
+        if tab_f is not None and local_pos is not None and self._img is not None and not self._img.is_color \
+                and (self.mg_spec is not None or (self.modality or "").upper() == "MG"):
+            ip_m = self.widget_to_image(local_pos)          # 0.99.64 (PV 20): achado BI-RADS por marcadores
+            mm = menu.addMenu("Achado BI-RADS aqui")
+            a_novo = mm.addAction("Novo achado")
+            a_novo.triggered.connect(lambda: tab_f.marcar_achado_mama(self, (ip_m.x(), ip_m.y())))
+            try:
+                from ipe.ui.viewer import marcadores_mama as MMV
+                marcas = MMV.marcas_do_exame(tab_f.repo, self.study_uid or tab_f.study_uid)
+            except Exception:  # noqa: BLE001
+                marcas = {}
+            if marcas:
+                mm.addSeparator()
+                for n, ms in sorted(marcas.items()):
+                    vistas = "+".join(m.get("vista", "") for m in ms)
+                    a_n = mm.addAction(f"A{n} (já em {vistas})")
+                    a_n.triggered.connect(lambda _=False, k=n: tab_f.marcar_achado_mama(self, (ip_m.x(), ip_m.y()), k))
+            mm.addSeparator()
+            mm.addAction("Tabela dos achados marcados…").triggered.connect(lambda: tab_f.abrir_marcadores_mama())
+        if tab_f is not None and self.frames and self.render3d is None:
+            outros = [v for v in tab_f._shown() if v is not self and v.frames and v.render3d is None]
+            if outros:
+                fm = menu.addMenu("Fundir este quadro sobre…")              # 0.99.64 (plano AW M6)
+                for v in outros:
+                    n = tab_f.viewports.index(v) + 1 if v in tab_f.viewports else 0
+                    a_f = fm.addAction(f"Quadro {n}: {v.series_label or v.series_uid[-8:]}")
+                    a_f.triggered.connect(lambda _=False, alvo=v: tab_f.fundir_quadro(self, alvo))
         if self.annotations:
             nav = menu.addMenu("Medidas desta série")
             for i, text in self.annotation_summary()[:40]:
@@ -3646,8 +3677,16 @@ class Viewport(AnnotationMixin, QWidget):
         """Canto inferior direito: soltar uma série aqui junta como fase."""
         return QRectF(self.width() * 0.6, self.height() * 0.6, self.width() * 0.4 - 6, self.height() * 0.4 - 6)
 
+    def fuse_rect(self) -> QRectF:
+        """Canto inferior esquerdo (0.99.64): soltar uma série aqui funde por cima, em cores."""
+        return QRectF(6, self.height() * 0.6, self.width() * 0.4 - 6, self.height() * 0.4 - 6)
+
     def _zone_for(self, pos) -> str:
-        return "join" if self.frames and self.join_rect().contains(QPointF(pos)) else "replace"
+        if self.frames and self.join_rect().contains(QPointF(pos)):
+            return "join"
+        if self.frames and self.fuse_rect().contains(QPointF(pos)):
+            return "fuse"
+        return "replace"
 
     def dragEnterEvent(self, e) -> None:  # noqa: N802
         if e.mimeData().hasFormat("application/x-dicomviewer-series"):
@@ -3675,6 +3714,8 @@ class Viewport(AnnotationMixin, QWidget):
         e.acceptProposedAction()
         if zone == "join" and not uid.startswith(("key:", "group:")):
             self.sig.join_requested.emit(self, uid)
+        elif zone == "fuse":
+            self.sig.fusion_requested.emit(self, uid)
         else:
             self.parent_viewer_load(uid)
         self.update()
@@ -3701,6 +3742,16 @@ class Viewport(AnnotationMixin, QWidget):
         p.drawRect(j)
         p.setPen(QColor(0, 0, 0) if on_join else QColor(255, 230, 150))
         p.drawText(j, Qt.AlignCenter, "+ Juntar como fase\n(série dinâmica)")
+        fz = self.fuse_rect()                          # 0.99.64: fundir por cima
+        on_fuse = self._drag_zone == "fuse"
+        p.fillRect(fz, QColor(170, 60, 200, 170 if on_fuse else 70))
+        pen2 = QPen(QColor(210, 140, 255))
+        pen2.setWidth(2)
+        pen2.setStyle(Qt.DashLine)
+        p.setPen(pen2)
+        p.drawRect(fz)
+        p.setPen(QColor(0, 0, 0) if on_fuse else QColor(235, 210, 255))
+        p.drawText(fz, Qt.AlignCenter, "Fundir por cima\n(cores e transparência)")
 
     def parent_viewer_load(self, uid: str) -> None:
         """Pede ao ViewerTab (pai) para carregar a série neste viewport."""

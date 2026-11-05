@@ -464,6 +464,11 @@ class MgBar(QToolBar):
         self.a_implant.toggled.connect(lambda on: tab.mg_set_implant(on))
         self.addAction(self.a_implant)
         self.addSeparator()
+        a = QAction("Achados…", self)
+        a.setToolTip("Tabela dos achados marcados na CC e na MLO (botão direito na imagem ▸ Achado BI-RADS aqui): "
+                     "distância ao mamilo, quadrante e hora; manda ao laudo BI-RADS")
+        a.triggered.connect(lambda: tab.abrir_marcadores_mama())
+        self.addAction(a)
         a = QAction("Densidade…", self)
         a.setToolTip("Mede quanto da mama é tecido fibroglandular (PD%) nas imagens que estiverem "
                      "nos quadros da tela, e deixa ver a máscara por cima delas. O número é do "

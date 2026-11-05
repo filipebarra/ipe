@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.64 — mama: fusión por arrastre, mapas en color, hallazgos por marcadores
+- **Fusionar por arrastre**: soltar la serie en la esquina "Fusionar encima" del cuadro; y clic derecho ▸
+  Fusionar este cuadro sobre… para cualquier mapa de la dinámica, fase o ADC sobre otro cuadro.
+- **Mapas en color** en la dinámica: *Tiempo en color* (color = tiempo hasta el pico, brillo = realce) y *Fases en
+  color* (RGB = inicial, intermedia, tardía).
+- **Hallazgos BI-RADS por marcadores** en la mamografía: marcar en la CC y la MLO, tabla con distancia al pezón,
+  cuadrante, hora y tercio, y enviar al informe BI-RADS.
+
 ## 0.99.63 — estado del examen
 - Columna **Estado** en la base: no leído, en lectura, urgente, revisado — automática, por el acceso, el informe y
   la prioridad; se cambia a mano con clic derecho (✎), filtros en **Trabajo ▾** y la acción "marcar como revisado"

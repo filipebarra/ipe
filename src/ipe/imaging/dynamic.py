@@ -46,7 +46,14 @@ MAPS: dict[str, tuple[str, str, str, str, str]] = {
     "wash": ("Lavagem", "Maior inclinação de descida depois do pico", "%/min", "sinal/min", "rainbow"),
     "iauc": ("iAUC90", "Área sob a curva de realce nos primeiros 90 s", "%·min", "sinal·min", "rainbow"),
     "mrt": ("Tempo médio (MRT)", "Tempo médio do realce: ∫t·realce / ∫realce", "s", "s", "rainbow"),
+    # 0.99.64 (plano AW M9, AngioViz/ColorViz): mapas em cores (RGB), não numa tabela de cores
+    "tcor": ("Tempo em cor", "Cor = tempo até o pico (vermelho cedo → azul tarde); brilho = realce máximo",
+             "", "", ""),
+    "fases": ("Fases em cor", "Vermelho = fase inicial, verde = intermediária, azul = tardia (realce de cada uma)",
+              "", "", ""),
 }
+#: 0.99.64: mapas compostos (imagem colorida); não entram nas contas por ROI nem no volume do mapa
+COMPOSTOS = ("tcor", "fases")
 #: os descritores da curva, na ordem da tabela
 DESCRITORES = ("bat", "wash", "iauc", "mrt")
 IAUC_SEG = 90.0
@@ -284,6 +291,8 @@ class DynamicMaps:
         self._stacks: OrderedDict[int, np.ndarray] = OrderedDict()
         self._maps: OrderedDict[int, dict] = OrderedDict()
         self._windows: dict[str, tuple[float, float]] = {}
+        self._compostos: OrderedDict[tuple, np.ndarray] = OrderedDict()
+        self._ref_composto: float | None = None
         self._noise: float | None = None
         self._ref: float | None = None
         first = cache.get(dset.phases[0][0])
@@ -661,6 +670,8 @@ class DynamicMaps:
         return CLASSES[3 + faixa * 3]
 
     def window(self, kind: str) -> tuple[float, float]:
+        if kind in COMPOSTOS:
+            return 256.0, 128.0
         if kind == "cin":
             # 7 faixas chapadas (0 = sem cor, 1–6 = as classes). O nível 3,0 e não 3,5 põe cada
             # classe no **meio** da sua faixa de cor: com 3,5 a classe caía exatamente na emenda
@@ -683,7 +694,58 @@ class DynamicMaps:
                 self._windows[kind] = (max(hi, 1e-3), max(hi, 1e-3) / 2)
         return self._windows[kind]
 
+    # ------------------------------------------------------------ mapas em cor (0.99.64, plano AW M9)
+    def _realce_rel(self, k: int):
+        """(realce relativo % das fases pós (F, H, W), tempos pós em s, índices pré/inicial/tardia, tecido)."""
+        st, t, pre_i, early_i, late_i, s0 = self._reduzir(self.stack(k))
+        noise = self.noise_level()
+        base = np.maximum(s0, max(noise, 1e-6))
+        post = st[pre_i:]
+        e = (post - s0) / base * 100.0
+        tecido = (st.mean(axis=0) > max(noise, 1e-6)) & (e.max(axis=0) >= self.threshold_pct)
+        return e, (np.asarray(t[pre_i:], float) - float(t[pre_i])) * 60.0, early_i - pre_i, late_i - pre_i, tecido
+
+    def ref_composto(self) -> float:
+        """O realce (%) que vale brilho cheio: o percentil 99 do realce máximo do tecido que realça, nos cortes do
+        meio — o mesmo em todos os cortes, para o brilho comparar entre eles."""
+        if self._ref_composto is None:
+            vals = []
+            for k in sorted({self.n // 3, self.n // 2, (2 * self.n) // 3}):
+                e, _t, _a, _b, tec = self._realce_rel(k)
+                m = e.max(axis=0)[tec]
+                if m.size:
+                    vals.append(float(np.percentile(m, 99)))
+            self._ref_composto = max(vals) if vals else max(self.threshold_pct * 2, 1.0)
+        return self._ref_composto
+
+    def composto(self, kind: str, k: int) -> np.ndarray:
+        """Imagem RGB (H, W, 3) uint8 do mapa em cor."""
+        chave = (kind, k)
+        if chave in self._compostos:
+            return self._compostos[chave]
+        e, tp, ei, li, tec = self._realce_rel(k)
+        ref = self.ref_composto()
+        if kind == "tcor":
+            pico_i = np.argmax(e, axis=0)
+            dur = float(tp[-1] - tp[0]) if len(tp) > 1 else 1.0
+            frac = np.clip(tp[pico_i] / max(dur, 1e-6), 0, 1)
+            brilho = np.clip(e.max(axis=0) / ref, 0, 1)
+            rgb = _hsv_para_rgb(frac * (240.0 / 360.0), np.ones_like(frac), brilho)
+        else:                                       # fases: R = inicial, G = intermediária, B = tardia
+            ei, li = max(1, min(ei, len(e) - 1)), max(1, min(li, len(e) - 1))
+            mi = max(1, min(len(e) - 1, (ei + li) // 2))
+            rgb = np.stack([np.clip(e[i] / ref, 0, 1) for i in (ei, mi, li)], axis=-1)
+        rgb = np.where(tec[..., None], rgb, 0.0)
+        out = np.ascontiguousarray((rgb * 255).round().astype(np.uint8))
+        self._compostos[chave] = out
+        while len(self._compostos) > 48:
+            self._compostos.popitem(last=False)
+        return out
+
     def image(self, kind: str, k: int) -> FrameImage:
+        if kind in COMPOSTOS:
+            return FrameImage(self.composto(kind, k), True, None, self.pixel_spacing, "PixelSpacing", "RGB",
+                              dict(self.header))
         px = self.compute(k)[kind]
         return FrameImage(px, False, self.window(kind), self.pixel_spacing, "PixelSpacing", "MONOCHROME2",
                           dict(self.header))
@@ -934,6 +996,17 @@ class DynamicMaps:
                 "cinetica": self.classe_cinetica(cheio),
                 "bat": float(d["bat"]), "wash": float(d["wash"]), "iauc": float(d["iauc"]),
                 "mrt": float(d["mrt"])}
+
+
+def _hsv_para_rgb(h: np.ndarray, s_: np.ndarray, v: np.ndarray) -> np.ndarray:
+    """HSV (0–1) → RGB (0–1), vetorizado."""
+    i = np.floor(h * 6.0).astype(int) % 6
+    f = h * 6.0 - np.floor(h * 6.0)
+    p, q, t = v * (1 - s_), v * (1 - f * s_), v * (1 - (1 - f) * s_)
+    r = np.choose(i, [v, q, p, p, t, v])
+    g = np.choose(i, [t, v, v, q, p, p])
+    b = np.choose(i, [p, p, t, v, v, q])
+    return np.stack([r, g, b], axis=-1)
 
 
 class MapPlane:

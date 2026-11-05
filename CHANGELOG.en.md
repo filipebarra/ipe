@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.64 — breast: fuse by dragging, colour maps, findings by markers
+- **Fuse by dragging**: drop the series on the viewport's "Fuse on top" corner; and right-click ▸ Fuse this
+  viewport over… for any dynamic map, phase or ADC over another viewport.
+- **Colour maps** in the dynamic study: *Time in colour* (colour = time to peak, brightness = enhancement) and
+  *Phases in colour* (RGB = early, intermediate, late).
+- **BI-RADS findings by markers** in mammography: mark on CC and MLO, table with distance from the nipple,
+  quadrant, clock position and third, and send to the BI-RADS report.
+
 ## 0.99.63 — study status
 - **Status** column in the database: unread, being read, urgent, reviewed — automatic, from access, report and
   priority; change it by hand with a right-click (✎), filters in **Work ▾** and the "mark as reviewed" action in

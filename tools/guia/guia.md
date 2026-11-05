@@ -369,6 +369,7 @@ Com a mamografia aberta, a barra **Mamografia:** traz o combo do protocolo, o co
 - **Mama no quadro** reenquadra a mama (veja abaixo);
 - **Zoom e pan** (0.99.61, o mesmo botão de sincronia da barra principal) — ligado, zoom e pan num quadro mostram o mesmo lugar nas outras mamas, espelhado;
 - **Inverter só a mama** (0.99.61) — inverte o tecido e deixa o fundo preto, em todos os quadros e nas etapas seguintes;
+- **Achados…** (0.99.64) — botão direito na imagem ▸ **Achado BI-RADS aqui** ▸ *Novo achado* põe a marca "A1" e guarda a distância ao mamilo; na outra incidência, *A1* marca o mesmo achado. A tabela mostra, para cada achado, a mama, as vistas, a distância do mamilo (média das duas) e a localização — quadrante (ou união, região central, retroareolar), hora do relógio olhando a paciente de frente e terço (anterior, médio, posterior). Na CC, o lado lateral é o de cima (ou o que o PatientOrientation diz); na MLO, o superior. Escolha o tipo e **Mandar ao laudo BI-RADS** — os achados entram no painel BI-RADS do laudo, para completar descrição, tamanho e categoria; mandar de novo troca os mesmos achados, não duplica;
 - **★ Corte** (0.99.61) — marca o corte da tomossíntese (ou a imagem 2D) do quadro ativo como imagem-chave; a barra de status diz qual corte e a espessura. Em Atalhos ▸ Mamografia há *ir ao próximo / anterior corte marcado*, para voltar às estrelas numa tomo de dezenas de cortes;
 - **✕** sai do protocolo.
 
@@ -515,6 +516,8 @@ Os valores ficam guardados: o próximo exame abre com os últimos que você usou
 | Tempo médio (MRT) | o tempo médio do realce, ∫t·realce / ∫realce (s) |
 
 Os quatro últimos (0.99.48) também saem por curva, nas colunas BAT, Lavagem, iAUC90 e MRT da tabela e em *Copiar valores*.
+
+**Mapas em cor** (0.99.64, como o ColorViz/AngioViz): *Tempo em cor* pinta cada voxel que realça pela hora do pico — vermelho cedo, amarelo e verde no meio, azul tarde — com o brilho pelo realce máximo (o percentil 99 do tecido que realça vale brilho cheio, igual em todos os cortes); mostra a ordem de chegada, que o mapa cinético de 6 cores não mostra. *Fases em cor* põe o realce da fase inicial no vermelho, o da intermediária no verde e o da tardia no azul: o que lava fica avermelhado, o persistente azulado. Fora do tecido que realça (o limiar dos mapas), preto. São imagens coloridas: salvam como série, mas não reformatam nem entram nas contas por ROI.
 
 **Fases fora da conta e linha de base** (botão *Parâmetros…*). Em *Fases fora da conta (movimento)* escreva o número da fase que mexeu (por exemplo `4`, ou `4, 7`): ela sai dos mapas e das contas das curvas, e o resto é recalculado com os tempos de verdade. Não podem sair a fase inicial, a tardia, todas as pré, nem duas fases seguidas (a curva perderia o trecho inteiro). No gráfico a fase continua desenhada, marcada "fora"; na lista das vistas ela aparece "(fora da conta)", e o título do painel e a linha de resumo dizem quais saíram. *Linha de base: média de todas as fases até a pré-contraste escolhida* usa a média das fases pré como linha de base — com duas pré ou mais, menos ruído. Com uma fase pré só, o painel avisa.
 
@@ -1336,6 +1339,8 @@ Ao fechar com estruturas alteradas e não gravadas, a janela pergunta se grava c
 ## Fusão
 
 Botão **Fusão**: sobrepõe uma série a outra no quadro ativo (PET sobre a TC, por exemplo), com opacidade, tabela de cores e limites mínimo e máximo, e a opção de ocultar o que está abaixo do mínimo.
+
+**Fundir por arrastar** (0.99.64): arraste uma série da tira até o **canto inferior esquerdo** do quadro ("Fundir por cima") — ela entra como fusão, em cores e com transparência, em vez de trocar a série. Para fundir o que outro quadro mostra — um mapa da dinâmica (SER, realce, cinético…), uma fase, o ADC —, botão direito nele ▸ **Fundir este quadro sobre…** ▸ o quadro de destino (ADC sobre a T2, cinético sobre a DWI). A fusão usa as coordenadas do paciente: séries de referenciais diferentes ganham o aviso para conferir o alinhamento.
 
 # Medidas guiadas
 

@@ -3273,7 +3273,8 @@ class ViewerTab(OncoMixin, QWidget):
         vp.sig.numeracao_requested.connect(self.abrir_numeracao_coluna)
         vp.sig.lesion_requested.connect(self.choose_lesion_for)
         vp.sig.medida_criada.connect(self.ligar_pela_posicao)
-        vp.sig.nodulo_requested.connect(self.nodulo_no_clique)            # 0.99.59
+        vp.sig.nodulo_requested.connect(self.nodulo_no_clique)
+        vp.sig.fusion_requested.connect(self.fundir_por_arrastar)            # 0.99.59
         vp.sig.clone_roi_requested.connect(self.clonar_roi)
         vp.referencial_da_sincronia = self.outros_referenciais_ligados
         vp.sig.segment_requested.connect(self.segment_at)
@@ -3743,6 +3744,10 @@ class ViewerTab(OncoMixin, QWidget):
         O mapa é calculado corte a corte, sob demanda. Virar axial/coronal/sagital obriga a
         calcular **todos** os cortes: é demorado, então tem barra e botão de parar.
         """
+        from ipe.imaging.dynamic import COMPOSTOS
+        if kind in COMPOSTOS:                    # 0.99.64: o mapa em cor fica no plano da aquisição
+            self.status_message.emit("O mapa em cor é só no plano da aquisição: reformate um mapa de valores.")
+            return None
         cache = getattr(self, "_vol_mapas", None)
         if cache is None:
             cache = self._vol_mapas = {}
@@ -4589,6 +4594,52 @@ class ViewerTab(OncoMixin, QWidget):
         self._sync_fusion_bar()
         return fu
 
+    # ------------------------------------------------------------ fusão por arrastar (0.99.64, plano AW M6)
+    def fundir_por_arrastar(self, vp: Viewport, uid: str):
+        """Série solta no canto "Fundir por cima": vai por cima do quadro, em cores."""
+        if not uid or uid.startswith(("key:", "group:", "mg:", "mpr:", "dyn")):
+            self.status_message.emit("Para fundir um mapa ou uma reconstrução, use o botão direito no quadro dele ▸ "
+                                     "Fundir este quadro sobre…")
+            return None
+        return self.set_fusion(vp, uid)
+
+    def fundir_quadro(self, origem: Viewport, alvo: Viewport):
+        """O que o quadro `origem` mostra (série, ou mapa da dinâmica: ADC, SER, cinético…) por cima do `alvo`."""
+        from ipe.imaging.fusion import Fusion
+        dq = self._dyn_do_quadro(origem)
+        if dq is not None:
+            from ipe.imaging.dynamic import COMPOSTOS, MAPS
+            sess, chave = dq
+            if chave in COMPOSTOS:
+                self.status_message.emit("O mapa em cor já é colorido: funda um mapa de valores (SER, realce, "
+                                         "cinético…).")
+                return None
+            if chave.startswith("ph:") or chave.startswith("ph"):
+                try:
+                    vol = self._volume_da_fase_dyn(sess, int(chave.split(":")[-1].lstrip("ph")))
+                except ValueError:
+                    vol = None
+                rotulo, cmap = f"fase {chave}", "rainbow"
+            else:
+                vol = self._volume_do_mapa(sess, chave)
+                rotulo, cmap = MAPS.get(chave, (chave,) * 5)[0], (MAPS.get(chave, ("",) * 5)[4] or "rainbow")
+            if vol is None:
+                return None
+            fu = Fusion(vol, rotulo, None, cmap=cmap)
+            alvo.fusion = fu
+            alvo._fusion_cache = None
+            alvo.update()
+            self._activate(alvo)
+            self.status_message.emit(f"Fusão: {rotulo} sobre o quadro. Ajuste opacidade, cor e janela na barra.")
+            self._sync_fusion_bar()
+            return fu
+        uid = self._source_series(origem)
+        if uid is None or uid.startswith(("key:", "group:", "mg:")):
+            self.status_message.emit("Este quadro não tem uma série que dê para fundir.")
+            return None
+        self._activate(alvo)
+        return self.set_fusion(alvo, uid)
+
     def remove_fusion(self, vp: Viewport | None) -> None:
         if vp is None:
             return
@@ -5411,6 +5462,23 @@ class ViewerTab(OncoMixin, QWidget):
         if rng and rng[0] <= alvo < rng[1]:
             self.status_message.emit(f"Corte ★ {alvo - rng[0] + 1} de {rng[1] - rng[0]}.")
         return True
+
+    def marcar_achado_mama(self, vp, ip, numero: int | None = None):
+        """0.99.64 (PV 20): marca o achado no ponto, para a tabela e o laudo BI-RADS."""
+        from ipe.ui.viewer import marcadores_mama as MMV
+        ann = MMV.marcar(self, vp, ip, numero)
+        dlg = getattr(self, "_marcadores_dlg", None)
+        if ann is not None and dlg is not None and dlg.isVisible():
+            dlg.recarregar()
+        return ann
+
+    def abrir_marcadores_mama(self):
+        from ipe.ui.viewer.marcadores_mama import MarcadoresDialog
+        vp = self.active
+        d = MarcadoresDialog(self, (vp.study_uid if vp is not None and vp.study_uid else None) or self.study_uid)
+        self._marcadores_dlg = d
+        d.show()
+        return d
 
     def mg_densidade(self) -> None:
         """Densidade das imagens que estão na tela. A janela lê os quadros visíveis desta aba."""

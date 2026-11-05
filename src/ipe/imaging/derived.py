@@ -124,6 +124,9 @@ def plane_datasets(plane: MPRPlane, indices: list[int] | None = None, descriptio
         else SECONDARY_CAPTURE
     now = datetime.now()
     idx = list(range(plane.n)) if indices is None else indices
+    colorido = bool(idx) and plane.image(idx[0]).is_color      # 0.99.64: mapa em cor (RGB de 8 bits)
+    if colorido:
+        sop_class = SECONDARY_CAPTURE
     # escala única da série (int16), a partir de uma amostra de cortes
     sample = [plane.image(i).pixels for i in idx[:: max(1, len(idx) // 12)]]
     vmin = min(float(p.min()) for p in sample)
@@ -147,7 +150,10 @@ def plane_datasets(plane: MPRPlane, indices: list[int] | None = None, descriptio
     for n, i in enumerate(idx, 1):
         img = plane.image(i)
         px = img.pixels
-        raw = np.clip(np.round((px - intercept) / slope), -32768, 32767).astype(np.int16)
+        if colorido:
+            raw = np.ascontiguousarray(np.asarray(px)[..., :3], dtype=np.uint8)
+        else:
+            raw = np.clip(np.round((px - intercept) / slope), -32768, 32767).astype(np.int16)
         ds = pydicom.Dataset()
         for kw in _COPY:
             if kw in src:
@@ -173,7 +179,13 @@ def plane_datasets(plane: MPRPlane, indices: list[int] | None = None, descriptio
         ds.PixelSpacing = [f"{plane.row_spacing:.6f}", f"{plane.col_spacing:.6f}"]
         ds.SliceThickness = f"{thickness:.3f}"
         ds.SpacingBetweenSlices = f"{plane.step_mm:.4f}"
-        ds.Rows, ds.Columns = raw.shape
+        ds.Rows, ds.Columns = raw.shape[:2]
+        if colorido:
+            ds.SamplesPerPixel, ds.PhotometricInterpretation, ds.PlanarConfiguration = 3, "RGB", 0
+            ds.BitsAllocated, ds.BitsStored, ds.HighBit, ds.PixelRepresentation = 8, 8, 7, 0
+            ds.PixelData = raw.tobytes()
+            yield ds
+            continue
         ds.SamplesPerPixel, ds.PhotometricInterpretation = 1, "MONOCHROME2"
         ds.BitsAllocated, ds.BitsStored, ds.HighBit, ds.PixelRepresentation = 16, 16, 15, 1
         ds.RescaleSlope, ds.RescaleIntercept = f"{slope:.8g}", f"{intercept:.8g}"

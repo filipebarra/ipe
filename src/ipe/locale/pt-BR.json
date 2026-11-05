@@ -5698,7 +5698,32 @@
   "Não lidos",
   "Revisado",
   "Trocado à mão (botão direito ▸ Estado do exame ▸ Automático volta ao automático)",
-  "Urgente ✎"
+  "Urgente ✎",
+  " (falta a outra vista)",
+  "Achado BI-RADS aqui",
+  "Achados marcados (BI-RADS)",
+  "Achados…",
+  "Apagar as marcas do achado",
+  "Botão direito na imagem ▸ Achado BI-RADS aqui: marque o mesmo achado na CC e na MLO. Com as duas vistas sai o quadrante e a hora do relógio.",
+  "Cor = tempo até o pico (vermelho cedo → azul tarde); brilho = realce máximo",
+  "Distância do mamilo",
+  "Este quadro não tem uma série que dê para fundir.",
+  "Fases em cor",
+  "Fundir este quadro sobre…",
+  "Fundir por cima\n(cores e transparência)",
+  "Localização",
+  "Mandar ao laudo BI-RADS",
+  "Novo achado",
+  "Não achei o mamilo nesta imagem: a marca precisa dele para medir a distância.",
+  "Não sei a mama ou a incidência deste quadro: abra pelo protocolo da mamografia.",
+  "O mapa em cor já é colorido: funda um mapa de valores (SER, realce, cinético…).",
+  "O mapa em cor é só no plano da aquisição: reformate um mapa de valores.",
+  "Para fundir um mapa ou uma reconstrução, use o botão direito no quadro dele ▸ Fundir este quadro sobre…",
+  "Tabela dos achados marcados na CC e na MLO (botão direito na imagem ▸ Achado BI-RADS aqui): distância ao mamilo, quadrante e hora; manda ao laudo BI-RADS",
+  "Tabela dos achados marcados…",
+  "Tempo em cor",
+  "Vermelho = fase inicial, verde = intermediária, azul = tardia (realce de cada uma)",
+  "Vistas"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7166,6 +7191,10 @@
   "volume {} → {} mm³ ({}%)",
   "O nódulo {} entrou na lesão “{}”, que já vinha sendo acompanhada: {}.",
   "Estado do exame de volta ao automático: {}.",
-  "Não deu para trocar o estado do exame: {}"
+  "Não deu para trocar o estado do exame: {}",
+  "A{} (já em {})",
+  "A{} ({}, mama {}): {} mm do mamilo.",
+  "Quadro {}: {}",
+  "Achados no laudo BI-RADS: {}. Complete descrição, tamanho e categoria de cada um."
  ]
 }
