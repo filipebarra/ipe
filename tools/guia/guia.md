@@ -35,6 +35,12 @@ Menu **Ajuda ▸ Abrir pasta de dados** mostra onde estão o banco (SQLite), as 
 
 O programa não roda como administrador, e nunca precisa: tudo o que ele escreve fica no perfil do usuário.
 
+### Instalar e desinstalar no Windows
+
+O instalador pergunta duas pastas: a **do programa** (sugere `AppData\Local\Programs\Ipe` do usuário; pode ser outro disco, como `D:\Ipe`, mas não Arquivos de Programas, porque ele instala sem administrador) e a **do banco de dados** (sugere a de agora; pode ser outro disco ou um HD externo, mas fora da pasta do programa). Numa atualização as duas já vêm preenchidas com as de antes. Se o banco de agora já tem exames e a pasta escolhida está vazia, o instalador não troca e avisa: para levar os exames, use **Configurações ▸ Banco de dados ▸ Mudar a pasta do banco deste computador…**, que move os arquivos. Pela linha de comando: `ipe-cli set-data-dir PASTA`.
+
+Para desinstalar: **Configurações do Windows ▸ Aplicativos ▸ Aplicativos instalados ▸ Ipê ▸ Desinstalar** (ou o Painel de Controle ▸ Programas e Recursos). Sai o programa, com os atalhos e o link ipe://. O banco, os exames, os laudos e as configurações ficam: são seus. Para apagá-los também, apague a pasta do banco e a pasta `AppData\Local\DicomViewer` depois de desinstalar.
+
 ## Ajuda
 
 **F1** (fora de um exame), o botão **Ajuda** da tela inicial ou **Ajuda ▸ Guia do usuário (PDF)** abrem este guia no leitor de PDF do computador. **Ajuda ▸ Sobre o Ipê…** mostra a versão. Dentro de um exame o F1 é do filme (capítulo 12).

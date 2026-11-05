@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -71,6 +72,67 @@ def chosen_data_dir(config_dir: Path) -> Path | None:
         return None
     p = Path(d).expanduser()
     return p if p.is_dir() or not p.exists() else None
+
+
+BANCO_ITENS = ("dicomviewer.sqlite", "Storage")
+
+
+def _tem_banco(p: Path) -> bool:
+    try:
+        return (p / BANCO_ITENS[0]).is_file()
+    except OSError:
+        return False
+
+
+def definir_pasta_do_banco(settings, paths, pasta) -> tuple[bool, str]:
+    """A pasta do banco escolhida no instalador (0.99.67). Só aponta, nunca move: se o banco de agora já tem
+    exames e a pasta nova está vazia, não troca (mover é pelo programa, Configurações ▸ Banco de dados ▸ Mudar a
+    pasta do banco deste computador, que leva os arquivos junto). Devolve (trocou ou já era, mensagem)."""
+    nova = Path(str(pasta).strip().strip('"')).expanduser()
+    if not str(pasta).strip():
+        return False, "Pasta vazia."
+    try:
+        nova = nova.resolve()
+    except OSError:
+        pass
+    atual = Path(paths.data)
+    try:
+        if nova == atual.resolve():
+            return True, f"Banco deste computador: {nova}"
+    except OSError:
+        pass
+    if _tem_banco(atual) and not _tem_banco(nova):
+        return False, (f"O banco de agora ({atual}) já tem exames; a pasta não foi trocada. Para levar os exames "
+                       "para a pasta nova, use no programa Configurações ▸ Banco de dados ▸ Mudar a pasta do banco "
+                       "deste computador.")
+    try:
+        nova.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        return False, f"Não deu para criar a pasta {nova}: {e}"
+    try:
+        padrao = Path(default_data_dir()).resolve()
+    except OSError:
+        padrao = Path(default_data_dir())
+    settings.set("data_dir", "" if nova == padrao else str(nova))
+    settings.save()
+    publicar_pasta_do_banco(AppPaths(nova, paths.config, paths.logs))
+    return True, f"Banco deste computador: {nova}"
+
+
+REG_CHAVE = r"Software\Ipe"
+
+
+def publicar_pasta_do_banco(paths) -> None:
+    """No Windows, deixa a pasta do banco em HKCU\\Software\\Ipe (DataDir): o instalador lê para mostrar a pasta de
+    agora numa atualização (0.99.67)."""
+    if not sys.platform.startswith("win"):
+        return
+    try:
+        import winreg
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, REG_CHAVE) as k:
+            winreg.SetValueEx(k, "DataDir", 0, winreg.REG_SZ, str(paths.data))
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def get_paths() -> AppPaths:

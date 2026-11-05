@@ -7703,5 +7703,9 @@
  "Para abrir {} ({}) o programa precisa do 7-Zip (7-zip.org) ou do tar do Windows 10/11. Instale o 7-Zip e importe de novo.": "Para abrir {} ({}) el programa necesita 7-Zip (7-zip.org) o el tar de Windows 10/11. Instale 7-Zip e importe de nuevo.",
  "tarfile: {}": "tarfile: {}",
  "zipfile: {}": "zipfile: {}",
- "{} compactado": "{} comprimido"
+ "{} compactado": "{} comprimido",
+ "Pasta vazia.": "Carpeta vacía.",
+ "pasta do banco deste computador (usado pelo instalador, 0.99.67)": "carpeta de la base de este equipo (la usa el instalador, 0.99.67)",
+ "Não deu para criar a pasta {}: {}": "No se pudo crear la carpeta {}: {}",
+ "O banco de agora ({}) já tem exames; a pasta não foi trocada. Para levar os exames para a pasta nova, use no programa Configurações ▸ Banco de dados ▸ Mudar a pasta do banco deste computador.": "La base actual ({}) ya tiene estudios; la carpeta no se cambió. Para llevar los estudios a la carpeta nueva, use en el programa Configuración ▸ Base de datos ▸ Cambiar la carpeta de la base de este equipo."
 }

@@ -5730,7 +5730,9 @@
   "Importar compactado (ZIP, RAR, 7z)…",
   "Para abrir RAR, 7z ou ISO o programa usa o 7-Zip ou o tar do Windows 10/11, e nenhum dos dois foi encontrado neste computador. Instale o 7-Zip (7-zip.org) e importe de novo.",
   "tar (libarchive)",
-  "wrong password"
+  "wrong password",
+  "Pasta vazia.",
+  "pasta do banco deste computador (usado pelo instalador, 0.99.67)"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7209,6 +7211,8 @@
   "Para abrir {} ({}) o programa precisa do 7-Zip (7-zip.org) ou do tar do Windows 10/11. Instale o 7-Zip e importe de novo.",
   "tarfile: {}",
   "zipfile: {}",
-  "{} compactado"
+  "{} compactado",
+  "Não deu para criar a pasta {}: {}",
+  "O banco de agora ({}) já tem exames; a pasta não foi trocada. Para levar os exames para a pasta nova, use no programa Configurações ▸ Banco de dados ▸ Mudar a pasta do banco deste computador."
  ]
 }

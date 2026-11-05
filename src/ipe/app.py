@@ -261,6 +261,8 @@ def run_gui(external: dict | None = None, minimized: bool = False) -> int:
     settings = Settings(paths.settings_file)
     if not paths.settings_file.exists():
         settings.save()          # cria o arquivo para o usuário poder editar
+    from ipe.core.config import publicar_pasta_do_banco
+    publicar_pasta_do_banco(paths)           # 0.99.67: o instalador mostra esta pasta numa atualização
     _dark_palette(app)
 
     # idioma: traduções do usuário, escolha (pergunta na primeira vez) e tradução automática das telas

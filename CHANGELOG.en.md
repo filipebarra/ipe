@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.67 — the installer asks for the program folder and the database folder
+- The Windows installer always asks for the **program folder** and the **database folder** (on an update, already
+  filled in with the previous ones). It refuses Program Files (it installs without administrator rights) and a
+  database inside the program folder. A database with studies is not swapped for an empty folder: the installer
+  warns, and the program moves it, under Settings ▸ Database.
+- Command line: `ipe-cli set-data-dir FOLDER`.
+- The guide explains how to uninstall (Windows Installed apps) and what stays on the computer.
+
 ## 0.99.66 — import RAR, 7z and other archives
 - **File ▸ Import archive (ZIP, RAR, 7z)…** and drag-and-drop now also open RAR, 7z, TAR (gz/bz2/xz), ISO and CAB.
   RAR, 7z and ISO use 7-Zip, if installed, or the tar that ships with Windows 10/11; WinRAR also works for RAR.

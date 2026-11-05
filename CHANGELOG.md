@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.67 — o instalador pergunta a pasta do programa e a do banco
+- O instalador do Windows pergunta sempre a **pasta do programa** e a **pasta do banco de dados** (numa
+  atualização, já preenchidas com as de antes). Não aceita Arquivos de Programas (instala sem administrador) nem o
+  banco dentro da pasta do programa. Um banco com exames não é trocado por uma pasta vazia: o instalador avisa e o
+  programa move, em Configurações ▸ Banco de dados.
+- Linha de comando: `ipe-cli set-data-dir PASTA`.
+- O guia explica como desinstalar (Aplicativos instalados do Windows) e o que fica no computador.
+
 ## 0.99.66 — importar RAR, 7z e outros compactados
 - **Arquivo ▸ Importar compactado (ZIP, RAR, 7z)…** e o arrasto também abrem RAR, 7z, TAR (gz/bz2/xz), ISO e CAB.
   RAR, 7z e ISO usam o 7-Zip, se instalado, ou o tar que já vem no Windows 10/11; o WinRAR também serve para RAR.

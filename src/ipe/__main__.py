@@ -19,6 +19,7 @@
   ipe config [chave [valor]]   ver ou mudar configurações (servidor sem janela)
   ipe node list|add|remove     nós DICOM pela linha de comando
   ipe set-language en|pt-BR|es idioma do programa (o instalador usa)
+  ipe set-data-dir PASTA      pasta do banco deste computador (o instalador usa)
 """
 
 from __future__ import annotations
@@ -68,6 +69,8 @@ def _parser() -> argparse.ArgumentParser:
     m.add_argument("mode", choices=["single", "multi"])
     lg = sub.add_parser("set-language", help="idioma do programa: en, pt-BR ou es (usado pelo instalador)")
     lg.add_argument("lang")
+    dd = sub.add_parser("set-data-dir", help="pasta do banco deste computador (usado pelo instalador, 0.99.67)")
+    dd.add_argument("folder")
     sub.add_parser("info", help="mostrar caminhos")
     return p
 
@@ -114,6 +117,17 @@ def main(argv: list[str] | None = None) -> int:
         s.save()
         print(f"Language: {lang}")
         return 0
+
+    if args.cmd == "set-data-dir":
+        from ipe.core.config import Settings, definir_pasta_do_banco, get_paths
+        paths = get_paths()
+        s = Settings(paths.settings_file)
+        ok, msg = definir_pasta_do_banco(s, paths, args.folder)
+        try:
+            print(msg)
+        except UnicodeEncodeError:              # console do Windows sem UTF-8: o código de saída é o que vale
+            print(msg.encode("ascii", "replace").decode())
+        return 0 if ok else 3
 
     if args.cmd == "register-url":
         from ipe.network.external import register_url_scheme

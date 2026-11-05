@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.67 — el instalador pregunta la carpeta del programa y la de la base
+- El instalador de Windows pregunta siempre la **carpeta del programa** y la **carpeta de la base de datos** (en
+  una actualización, ya rellenadas con las anteriores). No acepta Archivos de programa (instala sin administrador)
+  ni la base dentro de la carpeta del programa. Una base con estudios no se cambia por una carpeta vacía: el
+  instalador avisa y el programa la mueve, en Configuración ▸ Base de datos.
+- Línea de comandos: `ipe-cli set-data-dir CARPETA`.
+- La guía explica cómo desinstalar (Aplicaciones instaladas de Windows) y qué queda en el equipo.
+
 ## 0.99.66 — importar RAR, 7z y otros comprimidos
 - **Archivo ▸ Importar comprimido (ZIP, RAR, 7z)…** y el arrastre ahora también abren RAR, 7z, TAR (gz/bz2/xz),
   ISO y CAB. RAR, 7z e ISO usan 7-Zip, si está instalado, o el tar que ya trae Windows 10/11; WinRAR también

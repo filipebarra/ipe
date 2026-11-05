@@ -7703,5 +7703,9 @@
  "Para abrir {} ({}) o programa precisa do 7-Zip (7-zip.org) ou do tar do Windows 10/11. Instale o 7-Zip e importe de novo.": "To open {} ({}) the program needs 7-Zip (7-zip.org) or the Windows 10/11 tar. Install 7-Zip and import again.",
  "tarfile: {}": "tarfile: {}",
  "zipfile: {}": "zipfile: {}",
- "{} compactado": "{} archive"
+ "{} compactado": "{} archive",
+ "Pasta vazia.": "Empty folder.",
+ "pasta do banco deste computador (usado pelo instalador, 0.99.67)": "this computer's database folder (used by the installer, 0.99.67)",
+ "Não deu para criar a pasta {}: {}": "Could not create the folder {}: {}",
+ "O banco de agora ({}) já tem exames; a pasta não foi trocada. Para levar os exames para a pasta nova, use no programa Configurações ▸ Banco de dados ▸ Mudar a pasta do banco deste computador.": "The current database ({}) already has studies; the folder was not changed. To take the studies to the new folder, use Settings ▸ Database ▸ Change the folder of this computer's database in the program."
 }

@@ -3011,6 +3011,8 @@ class MainWindow(QMainWindow):
                           else str(nova))
         self.settings.save()
         self.paths = AppPaths(nova, self.paths.config, self.paths.logs).ensure()
+        from ipe.core.config import publicar_pasta_do_banco
+        publicar_pasta_do_banco(self.paths)
         self.location = LOC.default_location(self.paths)
         self.locations.paths = self.paths
         self._use_database(Database(self.paths.database), self.paths.storage,
