@@ -19,3 +19,12 @@ def test_bat_confere_o_pytorch_e_o_visual_cpp():
     t = BAT.read_bytes().decode("utf-8")
     assert t.index('-c "import torch"') < t.index("[2/3] TotalSegmentator")
     assert ":vcredist" in t and "vc_redist.x64.exe" in t and "/install /passive /norestart" in t
+
+
+def test_visual_cpp_no_programa_e_no_instalador():
+    from ipe.ui import segmentacao as SEG
+    assert SEG.tem_visual_cpp("linux") is True
+    iss = (BAT.parent / "installer" / "ipe.iss").read_bytes().decode("utf-8-sig")
+    assert "TemVisualCpp" in iss and "AvisarVisualCpp();" in iss and SEG.URL_VCREDIST in iss
+    for lang in ("english", "brazilianportuguese", "spanish"):
+        assert f"{lang}.VcTexto=" in iss

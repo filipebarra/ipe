@@ -65,6 +65,26 @@ def instalador() -> Path | None:
     return None
 
 
+URL_VCREDIST = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+
+
+def tem_visual_cpp(plataforma: str | None = None) -> bool:
+    """0.99.72: o Microsoft Visual C++ Redistributable 2015-2022 x64, que o PyTorch precisa no Windows (o Ipê em
+    si e o Python não). Fora do Windows, sempre True."""
+    if not (plataforma or sys.platform).startswith("win"):
+        return True
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64",
+                            0, winreg.KEY_READ | getattr(winreg, "KEY_WOW64_64KEY", 0)) as k:
+            if int(winreg.QueryValueEx(k, "Installed")[0]) == 1:
+                return True
+    except OSError:
+        pass
+    sistema = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32"
+    return (sistema / "vcruntime140_1.dll").is_file() and (sistema / "msvcp140.dll").is_file()
+
+
 def abrir_instalador(janela, perguntar: bool = True) -> bool:
     """Abre o instalador numa janela própria (ele mostra o andamento e pede para fechar no fim).
     O programa não precisa ser reiniciado: o menu passa a funcionar quando o ambiente existir."""
@@ -81,6 +101,10 @@ def abrir_instalador(janela, perguntar: bool = True) -> bool:
                  "programa: PyTorch (só CPU), TotalSegmentator e os modelos dos órgãos abdominais.\n\n"
                  "Precisa de internet e de uns 5 GB livres; leva de 10 a 30 minutos. Pode continuar "
                  "usando o programa enquanto instala.")
+        if not tem_visual_cpp():
+            texto += "\n\n" + (f"Falta neste computador o Microsoft Visual C++ Redistributable (x64), que o PyTorch "
+                                 f"precisa. O instalador tenta instalá-lo sozinho; se preferir, instale antes:\n"
+                                 f"{URL_VCREDIST}")
         if QMessageBox.question(janela, "Instalar a segmentação", texto + "\n\nAbrir o instalador agora?") \
                 != QMessageBox.Yes:
             return False

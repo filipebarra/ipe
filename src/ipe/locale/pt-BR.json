@@ -5771,7 +5771,8 @@
   "Procurar versão nova (GitHub)…",
   "Pular esta versão",
   "Ver a página",
-  "Versão nova"
+  "Versão nova",
+  "Installed"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7271,6 +7272,7 @@
   "Não deu para falar com o GitHub: {}",
   "O download parou: {}",
   "Saiu a versão {} do Ipê (você está na {}).",
-  "Você já está na versão mais nova ({})."
+  "Você já está na versão mais nova ({}).",
+  "Falta neste computador o Microsoft Visual C++ Redistributable (x64), que o PyTorch precisa. O instalador tenta instalá-lo sozinho; se preferir, instale antes:\n{}"
  ]
 }

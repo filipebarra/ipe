@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.72 — the installer warns about Visual C++
+- Ipê's installer checks for the Microsoft Visual C++ Redistributable (x64) and, if missing, offers to open the
+  Microsoft download. Only the segmentation (PyTorch) needs it; Ipê and Python do not. *Install the segmentation*
+  gives the same warning before opening.
+
 ## 0.99.71 — segmentation installer: PyTorch's Visual C++
 - `instalar_segmentacao.bat` checks that PyTorch starts. If it does not (*WinError 126 … shm.dll*, common on
   Windows Server and freshly installed Windows), it downloads and installs the Microsoft Visual C++
