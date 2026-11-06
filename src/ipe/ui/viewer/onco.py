@@ -25,7 +25,8 @@ from ipe import MARCAS_NOSSAS
 
 #: 0.99.65 (pedido dele): estas SEGs aparecem só na série em que foram calculadas, não em todas as do exame
 SO_NA_SERIE = ("Órgãos abdominais · TotalSegmentator", "Níveis linfonodais · TotalSegmentator",
-               "Enfisema (< -950 HU) · TotalSegmentator")          # 0.99.77
+               "Enfisema (< -950 HU) · TotalSegmentator",          # 0.99.77
+               "Lesões hepáticas · TotalSegmentator")              # 0.99.82
 
 log = logging.getLogger(__name__)
 SEG_COLORS = [(90, 220, 255), (255, 120, 90), (140, 255, 120), (255, 210, 70), (220, 130, 255)]

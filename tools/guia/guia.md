@@ -317,6 +317,7 @@ K (sugestão) marca e desmarca a imagem do quadro como imagem-chave; Shift+K mos
 - A linha de orientação no canto do quadro é clicável: escolhe o plano, e **Oblíquo** vira o quadro oblíquo sem mudar a imagem — a partir dali a ferramenta **Girar plano** inclina.
 - Espessura (slab) na barra do MPR, com média, MIP ou MinIP.
 - MPR curvo (clique os pontos ao longo de um vaso) e 3D (renderização de volume, com cortes, escultura e exportação de malha STL/GLB/3MF).
+- **Estruturas no 3D** (0.99.82): com o 3D aberto, o botão **Estruturas** da barra do 3D (ou o botão direito ▸ *Estruturas segmentadas*) mostra como superfícies coloridas tudo o que está segmentado no exame e ligado: órgãos da IA, segmentos e lesões do fígado, nódulos, lesões segmentadas à mão, níveis linfonodais, SEG e RTSTRUCT de outros sistemas. As estruturas acompanham o giro, o corte, o plano e a escultura do volume; o que está atrás do osso do VR aparece apagado. Desligar um objeto na lista de CAD/IA tira ele do 3D na próxima vez que ligar.
 - O plano reconstruído sai sempre na convenção de leitura — axial com anterior em cima e esquerda do paciente à direita — mesmo quando a aquisição foi sagital.
 - **Tirar a mesa da TC**: botão direito no MPR ou no 3D de uma TC ▸ *Tirar a mesa da TC (MPR e 3D)*. O programa acha o corpo (o que passa pelo meio do volume) e apaga o que está fora dele, corte a corte — a mesa sai, os pulmões e as vias aéreas ficam. Vale para os volumes montados dali em diante (feche e abra o MPR/3D); a série original não muda.
 
@@ -1388,6 +1389,15 @@ O número depende da técnica, e a revisão avisa: corte fino (≤ 1,5 mm), filt
 Na TC ou na RM com a coluna torácica ou lombar, o botão **Genant** (ou Aplicações ▸ Genant) nomeia as vértebras (a mesma regra da Coluna, com a IA em resolução cheia), mede a altura anterior, média e posterior de cada corpo e calcula a perda de altura: **cunha** (anterior contra posterior), **bicôncava** (média contra posterior) ou **esmagamento** (posterior contra a média das duas vizinhas). De T4 a L5, 20–25% é grau 1 (leve), 25–40% grau 2 (moderada) e mais de 40% grau 3 (acentuada), pela classificação semiquantitativa de Genant (1993).
 
 Cada vértebra com grau 1 ou mais vira um achado "Fratura vertebral (Genant)" para confirmar, corrigir ou descartar — deformidade não é sinônimo de fratura (variante, Scheuermann, nódulo de Schmorl, degeneração), então confira na sagital. Um achado de resumo diz quantas vértebras foram medidas; confirmado sem alteradas, ele entra no laudo como "corpos vertebrais sem redução de altura de 20% ou mais". Vértebra já revisada não volta como sugestão quando a IA roda de novo.
+
+### Lesões hepáticas e carga por segmento (0.99.82)
+
+Na TC ou na RM de abdome, o botão **Lesões** (ou Aplicações ▸ Lesões hepáticas) roda duas tarefas abertas do TotalSegmentator — os oito segmentos de Couinaud e as lesões focais do fígado — e mede:
+
+- para cada lesão (até 20, as maiores): volume, maior diâmetro axial, HU médio (TC) e o segmento onde está a maior parte dela; cada uma vira um achado "Lesão hepática" para confirmar, corrigir, descartar ou ligar a uma lesão do acompanhamento;
+- no resumo: número de lesões, volume total, **carga** (% do volume do fígado ocupada por lesão), volume do fígado e a carga de cada segmento.
+
+O modelo não diz o que a lesão é (cisto, hemangioma, metástase): é contagem e volume. Funciona melhor em fase com contraste (portal ou hepatobiliar) e corte fino; a revisão avisa quando não é o caso. As máscaras (lesões e segmentos) ficam numa SEG que aparece só na série calculada e no 3D, em *Estruturas*.
 
 ## CAD, IA e anotações de outros sistemas
 

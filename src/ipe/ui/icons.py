@@ -423,7 +423,7 @@ def _draw(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por ícone
 #: aplicações com pictograma próprio; as marcadas com True levam o selo ✦ de IA
 _APPS_IA = {"app_nodulos": True, "app_enfisema": True, "app_composicao": True, "app_figado": True,
             "app_orgaos": True, "app_genant": True, "app_linfonodos": True, "app_cefalometria": True,
-            "app_indices": True, "app_difusao": False}
+            "app_indices": True, "app_difusao": False, "app_figado_lesoes": True}
 
 
 def _pulmoes(p: QPainter) -> None:
@@ -503,6 +503,21 @@ def _draw_app(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por aplic
         p.setPen(Qt.NoPen)
         p.setBrush(ACCENT)
         p.drawPath(gota)
+    elif name == "app_figado_lesoes":   # fígado com as linhas dos segmentos e duas lesões
+        p.setPen(_pen(FG, 3.5))
+        path = QPainterPath()
+        path.moveTo(6, 26)
+        path.cubicTo(10, 12, 40, 8, 56, 18)
+        path.cubicTo(52, 30, 36, 50, 18, 52)
+        path.cubicTo(8, 46, 4, 36, 6, 26)
+        p.drawPath(path)
+        p.setPen(_pen(FG, 1.8))
+        p.drawLine(P(30, 13), P(26, 50))
+        p.drawLine(P(8, 32), P(50, 26))
+        p.setPen(Qt.NoPen)
+        p.setBrush(ACCENT)
+        p.drawEllipse(QRectF(14, 20, 9, 9))
+        p.drawEllipse(QRectF(36, 31, 6, 6))
     elif name == "app_orgaos":          # fígado, rim e baço
         p.setPen(_pen(FG, 3.5))
         fig = QPainterPath()

@@ -143,6 +143,18 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
                 lab[vol == 500] = 1
                 saida[nome] = (lab, {5: "liver", 1: "spleen"})
             continue
+        if t.get("fig_lesoes"):              # 0.99.82: fígado = 620 ou 630, lesão = 630; segmentos por terço de x
+            fig = (vol == 620) | (vol == 630)
+            if nome.startswith("liver_lesions"):
+                lab[vol == 630] = 1
+                saida[nome] = (lab, {1: "liver_lesions"})
+            else:
+                terco = np.arange(nx)[None, None, :]
+                lab[fig & (terco < nx // 3)] = 7
+                lab[fig & (terco >= nx // 3) & (terco < 2 * nx // 3)] = 4
+                lab[fig & (terco >= 2 * nx // 3)] = 2
+                saida[nome] = (lab, {7: "liver_segment_7", 4: "liver_segment_4", 2: "liver_segment_2"})
+            continue
         if t.get("enfisema"):                # 0.99.77: pulmão = −998 a −700 HU, traqueia = −999
             pulmao = (vol >= -998) & (vol <= -700)
             ks = np.nonzero(pulmao.any(axis=(1, 2)))[0]

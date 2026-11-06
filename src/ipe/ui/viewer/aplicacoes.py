@@ -192,6 +192,8 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
               ((frozenset({"coluna"}), frozenset()), (frozenset({"torax"}), frozenset()),
                (frozenset({"abdome"}), frozenset())),
               descricao="Fratura vertebral (IA): altura dos corpos vertebrais e grau de Genant de T4 a L5"),
+    Aplicacao("figado_lesoes", "Lesões hepáticas", frozenset({"CT", "MR"}), ((frozenset({"abdome"}), frozenset()),),
+              descricao="Lesões hepáticas (IA): volume e diâmetro de cada uma e a carga por segmento de Couinaud"),
     Aplicacao("difusao", "Difusão", frozenset({"MR"}), ((frozenset(), frozenset({"difusao"})),),
               descricao="Mapa ADC dos valores de b, DWI sintética e ADC numa ROI (qualquer RM)"),
     Aplicacao("abdome", "Órgãos abdominais", frozenset({"CT", "MR"}),

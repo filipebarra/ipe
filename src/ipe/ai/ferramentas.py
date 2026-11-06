@@ -22,6 +22,7 @@ GENERICAS = {
     "figado_rm": "ipe.ai.figado_rm",            # 0.99.49
     "enfisema": "ipe.ai.enfisema",              # 0.99.77
     "genant": "ipe.ai.genant",                  # 0.99.77
+    "figado_lesoes": "ipe.ai.figado_lesoes",    # 0.99.82
 }
 
 

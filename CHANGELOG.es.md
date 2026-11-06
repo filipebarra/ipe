@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.82 — estructuras en el 3D y lesiones hepáticas por segmento
+- **3D ▸ Estructuras**: las segmentaciones del examen (órganos de la IA, lesiones, nódulos, SEG/RTSTRUCT) aparecen
+  como superficies de color, junto con el hueso del VR o sobre el MIP, y acompañan giro, cortes y escultura.
+- **Lesiones hepáticas** (TC y RM): tareas abiertas `liver_lesions` y `liver_segments` de TotalSegmentator; volumen,
+  diámetro axial mayor y segmento de cada lesión, y la carga tumoral (% del hígado) total y por segmento de Couinaud.
+  Cada lesión es un hallazgo revisable.
+
 ## 0.99.81 — nombres de los paquetes en inglés
 - Los archivos del release pasan a llamarse `Ipe-<versión>-installer.exe`, `-windows-portable.zip` y
   `-linux-portable.tar.gz`. La actualización por GitHub encuentra los nombres nuevos y los antiguos.

@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.82 — structures in 3D and liver lesions by segment
+- **3D ▸ Structures**: the exam's segmentations (AI organs, lesions, nodules, SEG/RTSTRUCT) show as colored
+  surfaces, together with VR bone or over the MIP, following rotation, cuts and sculpting.
+- **Liver lesions** (CT and MRI): open TotalSegmentator tasks `liver_lesions` and `liver_segments`; volume, largest
+  axial diameter and segment of each lesion, and tumor burden (% of the liver) overall and per Couinaud segment.
+  Each lesion is a reviewable finding.
+
 ## 0.99.81 — package names in English
 - Release files are now named `Ipe-<version>-installer.exe`, `-windows-portable.zip` and `-linux-portable.tar.gz`.
   The GitHub update finds both the new and the old names.

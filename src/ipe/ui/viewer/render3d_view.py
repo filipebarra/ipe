@@ -53,6 +53,10 @@ class View3D:
         self.sculpt_mode = ""               # "", "remove" ou "keep"
         self.plane_drag = False             # esquerdo arrasta o corte em vez de girar
         self.aviso = ""
+        # 0.99.82: as estruturas segmentadas (TotalSegmentator, SEG, nódulos…) como superfícies coloridas
+        self.estruturas = False
+        self.estr_opacidade = 0.9
+        self._estr_chave = None
         self._timer = QTimer(tab)
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(lambda: self.refresh(fast=False))
@@ -122,6 +126,17 @@ class View3D:
         px = self.r.render(self.mode, self.az, self.el, (w, h), self.lo, self.hi, cmap,
                            self.opacity, self.zoom, self.pan, fast=self.fast)
         ps = 2 * self.r.radius / (min(w, h) * self.zoom)
+        if self.estruturas and getattr(self.r, "labels", None) is not None:
+            from ipe.imaging.render3d import compor_estruturas
+            prof_base = self.r.last_depth if self.mode in ("vr", "surf") else None
+            passo = float((self.r._last or {}).get("st", self.r.step))
+            estr = self.r.render_labels(self.az, self.el, (w, h), self.zoom, self.pan, fast=self.fast)
+            lo, hi = self.lo, self.hi
+            if px.ndim == 2 and self.vp is not None and self.vp.state.window_set:
+                ww, wl = self.vp.state.window
+                lo, hi = wl - ww / 2, wl + ww / 2
+            px = compor_estruturas(px, lo, hi, estr, prof_base, passo, self.estr_opacidade)
+            return FrameImage(np.ascontiguousarray(px), True, None, (ps, ps), header=self.header())
         if px.ndim == 2:
             return FrameImage(px, False, (self.hi - self.lo, (self.hi + self.lo) / 2), (ps, ps),
                               header=self.header())
@@ -408,8 +423,62 @@ class View3D:
         dlg.exec()
         return ""
 
+    # ------------------------------------------------------------------ estruturas (0.99.82)
+    def volumes_do_exame(self) -> list:
+        """As máscaras 3D ligadas no exame (segmentações, órgãos da IA, nódulos, níveis…) que valem para
+        a série deste 3D."""
+        from ipe.imaging import overlays as O
+        out = []
+        for o in getattr(self.tab, "overlay_objects", None) or []:
+            if not getattr(o, "enabled", True):
+                continue
+            vols = list(getattr(o, "volumes", None) or [])
+            if not vols and (getattr(o, "masks", None) or getattr(o, "planar", None)):
+                try:
+                    vols = O.volumes_derivados(o)          # SEG / RTSTRUCT: empilhadas por rótulo
+                except Exception:  # noqa: BLE001
+                    vols = []
+            if not vols:
+                continue
+            if o.study_uid and self.study_uid and o.study_uid != self.study_uid:
+                continue
+            so = getattr(o, "so_series", "") or ""
+            if so and self.src_uid and so != self.src_uid:
+                continue
+            out.extend(vols)
+        return out
+
+    def ha_estruturas(self) -> bool:
+        return bool(self.volumes_do_exame())
+
+    def mostrar_estruturas(self, ligado: bool) -> str:
+        """Liga ou desliga as superfícies das estruturas. Devolve um recado (vazio = deu certo)."""
+        if not ligado:
+            self.estruturas = False
+            self.refresh(fast=False)
+            return ""
+        vols = self.volumes_do_exame()
+        if not vols:
+            self.estruturas = False
+            return "Não há estrutura segmentada neste exame (rode a IA ou segmente uma lesão antes)."
+        chave = tuple(id(v) for v in vols)
+        if chave != self._estr_chave:
+            n = self.r.set_labels(vols)
+            self._estr_chave = chave
+            if not n:
+                self.estruturas = False
+                return "As estruturas segmentadas ficam fora deste volume."
+        self.estruturas = True
+        self.refresh(fast=False)
+        return ""
+
     def add_menu_actions(self, vp, menu: QMenu) -> None:
         menu.addAction("Voltar à série de cortes", lambda: self.tab.close_3d(vp))
+        a_est = menu.addAction("Estruturas segmentadas (superfícies coloridas)")
+        a_est.setCheckable(True)
+        a_est.setChecked(self.estruturas)
+        a_est.setEnabled(self.estruturas or self.ha_estruturas())
+        a_est.toggled.connect(lambda on: self._recado(self.mostrar_estruturas(on)))
         m = menu.addMenu("Vista")
         for texto, az, el in VISTAS:
             m.addAction(texto, lambda _c=False, a=az, e=el: self.set_view(a, e))
@@ -470,6 +539,10 @@ class Render3DBar(QToolBar):
         self.a_vista = self.addAction("Vistas…", self._menu_vistas)
         self.a_corte = self.addAction("Cortar…", self._menu_cortes)
         self.a_escultura = self.addAction("Esculpir…", self._menu_escultura)
+        self.a_estr = self.addAction("Estruturas", self._estruturas)
+        self.a_estr.setToolTip("Mostra as estruturas segmentadas (órgãos da IA, lesões, nódulos) como superfícies "
+                               "coloridas sobre o 3D")
+        self.a_estr.setCheckable(True)
         self.a_girar = self.addAction("Girar", self._girar)
         self.a_girar.setToolTip("Gira o volume sem parar, 360°")
         self.a_girar.setCheckable(True)
@@ -585,6 +658,15 @@ class Render3DBar(QToolBar):
         v.refresh(fast=False)
         self.tab.status_message.emit("Desenhe o laço com o botão esquerdo, em volta da região.")
 
+    def _estruturas(self, ligado=None) -> None:
+        v = self.view()
+        if v is None:
+            return
+        recado = v.mostrar_estruturas(self.a_estr.isChecked() if ligado is None else bool(ligado))
+        if recado:
+            self.tab.status_message.emit(recado)
+        self.sync()
+
     def _girar(self, ligado: bool) -> None:
         v = self.view()
         if v is not None:
@@ -634,6 +716,8 @@ class Render3DBar(QToolBar):
             atual = v.cmap if v.mode in ("vr", "surf") else (v.vp.state.cmap if v.vp else "")
             self.c_cmap.setCurrentIndex(max(self.c_cmap.findData(atual or ""), 0))
             self.a_girar.setChecked(v.cine_on())
+            self.a_estr.setChecked(v.estruturas)
+            self.a_estr.setEnabled(v.estruturas or v.ha_estruturas())
             self.a_inteiro.setEnabled(not v.r.untouched())
             self.info.setText("   " + v.info_text())
         finally:
@@ -650,6 +734,8 @@ class Render3DBar(QToolBar):
             self.s_op.setEnabled(False)
             self.c_cmap.setCurrentIndex(max(self.c_cmap.findData(rec["cmap"] or ""), 0))
             self.a_girar.setChecked(False)
+            self.a_estr.setChecked(False)
+            self.a_estr.setEnabled(False)
             self.a_inteiro.setEnabled(False)
             self.info.setText("   " + rec["texto"])
         finally:

@@ -1275,7 +1275,9 @@ class ViewerTab(OncoMixin, QWidget):
                 ("enfisema", "Medir o enfisema (% abaixo de −950 HU por lobo) nesta série (IA)…",
                  "Enfisema: % abaixo de −950 HU por pulmão e lobo (IA)", "Enfisema"),
                 ("genant", "Medir as alturas vertebrais (Genant) nesta série (IA)…",
-                 "Fratura vertebral — Genant (IA)", "Genant")):
+                 "Fratura vertebral — Genant (IA)", "Genant"),
+                ("figado_lesoes", "Achar as lesões hepáticas e a carga por segmento nesta série (IA)…",
+                 "Lesões hepáticas e carga por segmento (IA)", "Lesões")):
             menu_x = self._menu()
             a_x = QAction(rotulo_menu, self)
             a_x.triggered.connect(lambda _=False, tp=tipo: self.ferramenta_ia(tp, self.active))

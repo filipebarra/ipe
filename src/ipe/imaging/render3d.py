@@ -603,3 +603,185 @@ def _upscale(img: np.ndarray, w: int, h: int) -> np.ndarray:
         pad += [(0, 0)] * (grande.ndim - 2)
         grande = np.pad(grande, pad, mode="edge")
     return grande[:h, :w]
+
+
+# ------------------------------------------------------------------ estruturas segmentadas (0.99.82)
+def _suavizar3(a: np.ndarray) -> np.ndarray:
+    """Média 3×3×3 (caixa) só com numpy: deixa a borda da máscara em degrau com normal que preste."""
+    out = a.astype(np.float32)
+    for eixo in range(3):
+        p = np.pad(out, [(1, 1) if e == eixo else (0, 0) for e in range(3)], mode="edge")
+        sl = [slice(None)] * 3
+        sl0, sl1, sl2 = list(sl), list(sl), list(sl)
+        sl0[eixo], sl1[eixo], sl2[eixo] = slice(0, -2), slice(1, -1), slice(2, None)
+        out = (p[tuple(sl0)] + p[tuple(sl1)] + p[tuple(sl2)]) / 3.0
+    return out
+
+
+def rotulos_na_grade(r: "Renderer3D", volumes: list, progress=None) -> tuple[np.ndarray, list]:
+    """As máscaras 3D (MaskVolume, em mm) na grade isotrópica do 3D: rótulo 1..n por voxel e as cores.
+
+    Cada máscara só é amostrada dentro da própria caixa (em mm), por vizinho mais próximo; onde duas se
+    sobrepõem, fica a que veio depois. Mais de 254 estruturas: as que sobram ficam de fora."""
+    gz, gy, gx = r.shape
+    lab = np.zeros(r.shape, np.uint8)
+    cores = []
+    for n, mv in enumerate(volumes[:254]):
+        m = np.asarray(mv.mascara, bool)
+        if not m.any():
+            cores.append(tuple(mv.color))
+            continue
+        nz, ny, nx = m.shape
+        cantos = np.array([mv.origem + mv.matriz @ np.array([i, j, k], float)
+                           for i in (0, nx - 1) for j in (0, ny - 1) for k in (0, nz - 1)])
+        lo_i = np.floor((cantos.min(0) - r.lo) / r.step).astype(int) - 1
+        hi_i = np.ceil((cantos.max(0) - r.lo) / r.step).astype(int) + 1
+        x0, y0, z0 = np.maximum(lo_i, 0)
+        x1, y1, z1 = np.minimum(hi_i, [gx - 1, gy - 1, gz - 1])
+        if x1 < x0 or y1 < y0 or z1 < z0:
+            cores.append(tuple(mv.color))
+            continue
+        inv = np.linalg.inv(mv.matriz)
+        ys, xs = np.mgrid[y0:y1 + 1, x0:x1 + 1].astype(np.float64)
+        for z in range(z0, z1 + 1):
+            P = np.stack([r.lo[0] + xs * r.step, r.lo[1] + ys * r.step,
+                          np.full_like(xs, r.lo[2] + z * r.step)], axis=-1)
+            ijk = np.rint((P - mv.origem) @ inv.T).astype(np.int64)
+            i, j, k = ijk[..., 0], ijk[..., 1], ijk[..., 2]
+            ok = (i >= 0) & (i < nx) & (j >= 0) & (j < ny) & (k >= 0) & (k < nz)
+            if not ok.any():
+                continue
+            dentro = np.zeros(ok.shape, bool)
+            dentro[ok] = m[k[ok], j[ok], i[ok]]
+            if dentro.any():
+                fatia = lab[z, y0:y1 + 1, x0:x1 + 1]
+                fatia[dentro] = n + 1
+        cores.append(tuple(mv.color))
+        if progress and progress(n + 1, len(volumes)) is False:
+            raise InterruptedError
+    return lab, cores
+
+
+def _definir_estruturas(self, volumes: list, progress=None) -> int:
+    """Liga as estruturas segmentadas a este 3D. Devolve quantas têm algum voxel na grade."""
+    if not volumes:
+        self.labels, self.label_colors, self._label_occ = None, [], None
+        return 0
+    lab, cores = rotulos_na_grade(self, volumes, progress)
+    self.labels, self.label_colors = lab, cores
+    self._label_occ = _suavizar3(lab > 0)
+    return int(len(np.unique(lab[lab > 0])))
+
+
+def _render_estruturas(self, az: float, el: float, size: tuple[int, int], zoom: float = 1.0,
+                       pan: tuple[float, float] = (0.0, 0.0), fast: bool = False):
+    """Superfície sombreada das estruturas: (RGB uint8 h×w×3, cobertura h×w, profundidade em mm h×w).
+
+    Respeita o recorte (caixa, plano e escultura) do volume, para cortar os órgãos junto com o osso."""
+    w_out, h_out = int(size[0]), int(size[1])
+    lab = getattr(self, "labels", None)
+    vazio = (np.zeros((h_out, w_out, 3), np.uint8), np.zeros((h_out, w_out), np.float32),
+             np.full((h_out, w_out), np.nan, np.float32))
+    if lab is None or not lab.any():
+        return vazio
+    w = (w_out + 1) // 2 if fast else w_out
+    h = (h_out + 1) // 2 if fast else h_out
+    w, h = max(w, 2), max(h, 2)
+    u, v, d = rotation(az, el)
+    ps = 2 * self.radius / (min(w, h) * zoom)
+    st = self.step * (1.5 if fast else 0.75)
+    jj = (np.arange(w, dtype=np.float32) - w / 2 + 0.5) * ps + pan[0]
+    ii = (np.arange(h, dtype=np.float32) - h / 2 + 0.5) * ps + pan[1]
+    origin = (self.center - self.radius * d - self.lo) / self.step
+    base = (origin[None, None, :] + jj[None, :, None] * (u / self.step)[None, None, :]
+            + ii[:, None, None] * (v / self.step)[None, None, :]).reshape(-1, 3).astype(np.float32)
+    dstep = (d * st / self.step).astype(np.float32)
+    nsteps = int(2 * self.radius / st) + 1
+    gz, gy, gx = self.shape
+    zz, yy, xx = np.nonzero(lab)
+    caixa = (max(int(xx.min()), self._limits()[0]), min(int(xx.max()), self._limits()[1]),
+             max(int(yy.min()), self._limits()[2]), min(int(yy.max()), self._limits()[3]),
+             max(int(zz.min()), self._limits()[4]), min(int(zz.max()), self._limits()[5]))
+    s_ini, s_fim = self._step_range(caixa, d, st, nsteps)
+    flat = lab.reshape(-1)
+    mask_flat = None if self.mask is None else self.mask.reshape(-1)
+    npx = base.shape[0]
+    qual = np.zeros(npx, np.int32)
+    prof = np.full(npx, np.nan, np.float32)
+    brilho = np.zeros(npx, np.float32)
+    alive = np.arange(npx)
+    light = -d.astype(np.float32)
+    plano = self.plane
+    eixo = np.eye(3, dtype=np.float32)
+    x0, x1, y0, y1, z0, z1 = caixa
+    for s in range(s_ini, s_fim):
+        if alive.size == 0:
+            break
+        p = base[alive] + dstep * s
+        xi = np.rint(p[:, 0]).astype(np.int32)
+        yi = np.rint(p[:, 1]).astype(np.int32)
+        zi = np.rint(p[:, 2]).astype(np.int32)
+        ok = (xi >= x0) & (xi <= x1) & (yi >= y0) & (yi <= y1) & (zi >= z0) & (zi <= z1)
+        if plano is not None:
+            n_, c_ = plano
+            ok &= (p[:, 0] * n_[0] + p[:, 1] * n_[1] + p[:, 2] * n_[2]) <= c_
+        if not ok.any():
+            continue
+        idx0 = np.nonzero(ok)[0]
+        lin = (zi[idx0] * gy + yi[idx0]) * gx + xi[idx0]
+        val = flat[lin]
+        if mask_flat is not None:
+            val = np.where(mask_flat[lin], val, 0)
+        bate = val > 0
+        if not bate.any():
+            continue
+        pix = alive[idx0[bate]]
+        pts = p[idx0[bate]]
+        g = np.empty((len(pts), 3), np.float32)
+        for a in range(3):
+            g[:, a] = np.nan_to_num(sample_trilinear(self._label_occ, pts - eixo[a])
+                                    - sample_trilinear(self._label_occ, pts + eixo[a]), nan=0.0)
+        nrm = g / np.maximum(np.linalg.norm(g, axis=1, keepdims=True), 1e-6)
+        b = np.abs(nrm @ light)
+        sem_normal = np.linalg.norm(g, axis=1) < 1e-3           # face de um corte: lisa
+        brilho[pix] = np.where(sem_normal, 0.6, 0.25 + 0.75 * b)
+        qual[pix] = val[bate]
+        prof[pix] = s * st
+        vivo = np.ones(npx, bool)
+        vivo[pix] = False
+        alive = alive[vivo[alive]]
+    cores = np.array([(0, 0, 0)] + [tuple(c)[:3] for c in self.label_colors], np.float32)
+    cores = np.vstack([cores, np.zeros((max(0, 256 - len(cores)), 3), np.float32)])
+    rgb = np.clip(cores[qual] * brilho[:, None], 0, 255).astype(np.uint8).reshape(h, w, 3)
+    cob = (qual > 0).astype(np.float32).reshape(h, w)
+    return (_upscale(rgb, w_out, h_out), _upscale(cob, w_out, h_out),
+            _upscale(prof.reshape(h, w), w_out, h_out))
+
+
+Renderer3D.labels = None
+Renderer3D.label_colors = []
+Renderer3D._label_occ = None
+Renderer3D.set_labels = _definir_estruturas
+Renderer3D.render_labels = _render_estruturas
+
+
+def compor_estruturas(base: np.ndarray, lo: float, hi: float, estr, profundidade_base=None,
+                      passo_base: float = 1.0, opacidade: float = 0.85, atras: float = 0.3) -> np.ndarray:
+    """Junta a imagem do 3D (cinza do MIP ou RGB do VR) com as estruturas (o retorno de render_labels).
+
+    Na frente do que o 3D mostra: `opacidade`; atrás (o raio do VR já tinha batido em osso antes): `atras`."""
+    rgb, cob, prof = estr
+    if base.ndim == 2:
+        g = np.clip((base - lo) / max(hi - lo, 1e-6), 0, 1) * 255
+        base = np.repeat(g[..., None], 3, axis=2)
+    out = base.astype(np.float32)
+    alfa = cob * opacidade
+    if profundidade_base is not None:
+        pb = np.asarray(profundidade_base, np.float32)
+        if pb.shape != cob.shape:
+            pb = _upscale(pb, cob.shape[1], cob.shape[0])
+        pb = pb * passo_base
+        escondido = np.isfinite(pb) & np.isfinite(prof) & (prof > pb + 2.0)
+        alfa = np.where(escondido, cob * atras, alfa)
+    out = out * (1 - alfa[..., None]) + rgb.astype(np.float32) * alfa[..., None]
+    return np.clip(out, 0, 255).astype(np.uint8)
