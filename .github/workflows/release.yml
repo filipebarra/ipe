@@ -1,4 +1,4 @@
-# Releases do Ipê: Windows (instalador + portátil) e Linux (portátil).
+# Releases do Ipê: Windows (installer + portable) e Linux (portable). Nomes em inglês desde a 0.99.81.
 #
 # Só roda quando alguém aperta "Run workflow" (ou `gh workflow run release.yml`): combinado com o
 # Filipe em 02/11/2026 — release só quando ele pedir, nunca a cada atualização.
@@ -40,18 +40,24 @@ jobs:
         run: python installer/verifica.py
       - name: Portátil
         shell: pwsh
-        run: Compress-Archive -Path 'dist\Ipe\*' -DestinationPath "dist\Ipe-${{ steps.v.outputs.versao }}-windows-portatil.zip" -Force
+        run: Compress-Archive -Path 'dist\Ipe\*' -DestinationPath "dist\Ipe-${{ steps.v.outputs.versao }}-windows-portable.zip" -Force
       - name: Instalador (Inno Setup)
         shell: pwsh
         run: |
           choco install innosetup --no-progress -y
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DVersao=${{ steps.v.outputs.versao }}" installer\ipe.iss
+      # 0.99.81: os nomes passaram para o inglês. As versões 0.99.70 a 0.99.80 procuram "-instalador.exe" em
+      # Ajuda ▸ Procurar versão nova: uma cópia com o nome antigo deixa essas atualizarem com um clique.
+      - name: Cópia do instalador com o nome antigo (transição)
+        shell: pwsh
+        run: Copy-Item "dist\Ipe-${{ steps.v.outputs.versao }}-installer.exe" "dist\Ipe-${{ steps.v.outputs.versao }}-instalador.exe"
       - uses: actions/upload-artifact@v4
         with:
           name: windows
           path: |
+            dist/Ipe-*-installer.exe
             dist/Ipe-*-instalador.exe
-            dist/Ipe-*-windows-portatil.zip
+            dist/Ipe-*-windows-portable.zip
 
   linux:
     runs-on: ubuntu-22.04
@@ -76,11 +82,11 @@ jobs:
       - name: Conferir o pacote
         run: python installer/verifica.py
       - name: Portátil
-        run: tar czf "dist/Ipe-${{ steps.v.outputs.versao }}-linux-portatil.tar.gz" -C dist Ipe
+        run: tar czf "dist/Ipe-${{ steps.v.outputs.versao }}-linux-portable.tar.gz" -C dist Ipe
       - uses: actions/upload-artifact@v4
         with:
           name: linux
-          path: dist/Ipe-*-linux-portatil.tar.gz
+          path: dist/Ipe-*-linux-portable.tar.gz
 
   release:
     needs: [windows, linux]
@@ -113,6 +119,8 @@ jobs:
                 "(\"More info\" ▸ \"Run anyway\").\n\n**Linux:** extract and run `Ipe/Ipe`; on first launch it asks "
                 "for the language, with English selected.\n\n"
                 "Organ segmentation (TotalSegmentator) is installed separately, with `instalar_segmentacao`.\n\n"
+                "`Ipe-<version>-instalador.exe` is the same installer under its old Portuguese name, so versions "
+                "0.99.70 to 0.99.80 can still update with one click (Help ▸ Check for a new version).\n\n"
                 "*Notas em português: [CHANGELOG.md](https://github.com/filipebarra/ipe/blob/main/CHANGELOG.md) · "
                 "Notas en español: [CHANGELOG.es.md](https://github.com/filipebarra/ipe/blob/main/CHANGELOG.es.md)*")
           PY

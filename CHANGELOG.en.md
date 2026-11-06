@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.81 — package names in English
+- Release files are now named `Ipe-<version>-installer.exe`, `-windows-portable.zip` and `-linux-portable.tar.gz`.
+  The GitHub update finds both the new and the old names.
+- Transition: the release also carries `Ipe-<version>-instalador.exe` (the same installer), so versions 0.99.70 to
+  0.99.80 can update with one click.
+- This release also brings 0.99.79 (a single Ipê per user: clicking the shortcut again brings the open one to the
+  front, also from the tray) and 0.99.80 (height and weight for body composition, BMI and Martin 2013 references,
+  and a text result for liver steatosis on CT).
+
 ## 0.99.80 — weight and height in body composition, and a steatosis result
 - Clicking to calculate body composition opens a window with height, weight and sex from the file to check or
   enter (applies to the exam; the file is not changed). In AI findings, **Height and weight…** changes them later

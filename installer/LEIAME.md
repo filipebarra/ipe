@@ -19,15 +19,15 @@ Duplo clique em `installer\build_windows.bat`. Ele faz tudo:
 4. **confere o pacote**: roda o executável, exige que os três arquivos de idioma estejam lá,
    gera 180 exames de teste e importa todos num banco novo — se algum passo falhar, ele para
    e não gera instalador;
-5. compacta `dist\Ipe-<versão>-portatil.zip`;
-6. se achar o Inno Setup, gera `dist\Ipe-<versão>-instalador.exe`.
+5. compacta `dist\Ipe-<versão>-windows-portable.zip`;
+6. se achar o Inno Setup, gera `dist\Ipe-<versão>-installer.exe`.
 
 ## O que sai
 
 | Arquivo | Para quê |
 |---|---|
-| `Ipe-<versão>-instalador.exe` | Instala no perfil do usuário, cria atalhos e registra o link `ipe://` |
-| `Ipe-<versão>-portatil.zip` | Descompactar e rodar `Ipe.exe`; serve para pendrive e para testar |
+| `Ipe-<versão>-installer.exe` | Instala no perfil do usuário, cria atalhos e registra o link `ipe://` |
+| `Ipe-<versão>-windows-portable.zip` | Descompactar e rodar `Ipe.exe`; serve para pendrive e para testar |
 
 Dentro do pacote há **dois executáveis**:
 

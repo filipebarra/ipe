@@ -59,7 +59,7 @@ rem --- tirar os pacotes antigos da frente -------------------------------------
 rem Pacote velho na mesma pasta e armadilha: foi assim que se rodou um instalador 0.35
 rem achando que era o novo. Eles nao sao apagados, so saem do caminho.
 if not exist "dist\antigos" mkdir "dist\antigos" 2>nul
-for %%F in ("dist\Ipe-*-instalador.exe" "dist\Ipe-*-portatil.zip") do (
+for %%F in ("dist\Ipe-*-installer.exe" "dist\Ipe-*-portable.zip" "dist\Ipe-*-instalador.exe" "dist\Ipe-*-portatil.zip") do (
   if exist "%%~fF" move /y "%%~fF" "dist\antigos\" >nul && echo Guardado em dist\antigos: %%~nxF
 )
 
@@ -95,8 +95,8 @@ if "%CONF%"=="2" (
 )
 
 rem --- ZIP portatil (sempre) --------------------------------------------------
-powershell -NoProfile -Command "Compress-Archive -Path 'dist\Ipe\*' -DestinationPath 'dist\Ipe-%VERSAO%-portatil.zip' -Force"
-echo Pacote portatil: dist\Ipe-%VERSAO%-portatil.zip
+powershell -NoProfile -Command "Compress-Archive -Path 'dist\Ipe\*' -DestinationPath 'dist\Ipe-%VERSAO%-windows-portable.zip' -Force"
+echo Pacote portatil: dist\Ipe-%VERSAO%-windows-portable.zip
 
 rem --- instalador (se o Inno Setup estiver instalado) -------------------------
 set "ISCC="
@@ -110,7 +110,7 @@ if not defined ISCC (
 ) else (
   "%ISCC%" /DVersao=%VERSAO% installer\ipe.iss
   if errorlevel 1 ( echo [ERRO] Falha ao gerar o instalador. & goto :fim )
-  echo Instalador: dist\Ipe-%VERSAO%-instalador.exe
+  echo Instalador: dist\Ipe-%VERSAO%-installer.exe
 )
 
 rem --- dizer, em letras grandes, qual arquivo e o novo -------------------------
@@ -120,10 +120,10 @@ echo  PRONTO - versao %VERSAO%
 echo ------------------------------------------------------------
 if defined ISCC (
   echo  Instale executando ESTE arquivo:
-  echo     %CD%\dist\Ipe-%VERSAO%-instalador.exe
+  echo     %CD%\dist\Ipe-%VERSAO%-installer.exe
 ) else (
   echo  Sem Inno Setup: saiu so o pacote portatil.
-  echo     %CD%\dist\Ipe-%VERSAO%-portatil.zip
+  echo     %CD%\dist\Ipe-%VERSAO%-windows-portable.zip
 )
 if "%CONFERIDO%"=="nao" (
   echo  ATENCAO: o pacote NAO foi conferido - o Windows bloqueou o executavel.

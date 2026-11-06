@@ -119,7 +119,7 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 ## Instalação
 
 ### Windows — instalador
-O instalador `Ipe-<versão>-instalador.exe` (e o pacote portátil `.zip`) instala no perfil do
+O instalador `Ipe-<versão>-installer.exe` (e o pacote portátil `.zip`) instala no perfil do
 usuário, sem pedir administrador. A primeira tela pergunta o idioma, com o inglês marcado. Para gerá-lo a partir do código, veja
 [installer/LEIAME.md](installer/LEIAME.md).
 

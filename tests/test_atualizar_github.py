@@ -22,11 +22,11 @@ class _Resp(io.BytesIO):
 
 CONTEUDO = b"instalador de mentira" * 1000
 RELEASE = {"tag_name": "v9.9.9", "name": "v9.9.9", "body": "- coisas novas", "html_url": "https://x/rel",
-           "assets": [{"name": "Ipe-9.9.9-instalador.exe", "browser_download_url": "https://x/inst.exe",
+           "assets": [{"name": "Ipe-9.9.9-installer.exe", "browser_download_url": "https://x/inst.exe",
                        "size": len(CONTEUDO), "digest": "sha256:" + hashlib.sha256(CONTEUDO).hexdigest()},
-                      {"name": "Ipe-9.9.9-linux-portatil.tar.gz", "browser_download_url": "https://x/l.tgz",
+                      {"name": "Ipe-9.9.9-linux-portable.tar.gz", "browser_download_url": "https://x/l.tgz",
                        "size": 10, "digest": ""},
-                      {"name": "Ipe-9.9.9-windows-portatil.zip", "browser_download_url": "https://x/w.zip",
+                      {"name": "Ipe-9.9.9-windows-portable.zip", "browser_download_url": "https://x/w.zip",
                        "size": 10, "digest": ""}]}
 
 
@@ -41,7 +41,7 @@ def _abrir(req, timeout=0):
 def test_consultar_escolher_e_baixar(tmp_path):
     info = GH.consultar(abrir=_abrir)
     assert info["versao"] == "9.9.9" and GH.ha_nova(info, "0.99.70") and not GH.ha_nova(info, "9.9.9")
-    assert GH.pacote_para(info, "instalado")["nome"].endswith("-instalador.exe")
+    assert GH.pacote_para(info, "instalado")["nome"].endswith("-installer.exe")
     assert GH.pacote_para(info, "linux")["nome"].endswith(".tar.gz")
     assert GH.pacote_para(info, "portatil_windows")["nome"].endswith(".zip")
     assert GH.pacote_para(info, "codigo") is None
@@ -100,7 +100,7 @@ def test_tela(env, tmp_path, monkeypatch):
         r = G.baixar_e_instalar(w, GH.pacote_para(info, "instalado"), "instalado",
                                 baixar=lambda p, d, andou: GH.baixar(p, d, andou, abrir=_abrir),
                                 rodar=lambda arq: rodou.append(arq.name))
-        assert r == "instalando" and rodou[0] == "Ipe-9.9.9-instalador.exe"
+        assert r == "instalando" and rodou[0] == "Ipe-9.9.9-installer.exe"
         app.processEvents()
         assert "fechou" in rodou
         # aviso automático: uma vez por dia, e nunca no modo cliente
@@ -118,3 +118,16 @@ def test_tela(env, tmp_path, monkeypatch):
         assert "Procurar versão nova (GitHub)…" in textos and "Avisar quando sair versão nova" in textos
     finally:
         w.close()
+
+
+def test_nomes_antigos_em_portugues_ainda_servem():
+    """0.99.81: os pacotes passaram a ter nomes em inglês; um release antigo (português) continua achado."""
+    info = {"pacotes": [{"nome": "Ipe-0.99.78-instalador.exe"}, {"nome": "Ipe-0.99.78-windows-portatil.zip"},
+                        {"nome": "Ipe-0.99.78-linux-portatil.tar.gz"}]}
+    assert GH.pacote_para(info, "instalado")["nome"] == "Ipe-0.99.78-instalador.exe"
+    assert GH.pacote_para(info, "portatil_windows")["nome"].endswith("portatil.zip")
+    assert GH.pacote_para(info, "linux")["nome"].endswith("portatil.tar.gz")
+    # com os dois nomes no mesmo release, vale o inglês
+    info["pacotes"].append({"nome": "Ipe-0.99.81-installer.exe"})
+    assert GH.pacote_para(info, "instalado")["nome"] == "Ipe-0.99.81-installer.exe"
+    assert GH.pacote_para(info, "codigo") is None

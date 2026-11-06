@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.81 — nombres de los paquetes en inglés
+- Los archivos del release pasan a llamarse `Ipe-<versión>-installer.exe`, `-windows-portable.zip` y
+  `-linux-portable.tar.gz`. La actualización por GitHub encuentra los nombres nuevos y los antiguos.
+- Transición: el release trae también `Ipe-<versión>-instalador.exe` (el mismo instalador), para que las versiones
+  0.99.70 a 0.99.80 se actualicen con un clic.
+- Este release reúne la 0.99.79 (un solo Ipê por usuario) y la 0.99.80 (altura y peso en la composición corporal y
+  el resultado de la esteatosis).
+
 ## 0.99.80 — peso y altura en la composición corporal, y el resultado de la esteatosis
 - Al hacer clic para calcular la composición corporal, una ventana muestra altura, peso y sexo del archivo para
   revisar o ingresar (vale para el examen; el archivo no cambia). En Hallazgos de IA, **Altura y peso…** los cambia

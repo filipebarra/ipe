@@ -44,6 +44,8 @@ Ao abrir (uma vez por dia), o Ipê procura no GitHub se saiu versão nova; **Aju
 - **Baixar** (versão portátil do Windows e Linux): baixa o pacote e abre a pasta; trocar a pasta do programa é à mão (o banco e as configurações ficam fora dela).
 - **Pular esta versão**: o aviso automático não volta para ela (a procura pelo menu continua mostrando). **Depois**: pergunta de novo no dia seguinte. **Ver a página**: abre o release no navegador.
 
+Os arquivos do release têm nomes em inglês desde a 0.99.81: `Ipe-<versão>-installer.exe`, `Ipe-<versão>-windows-portable.zip` e `Ipe-<versão>-linux-portable.tar.gz`. O release traz também `Ipe-<versão>-instalador.exe`, o mesmo instalador com o nome antigo, para que as versões 0.99.70 a 0.99.80 ainda atualizem com um clique.
+
 No modo cliente quem decide a versão é o servidor central (Ajuda ▸ Procurar atualização no servidor central…), e o aviso do GitHub não aparece. A consulta manda ao GitHub só o nome do programa e a versão.
 
 ### Levar as configurações para outro computador

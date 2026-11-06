@@ -2,11 +2,14 @@
 este computador, confere o SHA-256 que o GitHub publica e, no Windows instalado, roda o instalador sem perguntas.
 
 Qual pacote:
-- **Windows instalado** (há o desinstalador ``unins000.exe`` ao lado do programa): ``-instalador.exe``. Roda com
+- **Windows instalado** (há o desinstalador ``unins000.exe`` ao lado do programa): ``-installer.exe``. Roda com
   ``/SILENT``: mantém a pasta do programa, a do banco, o idioma e o modo de uso; o programa fecha e o instalador
   abre a versão nova;
-- **Windows portátil**: ``-windows-portatil.zip``, baixado e a pasta aberta (trocar a pasta é à mão);
-- **Linux**: ``-linux-portatil.tar.gz``, idem;
+- **Windows portátil**: ``-windows-portable.zip``, baixado e a pasta aberta (trocar a pasta é à mão);
+- **Linux**: ``-linux-portable.tar.gz``, idem;
+
+Até a 0.99.80 os nomes eram em português (``-instalador.exe``, ``-windows-portatil.zip``, ``-linux-portatil.tar.gz``):
+os dois servem, o inglês primeiro.
 - **código-fonte** (o computador de desenvolvimento): só avisa e mostra a página; quem atualiza é o git.
 
 Sem dependência nova (urllib). A consulta manda só o nome do programa e a versão (User-Agent). Sem Qt.
@@ -69,14 +72,18 @@ def modo_desta_instalacao(exe: Path | None = None, plataforma: str | None = None
     return "linux"
 
 
-SUFIXO = {"instalado": "-instalador.exe", "portatil_windows": "-windows-portatil.zip", "linux": "-linux-portatil.tar.gz"}
+#: 0.99.81: nomes em inglês; os em português (até a 0.99.80) ainda servem
+SUFIXO = {"instalado": ("-installer.exe", "-instalador.exe"),
+          "portatil_windows": ("-windows-portable.zip", "-windows-portatil.zip"),
+          "linux": ("-linux-portable.tar.gz", "-linux-portatil.tar.gz")}
 
 
 def pacote_para(info: dict, modo: str) -> dict | None:
-    suf = SUFIXO.get(modo)
-    if not suf:
-        return None
-    return next((p for p in info.get("pacotes", []) if p["nome"].lower().endswith(suf)), None)
+    for suf in SUFIXO.get(modo) or ():
+        p = next((p for p in info.get("pacotes", []) if p["nome"].lower().endswith(suf)), None)
+        if p is not None:
+            return p
+    return None
 
 
 def ha_nova(info: dict, atual: str) -> bool:

@@ -187,14 +187,14 @@ def test_a_conferencia_recusa_pacote_de_outra_versao():
 def test_o_build_tira_os_pacotes_antigos_da_frente():
     texto = (RAIZ / "installer" / "build_windows.bat").read_text(encoding="utf-8")
     assert "dist\\antigos" in texto
-    assert "Ipe-*-instalador.exe" in texto
+    assert "Ipe-*-installer.exe" in texto and "Ipe-*-instalador.exe" in texto
     assert "del " not in texto.lower().split("dist\\antigos")[1][:400]  # guarda, não apaga
 
 
 def test_o_build_diz_qual_arquivo_executar():
     texto = (RAIZ / "installer" / "build_windows.bat").read_text(encoding="utf-8")
     assert "Instale executando ESTE arquivo" in texto
-    assert "Ipe-%VERSAO%-instalador.exe" in texto
+    assert "Ipe-%VERSAO%-installer.exe" in texto
 
 
 def test_a_receita_leva_o_modelo_de_ia_quando_ele_existe():

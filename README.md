@@ -121,7 +121,7 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
 ## Installation
 
 ### Windows — installer
-The `Ipe-<version>-instalador.exe` installer (and the portable `.zip` package) installs into the
+The `Ipe-<version>-installer.exe` installer (and the portable `.zip` package) installs into the
 user profile, without asking for administrator rights. Its first screen asks for the language, with
 English selected. To build it from source, see [installer/LEIAME.md](installer/LEIAME.md).
 
