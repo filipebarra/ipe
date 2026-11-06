@@ -6049,7 +6049,10 @@
   "trocar a SEG do BraTS anterior",
   "trocar a SEG do autoPET anterior",
   "· BraTS",
-  "· autoPET"
+  "· autoPET",
+  "Lendo as segmentações de IA do exame…",
+  "SEG do exame",
+  "sobreposições do exame"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

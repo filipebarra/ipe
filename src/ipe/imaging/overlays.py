@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -533,36 +534,30 @@ def parse_seg(ds, path: str | None = None) -> OverlayObject:
             s_sp = tuple(float(v) for v in shared.PixelMeasuresSequence[0].PixelSpacing)
         except Exception:  # noqa: BLE001
             pass
-    per = ds.get("PerFrameFunctionalGroupsSequence") or []
-    for i in range(arr.shape[0]):
+    # 0.99.84: o laço só passa pelos quadros com algo (o máximo de cada quadro, sem copiar o volume), e os
+    # dados de cada quadro saem direto dos bytes da sequência quando dá (`_por_quadro_rapido`): o pydicom
+    # monta um Dataset por item da PerFrameFunctionalGroupsSequence, e numa SEG de órgãos (milhares de
+    # quadros) isso era a maior parte da abertura do exame.
+    nq = arr.shape[0]
+    try:
+        cheios = np.flatnonzero(arr.reshape(nq, -1).max(axis=1) > thr)
+    except Exception:  # noqa: BLE001
+        cheios = range(nq)
+    rapido = _por_quadro_rapido(ds, nq)
+    per = None if rapido is not None else (ds.get("PerFrameFunctionalGroupsSequence") or [])
+    for i in cheios:
+        i = int(i)
         m = arr[i] > thr
         if not m.any():
             continue
-        fg = per[i] if i < len(per) else None
-        num, pos, ori, sp, ref = 1, None, s_ori, s_sp, None
-        if fg is not None:
-            try:
-                num = int(fg.SegmentIdentificationSequence[0].ReferencedSegmentNumber)
-            except Exception:  # noqa: BLE001
-                pass
-            try:
-                pos = np.array([float(v) for v in fg.PlanePositionSequence[0].ImagePositionPatient])
-            except Exception:  # noqa: BLE001
-                pass
-            try:
-                ori = np.array([float(v) for v in fg.PlaneOrientationSequence[0].ImageOrientationPatient])
-            except Exception:  # noqa: BLE001
-                pass
-            try:
-                sp = tuple(float(v) for v in fg.PixelMeasuresSequence[0].PixelSpacing)
-            except Exception:  # noqa: BLE001
-                pass
-            try:
-                src = fg.DerivationImageSequence[0].SourceImageSequence[0]
-                fr = src.get("ReferencedFrameNumber")
-                ref = (str(src.ReferencedSOPInstanceUID), int(fr) - 1 if fr else 0)
-            except Exception:  # noqa: BLE001
-                pass
+        if rapido is not None:
+            num, pos, ori, sp, ref = rapido[i]
+            ori = s_ori if ori is None else ori
+            sp = s_sp if sp is None else sp
+            if pos is not None:
+                pos = pos.copy()
+        else:
+            num, pos, ori, sp, ref = _quadro_lento(per[i] if i < len(per) else None, s_ori, s_sp)
         lab, col = segs.get(num, (f"Segmento {num}", PALETTE[(num - 1) % len(PALETTE)]))
         if pos is not None and ori is not None and sp is not None:
             # guarda só o recorte do segmento: o quadro do SEG tem o tamanho da imagem inteira, e
@@ -574,6 +569,99 @@ def parse_seg(ds, path: str | None = None) -> OverlayObject:
             pos = pos + c0 * sp[1] * ori[:3] + r0 * sp[0] * ori[3:]
         obj.masks.append(MaskFrame(m, col, lab, pos, ori, sp, ref))
     return obj
+
+
+def _quadro_lento(fg, s_ori, s_sp):
+    """(segmento, posição, orientação, espaçamento, referência) de um item da PerFrameFunctionalGroupsSequence."""
+    num, pos, ori, sp, ref = 1, None, s_ori, s_sp, None
+    if fg is None:
+        return num, pos, ori, sp, ref
+    try:
+        num = int(fg.SegmentIdentificationSequence[0].ReferencedSegmentNumber)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        pos = np.array([float(v) for v in fg.PlanePositionSequence[0].ImagePositionPatient])
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        ori = np.array([float(v) for v in fg.PlaneOrientationSequence[0].ImageOrientationPatient])
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        sp = tuple(float(v) for v in fg.PixelMeasuresSequence[0].PixelSpacing)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        src = fg.DerivationImageSequence[0].SourceImageSequence[0]
+        fr = src.get("ReferencedFrameNumber")
+        ref = (str(src.ReferencedSOPInstanceUID), int(fr) - 1 if fr else 0)
+    except Exception:  # noqa: BLE001
+        pass
+    return num, pos, ori, sp, ref
+
+
+def _por_quadro_rapido(ds, n: int) -> list | None:
+    """Os dados de cada quadro da SEG lidos direto dos bytes da PerFrameFunctionalGroupsSequence (0.99.84).
+
+    Procura cada atributo pela etiqueta (e VR, na sintaxe explícita) e só aceita o resultado quando há
+    exatamente um por quadro — senão (sintaxe big endian, sequência já lida, atributos faltando ou repetidos)
+    devolve None e a leitura volta ao caminho do pydicom, item a item."""
+    import struct
+    try:
+        if 0x52009230 not in ds:
+            return None
+        el = ds.get_item(0x52009230)
+        raw = getattr(el, "value", None)
+        if not isinstance(raw, (bytes, bytearray)) or n <= 0:
+            return None
+        enc = getattr(ds, "original_encoding", None) or (getattr(ds, "is_implicit_VR", None),
+                                                          getattr(ds, "is_little_endian", None))
+        implicito, little = enc
+        if not little or implicito is None:
+            return None
+
+        def campo(grp, elem, vr: bytes) -> list:
+            tag = struct.pack("<HH", grp, elem)
+            pat = re.escape(tag) + (rb"(.{4})" if implicito else re.escape(vr) + rb"(.{2})")
+            out = []
+            for mt in re.finditer(pat, raw, re.S):
+                L = struct.unpack("<I" if implicito else "<H", mt.group(1))[0]
+                if L > 256:
+                    return []           # não é um atributo de verdade: desiste
+                out.append(bytes(raw[mt.end():mt.end() + L]))
+            return out
+
+        def nums(vals, k):
+            out = []
+            for v in vals:
+                x = [float(t) for t in v.decode("ascii").strip(" \x00").split("\\")]
+                if len(x) != k:
+                    raise ValueError
+                out.append(x)
+            return out
+
+        pos = campo(0x0020, 0x0032, b"DS")
+        seg = campo(0x0062, 0x000B, b"US")
+        if len(pos) != n or len(seg) != n:
+            return None
+        pos = np.array(nums(pos, 3), float)
+        seg = [struct.unpack("<H", v[:2])[0] for v in seg]
+        ori = campo(0x0020, 0x0037, b"DS")
+        sp = campo(0x0028, 0x0030, b"DS")
+        uid = campo(0x0008, 0x1155, b"UI")
+        fr = campo(0x0008, 0x1160, b"IS")
+        if len(ori) not in (0, n) or len(sp) not in (0, n) or len(uid) not in (0, n) or len(fr) not in (0, n) \
+                or (fr and not uid):
+            return None
+        ori = np.array(nums(ori, 6), float) if ori else None
+        sp = [tuple(x) for x in nums(sp, 2)] if sp else None
+        uid = [v.decode("ascii").strip(" \x00") for v in uid] if uid else None
+        fr = [int(float(v.decode("ascii").strip(" \x00").split("\\")[0])) for v in fr] if fr else None
+        return [(int(seg[i]), pos[i], None if ori is None else ori[i], None if sp is None else sp[i],
+                 None if uid is None else (uid[i], (fr[i] - 1) if fr else 0)) for i in range(n)]
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def por_segmento(obj: "OverlayObject") -> list:
@@ -607,6 +695,44 @@ def paralela(mf: MaskFrame, normal) -> bool:
     if mf.position is None or mf.orientation is None or normal is None:
         return True
     return abs(float(_normal(mf.orientation) @ np.asarray(normal, float))) >= 0.99
+
+
+def mascaras_no_plano(obj, pos, normal, tol_mm: float) -> tuple[list, bool]:
+    """As máscaras do objeto que podem cair neste corte, e se há alguma em outro plano (0.99.84).
+
+    O desenho passava por todas as máscaras a cada pintura (numa SEG de órgãos, milhares), com dois
+    produtos vetoriais por máscara. Aqui o objeto guarda, por normal, a distância de cada máscara paralela
+    ao longo dela; a pintura só pega as que estão a até `tol_mm` do corte. Sem posição (máscara presa à
+    imagem pela referência) entra sempre, como antes."""
+    masks = obj.masks
+    if not masks:
+        return [], False
+    if pos is None or normal is None:
+        return list(masks), False
+    n = np.asarray(normal, float)
+    chave = (len(masks), id(masks[0]), id(masks[-1]), tuple(np.round(n, 3)))
+    idx = obj.__dict__.get("_indice_planos")
+    if idx is None or idx[0] != chave:
+        com = [k for k, mf in enumerate(masks) if mf.position is not None and mf.orientation is not None]
+        sem = np.array([k for k, mf in enumerate(masks) if mf.position is None or mf.orientation is None], int)
+        if com:
+            ori = np.array([np.asarray(masks[k].orientation, float) for k in com])
+            nn = np.cross(ori[:, :3], ori[:, 3:])
+            nn /= np.maximum(np.linalg.norm(nn, axis=1, keepdims=True), 1e-9)
+            par = np.abs(nn @ n) >= 0.99
+            com = np.array(com, int)
+            pk = com[par]
+            d = np.array([float(np.asarray(masks[k].position, float) @ n) for k in pk])
+            ordem = np.argsort(d, kind="stable")
+            idx = (chave, pk[ordem], d[ordem], sem, bool((~par).any()))
+        else:
+            idx = (chave, np.array([], int), np.array([], float), sem, False)
+        obj.__dict__["_indice_planos"] = idx
+    _, pk, d, sem, outro = idx
+    p = float(np.asarray(pos, float) @ n)
+    a, b = np.searchsorted(d, p - tol_mm - 1e-6, "left"), np.searchsorted(d, p + tol_mm + 1e-6, "right")
+    sel = sorted(sem.tolist() + pk[a:b].tolist())       # a ordem original (a de cima pinta por cima)
+    return [masks[k] for k in sel], outro
 
 
 def volumes_das_mascaras(masks: list) -> list:
@@ -724,7 +850,69 @@ def volumes_derivados(obj: "OverlayObject") -> list:
 
 
 # ------------------------------------------------------------------ leitura
+#: 0.99.84: as SEG já lidas, por caminho (com data e tamanho do arquivo), para reabrir o exame sem ler de novo
+_LIDOS: dict = {}
+LIDOS_MAX_BYTES = 800_000_000          # teto da memória das máscaras guardadas
+LIDOS_MAX = 24
+
+
+def _chave_arquivo(path) -> tuple | None:
+    import os
+    try:
+        st = os.stat(path)
+        return st.st_mtime_ns, st.st_size
+    except OSError:
+        return None
+
+
+def _bytes_mascaras(obj) -> int:
+    return sum(int(mf.mask.nbytes) for mf in obj.masks)
+
+
+def _copia(obj: OverlayObject) -> OverlayObject:
+    """Um objeto novo com as mesmas máscaras (que ninguém altera): ligar/desligar numa aba não muda a outra."""
+    import copy
+    c = copy.copy(obj)
+    c.masks, c.findings, c.planar, c.all_frames = list(obj.masks), list(obj.findings), list(obj.planar), \
+        list(obj.all_frames)
+    c.volumes, c.by_frame, c.stats = list(obj.volumes), dict(obj.by_frame), dict(obj.stats)
+    for k in ("_derivados", "_indice_planos"):
+        c.__dict__.pop(k, None)
+    return c
+
+
+def ja_lido(path) -> bool:
+    """A SEG deste caminho já está guardada (e o arquivo não mudou)?"""
+    hit = _LIDOS.get(str(path))
+    return hit is not None and hit[0] == _chave_arquivo(path)
+
+
+def esquecer_lidos() -> None:
+    _LIDOS.clear()
+
+
+def _guardar_lido(path: str, chave, obj: OverlayObject) -> None:
+    _LIDOS.pop(path, None)
+    _LIDOS[path] = (chave, obj, _bytes_mascaras(obj))
+    while len(_LIDOS) > LIDOS_MAX or (len(_LIDOS) > 1 and sum(v[2] for v in _LIDOS.values()) > LIDOS_MAX_BYTES):
+        _LIDOS.pop(next(iter(_LIDOS)))
+
+
 def load_object(path: str) -> OverlayObject | None:
+    path = str(path)
+    chave = _chave_arquivo(path)
+    hit = _LIDOS.get(path)
+    if hit is not None and chave is not None and hit[0] == chave:
+        _LIDOS[path] = _LIDOS.pop(path)          # o mais recente vai para o fim
+        return _copia(hit[1])
+    obj = _ler_objeto(path)
+    if obj is not None and obj.source == "SEG" and chave is not None and obj.masks:
+        _guardar_lido(path, chave, obj)
+        return _copia(obj)
+    return obj
+
+
+def _ler_objeto(path: str) -> OverlayObject | None:
     try:
         ds = pydicom.dcmread(path, force=True)
     except Exception as e:  # noqa: BLE001

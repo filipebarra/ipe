@@ -305,6 +305,73 @@ class OncoMixin:
         return True
 
     # ================================================================ CAD / IA
+    #: acima disto (bytes de SEG ainda não lidas), a leitura vai para segundo plano e a imagem aparece antes
+    SEG_EM_SEGUNDO_PLANO = 8_000_000
+
+    def carregar_overlays(self) -> None:
+        """0.99.84: abre o exame primeiro e lê as SEG grandes (órgãos do TotalSegmentator, milhares de quadros)
+        numa linha à parte; quando terminam, as sobreposições entram como sempre (`load_overlay_objects`,
+        que aí já acha tudo lido). As pequenas continuam na hora, sem diferença para quem olha."""
+        import os
+        import threading
+        done = getattr(self, "_overlay_studies", set())
+        caminhos = []
+        try:
+            for study in list(self.study_order):
+                if study in done:
+                    continue
+                for s in self.repo.series_for_study(study):
+                    if (s.modality or "").upper() != "SEG":
+                        continue
+                    for inst in self.repo.instances_for_series(s.series_uid)[:50]:
+                        c = str(inst["path"])
+                        if not O.ja_lido(c):
+                            caminhos.append(c)
+        except Exception:  # noqa: BLE001
+            log.exception("SEG do exame")
+            caminhos = []
+        total = 0
+        for c in caminhos:
+            try:
+                total += os.path.getsize(c)
+            except OSError:
+                pass
+        if total < self.SEG_EM_SEGUNDO_PLANO or getattr(self, "_lendo_overlays", False):
+            if not getattr(self, "_lendo_overlays", False):
+                self.load_overlay_objects()
+            return
+        from PySide6.QtCore import QObject, Signal
+
+        class _Aviso(QObject):
+            pronto = Signal()
+
+        aviso = _Aviso()
+        self._aviso_overlays = aviso
+        self._lendo_overlays = True
+        self.status_message.emit("Lendo as segmentações de IA do exame…")
+
+        def terminou():
+            self._lendo_overlays = False
+            self._aviso_overlays = None
+            try:
+                self.load_overlay_objects()
+            except RuntimeError:
+                pass                             # a aba fechou enquanto lia
+            except Exception:  # noqa: BLE001
+                log.exception("sobreposições do exame")
+
+        aviso.pronto.connect(terminou, Qt.QueuedConnection)
+
+        def ler():
+            for c in caminhos:
+                try:
+                    O.load_object(c)
+                except Exception:  # noqa: BLE001
+                    log.exception("SEG %s", c)
+            aviso.pronto.emit()
+
+        threading.Thread(target=ler, name="ipe-seg", daemon=True).start()
+
     def load_overlay_objects(self) -> int:
         """Lê SR/SEG/RTSTRUCT/GSPS dos estudos da aba (os que ainda não foram lidos)."""
         done = getattr(self, "_overlay_studies", set())

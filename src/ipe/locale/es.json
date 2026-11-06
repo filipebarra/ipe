@@ -8128,5 +8128,8 @@
  "{} ({} {})": "{} ({} {})",
  "{} ilha(s) menor(es) que {} mL ficaram de fora": "{} isla(s) menor(es) que {} mL quedaron fuera",
  "{} lesão(ões), MTV {} mL, TLG {} g, SUVmáx {}": "{} lesión(es), MTV {} mL, TLG {} g, SUVmáx {}",
- "{}: {}. Instale em Configurações ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS)… — uma vez, com internet.": "{}: {}. Instale en Configuración ▸ Instalar los modelos extra (MedSAM2, autoPET, BraTS)… — una vez, con internet."
+ "{}: {}. Instale em Configurações ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS)… — uma vez, com internet.": "{}: {}. Instale en Configuración ▸ Instalar los modelos extra (MedSAM2, autoPET, BraTS)… — una vez, con internet.",
+ "Lendo as segmentações de IA do exame…": "Leyendo las segmentaciones de IA del estudio…",
+ "SEG do exame": "SEG del estudio",
+ "sobreposições do exame": "superposiciones del estudio"
 }

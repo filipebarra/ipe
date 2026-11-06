@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.84 — faster opening of exams with AI SEGs
+- The TotalSegmentator organ SEG (thousands of frames) was read on the main screen at every opening and froze the
+  exam for seconds. Now the frames come straight from the file bytes (2–5× faster), large SEGs are read in the
+  background (the image shows first) and what was already read stays in memory: reopening the exam is instant.
+- Drawing only goes through the masks near the current slice, instead of all of them on every paint.
+- Measured on a 300-slice exam with a 60-structure SEG: opening from 6.2 s to 1.4 s; reopening from 2.2 s to 0.2 s.
+
 ## 0.99.83 — MedSAM2, autoPET and BraTS (extra models)
 - **Segment from a box (MedSAM2)**: left-button tool; a box on one slice becomes a 3D mask, propagated up and down,
   and opens in the 3D Segmentation window (volume, axes, SUV, lesion, SEG).

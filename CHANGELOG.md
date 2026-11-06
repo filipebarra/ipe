@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.84 — abertura mais rápida dos exames com SEG de IA
+- A SEG de órgãos do TotalSegmentator (milhares de quadros) era lida na tela principal a cada abertura e travava o
+  exame por segundos. Agora os quadros saem direto dos bytes do arquivo (2–5× mais rápido), a leitura das SEG
+  grandes vai para segundo plano (a imagem aparece antes) e o que já foi lido fica na memória: reabrir o exame é
+  imediato.
+- O desenho só passa pelas máscaras perto do corte atual, em vez de todas a cada pintura.
+- Medido num exame de 300 cortes com SEG de 60 estruturas: abertura de 6,2 s para 1,4 s; reabertura de 2,2 s para
+  0,2 s.
+
 ## 0.99.83 — MedSAM2, autoPET e BraTS (modelos extras)
 - **Segmentar pela caixa (MedSAM2)**: ferramenta do botão esquerdo; a caixa num corte vira máscara 3D, propagada
   para cima e para baixo, e abre na janela da Segmentação 3D (volume, eixos, SUV, lesão, SEG).

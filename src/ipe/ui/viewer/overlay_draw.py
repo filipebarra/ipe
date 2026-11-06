@@ -85,11 +85,9 @@ def draw_masks(vp, p: QPainter) -> None:
     p.save()
     p.setRenderHint(QPainter.SmoothPixmapTransform, False)
     for o in objs:
-        outro_plano = False
-        for mf in o.masks:
-            if pos is not None and not O.paralela(mf, n):
-                outro_plano = True              # 0.99.16: este corte vem do volume derivado, abaixo
-                continue
+        # 0.99.84: só as máscaras perto deste corte (o índice por plano); as de outro plano vêm do volume derivado
+        perto, outro_plano = O.mascaras_no_plano(o, pos, n, tol)
+        for mf in perto:
             try:
                 rect = O.mask_rect(mf, pos, row, col, n, sp, tol, f.sop_uid, f.frame_index)
             except Exception:  # noqa: BLE001

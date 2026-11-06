@@ -300,7 +300,7 @@ class ViewerTab(OncoMixin, QWidget):
             QTimer.singleShot(0, lambda: self.status_message.emit(
                 f"Regras de dinâmico (Preferências ▸ Dinâmicos): {feito}"))
         repo.mark_opened(study_uid)
-        QTimer.singleShot(0, self.load_overlay_objects)
+        QTimer.singleShot(0, self.carregar_overlays)
 
     # ================================================================ toolbar
     def _act(self, action_id: str, text: str, slot, checkable: bool = False,
@@ -3077,7 +3077,7 @@ class ViewerTab(OncoMixin, QWidget):
         if colocar:
             self.estudos_na_tira = None        # veio pelo botão Anteriores: aparece na tira
         self._fill_strip()
-        QTimer.singleShot(0, self.load_overlay_objects)
+        QTimer.singleShot(0, self.carregar_overlays)
         self._encher_filtro_de_exames()
         if not colocar:
             return
@@ -6279,7 +6279,7 @@ class ViewerTab(OncoMixin, QWidget):
         self.estudos_na_tira = None            # o exame que chegou aparece na tira
         self._fill_strip()
         self._encher_filtro_de_exames()
-        QTimer.singleShot(0, self.load_overlay_objects)
+        QTimer.singleShot(0, self.carregar_overlays)
 
     def title(self) -> str:
         if self.case_label:

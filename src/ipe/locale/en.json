@@ -8128,5 +8128,8 @@
  "{} ({} {})": "{} ({} {})",
  "{} ilha(s) menor(es) que {} mL ficaram de fora": "{} island(s) smaller than {} mL were left out",
  "{} lesão(ões), MTV {} mL, TLG {} g, SUVmáx {}": "{} lesion(s), MTV {} mL, TLG {} g, SUVmax {}",
- "{}: {}. Instale em Configurações ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS)… — uma vez, com internet.": "{}: {}. Install in Settings ▸ Install the extra models (MedSAM2, autoPET, BraTS)… — once, with internet."
+ "{}: {}. Instale em Configurações ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS)… — uma vez, com internet.": "{}: {}. Install in Settings ▸ Install the extra models (MedSAM2, autoPET, BraTS)… — once, with internet.",
+ "Lendo as segmentações de IA do exame…": "Reading the exam's AI segmentations…",
+ "SEG do exame": "exam SEG",
+ "sobreposições do exame": "exam overlays"
 }
