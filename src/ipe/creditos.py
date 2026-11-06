@@ -104,12 +104,25 @@ CREDITOS: tuple[Credito, ...] = (
             citacao="Wasserthal J, et al. TotalSegmentator: robust segmentation of 104 anatomic "
                     "structures in CT images. Radiology: Artificial Intelligence. 2023;5(5):e230024.",
             modulos=("totalsegmentator",)),
-    Credito("nnU-Net", "a rede por trás do TotalSegmentator", "Apache-2.0", "https://github.com/MIC-DKFZ/nnUNet",
-            onde="segmentação",
+    Credito("nnU-Net", "a rede por trás do TotalSegmentator e do autoPET", "Apache-2.0",
+            "https://github.com/MIC-DKFZ/nnUNet", onde="segmentação",
             citacao="Isensee F, et al. nnU-Net: a self-configuring method for deep learning-based "
-                    "biomedical image segmentation. Nature Methods. 2021;18:203–211."),
+                    "biomedical image segmentation. Nature Methods. 2021;18:203–211.", modulos=("nnunetv2",)),
     Credito("PyTorch", "a biblioteca de redes neurais da segmentação", "BSD-3-Clause", "https://pytorch.org",
-            onde="segmentação"),
+            onde="segmentação", modulos=("torch",)),
+    Credito("MedSAM2", "segmentar qualquer lesão por uma caixa, propagada aos cortes vizinhos (modelo extra)",
+            "Apache-2.0 (código); CC BY-SA 4.0 (pesos)", "https://github.com/bowang-lab/MedSAM2", onde="modelo",
+            citacao="Ma J, et al. MedSAM2: Segment Anything in 3D Medical Images and Videos. arXiv 2504.03600; 2025.",
+            modulos=("sam2",)),
+    Credito("autoPET II (nnU-Net)", "lesões ávidas no PET-FDG, para o MTV e a TLG (modelo extra)",
+            "conferir no registro do Zenodo 8362371 (nnU-Net: Apache-2.0)", "https://zenodo.org/records/8362371",
+            onde="modelo",
+            citacao="Isensee F, et al. Look Ma, no code: fine tuning nnU-Net for the AutoPET II challenge by only "
+                    "adjusting its JSON plans. arXiv 2309.13747; 2023."),
+    Credito("MONAI", "o SegResNet do glioma (BraTS) — parte captante, necrose e edema (modelo extra)", "Apache-2.0",
+            "https://monai.io", onde="segmentação", modulos=("monai",),
+            citacao="Myronenko A. 3D MRI brain tumor segmentation using autoencoder regularization. BrainLes "
+                    "(MICCAI) 2018."),
     Credito("SynthSeg", "segmentação do encéfalo em RM de qualquer contraste e resolução e em TC — índices do "
             "crânio (Evans, 3º ventrículo, ângulo calosal) e volumes dos hipocampos", "Apache-2.0",
             "https://github.com/BBillot/SynthSeg", onde="modelo",

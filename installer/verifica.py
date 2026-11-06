@@ -93,7 +93,7 @@ def main() -> int:
     print("  Guia do usuário no pacote.")
     # segmentação de órgãos (0.98): o trabalhador e o instalador vão junto; o ambiente pesado, não
     inst = "instalar_segmentacao.bat" if sys.platform == "win32" else "instalar_segmentacao.sh"
-    for rel in (("ipe", "ai", "totalseg_worker.py"), ("ipe", inst)):
+    for rel in (("ipe", "ai", "totalseg_worker.py"), ("ipe", "ai", "instalar_modelos_extras.py"), ("ipe", inst)):
         if not ((pasta / "_internal").joinpath(*rel).exists() or pasta.joinpath(*rel).exists()):
             print(f"  Falta no pacote: {'/'.join(rel)} — sem ele a segmentação de órgãos não roda/instala.")
             return 1

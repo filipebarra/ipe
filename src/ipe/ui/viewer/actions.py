@@ -130,6 +130,8 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("enfisema.auto", "Enfisema: % abaixo de −950 HU por pulmão e lobo (IA)", "Medidas"),
     ("genant.auto", "Fratura vertebral — Genant (IA)", "Medidas"),
     ("figado_lesoes.auto", "Lesões hepáticas e carga por segmento (IA)", "Medidas"),
+    ("autopet.auto", "Lesões no PET-FDG: MTV e TLG (IA)", "Medidas"),
+    ("brats.auto", "Glioma na RM — BraTS (IA)", "Medidas"),
     ("achados.abrir", "Achados de IA: revisar, confirmar, descartar", "Medidas"),
     ("estruturas.abrir", "Estruturas: editar máscaras (SEG / RTSTRUCT)", "Medidas"),
 ]

@@ -1931,6 +1931,11 @@ class MainWindow(QMainWindow):
         from ipe.ui.segmentacao import abrir_instalador
         abrir_instalador(self)
 
+    def instalar_modelos_extras(self) -> None:
+        """Configurações ▸ CAD/IA ▸ Instalar os modelos extras (0.99.83): MedSAM2, autoPET, BraTS."""
+        from ipe.ui.segmentacao import abrir_instalador_extras
+        abrir_instalador_extras(self, settings=self.settings)
+
     def _segmentacao_pronta(self, study_uid: str, saida) -> None:
         """Órgãos segmentados pelo banco: o exame aberto ganha as máscaras sem precisar reabrir."""
         from ipe.ui.segmentacao import carregar_na_aba

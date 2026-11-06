@@ -23,6 +23,8 @@ GENERICAS = {
     "enfisema": "ipe.ai.enfisema",              # 0.99.77
     "genant": "ipe.ai.genant",                  # 0.99.77
     "figado_lesoes": "ipe.ai.figado_lesoes",    # 0.99.82
+    "autopet": "ipe.ai.autopet",                # 0.99.83 (modelo extra)
+    "brats": "ipe.ai.brats",                    # 0.99.83 (modelo extra)
 }
 
 
@@ -41,6 +43,7 @@ def preparar_trabalho(t, mod) -> None:
     t.min_cortes = mod.MIN_CORTES
     t.modalidades = tuple(mod.MODALIDADES)
     t.motivo_modalidade = mod.MOTIVO_MODALIDADE
+    t.canais_extras = getattr(mod, "canais_extras", None)       # 0.99.83: autoPET, BraTS
 
 
 def rodar_conta(t, mod, settings):

@@ -269,6 +269,224 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
     return saida
 
 
+# ================================================================== modelos extras (0.99.83)
+# MedSAM2 (caixa → máscara 3D), autoPET (lesões no PET-FDG) e BraTS (glioma). Os pesos ficam em
+# IPE_PESOS (…/segmentacao/pesos), baixados pelo instalar_modelos_extras. Nada do Ipê é importado aqui.
+ESPECIAIS = ("medsam2", "autopet", "brats")
+
+
+def _pesos() -> Path:
+    return Path(os.environ.get("IPE_PESOS") or os.environ.get("TOTALSEG_HOME_DIR") or ".")
+
+
+def _canais(d: Path, job: dict) -> dict:
+    import numpy as np
+    return {n: np.load(d / f"canal_{n}.npy") for n in job.get("canais", [])}
+
+
+def _maior_ilha_tocando(m, k_ref: int):
+    """Só os cortes contíguos ao corte de referência que têm máscara (o resto é vazamento da propagação)."""
+    import numpy as np
+    tem = m.reshape(m.shape[0], -1).any(1)
+    out = np.zeros_like(m)
+    if not tem[k_ref]:
+        return out
+    k0 = k_ref
+    while k0 - 1 >= 0 and tem[k0 - 1]:
+        k0 -= 1
+    k1 = k_ref
+    while k1 + 1 < m.shape[0] and tem[k1 + 1]:
+        k1 += 1
+    out[k0:k1 + 1] = m[k0:k1 + 1]
+    return out
+
+
+def _medsam2(vol, t: dict):
+    """Caixa num corte → máscara 3D, propagada para cima e para baixo (vídeo do SAM2)."""
+    import numpy as np
+    import torch
+    from PIL import Image
+    from sam2.build_sam import build_sam2_video_predictor_npz
+    k, x0, y0, x1, y1 = (int(round(v)) for v in t["caixa"])
+    lo, hi = (float(v) for v in t["janela"])
+    alcance = int(t.get("alcance", 60))
+    nz, ny, nx = vol.shape
+    k0, k1 = max(0, k - alcance), min(nz, k + alcance + 1)
+    sub = np.clip((vol[k0:k1].astype(np.float32) - lo) / max(hi - lo, 1e-6), 0, 1) * 255.0
+    img = np.empty((k1 - k0, 3, 512, 512), np.float32)
+    for z in range(k1 - k0):
+        r = np.asarray(Image.fromarray(sub[z].astype(np.uint8)).resize((512, 512), Image.BILINEAR), np.float32)
+        img[z] = r[None] / 255.0
+    media = np.array([0.485, 0.456, 0.406], np.float32)[None, :, None, None]
+    desvio = np.array([0.229, 0.224, 0.225], np.float32)[None, :, None, None]
+    img = torch.from_numpy((img - media) / desvio)
+    ckpt = _pesos() / "medsam2" / "MedSAM2_latest.pt"
+    if not ckpt.is_file():
+        raise RuntimeError(f"faltam os pesos do MedSAM2 ({ckpt}): rode o instalar_modelos_extras")
+    etapa("MedSAM2: carregando o modelo")
+    pred = build_sam2_video_predictor_npz("configs/sam2.1_hiera_t512.yaml", str(ckpt), device="cpu")
+    caixa = np.array([x0, y0, x1, y1], np.float32)
+    mask = np.zeros((k1 - k0, ny, nx), bool)
+    with torch.inference_mode():
+        estado = pred.init_state(img, ny, nx)
+        for reverso in (False, True):
+            etapa("MedSAM2: propagando " + ("para baixo" if reverso else "para cima"))
+            pred.add_new_points_or_box(inference_state=estado, frame_idx=k - k0, obj_id=1, box=caixa)
+            for f, _ids, logits in pred.propagate_in_video(estado, reverse=reverso):
+                mask[f] |= (logits[0] > 0.0).cpu().numpy()[0]
+            pred.reset_state(estado)
+    out = np.zeros(vol.shape, np.uint8)
+    out[k0:k1] = _maior_ilha_tocando(mask, k - k0)
+    return out, {1: "lesao"}
+
+
+def _sim_medsam2(vol, t: dict):
+    """Simulado: no corte da caixa e nos vizinhos, o que está dentro da caixa e perto do valor do centro."""
+    import numpy as np
+    k, x0, y0, x1, y1 = (int(round(v)) for v in t["caixa"])
+    cy, cx = (y0 + y1) // 2, (x0 + x1) // 2
+    ref = float(vol[k, cy, cx])
+    out = np.zeros(vol.shape, np.uint8)
+    perto = np.abs(vol.astype(np.float32) - ref) <= float(t.get("_tolerancia", 30))
+    caixa = np.zeros(vol.shape[1:], bool)
+    caixa[y0:y1 + 1, x0:x1 + 1] = True
+    for z in range(vol.shape[0]):
+        out[z][perto[z] & caixa] = 1
+    out = _maior_ilha_tocando(out.astype(bool), k).astype(np.uint8)
+    return out, {1: "lesao"}
+
+
+def _autopet_pasta():
+    """A pasta do modelo nnU-Net do autoPET (a que tem plans.json e fold_0/checkpoint_final.pth)."""
+    raiz = _pesos() / "autopet"
+    achados = sorted(p.parent.parent for p in raiz.rglob("fold_0/checkpoint_final.pth")) if raiz.is_dir() else []
+    if not achados:
+        raise RuntimeError(f"faltam os pesos do autoPET em {raiz}: rode o instalar_modelos_extras")
+    pref = [p for p in achados if "bs80" in p.name] or [p for p in achados if "3d_fullres" in p.name] or achados
+    return pref[0]
+
+
+def _autopet(vol, canais: dict, job: dict):
+    """PET (SUV) + TC na grade do PET → lesões (nnU-Net do autoPET II, um fold)."""
+    import numpy as np
+    import torch
+    from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
+    ct = canais.get("ct")
+    if ct is None:
+        raise RuntimeError("a TC do PET/CT não veio (canal_ct)")
+    etapa("autoPET: carregando o modelo")
+    pred = nnUNetPredictor(tile_step_size=0.5, use_gaussian=True, use_mirroring=False,
+                           device=torch.device("cpu"), verbose=False, allow_tqdm=False)
+    pred.initialize_from_trained_model_folder(str(_autopet_pasta()), use_folds=(0,),
+                                              checkpoint_name="checkpoint_final.pth")
+    suv = canais.get("suv", vol)
+    img = np.stack([ct.astype(np.float32), suv.astype(np.float32)])          # _0000 = TC, _0001 = SUV
+    props = {"spacing": [float(x) for x in job["espacamento"]]}
+    etapa("autoPET: segmentando as lesões")
+    seg = pred.predict_single_npy_array(img, props, None, None, False)
+    return np.asarray(seg, np.uint8), {1: "lesao_fdg"}
+
+
+def _sim_autopet(vol, canais: dict, job: dict):
+    """Simulado: SUV ≥ 4 fora do 'cérebro' (TC = 37) e da 'bexiga' (TC = 5)."""
+    import numpy as np
+    ct = canais.get("ct", np.zeros_like(vol))
+    suv = canais.get("suv", vol)
+    lab = ((suv >= 4.0) & (np.abs(ct - 37) > 0.5) & (np.abs(ct - 5) > 0.5)).astype(np.uint8)
+    return lab, {1: "lesao_fdg"}
+
+
+def _brats(vol, canais: dict, job: dict, cerebro=None):
+    """T1 pós, T1, T2 e FLAIR (já na grade da T1 pós) → TC, WT, ET (SegResNet do MONAI)."""
+    import numpy as np
+    import torch
+    from monai.inferers import sliding_window_inference
+    from monai.networks.nets import SegResNet
+    pesos = _pesos() / "brats" / "model.pt"
+    if not pesos.is_file():
+        raise RuntimeError(f"faltam os pesos do BraTS ({pesos}): rode o instalar_modelos_extras")
+    falta = [n for n in ("t1", "t2", "flair") if n not in canais]
+    if falta:
+        raise RuntimeError("faltam as sequências: " + ", ".join(falta))
+    dz, dy, dx = (float(x) for x in job["espacamento"])
+    chans = [vol] + [canais[n] for n in ("t1", "t2", "flair")]
+    x = torch.from_numpy(np.stack([c.astype(np.float32) for c in chans]))[None]      # (1, 4, z, y, x)
+    if cerebro is not None:
+        x = x * torch.from_numpy(cerebro.astype(np.float32))[None, None]
+    alvo = (max(8, int(round(vol.shape[0] * dz))), int(round(vol.shape[1] * dy)), int(round(vol.shape[2] * dx)))
+    x = torch.nn.functional.interpolate(x, size=alvo, mode="trilinear", align_corners=False)
+    # normalização por canal só onde há cérebro (NormalizeIntensityd(nonzero=True, channel_wise=True))
+    for c in range(4):
+        v = x[0, c]
+        nz = v != 0
+        if nz.any():
+            m, s = v[nz].mean(), v[nz].std().clamp_min(1e-6)
+            v[nz] = (v[nz] - m) / s
+    x = x.permute(0, 1, 4, 3, 2).contiguous()           # o bundle lê o NIfTI como (x, y, z)
+    pad = [(-n) % 8 for n in x.shape[2:]]
+    x = torch.nn.functional.pad(x, (0, pad[2], 0, pad[1], 0, pad[0]))
+    etapa("BraTS: carregando o modelo")
+    net = SegResNet(blocks_down=[1, 2, 2, 4], blocks_up=[1, 1, 1], init_filters=16, in_channels=4, out_channels=3,
+                    dropout_prob=0.2)
+    sd = torch.load(str(pesos), map_location="cpu")
+    net.load_state_dict(sd.get("state_dict", sd) if isinstance(sd, dict) else sd)
+    net.eval()
+    etapa("BraTS: segmentando o tumor")
+    with torch.inference_mode():
+        y = sliding_window_inference(x, roi_size=(240, 240, 160), sw_batch_size=1, predictor=net, overlap=0.5)
+        y = torch.sigmoid(y) > 0.5
+    y = y[..., :y.shape[2] - pad[0] or None, :y.shape[3] - pad[1] or None, :y.shape[4] - pad[2] or None]
+    y = y.permute(0, 1, 4, 3, 2).float()
+    y = torch.nn.functional.interpolate(y, size=vol.shape, mode="nearest")[0].numpy() > 0.5
+    tc, wt, et = y[0], y[1], y[2]
+    lab = np.zeros(vol.shape, np.uint8)
+    lab[wt] = 2                    # edema (WT − TC)
+    lab[tc] = 1                    # necrose / parte não captante (TC − ET)
+    lab[et] = 3                    # captação (ET)
+    return lab, {1: "necrose", 2: "edema", 3: "captante"}
+
+
+def _sim_brats(vol, canais: dict, job: dict, cerebro=None):
+    """Simulado: T1 pós ≥ 900 = captante; FLAIR ≥ 700 = edema; T1 pós entre 300 e 400 dentro do tumor = necrose."""
+    import numpy as np
+    flair = canais.get("flair", np.zeros_like(vol))
+    lab = np.zeros(vol.shape, np.uint8)
+    lab[flair >= 700] = 2
+    lab[(vol >= 300) & (vol <= 400) & (flair >= 700)] = 1
+    lab[vol >= 900] = 3
+    return lab, {1: "necrose", 2: "edema", 3: "captante"}
+
+
+def _versao_especial(especiais: list) -> str:
+    from importlib.metadata import version
+    nomes = []
+    for t in especiais:
+        n = t["nome"]
+        pacote = {"medsam2": "MedSAM2", "autopet": "nnunetv2", "brats": "monai"}.get(n, n)
+        try:
+            nomes.append(f"{n} ({pacote} {version(pacote)})")
+        except Exception:  # noqa: BLE001
+            nomes.append(n)
+    return ", ".join(nomes)
+
+
+def rodar_especial(nome: str, vol, d: Path, job: dict, t: dict, simular: bool, anteriores: dict):
+    canais = _canais(d, job)
+    if nome == "medsam2":
+        return _sim_medsam2(vol, t) if simular else _medsam2(vol, t)
+    if nome == "autopet":
+        return _sim_autopet(vol, canais, job) if simular else _autopet(vol, canais, job)
+    if nome == "brats":
+        cerebro = None
+        for lab, classes in anteriores.values():          # a máscara do encéfalo da tarefa anterior (total_mr)
+            ids = [k for k, v in classes.items() if v == "brain"]
+            if ids:
+                import numpy as np
+                cerebro = np.isin(lab, ids)
+        return (_sim_brats if simular else _brats)(vol, canais, job, cerebro)
+    raise RuntimeError(f"tarefa especial desconhecida: {nome}")
+
+
 def main(pasta: str) -> int:
     d = Path(pasta)
     job = json.loads((d / "job.json").read_text(encoding="utf-8"))
@@ -276,9 +494,14 @@ def main(pasta: str) -> int:
     try:
         import numpy as np
         vol = np.load(d / "volume.npy")
+        especiais = [t for t in job["tarefas"] if t["nome"] in ESPECIAIS]
+        comuns = [t for t in job["tarefas"] if t["nome"] not in ESPECIAIS]
         if job.get("simular"):
             etapa("simulando (teste)")
-            for nome, (lab, classes) in _simular(vol, job["tarefas"], job.get("affine")).items():
+            feitos = _simular(vol, comuns, job.get("affine")) if comuns else {}
+            for t in especiais:
+                feitos[t["nome"]] = rodar_especial(t["nome"], vol, d, job, t, True, dict(feitos))
+            for nome, (lab, classes) in feitos.items():
                 np.save(d / f"rotulos_{nome}.npy", lab)
                 resultado["tarefas"][nome] = {"classes": {str(k): v for k, v in classes.items()}, "segundos": 0.0}
                 if nome == "synthseg" and job.get("affine") is not None:
@@ -286,6 +509,17 @@ def main(pasta: str) -> int:
                     np.save(d / f"rotulos_{nome}_1mm.npy", np.ascontiguousarray(lab.transpose(2, 1, 0)))
                     resultado["tarefas"][nome]["afim_1mm"] = job["affine"]
             resultado["versao"] = "simulado"
+        elif not comuns:                                    # 0.99.83: só MedSAM2 / autoPET / BraTS
+            feitos = {}
+            for t in especiais:
+                etapa(t.get("rotulo", t["nome"]))
+                t0 = time.time()
+                lab, classes = rodar_especial(t["nome"], vol, d, job, t, False, feitos)
+                feitos[t["nome"]] = (lab, classes)
+                np.save(d / f"rotulos_{t['nome']}.npy", lab.astype(np.uint8))
+                resultado["tarefas"][t["nome"]] = {"classes": {str(k): v for k, v in classes.items()},
+                                                   "segundos": round(time.time() - t0, 1)}
+            resultado["versao"] = _versao_especial(especiais)
         else:
             etapa("carregando o TotalSegmentator")
             import nibabel as nib
@@ -305,7 +539,8 @@ def main(pasta: str) -> int:
                     resultado["versao"] = "SynthSeg · DIPY"
             afim = np.asarray(job["affine"], float)
             img = nib.Nifti1Image(np.ascontiguousarray(vol.transpose(2, 1, 0)), afim)
-            for t in job["tarefas"]:
+            feitos = {}
+            for t in comuns:
                 nome = t["nome"]
                 etapa(f"{t.get('rotulo', nome)}")
                 t0 = time.time()
@@ -330,6 +565,16 @@ def main(pasta: str) -> int:
                 np.save(d / f"rotulos_{nome}.npy", lab.transpose(2, 1, 0).astype(np.uint8))
                 resultado["tarefas"][nome] = {"classes": {str(k): v for k, v in class_map[nome].items()},
                                               "segundos": round(time.time() - t0, 1)}
+                feitos[nome] = (lab.transpose(2, 1, 0), {int(k): v for k, v in class_map[nome].items()})
+            for t in especiais:                             # 0.99.83: o BraTS usa o encéfalo do total_mr
+                etapa(t.get("rotulo", t["nome"]))
+                t0 = time.time()
+                lab, classes = rodar_especial(t["nome"], vol, d, job, t, False, feitos)
+                np.save(d / f"rotulos_{t['nome']}.npy", lab.astype(np.uint8))
+                resultado["tarefas"][t["nome"]] = {"classes": {str(k): v for k, v in classes.items()},
+                                                   "segundos": round(time.time() - t0, 1)}
+            if especiais:
+                resultado["versao"] += " + " + _versao_especial(especiais)
         resultado["ok"] = True
     except Exception as e:  # noqa: BLE001 - o motivo vai para o programa mostrar
         resultado["erro"] = f"{type(e).__name__}: {e}"

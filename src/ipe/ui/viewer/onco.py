@@ -930,8 +930,9 @@ class OncoMixin:
 class SegmentDialog(QDialog):
     """Resultado da segmentação 3D, com ajuste do limiar e as ações (guardar, lesão, DICOM SEG)."""
 
-    def __init__(self, tab, vp, vol, seed, click_uv, frame_key, cad=None, existente=None):
+    def __init__(self, tab, vp, vol, seed, click_uv, frame_key, cad=None, existente=None, pronto=None):
         super().__init__(tab)
+        self.pronto = pronto           # 0.99.83: SegResult já feito (MedSAM2, pela caixa)
         # `cad`: (volume do realce, volume das classes) quando a lesão é medida sobre a dinâmica.
         self.cad = cad
         self.medidas = None
@@ -950,9 +951,13 @@ class SegmentDialog(QDialog):
                 continue
             if k.startswith("realce") != bool(cad):   # realce só na dinâmica, e lá só ele
                 continue
+            if k == "medsam2" and pronto is None:
+                continue
             self.method.addItem(lab, k)
         default = "realce_pct" if cad else (
             str(tab.settings.get("segment.pet_method", "pet_pct")) if self.modality == "PT" else "range")
+        if pronto is not None:
+            default = "medsam2"
         self.method.setCurrentIndex(max(0, self.method.findData(default)))
         self.lo = QDoubleSpinBox(decimals=2, minimum=-1e6, maximum=1e7)
         self.hi = QDoubleSpinBox(decimals=2, minimum=-1e6, maximum=1e7)
@@ -1167,8 +1172,11 @@ class SegmentDialog(QDialog):
         if m == "realce":
             lo, hi = self.limiar.value(), None
         try:
-            self.res = segment(self.vol, self.seed, m, lo, hi, self.suv, self.pct.value(), self.abs.value(),
-                               self.radius.value(), self.modality)
+            if m == "medsam2" and self.pronto is not None:
+                self.res = self.pronto
+            else:
+                self.res = segment(self.vol, self.seed, m, lo, hi, self.suv, self.pct.value(), self.abs.value(),
+                                   self.radius.value(), self.modality)
             self.res.sul_razao = getattr(self.vp, "sul_razao", None) if self.suv else None
         except Exception as e:  # noqa: BLE001
             log.exception("segmentação")

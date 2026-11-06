@@ -126,6 +126,7 @@ class ViewportSignals(QObject):
     anotacoes_requested = Signal(str)           # nível de anotação escolhido no botão direito (0.99.9)
     copy_requested = Signal(object)             # "Copiar imagem" no botão direito (0.99.9)
     segment_requested = Signal(object, float, float)   # viewport, ponto clicado (px da imagem)
+    caixa_ia_requested = Signal(object, float, float, float, float)   # 0.99.83: caixa do MedSAM2 (px da imagem)
     pincel = Signal(object, float, float, str)  # viewport, ponto (px da imagem), "ini" | "meio" | "fim" (0.99.40)
     annotation_picked = Signal(object, object)  # viewport, medida escolhida (ou None)
     reflines_toggled = Signal(bool)             # mostrar/ocultar as linhas de corte das outras séries
@@ -2458,8 +2459,16 @@ class Viewport(AnnotationMixin, QWidget):
         if self._obl_draft is not None:
             pen = QPen(QColor(255, 60, 255))
             pen.setWidth(2)
-            p.setPen(pen)
-            p.drawLine(self.image_to_widget(self._obl_draft[0]), self.image_to_widget(self._obl_draft[1]))
+            if self.left_tool == "caixa_ia":                  # 0.99.83: a caixa do MedSAM2, tracejada
+                pen.setColor(QColor(255, 200, 40))
+                pen.setStyle(Qt.DashLine)
+                p.setPen(pen)
+                p.setBrush(Qt.NoBrush)
+                p.drawRect(QRectF(self.image_to_widget(self._obl_draft[0]),
+                                  self.image_to_widget(self._obl_draft[1])).normalized())
+            else:
+                p.setPen(pen)
+                p.drawLine(self.image_to_widget(self._obl_draft[0]), self.image_to_widget(self._obl_draft[1]))
         if self.cursor_point is not None:
             uvd = self.patient_to_pixel(self.cursor_point)
             if uvd is not None and abs(uvd[2]) <= max(rs, cs, 1.0) * 2:
@@ -2551,7 +2560,7 @@ class Viewport(AnnotationMixin, QWidget):
             self._loupe = pos
             self.setCursor(Qt.BlankCursor)
             self.update()
-        if hot is None and tool == "oblique" and self._img is not None:
+        if hot is None and tool in ("oblique", "caixa_ia") and self._img is not None:
             ip = self.widget_to_image(pos)
             self._obl_draft = [ip, ip]
         if hot is None and tool == "pincel" and self._img is not None:
@@ -2800,7 +2809,7 @@ class Viewport(AnnotationMixin, QWidget):
             return                      # crescer região é clique; arrastar com ela não faz nada
         if not pr["hot"] and pr["tool"] == "quadzoom":
             return
-        if not pr["hot"] and pr["tool"] == "oblique":
+        if not pr["hot"] and pr["tool"] in ("oblique", "caixa_ia"):
             if self._obl_draft is not None:
                 self._obl_draft[1] = self.widget_to_image(pos)
                 self.update()
@@ -2896,6 +2905,15 @@ class Viewport(AnnotationMixin, QWidget):
                 if pt is not None and not (self._curve_pts and np.linalg.norm(pt - self._curve_pts[-1]) < 0.5):
                     self._curve_pts.append(pt)
                     self.update()
+            return
+        if not pr["hot"] and pr["tool"] == "caixa_ia":             # 0.99.83: MedSAM2
+            draft, self._obl_draft = self._obl_draft, None
+            self.update()
+            if draft is not None and pr["moved"]:
+                a, b = draft[0], self.widget_to_image(pos)
+                if abs(a.x() - b.x()) >= 3 and abs(a.y() - b.y()) >= 3:
+                    self.sig.caixa_ia_requested.emit(self, min(a.x(), b.x()), min(a.y(), b.y()),
+                                                      max(a.x(), b.x()), max(a.y(), b.y()))
             return
         if not pr["hot"] and pr["tool"] == "oblique":
             draft, self._obl_draft = self._obl_draft, None

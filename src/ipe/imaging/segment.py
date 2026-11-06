@@ -25,7 +25,8 @@ import numpy as np
 
 METHODS = {"range": "Faixa de valores (mín–máx)", "pet_pct": "PET: % do SUVmáx", "pet_abs": "PET: SUV fixo",
            "realce_pct": "RM dinâmica: % do realce da própria lesão",
-           "realce": "RM dinâmica: realce acima de um limiar fixo"}
+           "realce": "RM dinâmica: realce acima de um limiar fixo",
+           "medsam2": "IA: contorno pela caixa (MedSAM2)"}
 
 
 @dataclass
@@ -241,6 +242,39 @@ def segment(vol, seed: tuple[int, int, int], method: str = "range", lo: float | 
         res.suvmean = res.mean * suv
         res.tlg = res.suvmean * res.ml
         res.suvpeak = suv_peak(vol, sub, reg, suv)
+    return res
+
+
+def de_mascara(vol, mascara: np.ndarray, seed: tuple[int, int, int], method: str = "medsam2",
+               suv: float | None = None, modality: str = "") -> SegResult:
+    """0.99.83: uma máscara pronta (do tamanho do volume, ou de outro método como o MedSAM2) com as mesmas
+    medidas da segmentação por crescimento: volume, média, eixos, SUV, TLG."""
+    m = np.asarray(mascara, bool)
+    dz = max(vol.dz, 1e-6)
+    res = SegResult(np.zeros((0, 0, 0), bool), (0, 0, 0), tuple(int(x) for x in seed), float("nan"), float("nan"),
+                    method)
+    if not m.any():
+        return res
+    kk, jj, ii = np.nonzero(m)
+    a, b, c = kk.min(), jj.min(), ii.min()
+    res.mask = m[a:kk.max() + 1, b:jj.max() + 1, c:ii.max() + 1].copy()
+    res.offset = (int(a), int(b), int(c))
+    vals = vol.data[m].astype(np.float32)
+    res.voxels = int(vals.size)
+    res.ml = res.voxels * vol.dx * vol.dy * dz / 1000.0
+    res.mean, res.maximum, res.minimum = float(vals.mean()), float(vals.max()), float(vals.min())
+    res.lo, res.hi = res.minimum, res.maximum
+    pts = np.stack([ii, jj, kk], axis=1).astype(float)
+    mm = pts @ vol.matrix().T
+    if len(mm) > 1:
+        res.eixos_mm = tres_eixos(mm, (vol.dx, vol.dy, dz))
+        res.max_diam_mm = res.eixos_mm[0]
+    if suv and modality.upper() == "PT":
+        sub = vol.data[a:kk.max() + 1, b:jj.max() + 1, c:ii.max() + 1].astype(np.float32)
+        res.suvmax = res.maximum * suv
+        res.suvmean = res.mean * suv
+        res.tlg = res.suvmean * res.ml
+        res.suvpeak = suv_peak(vol, sub, res.mask, suv)
     return res
 
 

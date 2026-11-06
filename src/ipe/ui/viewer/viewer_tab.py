@@ -116,18 +116,19 @@ class RepoAnnotationStore:
 
 
 MEASURE_TOOLS = ("pick", "measure", "polyline", "angle", "cobb", "height", "ellipse", "rect", "polygon",
-                 "probe", "ruler3d", "tic", "grow", "pincel", "ctr", "spine", "calibration", "text", "arrow", "pencil")
+                 "probe", "ruler3d", "tic", "grow", "caixa_ia", "pincel", "ctr", "spine", "calibration", "text", "arrow",
+                 "pencil")
 VOLUME = {"CT", "MR", "PT", "NM"}     # modalidades que empilham cortes: 3D, MPR e fusão
 TOOL_ICONS = {"measure": "measure", "ruler3d": "measure", "oblique": "mpr", "curve": "mpr", "rotplane": "mpr",
               "quadzoom": "quad", "loupe": "loupe",
-              "grow": "segment", "pick": "pick", "pincel": "pencil"}
+              "grow": "segment", "caixa_ia": "segment", "pick": "pick", "pincel": "pencil"}
 TOOL_SHORT = {"film": "Filme", "wl": "Janela", "zoom": "Zoom", "pan": "Pan", "scroll": "Rolar", "measure": "Régua",
               "polyline": "Polilinha", "angle": "Ângulo", "cobb": "Cobb", "ellipse": "Elipse",
               "rect": "Retângulo", "polygon": "Polígono", "probe": "Intensidade", "ruler3d": "Régua 3D", "height": "Altura",
               "ctr": "ICT", "spine": "Coluna", "tic": "Curva", "calibration": "Calibrar",
               "arrow": "Seta", "text": "Texto", "pencil": "Lápis", "cross": "Cursor 3D",
               "oblique": "Oblíquo", "curve": "Curvo", "quadzoom": "Quadrante", "loupe": "Lupa",
-              "grow": "Segmentar", "pick": "Selecionar", "pincel": "Pincel"}
+              "grow": "Segmentar", "caixa_ia": "Caixa IA", "pick": "Selecionar", "pincel": "Pincel"}
 
 
 NON_IMAGE = {"SR", "KO", "PR", "REG", "SEG", "RTSTRUCT", "RTPLAN", "DOC"}
@@ -1277,7 +1278,11 @@ class ViewerTab(OncoMixin, QWidget):
                 ("genant", "Medir as alturas vertebrais (Genant) nesta série (IA)…",
                  "Fratura vertebral — Genant (IA)", "Genant"),
                 ("figado_lesoes", "Achar as lesões hepáticas e a carga por segmento nesta série (IA)…",
-                 "Lesões hepáticas e carga por segmento (IA)", "Lesões")):
+                 "Lesões hepáticas e carga por segmento (IA)", "Lesões"),
+                ("autopet", "Achar as lesões no PET-FDG (MTV e TLG) nesta série (IA)…",
+                 "Lesões no PET-FDG: MTV e TLG (IA)", "autoPET"),
+                ("brats", "Segmentar o glioma (captante, necrose, edema) nesta RM (IA)…",
+                 "Glioma na RM — BraTS (IA)", "BraTS")):
             menu_x = self._menu()
             a_x = QAction(rotulo_menu, self)
             a_x.triggered.connect(lambda _=False, tp=tipo: self.ferramenta_ia(tp, self.active))
@@ -3302,6 +3307,7 @@ class ViewerTab(OncoMixin, QWidget):
         vp.sig.clone_roi_requested.connect(self.clonar_roi)
         vp.referencial_da_sincronia = self.outros_referenciais_ligados
         vp.sig.segment_requested.connect(self.segment_at)
+        vp.sig.caixa_ia_requested.connect(self.caixa_ia)
         vp.sig.pincel.connect(self.pincel_estruturas)
         vp.sig.status_message.connect(self.status_message)
         vp.sig.enquadre_pendente.connect(self._enquadre_pendente)
@@ -5787,6 +5793,53 @@ class ViewerTab(OncoMixin, QWidget):
         if tem:
             return self.abrir_achados()
         return self.composicao_automatica(self.active)
+
+    def caixa_ia(self, vp, u0: float, v0: float, u1: float, v1: float, simular: bool = False):
+        """0.99.83: a caixa desenhada com "Segmentar pela caixa (IA)" vai ao MedSAM2; a máscara 3D volta na
+        janela da Segmentação 3D (volume, eixos, SUV, ligar a uma lesão, gravar a SEG)."""
+        from ipe.ai import medsam2 as MS
+        from ipe.ui.segmentacao import Segmentacao
+        if vp is None or vp.mpr_plane is not None or not vp.frames or vp.frames[0].is_virtual:
+            QMessageBox.information(self, MS.TITULO, "Desenhe a caixa na série original (não na reconstrução).")
+            return None
+        uid = self._source_series(vp)
+        vol = self._volume_for(vp, uid) if uid else None
+        if vol is None:
+            QMessageBox.information(self, MS.TITULO, "O volume desta série não foi montado.")
+            return None
+        cantos = [vp.pixel_to_patient(u, v) for u, v in ((u0, v0), (u1, v0), (u0, v1), (u1, v1))]
+        if any(c is None for c in cantos):
+            return None
+        caixa = MS.caixa_no_volume(vol, cantos)
+        if caixa is None:
+            QMessageBox.information(self, MS.TITULO, "A caixa caiu fora do volume (ou ficou pequena demais).")
+            return None
+        ww, wl = float(vp.state.width or 0), float(vp.state.level or 0)
+        janela = (wl - ww / 2, wl + ww / 2) if ww > 0 else (float(np.percentile(vol.data, 1)),
+                                                             float(np.percentile(vol.data, 99)))
+        storage = getattr(self, "storage_root", None)
+        seg = Segmentacao(self, self.repo, self.settings, storage, vp.study_uid or self.study_uid, uid,
+                          cache=self.cache, simular=simular, tipo="medsam2")
+        seg.trabalho.tarefas_proprias = [MS.tarefa(caixa, janela)]
+        seg.trabalho.vol_pronto = vol
+        frame_key = vp.frame_key()
+        uv = ((u0 + u1) / 2, (v0 + v1) / 2)
+
+        def pronto(saida, msg):
+            if not seg.janela_viva():
+                return
+            self.status_message.emit(msg)
+            if saida is None or saida.get("medsam2") is None:
+                QMessageBox.information(self, MS.TITULO, msg)
+                return
+            from ipe.ui.viewer.onco import SegmentDialog
+            res = MS.resultado(vol, saida["medsam2"], caixa, vp.suv_factor, (vp.modality or ""))
+            dlg = SegmentDialog(self, vp, vol, res.seed, uv, frame_key, pronto=res)
+            self._seg_dialogs = [d for d in getattr(self, "_seg_dialogs", []) if d.isVisible()] + [dlg]
+            dlg.show()
+        seg.terminou.connect(pronto)
+        seg.iniciar()
+        return seg
 
     def ferramenta_ia(self, tipo: str, vp=None, simular: bool = False):
         """0.99.77: roda uma IA do contrato comum (enfisema, Genant…) na série do quadro."""

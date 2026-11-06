@@ -423,7 +423,8 @@ def _draw(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por ícone
 #: aplicações com pictograma próprio; as marcadas com True levam o selo ✦ de IA
 _APPS_IA = {"app_nodulos": True, "app_enfisema": True, "app_composicao": True, "app_figado": True,
             "app_orgaos": True, "app_genant": True, "app_linfonodos": True, "app_cefalometria": True,
-            "app_indices": True, "app_difusao": False, "app_figado_lesoes": True}
+            "app_indices": True, "app_difusao": False, "app_figado_lesoes": True,
+            "app_autopet": True, "app_brats": True}
 
 
 def _pulmoes(p: QPainter) -> None:
@@ -518,6 +519,35 @@ def _draw_app(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por aplic
         p.setBrush(ACCENT)
         p.drawEllipse(QRectF(14, 20, 9, 9))
         p.drawEllipse(QRectF(36, 31, 6, 6))
+    elif name == "app_autopet":         # silhueta do corpo com focos quentes (PET)
+        p.setPen(_pen(FG, 3.5))
+        p.drawEllipse(QRectF(24, 4, 16, 14))
+        corpo = QPainterPath()
+        corpo.moveTo(18, 20)
+        corpo.lineTo(46, 20)
+        corpo.lineTo(44, 44)
+        corpo.lineTo(40, 60)
+        corpo.lineTo(24, 60)
+        corpo.lineTo(20, 44)
+        corpo.closeSubpath()
+        p.drawPath(corpo)
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(255, 120, 40))
+        p.drawEllipse(QRectF(26, 26, 8, 8))
+        p.drawEllipse(QRectF(35, 38, 6, 6))
+        p.setBrush(ACCENT)
+        p.drawEllipse(QRectF(29, 48, 5, 5))
+    elif name == "app_brats":           # encéfalo com o tumor em camadas (edema, captante, necrose)
+        p.setPen(_pen(FG, 3.5))
+        p.drawEllipse(QRectF(6, 8, 52, 46))
+        p.drawLine(P(32, 10), P(32, 52))
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(80, 200, 120))
+        p.drawEllipse(QRectF(34, 18, 20, 20))
+        p.setBrush(QColor(255, 70, 70))
+        p.drawEllipse(QRectF(38, 22, 12, 12))
+        p.setBrush(QColor(250, 220, 60))
+        p.drawEllipse(QRectF(42, 26, 5, 5))
     elif name == "app_orgaos":          # fígado, rim e baço
         p.setPen(_pen(FG, 3.5))
         fig = QPainterPath()

@@ -289,6 +289,12 @@ class Trabalho:
     modalidades: tuple = ("CT", "MR")
     motivo_modalidade: str = "A segmentação de órgãos é só para TC e RM."
 
+    #: 0.99.83: outras séries na grade desta (autoPET: a TC no PET; BraTS: T1, T2, FLAIR na T1 pós) —
+    #: `canais_extras(trabalho) -> {nome: array do mesmo formato do volume}`, gravadas como canal_<nome>.npy
+    canais_extras: object = None
+    #: 0.99.83: a série que a tela usou (MedSAM2): o volume já montado, sem montar de novo
+    vol_pronto: object = None
+
     #: 0.99.32: cancelar pela janela "Tarefas de IA" (também a automática, que roda sem janela)
     cancelado: bool = False
 
@@ -316,7 +322,8 @@ class Trabalho:
         self.descricao_serie = serie.description or ""
         self.frames = build_frames(self.repo.instances_for_series(self.series_uid), self.series_uid)
         try:
-            self.vol = build_volume(self.frames, self.cache, progress=progresso)
+            self.vol = self.vol_pronto if self.vol_pronto is not None else \
+                build_volume(self.frames, self.cache, progress=progresso)
         except VolumeError as e:
             raise Falhou(f"Não deu para montar o volume desta série: {e}") from e
         if self.vol.data.shape[0] < self.min_cortes:
@@ -325,8 +332,14 @@ class Trabalho:
                               else self.tarefas_proprias) or tarefas(self.modalidade, self.settings)
         self.pasta = Path(tempfile.mkdtemp(prefix="dv_totalseg_"))
         np.save(self.pasta / "volume.npy", self.vol.data)
+        canais = []
+        if callable(self.canais_extras):
+            for nome, arr in (self.canais_extras(self) or {}).items():
+                np.save(self.pasta / f"canal_{nome}.npy", np.asarray(arr, np.float32))
+                canais.append(nome)
         job = {"affine": afim_ras(self.vol).tolist(), "tarefas": self.lista_tarefas, "device": "cpu",
-               "simular": self.simular}
+               "simular": self.simular, "canais": canais,
+               "espacamento": [float(abs(self.vol.dz)), float(self.vol.dy), float(self.vol.dx)]}
         (self.pasta / "job.json").write_text(json.dumps(job), encoding="utf-8")
 
     def comando(self) -> tuple[str, list[str], dict]:
@@ -341,6 +354,7 @@ class Trabalho:
         env = dict(os.environ)
         env["TOTALSEG_HOME_DIR"] = str(pasta_base() / "pesos")
         env["DIPY_HOME"] = str(pasta_base() / "pesos" / "dipy")          # SynthSeg (0.99.17)
+        env["IPE_PESOS"] = str(pasta_base() / "pesos")                    # MedSAM2, autoPET, BraTS (0.99.83)
         env["PYTHONIOENCODING"] = "utf-8"
         for k in ("PYTHONPATH", "PYTHONHOME"):        # o ambiente da segmentação é outro Python
             env.pop(k, None)

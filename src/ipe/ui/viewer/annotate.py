@@ -61,6 +61,7 @@ TOOLS = {
     "quadzoom": "Zoom por quadrante (cada clique: próximo quadrante)",
     "loupe": "Lupa (segure o botão; roda muda o aumento)",
     "grow": "Segmentar 3D (clique na lesão: volume, SUV, TLG)",
+    "caixa_ia": "Segmentar pela caixa (IA, MedSAM2: desenhe uma caixa em volta da lesão)",
     "pincel": "Pincel de estruturas (pinta ou apaga a máscara; painel Estruturas)",
     "film": "Enviar ao filme (clique na imagem)",
     "pick": "Selecionar medida (clique para escolher; arraste as pontas para editar)",
@@ -73,7 +74,7 @@ CLICK_TOOLS = {"cross", "film", "oblique", "curve", "quadzoom", "loupe", "grow"}
 # nos dois casos — o que muda é onde ela está.
 FERRAMENTAS_DE_MEDIDA = ("pick", "measure", "polyline", "angle", "cobb", "ellipse", "rect",
                          "polygon", "probe", "ruler3d", "height", "ctr", "spine", "tic", "calibration",
-                         "grow", "pincel", "arrow", "text", "pencil")
+                         "grow", "caixa_ia", "pincel", "arrow", "text", "pencil")
 #: as que só desenham (0.99.78): vão para "Desenhar" no menu do botão direito
 FERRAMENTAS_DE_DESENHO = ("arrow", "text", "pencil", "pincel")
 

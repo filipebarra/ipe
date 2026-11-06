@@ -133,7 +133,7 @@ class View3D:
             estr = self.r.render_labels(self.az, self.el, (w, h), self.zoom, self.pan, fast=self.fast)
             lo, hi = self.lo, self.hi
             if px.ndim == 2 and self.vp is not None and self.vp.state.window_set:
-                ww, wl = self.vp.state.window
+                ww, wl = self.vp.state.width, self.vp.state.level
                 lo, hi = wl - ww / 2, wl + ww / 2
             px = compor_estruturas(px, lo, hi, estr, prof_base, passo, self.estr_opacidade)
             return FrameImage(np.ascontiguousarray(px), True, None, (ps, ps), header=self.header())

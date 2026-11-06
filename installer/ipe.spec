@@ -30,6 +30,8 @@ datas += [(str(SRC / "ipe" / "ajuda"), "ipe/ajuda")]
 # o trabalhador do TotalSegmentator (0.98) roda num Python separado: vai como arquivo .py, não
 # compilado dentro do pacote — é o ambiente da segmentação que o executa
 datas += [(str(SRC / "ipe" / "ai" / "totalseg_worker.py"), "ipe/ai")]
+# 0.99.83: o instalador dos modelos extras (MedSAM2, autoPET, BraTS) também roda no Python da segmentação
+datas += [(str(SRC / "ipe" / "ai" / "instalar_modelos_extras.py"), "ipe/ai")]
 # e o instalador dela, para quem instalou o programa pelo instalador também poder baixá-la uma vez
 # (Arquivo ▸ Instalar a segmentação de órgãos). O programa acha em resource_dir().
 for _inst in ("instalar_segmentacao.bat", "instalar_segmentacao.sh"):

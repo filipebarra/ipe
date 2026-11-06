@@ -125,6 +125,46 @@ def abrir_instalador(janela, perguntar: bool = True) -> bool:
     return True
 
 
+def abrir_instalador_extras(janela, modelos=(), settings=None, perguntar: bool = True) -> bool:
+    """0.99.83: MedSAM2, autoPET e BraTS — numa janela de console própria, com o Python da segmentação."""
+    from ipe.ai import extras as EX
+    cmd = EX.comando_do_instalador(modelos, settings)
+    if cmd is None:
+        if QMessageBox.question(janela, "Modelos extras",
+                                "Os modelos extras rodam no ambiente da segmentação, que ainda não está instalado "
+                                "neste computador.\n\nInstalar a segmentação primeiro?") == QMessageBox.Yes:
+            abrir_instalador(janela, perguntar=False)
+        return False
+    if perguntar:
+        texto = ("Instala no ambiente da segmentação (uma vez, com internet):\n\n"
+                 "• MedSAM2 — segmentar qualquer lesão por uma caixa (156 MB);\n"
+                 "• autoPET — lesões no PET-FDG, para o volume metabólico (MTV) e a TLG (o modelo do Zenodo);\n"
+                 "• BraTS — glioma na RM: captante, necrose e edema (19 MB).\n\n"
+                 "Agora:\n" + EX.texto_prontidao(settings) + "\n\nAbrir o instalador?")
+        if QMessageBox.question(janela, "Modelos extras", texto) != QMessageBox.Yes:
+            return False
+    env = dict(os.environ)
+    env["IPE_PESOS"] = str(EX.pasta_pesos())
+    env["PYTHONIOENCODING"] = "utf-8"
+    for k in ("PYTHONPATH", "PYTHONHOME"):
+        env.pop(k, None)
+    try:
+        if sys.platform == "win32":
+            subprocess.Popen(cmd, env=env, creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0x10))
+        else:
+            for term in (["x-terminal-emulator", "-e"], ["gnome-terminal", "--"], ["xterm", "-e"]):
+                if shutil.which(term[0]):
+                    subprocess.Popen([*term, *cmd], env=env)
+                    break
+            else:
+                QMessageBox.information(janela, "Modelos extras", "Rode num terminal:\n\n" + " ".join(cmd))
+                return False
+    except OSError as e:
+        QMessageBox.warning(janela, "Modelos extras", f"Não consegui abrir o instalador: {e}")
+        return False
+    return True
+
+
 class Segmentacao(QObject):
     """`terminou(saida, mensagem)`: saida = dict de `totalseg_saida.gravar` ou None (falhou/cancelou)."""
     terminou = Signal(object, str)
@@ -166,6 +206,11 @@ class Segmentacao(QObject):
             self.trabalho.min_cortes = N.MIN_CORTES
             self.trabalho.modalidades = ("MR", "CT")
             self.trabalho.motivo_modalidade = "Os índices do crânio são para RM ou TC."
+        if tipo == "medsam2":                     # 0.99.83: a caixa vem da tela (viewer_tab.caixa_ia)
+            from ipe.ai import medsam2 as MS
+            self.trabalho.min_cortes = 1
+            self.trabalho.modalidades = MS.MODALIDADES
+            self.trabalho.motivo_modalidade = "O MedSAM2 segmenta TC, RM e PET."
         from ipe.ai import ferramentas as FE
         self._generica = FE.modulo(tipo)          # 0.99.46: as IAs do contrato comum (nódulos…)
         if self._generica is not None:
@@ -174,7 +219,8 @@ class Segmentacao(QObject):
                        "coluna": "Identificar vértebras e discos",
                        "cefalometria": "Cefalometria automática",
                        "neuro": "Índices do crânio (IA)",
-                       "linfonodos": "Níveis linfonodais (IA)"}.get(tipo, "Segmentar órgãos")
+                       "linfonodos": "Níveis linfonodais (IA)",
+                       "medsam2": "Segmentar pela caixa (MedSAM2)"}.get(tipo, "Segmentar órgãos")
         self.proc: QProcess | None = None
         self._dlg: QProgressDialog | None = None
         self.etapa = "preparando"
@@ -221,6 +267,14 @@ class Segmentacao(QObject):
                     == QMessageBox.Yes:
                 abrir_instalador(self.janela, perguntar=False)
             return False
+        extra = "medsam2" if self.tipo == "medsam2" else getattr(self._generica, "MODELO_EXTRA", "")
+        if extra and not self.trabalho.simular:          # 0.99.83: MedSAM2, autoPET, BraTS
+            from ipe.ai import extras as EX
+            if not EX.prontidao(extra, self.trabalho.settings).pronto:
+                if QMessageBox.question(self.janela, self.titulo, EX.motivo(extra, self.trabalho.settings) +
+                                        "\n\nAbrir o instalador agora?") == QMessageBox.Yes:
+                    abrir_instalador_extras(self.janela, (extra,), self.trabalho.settings, perguntar=False)
+                return False
         _rodando.append(self)
         TS.EM_CURSO.add(self.trabalho.study_uid)
         from ipe.ai import tarefas as TA                   # 0.99.32: aparece em "Tarefas de IA"
@@ -359,6 +413,15 @@ class Segmentacao(QObject):
                 return
             if self.tipo == "linfonodos":
                 self._fim_linfonodos()
+                return
+            if self.tipo == "medsam2":
+                rotulos, versao, segundos = self.trabalho.ler_rotulos()
+                lab = rotulos.get("medsam2", (None, {}))[0]
+                saida = {"medsam2": lab, "vol": self.trabalho.vol, "versao": versao, "series_uid":
+                         self.trabalho.series_uid}
+                n = int((lab > 0).sum()) if lab is not None else 0
+                self._fim(saida, f"MedSAM2 pronto em {segundos:.0f} s: " +
+                          ("máscara com %d voxels." % n if n else "nada achado dentro da caixa."))
                 return
             if self._generica is not None:
                 self._fim_generica()

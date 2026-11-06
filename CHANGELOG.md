@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.83 — MedSAM2, autoPET e BraTS (modelos extras)
+- **Segmentar pela caixa (MedSAM2)**: ferramenta do botão esquerdo; a caixa num corte vira máscara 3D, propagada
+  para cima e para baixo, e abre na janela da Segmentação 3D (volume, eixos, SUV, lesão, SEG).
+- **autoPET**: lesões no PET-FDG pelo nnU-Net do autoPET II, com a TC do PET/CT reamostrada no PET; MTV, TLG,
+  SUVmáx e cada lesão como achado.
+- **BraTS**: glioma na RM (T1 pós, T1, T2, FLAIR registradas e sem crânio), SegResNet do MONAI; volumes da parte
+  captante, necrose e edema.
+- **Configurações ▸ CAD/IA ▸ Instalar os modelos extras…**: instala os três no ambiente da segmentação e mostra o
+  que já está pronto.
+
 ## 0.99.82 — estruturas no 3D e lesões hepáticas por segmento
 - **3D ▸ Estruturas**: as segmentações do exame (órgãos da IA, lesões, nódulos, SEG/RTSTRUCT) aparecem como
   superfícies coloridas, junto com o osso do VR ou sobre o MIP, e acompanham giro, cortes e escultura.

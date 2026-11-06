@@ -1399,6 +1399,14 @@ Na TC ou na RM de abdome, o botão **Lesões** (ou Aplicações ▸ Lesões hep�
 
 O modelo não diz o que a lesão é (cisto, hemangioma, metástase): é contagem e volume. Funciona melhor em fase com contraste (portal ou hepatobiliar) e corte fino; a revisão avisa quando não é o caso. As máscaras (lesões e segmentos) ficam numa SEG que aparece só na série calculada e no 3D, em *Estruturas*.
 
+### Modelos extras: MedSAM2, autoPET e BraTS (0.99.83)
+
+Três IAs que não vêm com a segmentação e se instalam uma vez, com internet, em **Configurações ▸ CAD/IA ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS)…** (a janela diz o que já está pronto e o que falta). Rodam no mesmo ambiente do TotalSegmentator, em CPU.
+
+- **Segmentar pela caixa (MedSAM2).** Ferramenta do botão esquerdo (*Ferramenta do botão esquerdo ▸ Medir*): desenhe uma caixa em volta da lesão num corte da série original. O MedSAM2 faz o contorno nesse corte e o propaga para cima e para baixo (até 60 cortes de cada lado); fica só a parte contígua ao corte da caixa. A janela que entra no modelo é a da tela — ajuste a janela para a lesão aparecer bem antes de desenhar. O resultado abre na janela da **Segmentação 3D** (método *IA: contorno pela caixa*), com volume, eixos, SUV no PET, ligar a uma lesão do acompanhamento e gravar a SEG. Serve para TC, RM e PET.
+- **autoPET (lesões no PET-FDG).** Botão **autoPET** (ou Aplicações ▸ autoPET) no PET de um PET/CT: o nnU-Net do desafio autoPET II acha as lesões ávidas (deixa de fora a captação fisiológica de cérebro, coração, rins e bexiga) usando o PET em SUV e a TC do mesmo exame reamostrada na grade do PET. Sai o **MTV** (volume metabólico total), a **TLG** e o SUVmáx, e cada lesão (até 20) com volume, SUVmáx, SUVmédio, SUVpeak e TLG, como achado para conferir — descarte a captação fisiológica que escapar. Precisa do fator de SUV (peso, dose e horários no arquivo).
+- **BraTS (glioma na RM).** Botão **BraTS** na RM de crânio com T1 pós-contraste, T1, T2 e FLAIR: o programa acha as quatro pela descrição, registra a T1, a T2 e a FLAIR na T1 pós (registro rígido), tira o crânio (encéfalo do TotalSegmentator) e o SegResNet do MONAI separa a parte **captante**, a **necrose** e o **edema**, com os volumes e o maior diâmetro axial da parte captante. Um achado para conferir; a revisão avisa quando o registro ficou com semelhança baixa. É o modelo de exemplo do MONAI, treinado no BraTS 2018 — confira cada parte.
+
 ## CAD, IA e anotações de outros sistemas
 
 O botão **CAD/IA** reúne o que outro programa escreveu sobre o exame: SEG (segmentações), GSPS (anotações gráficas do aparelho ou da estação), SR (achados de CAD/IA) e RTSTRUCT (contornos de radioterapia). O número no botão diz quantos objetos o exame tem; o menu lista um por um, com *Ir para a imagem* de cada achado.
