@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.80 — weight and height in body composition, and a steatosis result
+- Clicking to calculate body composition opens a window with height, weight and sex from the file to check or
+  enter (applies to the exam; the file is not changed). In AI findings, **Height and weight…** changes them later
+  and recomputes the muscle index, BMI and references without running the AI.
+- With weight: BMI and the Martin et al. (J Clin Oncol 2013) references for sarcopenia and myosteatosis.
+- Liver attenuation now has a text **result** (Park 2006, Pickhardt 2012): consistent with moderate to severe
+  steatosis, possible mild steatosis (liver/spleen < 1.0), no signs, or not classified with contrast. It goes to the
+  report and follows corrected numbers.
+
 ## 0.99.79 — a single Ipê
 - Clicking the shortcut again (or an ipe:// link) no longer opens another copy: the one already open comes to the
   front, also from the tray or the login. The lock is per user and is released by itself if the program crashes.

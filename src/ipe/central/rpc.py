@@ -20,7 +20,7 @@ RPC_METHODS: dict[str, str] = {
     "lesions": "view", "save_lesion": "view", "delete_lesion": "view", "lesion_track": "view",
     "save_lesion_track": "view", "annotations_for_studies": "view",
     # achados de IA revisáveis (0.99.46; no servidor desde a 0.99.62)
-    "achados": "view", "achado": "view", "gravar_achados": "view", "revisar_achado": "view",
+    "achados": "view", "achado": "view", "gravar_achados": "view", "revisar_achado": "view", "atualizar_numeros_achado": "view", "biometria": "view", "guardar_biometria": "view",
     "adicionar_achado": "view",
     "reports": "view", "report": "view", "report_counts": "view",
     "save_report": "report", "delete_report": "report", "sign_report": "sign_report",

@@ -16,16 +16,24 @@ A série tem de ser axial; se não for, a composição não sai (a esteatose sai
 | gordura subcutânea (SAT) | −190 a −30 HU fora da cavidade, nas regiões de gordura que encostam na pele |
 | gordura intermuscular (IMAT) | o resto da gordura fora da cavidade |
 
-Saem as áreas (cm²), o HU médio do músculo (densidade muscular) e, com a altura do paciente no arquivo
-(PatientSize), o índice muscular (SMA/altura², cm²/m²). A referência de sarcopenia vai como **texto ao
+Saem as áreas (cm²), o HU médio do músculo (densidade muscular) e, com a altura do paciente, o índice
+muscular (SMA/altura², cm²/m²); com o peso, o IMC. Altura, peso e sexo vêm do arquivo (PatientSize,
+PatientWeight, PatientSex) e o médico confirma ou digita numa janela antes da conta, ou depois em
+Achados de IA ▸ Altura e peso… (0.99.80, `ai/biometria.py`). A referência de sarcopenia vai como **texto ao
 lado**, nunca como veredito: Prado et al., Lancet Oncol 2008 — índice < 52,4 cm²/m² (homens) e < 38,5
-(mulheres), em pacientes com câncer de pulmão e TGI obesos.
+(mulheres), em pacientes com câncer de pulmão e TGI obesos; com o IMC, também Martin et al., J Clin Oncol 2013
+(sarcopenia: < 43 cm²/m² em homens com IMC < 25, < 53 com IMC ≥ 25, < 41 em mulheres; mioesteatose:
+densidade muscular < 41 HU com IMC < 25, < 33 HU com IMC ≥ 25).
 
 **Esteatose.** Fígado e baço da tarefa `total`, erodidos 2 voxels (a borda tem volume parcial):
 média e mediana do HU, fígado − baço e fígado / baço. Com contraste (ContrastBolusAgent ou a descrição)
 os limiares de TC sem contraste não valem, e a tela diz. Referências, também como texto, na TC sem contraste
 e 100% específicas para esteatose ≥ 30%: fígado − baço < −9 HU ou fígado / baço < 0,8 (Park et al., Radiology
-2006;239:105) e fígado < 48 HU (Pickhardt et al., Eur Radiol 2012;22:1075).
+2006;239:105) e fígado < 48 HU (Pickhardt et al., Eur Radiol 2012;22:1075). Desde a 0.99.80 sai também um
+**resultado** em texto (`resultado_esteatose`): compatível com esteatose moderada a acentuada quando um
+desses critérios bate; fígado menos denso que o baço (fígado / baço < 1,0) sem bater nenhum = esteatose
+leve possível; senão, sem sinais de esteatose moderada ou acentuada (a TC não exclui a leve). Na série com
+contraste, não classifica.
 
 Saída: SEG "Composição corporal · TotalSegmentator" (série 982), com os compartimentos no corte de L3,
 e dois **achados** (`ai/achados.py`) — "Composição corporal (L3)" e "Atenuação hepática" — que
@@ -77,6 +85,8 @@ CHAVE_PRIOR_CT = "composicao.prioridade_ct"
 CHAVE_ESPESSURA = "composicao.espessura_max"
 CHAVE_MIN_CORTES = "composicao.min_cortes"
 CHAVE_DESTINOS = "composicao.destinos"
+#: pergunta altura e peso antes de calcular (Configurações ▸ CAD/IA ▸ Composição corporal)
+CHAVE_PERGUNTAR = "composicao.perguntar_biometria"
 PADROES = {
     CHAVE_AUTO: False,
     CHAVE_EXAME_CONTEM: "ABD|ABDOME|ABDOMEN|ABDOMINAL|LOMBAR|PELVE|TORAX E ABDOME|CORPO INTEIRO|ESTADIAMENTO",
@@ -85,6 +95,7 @@ PADROES = {
     CHAVE_ESPESSURA: 5.0,
     CHAVE_MIN_CORTES: MIN_CORTES,
     CHAVE_DESTINOS: [],
+    CHAVE_PERGUNTAR: True,
 }
 PERFIL = {"modalidades": CHAVE_MODALIDADES, "exame_contem": CHAVE_EXAME_CONTEM, "prior_ct": CHAVE_PRIOR_CT,
           "prior_mr": CHAVE_PRIOR_CT, "espessura": CHAVE_ESPESSURA, "min_cortes": CHAVE_MIN_CORTES}
@@ -94,8 +105,82 @@ EXPLICACAO_CADIA = ("Na TC de abdome: no corte axial do meio de L3 mede a área 
                     "visceral, subcutânea e intermuscular e a densidade muscular; com a altura no arquivo, o índice "
                     "muscular. Mede também o HU do fígado e do baço (fígado − baço, fígado / baço). Os resultados "
                     "aparecem em Aplicações ▸ Achados de IA, para conferir antes do laudo.")
-CHAVES_L3 = ("sma_cm2", "smi", "musculo_hu", "vat_cm2", "sat_cm2", "imat_cm2", "vat_sat")
-CHAVES_FIGADO = ("figado_hu", "baco_hu", "f_menos_b", "f_sobre_b", "figado_mediana")
+CHAVES_L3 = ("sma_cm2", "smi", "musculo_hu", "vat_cm2", "sat_cm2", "imat_cm2", "vat_sat", "imc", "altura_m",
+             "peso_kg")
+CHAVES_FIGADO = ("figado_hu", "baco_hu", "f_menos_b", "f_sobre_b", "resultado", "figado_mediana")
+#: avisos que dependem de altura, peso e sexo: refeitos quando o médico troca esses valores
+_AVISOS_BIOMETRIA = ("sem a altura", "sem o peso", "referência de sarcopenia", "referências de Martin")
+
+# resultado da esteatose (0.99.80)
+EST_SEM = "Sem sinais tomográficos de esteatose moderada ou acentuada (a TC não exclui esteatose leve)"
+EST_LEVE = "Esteatose leve possível: fígado menos denso que o baço"
+EST_MOD = "Compatível com esteatose moderada a acentuada (≥ 30%)"
+EST_CONTRASTE = "Não classificado: série com contraste (os limiares valem na TC sem contraste)"
+
+
+def resultado_esteatose(figado_hu, f_menos_b=None, f_sobre_b=None, contraste: bool = False) -> str | None:
+    """O resultado em texto pelos critérios de Park (2006) e Pickhardt (2012). None sem o HU do fígado."""
+    if figado_hu is None:
+        return None
+    if contraste:
+        return EST_CONTRASTE
+    fh = float(figado_hu)
+    if fh < 48 or (f_menos_b is not None and float(f_menos_b) < -9) or \
+            (f_sobre_b is not None and float(f_sobre_b) < 0.8):
+        return EST_MOD
+    if f_sobre_b is not None and float(f_sobre_b) < 1.0:
+        return EST_LEVE
+    return EST_SEM
+
+
+def numeros_biometria(sma, musculo_hu, altura, peso, sexo) -> tuple[dict, list]:
+    """Índice muscular, IMC, altura e peso (números do achado de L3) e os avisos com as referências."""
+    from ipe.ai import biometria as B
+    imc = B.imc(altura, peso)
+    nums = {
+        "smi": AC.numero(round(sma / altura ** 2, 1) if (altura and sma is not None) else None, "cm²/m²",
+                         "Índice muscular (SMI)"),
+        "imc": AC.numero(imc, "kg/m²", "IMC"),
+        "altura_m": AC.numero(round(float(altura), 2) if altura else None, "m", "Altura"),
+        "peso_kg": AC.numero(round(float(peso), 1) if peso else None, "kg", "Peso"),
+    }
+    avisos = []
+    if not altura:
+        avisos.append("sem a altura do paciente (no arquivo ou digitada): o índice muscular não sai")
+    if not peso:
+        avisos.append("sem o peso do paciente: o IMC e as referências de Martin (2013) não saem")
+    ref = {"M": "< 52,4", "F": "< 38,5"}.get(sexo)
+    if ref:
+        avisos.append(f"referência de sarcopenia ({'homens' if sexo == 'M' else 'mulheres'}): índice "
+                      f"{ref} cm²/m² (Prado et al., Lancet Oncol 2008) — texto de referência, não diagnóstico")
+    if imc is not None:
+        if sexo == "M":
+            corte = "< 43" if imc < 25 else "< 53"
+        elif sexo == "F":
+            corte = "< 41"
+        else:
+            corte = ""
+        dens = "< 41" if imc < 25 else "< 33"
+        avisos.append("referências de Martin et al., J Clin Oncol 2013, para IMC "
+                      + (f"{imc:.1f}".replace(".", ",")) + " kg/m²: "
+                      + (f"sarcopenia com índice {corte} cm²/m²; " if corte else "")
+                      + f"mioesteatose com densidade muscular {dens} HU — texto de referência, não diagnóstico")
+    return nums, avisos
+
+
+def atualizar_biometria(achado: dict, altura, peso, sexo) -> tuple[dict, str]:
+    """Os números e a elegibilidade do achado de L3 refeitos com outra altura, peso ou sexo (sem rodar a IA)."""
+    nums = dict(achado.get("numeros") or {})
+    validos = AC.numeros_validos(achado)
+    sma = (validos.get("sma_cm2") or {}).get("v")
+    musc = (validos.get("musculo_hu") or {}).get("v")
+    novos, avisos = numeros_biometria(sma, musc, altura, peso, sexo)
+    nums.update(novos)
+    eleg = achado.get("elegibilidade") or ""
+    base, _sep, resto = eleg.partition(". Atenção: ")
+    outros = [x for x in resto.split("; ") if x and not x.startswith(_AVISOS_BIOMETRIA)] if resto else []
+    todos = outros + avisos
+    return nums, base + (". Atenção: " + "; ".join(todos) if todos else "")
 CHAVES = CHAVES_L3 + CHAVES_FIGADO
 
 
@@ -215,23 +300,20 @@ def _contraste(t) -> bool:
     return any(p in d for p in _CONTRASTE)
 
 
+def _biometria(t) -> dict:
+    """Altura, peso e sexo: o digitado pelo médico neste exame por cima do arquivo (0.99.80)."""
+    from ipe.ai import biometria as B
+    path = t.frames[0].path if getattr(t, "frames", None) else None
+    return B.ler(getattr(t, "repo", None), getattr(t, "study_uid", ""), path)
+
+
 def _altura_sexo(t) -> tuple[float | None, str]:
-    altura, sexo = None, ""
-    try:
-        import pydicom
-        ds = pydicom.dcmread(t.frames[0].path, stop_before_pixels=True, force=True,
-                             specific_tags=["PatientSize", "PatientSex"])
-        v = ds.get("PatientSize")
-        if v not in (None, ""):
-            altura = float(v)
-            if altura > 3:                          # alguns aparelhos gravam em cm
-                altura /= 100.0
-            if not 1.0 <= altura <= 2.3:
-                altura = None
-        sexo = str(ds.get("PatientSex", "") or "").upper()[:1]
-    except Exception:  # noqa: BLE001
-        pass
-    return altura, sexo
+    b = _biometria(t)
+    return b.get("altura_m"), b.get("sexo") or ""
+
+
+def _peso(t) -> float | None:
+    return _biometria(t).get("peso_kg")
 
 
 def calcular(t, rotulos: dict, settings=None) -> Resultado:
@@ -289,25 +371,22 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
         res.mascaras = {"musculo": musculo, "vat": vat, "sat": sat, "imat": imat}
         sma = float(musculo.sum()) * area_px
         altura, sexo = _altura_sexo(t)
+        peso = _peso(t)
+        musc_hu = round(float(hu[musculo].mean()), 0) if musculo.any() else None
+        nums_bio, avisos_bio = numeros_biometria(round(sma, 1), musc_hu, altura, peso, sexo)
         res.centro_l3 = [float(x) for x in CF.pontos(vol, l3[k:k + 1], (k, 0, 0)).mean(axis=0)]
         res.l3 = {
             "sma_cm2": AC.numero(round(sma, 1), "cm²", "Área muscular (SMA)"),
-            "smi": AC.numero(round(sma / altura ** 2, 1) if altura else None, "cm²/m²", "Índice muscular (SMI)"),
-            "musculo_hu": AC.numero(round(float(hu[musculo].mean()), 0) if musculo.any() else None, "HU",
-                                    "Densidade muscular"),
+            "smi": nums_bio["smi"],
+            "musculo_hu": AC.numero(musc_hu, "HU", "Densidade muscular"),
             "vat_cm2": AC.numero(round(float(vat.sum()) * area_px, 1), "cm²", "Gordura visceral (VAT)"),
             "sat_cm2": AC.numero(round(float(sat.sum()) * area_px, 1), "cm²", "Gordura subcutânea (SAT)"),
             "imat_cm2": AC.numero(round(float(imat.sum()) * area_px, 1), "cm²", "Gordura intermuscular (IMAT)"),
             "vat_sat": AC.numero(round(float(vat.sum()) / float(sat.sum()), 2) if sat.any() else None, "",
                                  "VAT / SAT"),
+            "imc": nums_bio["imc"], "altura_m": nums_bio["altura_m"], "peso_kg": nums_bio["peso_kg"],
         }
-        if altura is None:
-            res.avisos_l3.append("sem a altura do paciente no arquivo (PatientSize): o índice muscular não sai")
-        ref = {"M": "< 52,4", "F": "< 38,5"}.get(sexo)
-        if ref:
-            res.avisos_l3.append(f"referência de sarcopenia ({'homens' if sexo == 'M' else 'mulheres'}): índice "
-                                 f"{ref} cm²/m² (Prado et al., Lancet Oncol 2008) — texto de referência, não "
-                                 "diagnóstico")
+        res.avisos_l3 += avisos_bio
         if passo > 5.0:
             res.avisos_l3.append(f"cortes de {passo:.1f} mm: o corte de L3 pode cair fora do meio da vértebra")
     # ---------------- fígado e baço
@@ -333,6 +412,9 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
                                                 "Fígado / baço")
         else:
             res.avisos_figado.append("a IA não achou o baço: sem a comparação fígado − baço")
+        txt = resultado_esteatose(res.figado["figado_hu"]["v"], (res.figado.get("f_menos_b") or {}).get("v"),
+                                  (res.figado.get("f_sobre_b") or {}).get("v"), res.contraste)
+        res.figado["resultado"] = AC.numero(txt, "", "Resultado")
         if res.contraste:
             res.avisos_figado.append("série com contraste: os limiares de esteatose da TC sem contraste não valem")
         else:
@@ -446,4 +528,22 @@ def frase(a: dict) -> str:
     txt = f"Atenuação hepática média de {v('figado_hu', 0)} HU"
     if v("baco_hu", 0):
         txt += f", esplênica de {v('baco_hu', 0)} HU (fígado − baço {v('f_menos_b', 0)} HU)"
-    return txt + "."
+    txt += "."
+    resultado = resultado_do_achado(a)
+    if resultado:
+        txt += f" {resultado}."
+    return txt
+
+
+def resultado_do_achado(a: dict) -> str | None:
+    """O resultado da esteatose: o que o médico escreveu, ou refeito pelos números que valem (corrigidos)."""
+    if "resultado" in (a.get("corrigidos") or {}):
+        return str(a["corrigidos"]["resultado"] or "").strip() or None
+    if "resultado" not in (a.get("numeros") or {}):
+        return None                     # achados de antes da 0.99.80
+    n = AC.numeros_validos(a)
+    contraste = (a.get("numeros") or {}).get("resultado", {}).get("v") == EST_CONTRASTE
+
+    def g(k):
+        return (n.get(k) or {}).get("v")
+    return resultado_esteatose(g("figado_hu"), g("f_menos_b"), g("f_sobre_b"), contraste)

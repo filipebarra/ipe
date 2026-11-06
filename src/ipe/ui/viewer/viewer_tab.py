@@ -5744,11 +5744,38 @@ class ViewerTab(OncoMixin, QWidget):
     def _composicao_do_ativo(self):
         return self.composicao_automatica(self.active)
 
-    def composicao_automatica(self, vp=None, simular: bool = False):
+    def composicao_automatica(self, vp=None, simular: bool = False, perguntar: bool | None = None):
         vp = vp or self.active or next((v for v in self.viewports if v.frames), None)
         if vp is None:
             return None
+        # 0.99.80: altura, peso e sexo antes da conta (do arquivo, para conferir ou digitar)
+        if perguntar is None:
+            perguntar = not simular
+        if perguntar and not self.pedir_biometria(vp):
+            return None
         return self.segmentar_orgaos(vp, simular=simular, tipo="composicao")
+
+    def pedir_biometria(self, vp=None, sempre: bool = False) -> bool:
+        """A janela de altura e peso. False = cancelou. Com "perguntar sempre" desligado, só passa."""
+        from ipe.ai import biometria as B
+        from ipe.ai import composicao as CP
+        from ipe.ui.biometria_dialog import BiometriaDialog
+        perguntar = bool(CP.config(self.settings, CP.CHAVE_PERGUNTAR))
+        if not perguntar and not sempre:
+            return True
+        vp = vp or self.active
+        f = vp.current_frame() if vp is not None else None
+        uid = (vp.study_uid if vp is not None else "") or self.study_uid
+        valores = B.ler(self.repo, uid, getattr(f, "path", None))
+        d = BiometriaDialog(valores, self, perguntar=perguntar)
+        if d.exec() != BiometriaDialog.Accepted:
+            return False
+        v = d.valores()
+        B.guardar(self.repo, uid, v["altura_m"], v["peso_kg"], v["sexo"])
+        if d.perguntar() != perguntar and self.settings is not None:
+            self.settings.set(CP.CHAVE_PERGUNTAR, d.perguntar())
+            self.settings.save()
+        return True
 
     def composicao_botao(self):
         try:

@@ -1146,6 +1146,28 @@ class Repository:
             s.commit()
             return self._achado_dict(a)
 
+    def biometria(self, study_uid: str) -> dict:
+        """0.99.80: altura, peso e sexo digitados para o exame (ai/biometria.py)."""
+        v = self.get_app_setting("biometria." + study_uid, {})
+        return v if isinstance(v, dict) else {}
+
+    def guardar_biometria(self, study_uid: str, dados: dict) -> None:
+        self.set_app_setting("biometria." + study_uid, dict(dados or {}))
+
+    def atualizar_numeros_achado(self, achado_id: int, numeros: dict, elegibilidade: str | None = None) -> dict | None:
+        """0.99.80: troca os números do achado sem mexer no estado (altura e peso digitados refazem o índice
+        muscular e o IMC; a conta da IA não muda)."""
+        import json
+        with self.db.session() as s:
+            a = s.get(AchadoIA, achado_id)
+            if a is None:
+                return None
+            a.numeros = json.dumps(numeros or {}, ensure_ascii=False)
+            if elegibilidade is not None:
+                a.elegibilidade = elegibilidade
+            s.commit()
+            return self._achado_dict(a)
+
     def revisar_achado(self, achado_id: int, estado: str, revisor: str = "", corrigidos: dict | None = None,
                        nota: str | None = None, lesao_id: int | None = None) -> dict | None:
         import json

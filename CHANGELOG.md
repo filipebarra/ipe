@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.80 — peso e altura na composição corporal, e o resultado da esteatose
+- Ao clicar para calcular a composição corporal, uma janela mostra altura, peso e sexo do arquivo para conferir
+  ou digitar (vale para o exame; o arquivo não muda). Em Achados de IA, **Altura e peso…** troca depois e refaz o
+  índice muscular, o IMC e as referências sem rodar a IA.
+- Com o peso: IMC e as referências de Martin et al. (J Clin Oncol 2013) para sarcopenia e mioesteatose.
+- Atenuação hepática ganhou um **resultado** em texto (Park 2006, Pickhardt 2012): compatível com esteatose
+  moderada a acentuada, esteatose leve possível (fígado/baço < 1,0), sem sinais, ou não classificado com contraste.
+  Vai ao laudo e acompanha a correção dos números.
+
 ## 0.99.79 — um Ipê só
 - Clicar de novo no atalho (ou num link ipe://) não abre outro programa: o que já está aberto vem para a frente,
   também da bandeja ou do login. A trava é por usuário e se solta sozinha se o programa cair.

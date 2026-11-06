@@ -180,10 +180,14 @@ class AchadosPainel(QDialog):
         self.b_les = QPushButton("Acompanhar como lesão")
         self.b_les.setToolTip("O achado confirmado vira uma lesão do acompanhamento, com a medida no corte dele")
         self.b_les.clicked.connect(self.acompanhar)
+        self.b_bio = QPushButton("Altura e peso…")                    # 0.99.80
+        self.b_bio.setToolTip("Altura, peso e sexo do paciente: refazem o índice muscular, o IMC e as referências "
+                              "da composição corporal, sem rodar a IA de novo")
+        self.b_bio.clicked.connect(self.altura_e_peso)
         self.b_laudo = QPushButton("Mandar ao laudo")
         self.b_laudo.setToolTip("Só os confirmados e os corrigidos: nada vai sozinho ao laudo")
         self.b_laudo.clicked.connect(self.mandar_ao_laudo)
-        for b in (self.b_ir, self.b_conf, self.b_corr, self.b_desc, self.b_volta, self.b_les):
+        for b in (self.b_ir, self.b_conf, self.b_corr, self.b_desc, self.b_volta, self.b_les, self.b_bio):
             bt.addWidget(b)
         bt.addStretch(1)
         bt.addWidget(self.b_laudo)
@@ -264,12 +268,20 @@ class AchadosPainel(QDialog):
         for b in (self.b_ir, self.b_conf, self.b_corr, self.b_desc, self.b_volta):
             b.setEnabled(tem)
         self.b_les.setEnabled(tem and a["estado"] in AC.VALEM and not a.get("lesao_id"))
+        self.b_bio.setVisible(any(x.get("ferramenta") == "composicao" for x in getattr(self, "todos", [])))
+        self.b_bio.setEnabled(any(x.get("ferramenta") == "composicao" for x in getattr(self, "todos", [])))
         self.b_laudo.setEnabled(any(x["estado"] in AC.VALEM for x in getattr(self, "todos", [])))
         if a is None:
             self.l_origem.setText("")
             return
         txt = f"{a.get('modelo', '')} {a.get('versao', '')}".strip()
-        linhas = [tr(f"{txt} — {a.get('elegibilidade', '')}" if txt else a.get("elegibilidade", ""))]
+        linhas = []
+        mod = _modulo(a.get("ferramenta", ""))
+        res_fn = getattr(mod, "resultado_do_achado", None)
+        resultado = res_fn(a) if res_fn is not None else None
+        if resultado:                                  # 0.99.80: o resultado da esteatose, em destaque
+            linhas.append(tr("Resultado") + ": " + tr(resultado))
+        linhas.append(tr(f"{txt} — {a.get('elegibilidade', '')}" if txt else a.get("elegibilidade", "")))
         c = self.correspondencia(a)
         if c is not None:
             b, cr = c["achado"], c["crescimento"]
@@ -342,6 +354,49 @@ class AchadosPainel(QDialog):
                                         corrigidos=valores, nota=nota)
         self.recarregar()
         return novo
+
+    def altura_e_peso(self) -> bool:
+        """0.99.80: altura, peso e sexo do exame; refaz os números de L3 (índice, IMC, referências)."""
+        from ipe.ai import biometria as B
+        from ipe.ai import composicao as CP
+        from ipe.ui.biometria_dialog import BiometriaDialog
+        a = self.atual()
+        if a is None or a.get("ferramenta") != "composicao":
+            a = next((x for x in self.todos if x.get("ferramenta") == "composicao"), None)
+        if a is None:
+            return False
+        uid = a["study_uid"]
+        path = None
+        try:
+            vp = self._quadro(a)
+            f = vp.current_frame() if vp is not None else None
+            path = getattr(f, "path", None)
+        except Exception:  # noqa: BLE001
+            path = None
+        settings = getattr(self.tab, "settings", None)
+        d = BiometriaDialog(B.ler(self.repo, uid, path), self,
+                            perguntar=bool(CP.config(settings, CP.CHAVE_PERGUNTAR)))
+        if d.exec() != QDialog.Accepted:
+            return False
+        return self.aplicar_biometria(uid, d.valores(), d.perguntar())
+
+    def aplicar_biometria(self, study_uid: str, v: dict, perguntar: bool | None = None) -> bool:
+        from ipe.ai import biometria as B
+        from ipe.ai import composicao as CP
+        B.guardar(self.repo, study_uid, v.get("altura_m"), v.get("peso_kg"), v.get("sexo"))
+        settings = getattr(self.tab, "settings", None)
+        if perguntar is not None and settings is not None and bool(CP.config(settings, CP.CHAVE_PERGUNTAR)) != perguntar:
+            settings.set(CP.CHAVE_PERGUNTAR, perguntar)
+            settings.save()
+        mudou = False
+        for x in self.repo.achados(study_uid, "composicao"):
+            if x.get("tipo") != CP.TIPO_L3:
+                continue
+            nums, eleg = CP.atualizar_biometria(x, v.get("altura_m"), v.get("peso_kg"), v.get("sexo"))
+            self.repo.atualizar_numeros_achado(x["id"], nums, eleg)
+            mudou = True
+        self.recarregar()
+        return mudou
 
     def acompanhar(self) -> int | None:
         """O achado confirmado vira lesão do acompanhamento, com um círculo do diâmetro no corte dele."""

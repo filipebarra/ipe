@@ -85,7 +85,7 @@ def test_l3_e_compartimentos():
     assert res.l3["sma_cm2"]["v"] == pytest.approx(musc, rel=0.05)
     assert res.l3["musculo_hu"]["v"] == 40
     assert res.l3["vat_sat"]["v"] == pytest.approx(vat / sat, rel=0.04)
-    assert res.l3["smi"]["v"] is None and any("PatientSize" in x for x in res.avisos_l3)
+    assert res.l3["smi"]["v"] is None and any("sem a altura" in x for x in res.avisos_l3)
 
 
 def test_figado_e_baco_sem_contraste():
@@ -120,7 +120,8 @@ def test_frases():
     txt = C.frase(a)
     assert txt.startswith("Composição corporal em L3: área muscular de") and "gordura visceral" in txt
     b = {**itens[1], "estado": "confirmado", "corrigidos": {}}
-    assert C.frase(b) == "Atenuação hepática média de 61 HU, esplênica de 51 HU (fígado − baço 10 HU)."
+    assert C.frase(b) == ("Atenuação hepática média de 61 HU, esplênica de 51 HU (fígado − baço 10 HU). "
+                          + C.EST_SEM + ".")
     assert AC.texto_do_laudo([{**b, "estado": "sugerido"}], C.frase) == ""
 
 
@@ -154,6 +155,7 @@ def _exame(env, tmp_path):
         ds.PixelSpacing = [PX, PX]
         ds.SliceThickness = 2.5
         ds.PatientSize = "1.60"
+        ds.PatientWeight = "58"
         ds.RescaleSlope, ds.RescaleIntercept = 1, 0
         _mono(ds, hu[k], signed=True)
         _save(ds, pasta)
@@ -225,3 +227,142 @@ def test_instalador_baixa_trunk_cavities():
     raiz = Path(__file__).resolve().parent.parent
     for nome in ("instalar_segmentacao.sh", "instalar_segmentacao.bat"):
         assert "trunk_cavities" in (raiz / nome).read_text(encoding="utf-8", errors="replace")
+
+
+# ------------------------------------------------------------------ 0.99.80: peso, IMC e resultado da esteatose
+def test_resultado_da_esteatose():
+    R = C.resultado_esteatose
+    assert R(61, 10, 1.2) == C.EST_SEM
+    assert R(50, -2, 0.96) == C.EST_LEVE                 # fígado menos denso que o baço, sem critério de ≥ 30%
+    assert R(47, 5, 1.1) == C.EST_MOD                    # Pickhardt: fígado < 48 HU
+    assert R(55, -10, 0.85) == C.EST_MOD                 # Park: fígado − baço < −9
+    assert R(55, -5, 0.79) == C.EST_MOD                  # Park: fígado / baço < 0,8
+    assert R(30, -20, 0.6, contraste=True) == C.EST_CONTRASTE
+    assert R(None) is None
+
+
+def test_figado_gorduroso_no_fantoma_e_correcao_refaz_o_resultado():
+    t = _T()
+    hu = t.vol.data
+    rot = _rotulos(hu)                                      # o simulador acha o fígado pelo código 61
+    m = _cortes()
+    for k in range(NZ):
+        hu[k][m["fig"] & m["cav"]] = 31                     # depois, o fígado vira gorduroso
+    res = C.calcular(t, rot)
+    assert res.figado["figado_hu"]["v"] == pytest.approx(31, abs=0.5)
+    assert res.figado["resultado"]["v"] == C.EST_MOD
+    a = {**C.itens_para_o_banco(res, t, "x")[1], "estado": "confirmado", "corrigidos": {}}
+    assert C.frase(a).endswith(C.EST_MOD + ".")
+    # o médico corrige o HU do fígado: o resultado acompanha
+    a["corrigidos"] = {"figado_hu": 62.0, "f_menos_b": 11.0, "f_sobre_b": 1.22}
+    assert C.resultado_do_achado(a) == C.EST_SEM
+    a["corrigidos"]["resultado"] = "Esteatose focal poupando o segmento IV"
+    assert C.resultado_do_achado(a) == "Esteatose focal poupando o segmento IV"
+
+
+def test_peso_da_o_imc_e_as_referencias_de_martin(monkeypatch):
+    t = _T()
+    monkeypatch.setattr(C, "_biometria", lambda _t: {"altura_m": 1.70, "peso_kg": 86.7, "sexo": "M"})
+    res = C.calcular(t, _rotulos(t.vol.data))
+    assert res.l3["imc"]["v"] == 30.0 and res.l3["peso_kg"]["v"] == 86.7 and res.l3["altura_m"]["v"] == 1.7
+    martin = next(x for x in res.avisos_l3 if "Martin" in x)
+    assert "< 53" in martin and "< 33 HU" in martin          # homem com IMC ≥ 25
+    # sem peso: sem IMC, e avisa
+    monkeypatch.setattr(C, "_biometria", lambda _t: {"altura_m": 1.70, "peso_kg": None, "sexo": "F"})
+    res = C.calcular(t, _rotulos(t.vol.data))
+    assert res.l3["imc"]["v"] is None and any("sem o peso" in x for x in res.avisos_l3)
+
+
+def test_atualizar_biometria_refaz_indice_e_avisos():
+    t = _T()
+    res = C.calcular(t, _rotulos(t.vol.data))
+    a = {**C.itens_para_o_banco(res, t, "x")[0], "corrigidos": {}}
+    assert "sem a altura" in a["elegibilidade"]
+    nums, eleg = C.atualizar_biometria(a, 1.60, 50.0, "F")
+    sma = a["numeros"]["sma_cm2"]["v"]
+    assert nums["smi"]["v"] == pytest.approx(sma / 1.6 ** 2, abs=0.1)
+    assert nums["imc"]["v"] == pytest.approx(19.5, abs=0.05)
+    assert "sem a altura" not in eleg and "38,5" in eleg and "< 41 HU" in eleg
+    assert eleg.startswith(a["elegibilidade"].partition(". Atenção: ")[0])
+    # trocar de novo não acumula avisos repetidos
+    a2 = {**a, "numeros": nums, "elegibilidade": eleg}
+    _n, eleg2 = C.atualizar_biometria(a2, 1.60, 50.0, "F")
+    assert eleg2.count("Prado") == 1 and eleg2.count("Martin") == 1
+
+
+def test_biometria_do_arquivo_e_digitada(env, tmp_path):
+    from ipe.ai import biometria as B
+    paths, db, repo = env
+    uid, _s = _exame(env, tmp_path)
+    se = repo.series_for_study(uid)[0]
+    arq = repo.instances_for_series(se.series_uid)[0]["path"]
+    from pathlib import Path
+    caminho = Path(arq) if Path(arq).is_absolute() else Path(paths.storage) / arq
+    v = B.ler(repo, uid, caminho)
+    assert v["altura_m"] == 1.6 and v["peso_kg"] == 58.0 and v["sexo"] == "F"
+    assert v["fonte"] == {"altura_m": "arquivo", "peso_kg": "arquivo", "sexo": "arquivo"}
+    B.guardar(repo, uid, 1.62, 61.5, "F")
+    v = B.ler(repo, uid, caminho)
+    assert v["altura_m"] == 1.62 and v["peso_kg"] == 61.5 and v["fonte"]["peso_kg"] == "digitado"
+    assert B.imc(1.62, 61.5) == 23.4
+    assert B.do_arquivo(None)["peso_kg"] is None
+
+
+def test_janela_de_altura_e_peso_antes_e_no_painel(env, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
+
+    from ipe.ai import biometria as B
+    from ipe.core.config import Settings
+    from ipe.ui import biometria_dialog as BD
+    from ipe.ui.main_window import MainWindow
+    app = QApplication.instance() or QApplication([])
+    paths, db, repo = env
+    uid, _s = _exame(env, tmp_path)
+    avisos = []
+    monkeypatch.setattr(QMessageBox, "information", lambda _p, _t, msg, *a, **k: avisos.append(msg))
+    monkeypatch.setattr(QMessageBox, "warning", lambda _p, _t, msg, *a, **k: avisos.append("ERRO " + msg))
+    vistos = []
+
+    def exec_(self):
+        vistos.append({"altura": self.altura.value(), "peso": self.peso.value(), "sexo": self.sexo.currentData()})
+        if len(vistos) == 1:
+            return QDialog.Rejected                         # cancelar não calcula
+        self.altura.setValue(165)
+        self.peso.setValue(70)
+        return QDialog.Accepted
+    monkeypatch.setattr(BD.BiometriaDialog, "exec", exec_)
+    w = MainWindow(paths, Settings(paths.settings_file), repo=repo, db=db)
+    w.resize(1300, 800)
+    w.show()
+    try:
+        assert w.handle_external({"accession": "COMP01"}) == "aberto"
+        tab = w.tabs.currentWidget()
+        app.processEvents()
+        vp = next(v for v in tab.viewports if v.frames)
+        assert tab.composicao_automatica(vp, simular=True, perguntar=True) is None
+        assert vistos[0] == {"altura": 160, "peso": 58.0, "sexo": "F"}        # do arquivo
+        assert not repo.achados(uid, "composicao")
+        tab.composicao_automatica(vp, simular=True, perguntar=True)
+        fim = time.time() + 120
+        while not avisos and time.time() < fim:
+            app.processEvents()
+            time.sleep(0.05)
+        assert avisos and avisos[-1].startswith("Composição corporal pronta"), avisos
+        l3 = next(a for a in repo.achados(uid, "composicao") if a["tipo"] == C.TIPO_L3)
+        assert l3["numeros"]["altura_m"]["v"] == 1.65 and l3["numeros"]["peso_kg"]["v"] == 70.0
+        assert l3["numeros"]["imc"]["v"] == pytest.approx(25.7, abs=0.05)
+        fig = next(a for a in repo.achados(uid, "composicao") if a["tipo"] == C.TIPO_FIGADO)
+        assert fig["numeros"]["resultado"]["v"] == C.EST_SEM
+        # no painel: o botão aparece e refaz os números sem rodar a IA
+        p = tab.achados_painel
+        assert p.b_bio.isVisibleTo(p)
+        r_fig = next(i for i, a in enumerate(p.achados) if a["tipo"] == C.TIPO_FIGADO)
+        p.t.selectRow(r_fig)
+        assert "Resultado" in p.l_origem.text()
+        assert p.aplicar_biometria(uid, {"altura_m": 1.80, "peso_kg": 100.0, "sexo": "F"})
+        l3 = next(a for a in repo.achados(uid, "composicao") if a["tipo"] == C.TIPO_L3)
+        assert l3["numeros"]["imc"]["v"] == pytest.approx(30.9, abs=0.05)
+        assert l3["numeros"]["smi"]["v"] == pytest.approx(l3["numeros"]["sma_cm2"]["v"] / 1.8 ** 2, abs=0.1)
+        assert B.ler(repo, uid)["peso_kg"] == 100.0
+    finally:
+        w.close()
