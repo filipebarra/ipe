@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.79 — un solo Ipê
+- Hacer clic de nuevo en el acceso directo (o en un enlace ipe://) ya no abre otra copia: la que ya está abierta
+  pasa al frente, también desde la bandeja o el inicio de sesión. El bloqueo es por usuario y se suelta solo si el
+  programa se cae.
+
 ## 0.99.78 — menús del botón derecho más limpios e íconos de las aplicaciones de IA
 - **Cuadro**: arriba, solo lo que depende del lugar del clic (medida, nódulo, hallazgo BI-RADS, eje de simetría,
   DSA); después imagen clave y copiar; **Imagen ▸** (ventana, color, invertir, filtro, girar, mosaico,

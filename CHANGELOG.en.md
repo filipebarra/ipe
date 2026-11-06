@@ -3,6 +3,10 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.79 — a single Ipê
+- Clicking the shortcut again (or an ipe:// link) no longer opens another copy: the one already open comes to the
+  front, also from the tray or the login. The lock is per user and is released by itself if the program crashes.
+
 ## 0.99.78 — cleaner right-click menus and AI app icons
 - **Viewport**: on top, only what depends on where you clicked (measurement, nodule, BI-RADS finding, symmetry
   axis, DSA); then key image and copy; **Image ▸** (window, color, invert, filter, rotate, mosaic, histogram),

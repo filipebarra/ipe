@@ -20,6 +20,7 @@ O programa tem uma aba fixa, **Banco de dados**, e uma aba por exame aberto. Tud
 - **Voltar ao banco**: **Ctrl+B**, ou a aba Banco de dados.
 - **Fechar um exame**: o ✕ da aba. Com o exame repartido entre monitores, fechar um fecha todos — meio exame aberto num monitor é pior que nenhum.
 - **Trocar de aba não rouba o teclado**: ao clicar na aba de um exame, o teclado vai para o quadro. As setas andam nas etapas da mamografia, não nas abas.
+- **Um Ipê só** (0.99.79): clicar de novo no atalho, ou abrir um link ipe://, não abre outro programa. O que já está aberto vem para a frente, inclusive quando estava escondido na bandeja (fechar para a bandeja) ou ainda no login. Se o programa caiu, o próximo clique abre normalmente.
 
 ## Importar exames
 

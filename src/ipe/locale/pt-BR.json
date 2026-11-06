@@ -5865,7 +5865,8 @@
   "Medir",
   "Navegar",
   "Organizar",
-  "Identificar vértebras e discos desta série (IA)…"
+  "Identificar vértebras e discos desta série (IA)…",
+  "Outro Ipê parece aberto, mas não respondeu; abrindo assim mesmo."
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

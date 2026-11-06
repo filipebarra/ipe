@@ -8,6 +8,7 @@ local (named pipe no Windows, socket no Linux) e a janela vem para frente.
 from __future__ import annotations
 
 import json
+import os
 import logging
 import sys
 
@@ -22,6 +23,41 @@ from ipe.core.logging_setup import setup_logging
 log = logging.getLogger(__name__)
 # o mesmo canal de antes: uma chamada do programa velho acha a janela do novo
 SERVER_NAME = f"{DATA_NAME}-instance"
+
+
+def _arquivo_da_trava() -> str:
+    """Trava de instância única, por usuário, na pasta temporária (0.99.79)."""
+    import getpass
+    import tempfile
+    try:
+        quem = getpass.getuser()
+    except Exception:  # noqa: BLE001
+        quem = "usuario"
+    seguro = "".join(c if c.isalnum() else "_" for c in quem)
+    return os.path.join(tempfile.gettempdir(), f"{DATA_NAME}-{seguro}.lock")
+
+
+def pegar_a_vez():
+    """0.99.79: só um Ipê aberto por usuário. Devolve a trava (guardar enquanto o programa roda)
+    ou None se outro Ipê já está aberto. A trava some sozinha se o programa cair (o PID é conferido)."""
+    from PySide6.QtCore import QLockFile
+    trava = QLockFile(_arquivo_da_trava())
+    trava.setStaleLockTime(0)          # só conta como velha se o processo dono não existe mais
+    if trava.tryLock(200):
+        return trava
+    return None
+
+
+def avisar_a_instancia_aberta(payload: dict, espera_s: float = 25.0) -> bool:
+    """Manda o pedido ao Ipê já aberto. Se ele ainda está abrindo (login, banco), espera o canal subir."""
+    import time
+    fim = time.monotonic() + espera_s
+    while True:
+        if send_to_running_instance(payload):
+            return True
+        if time.monotonic() >= fim:
+            return False
+        time.sleep(0.3)
 
 
 def send_to_running_instance(payload: dict, timeout_ms: int = 800) -> bool:
@@ -253,6 +289,60 @@ def run_gui(external: dict | None = None, minimized: bool = False) -> int:
 
     if external and send_to_running_instance(external):
         return 0     # a janela já aberta cuidou do pedido
+    # 0.99.79: *"vários programas são abertos se eu clicar mais de uma vez no atalho… também quando
+    # escolho minimizar ao fechar e deixar no tray"*. Um Ipê só por usuário: o segundo clique traz o
+    # primeiro para a frente (inclusive da bandeja) e sai.
+    trava = None
+    if not os.environ.get("IPE_VARIAS_INSTANCIAS"):
+        trava = pegar_a_vez()
+        if trava is None:
+            pedido = dict(external) if external else {"command": "mostrar", "minimizado": bool(minimized)}
+            if avisar_a_instancia_aberta(pedido):
+                return 0
+            log.warning("Outro Ipê parece aberto, mas não respondeu; abrindo assim mesmo.")
+    app._ipe_trava = trava
+    pendentes: list[dict] = []
+    janela: dict = {}
+
+    def entregar(payload: dict) -> None:
+        win_ = janela.get("win")
+        if win_ is None:                       # ainda no login: guarda e põe o login na frente
+            pendentes.append(payload)
+            for w in QApplication.topLevelWidgets():
+                if w.isVisible():
+                    w.raise_()
+                    w.activateWindow()
+            return
+        if payload.get("command") == "mostrar":
+            if not payload.get("minimizado"):
+                trazer = getattr(win_, "trazer_para_a_frente", None)
+                if trazer is not None:
+                    trazer()
+                else:
+                    win_.showNormal()
+                    win_.raise_()
+                    win_.activateWindow()
+            return
+        win_.handle_external(payload)
+
+    server = QLocalServer()
+    QLocalServer.removeServer(SERVER_NAME)   # temos a trava: um servidor com esse nome é órfão de uma queda
+    if server.listen(SERVER_NAME):
+        def on_connection() -> None:
+            conn = server.nextPendingConnection()
+
+            def read() -> None:
+                try:
+                    payload = json.loads(bytes(conn.readAll()).decode("utf-8"))
+                    log.info("Chamada externa: %s", payload)
+                    entregar(payload)
+                except (ValueError, UnicodeDecodeError) as e:
+                    log.warning("Chamada externa inválida: %s", e)
+            conn.readyRead.connect(read)
+        server.newConnection.connect(on_connection)
+    else:
+        log.warning("Não foi possível abrir o canal de instância única: %s", server.errorString())
+    app._ipc_server = server
 
     paths = get_paths()
     setup_logging(paths.logs)
@@ -298,23 +388,7 @@ def run_gui(external: dict | None = None, minimized: bool = False) -> int:
     if win is None:
         return 0
 
-    server = QLocalServer()
-    QLocalServer.removeServer(SERVER_NAME)   # limpa servidor órfão de uma queda anterior
-    if server.listen(SERVER_NAME):
-        def on_connection() -> None:
-            conn = server.nextPendingConnection()
-
-            def read() -> None:
-                try:
-                    payload = json.loads(bytes(conn.readAll()).decode("utf-8"))
-                    log.info("Chamada externa: %s", payload)
-                    win.handle_external(payload)
-                except (ValueError, UnicodeDecodeError) as e:
-                    log.warning("Chamada externa inválida: %s", e)
-            conn.readyRead.connect(read)
-        server.newConnection.connect(on_connection)
-    else:
-        log.warning("Não foi possível abrir o canal de instância única: %s", server.errorString())
+    janela["win"] = win
     win._ipc_server = server   # mantém referência
 
     if minimized and win.tray is not None:
@@ -326,6 +400,9 @@ def run_gui(external: dict | None = None, minimized: bool = False) -> int:
     win.start_services()
     if external:
         win.handle_external(external)
+    for pedido in pendentes:                 # cliques no atalho durante o login
+        entregar(pedido)
+    pendentes.clear()
     # A versão no log é o que permite saber **qual** programa produziu aquele registro: o
     # instalado, o portátil ou o código vivo. Sem ela, um relato de defeito não diz de
     # que versão está falando.

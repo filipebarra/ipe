@@ -3,6 +3,10 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.79 — um Ipê só
+- Clicar de novo no atalho (ou num link ipe://) não abre outro programa: o que já está aberto vem para a frente,
+  também da bandeja ou do login. A trava é por usuário e se solta sozinha se o programa cair.
+
 ## 0.99.78 — menus do botão direito mais limpos e ícones das aplicações de IA
 - **Quadro**: em cima, só o que depende do lugar clicado (medida, nódulo, achado BI-RADS, eixo de simetria, DSA);
   depois imagem-chave e copiar; **Imagem ▸** (janela, cor, inverter, filtro, girar, mosaico, histograma),
