@@ -21,6 +21,7 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import QApplication, QInputDialog, QMenu, QMessageBox, QWidget
 
 from ipe.core.i18n import tr
+from ipe.core import cronometro as _CR
 from ipe.imaging import measure as M
 from ipe.imaging.measure import Annotation
 from ipe.imaging.series import Frame, FrameCache, FrameImage  # noqa: F401
@@ -1638,6 +1639,8 @@ class Viewport(AnnotationMixin, QWidget):
             if self.is_transformed():
                 p.setTransform(self.display_transform(), True)
             p.drawImage(self._image_rect(), q)
+            if _CR._atual is not None and not _CR._atual.fechado:
+                _CR.primeira_imagem()
             if self.fusion is not None:
                 self._draw_fusion(p)
             if self.overlays:

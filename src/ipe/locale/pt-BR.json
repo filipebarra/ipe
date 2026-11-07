@@ -6055,7 +6055,11 @@
   "sobreposições do exame",
   "Baixando as primeiras imagens do servidor central…",
   "Não foi possível baixar o exame do servidor central.",
-  "download do servidor central"
+  "download do servidor central",
+  "Cronometro | None",
+  "preaquecer os decodificadores",
+  "sobreposições",
+  "sobreposições (2º plano)"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7643,6 +7647,8 @@
   "{}: {}. Instale em Configurações ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS)… — uma vez, com internet.",
   "Baixando do servidor central: {} de {} imagem(ns)…",
   "Exame baixado do servidor central ({} imagem(ns)).",
-  "Falha ao baixar do servidor central: {}"
+  "Falha ao baixar do servidor central: {}",
+  " ({} s)",
+  "Abertura ({}): primeira imagem em {} s"
  ]
 }

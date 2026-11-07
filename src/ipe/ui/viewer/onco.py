@@ -336,9 +336,13 @@ class OncoMixin:
                 total += os.path.getsize(c)
             except OSError:
                 pass
+        import time as _t
+        from ipe.core import cronometro as CR
+        t0 = _t.perf_counter()
         if total < self.SEG_EM_SEGUNDO_PLANO or getattr(self, "_lendo_overlays", False):
             if not getattr(self, "_lendo_overlays", False):
-                self.load_overlay_objects()
+                if self.load_overlay_objects():
+                    CR.depois("sobreposições", _t.perf_counter() - t0)
             return
         from PySide6.QtCore import QObject, Signal
 
@@ -355,6 +359,7 @@ class OncoMixin:
             self._aviso_overlays = None
             try:
                 self.load_overlay_objects()
+                CR.depois("sobreposições (2º plano)", _t.perf_counter() - t0)
             except RuntimeError:
                 pass                             # a aba fechou enquanto lia
             except Exception:  # noqa: BLE001

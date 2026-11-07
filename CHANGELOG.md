@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.86 — abertura mais rápida (JPEG-LS) e cronômetro da abertura no registro
+- As imagens em JPEG-LS (a compressão sem perda do Ipê; toda a mamografia guardada) passam a ser lidas pelo
+  pyjpegls (CharLS) em vez do gdcm: numa mamografia 2850×2394 do seu banco, 122 ms em vez de 280 ms, e os quadros
+  decodificam em paralelo.
+- Os decodificadores e os módulos que o primeiro exame carregava na hora são carregados alguns segundos depois que
+  o programa abre.
+- Cada abertura deixa no registro o tempo até a primeira imagem, por etapa (banco, barra, tira, protocolo, janela,
+  estado, imagem), e quando as sobreposições de IA terminam de entrar.
+- Release: sai só o `-installer.exe` (a cópia `-instalador.exe` da transição acabou).
+
 ## 0.99.85 — cliente do servidor central abre o exame enquanto baixa; instalação no Linux
 - No modo cliente, o exame que ainda não está no computador abria só depois de baixar todas as imagens. Agora
   chega primeiro uma imagem de cada série (o exame abre com a tira completa e o protocolo monta os quadros) e o

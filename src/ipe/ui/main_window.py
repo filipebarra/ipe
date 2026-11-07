@@ -185,6 +185,7 @@ class MainWindow(QMainWindow):
         self._vigia_timer.setInterval(3000)
         self._vigia_timer.timeout.connect(self._vigiar_series)
         self._vigia_timer.start()
+        QTimer.singleShot(2500, self._preaquecer)     # 0.99.86: o primeiro exame abre sem pagar os imports
         self.setCentralWidget(self.tabs)
 
         self._build_menus()
@@ -1266,6 +1267,32 @@ class MainWindow(QMainWindow):
             self.pacs_window.hide()
 
     # ------------------------------------------------------------ preferências
+    #: módulos que o primeiro exame importava na hora de abrir (medido: ~0,3–0,5 s na primeira abertura)
+    _MODULOS_DA_ABERTURA = (
+        "ipe.core.acervo", "ipe.exporter.ko_gsps", "ipe.imaging.cardiac", "ipe.imaging.dinamicas",
+        "ipe.imaging.gsdf", "ipe.imaging.mammo", "ipe.imaging.render3d", "ipe.imaging.roteiros",
+        "ipe.imaging.selos", "ipe.imaging.tomo_pos", "ipe.printing.aw_film", "ipe.ui.compare_studies",
+        "ipe.ui.viewer.anotacoes", "ipe.ui.viewer.aplicacoes", "ipe.ui.viewer.estado_analise",
+        "ipe.ui.viewer.etapas", "ipe.ui.viewer.mammo_view", "ipe.ui.viewer.memoria_layout",
+        "ipe.ui.viewer.render3d_view", "ipe.ui.viewer.tomo_dial", "ipe.imaging.overlays",
+        "ipe.ui.viewer.overlay_draw", "ipe.imaging.segment")
+
+    def _preaquecer(self) -> None:
+        """0.99.86: depois que a janela abre, numa linha à parte, carrega os módulos e os decodificadores
+        de imagem que o primeiro exame carregaria na hora — a primeira abertura fica igual às outras."""
+        import importlib
+        import threading
+
+        def trabalho():
+            from ipe.imaging import series as SE
+            SE.preaquecer()
+            for m in self._MODULOS_DA_ABERTURA:
+                try:
+                    importlib.import_module(m)
+                except Exception:  # noqa: BLE001
+                    log.debug("preaquecer %s", m, exc_info=True)
+        threading.Thread(target=trabalho, name="ipe-preaquecer", daemon=True).start()
+
     def _vigiar_series(self) -> None:
         """De 3 em 3 s: algum exame aberto ganhou (ou perdeu) série ou imagem no banco? Refaz a tira
         daquela aba. Uma consulta só, e só com exame aberto."""
@@ -1991,17 +2018,25 @@ class MainWindow(QMainWindow):
         from ipe.auth import session as S
         if not S.require("view", self):
             return None
+        from ipe.core import cronometro as CR
+        CR.iniciar()
         ensure = getattr(self.repo, "ensure_local", None)
         if ensure is not None and not ensure(study_uid, self):
+            CR.cancelar()
             return None
+        if ensure is not None:
+            CR.marca("servidor")
         info = self.repo.study_info(study_uid) or {}
+        CR.rotular(f"{info.get('modalities', '')} {info.get('description', '')}".strip())
         S.audit(self.repo, "abrir", f"{info.get('patient_name', '')} — {info.get('study_date', '')} "
                 f"{info.get('modalities', '')} {info.get('description', '')}", study_uid=study_uid)
+        CR.marca("banco")
         try:
             tab = ViewerTab(self.repo, self.cache, self.settings, study_uid, hub=self.sync_hub,
                             layout=layout, series_filter=series_uids, plano=plano,
                             mg_monitor=mg_monitor, mg_telas=mg_telas, monitor_idx=monitor_idx)
         except Exception as e:  # noqa: BLE001
+            CR.cancelar()
             log.exception("Falha ao abrir estudo")
             QMessageBox.critical(self, "Erro", f"Não foi possível abrir o estudo:\n{e}")
             return None
@@ -2021,10 +2056,12 @@ class MainWindow(QMainWindow):
             tab.anon_action.setEnabled(False)
             self._privacy_restore.append(tab)   # volta a mostrar quando a reunião acabar
         else:
+            CR.marca("janela")
             try:                               # 0.99.58: reabrir como ele deixou
                 tab.restaurar_estado_ao_abrir()
             except Exception:  # noqa: BLE001
                 log.exception("restaurar o estado da análise")
+            CR.marca("estado")
         return tab
 
     def export_current(self) -> None:

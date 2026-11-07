@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 from ipe.core.sysinfo import auto_volume_mb
 from ipe.db.repository import Repository, SeriesRow
 from ipe.imaging.measure import Annotation
+from ipe.core import cronometro as CR
 from ipe.imaging.series import Frame, FrameCache, _vec, build_frames
 from ipe.imaging.curved import CurvedPlane
 from ipe.imaging.volume import SLAB_MODES, MPRPlane, ObliquePlane, VolumeError, build_volume
@@ -218,6 +219,7 @@ class ViewerTab(OncoMixin, QWidget):
         self.measures_panel = None
 
         self.toolbar = self._build_toolbar()
+        CR.marca("barra")
         # as regras de dinâmico valem **antes** de montar a tira: o que foi juntado ou separado
         # já aparece pronto, e o médico vê o que aconteceu na barra de estado
         try:
@@ -226,7 +228,9 @@ class ViewerTab(OncoMixin, QWidget):
             log.exception("regras de dinâmico")
             self._regras_feitas = []
         self.strip = SeriesStrip()
+        CR.marca("regras")
         self._fill_strip()
+        CR.marca("tira")
         self.strip.itemClicked.connect(self._strip_clicked)
         self.strip.itemDoubleClicked.connect(self._strip_double_clicked)
         self.strip.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -295,6 +299,7 @@ class ViewerTab(OncoMixin, QWidget):
         self._root_layout = root
 
         self._initial_hanging()
+        CR.marca("protocolo")
         if self._regras_feitas:
             feito = "; ".join(self._regras_feitas)
             QTimer.singleShot(0, lambda: self.status_message.emit(

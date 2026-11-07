@@ -8137,5 +8137,11 @@
  "download do servidor central": "descarga del servidor central",
  "Baixando do servidor central: {} de {} imagem(ns)…": "Descargando del servidor central: {} de {} imagen(es)…",
  "Exame baixado do servidor central ({} imagem(ns)).": "Estudio descargado del servidor central ({} imagen(es)).",
- "Falha ao baixar do servidor central: {}": "Falló la descarga del servidor central: {}"
+ "Falha ao baixar do servidor central: {}": "Falló la descarga del servidor central: {}",
+ "Cronometro | None": "Cronometro | None",
+ "preaquecer os decodificadores": "precalentar los decodificadores",
+ "sobreposições": "superposiciones",
+ "sobreposições (2º plano)": "superposiciones (segundo plano)",
+ " ({} s)": " ({} s)",
+ "Abertura ({}): primeira imagem em {} s": "Apertura ({}): primera imagen en {} s"
 }

@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.86 — faster opening (JPEG-LS) and the opening stopwatch in the log
+- JPEG-LS images (Ipê's lossless compression; all stored mammography) are now decoded by pyjpegls (CharLS)
+  instead of gdcm: on a 2850×2394 mammogram from your database, 122 ms instead of 280 ms, and viewports decode
+  in parallel.
+- The decoders and modules the first exam used to load on the spot are loaded a few seconds after the program
+  opens.
+- Each opening writes to the log the time to the first image, per step (database, toolbar, strip, protocol,
+  window, state, image), and when the AI overlays finish loading.
+- Release: only `-installer.exe` is published (the transitional `-instalador.exe` copy is gone).
+
 ## 0.99.85 — central server client opens the exam while downloading; Linux install
 - In client mode, an exam not yet on the computer only opened after all images were downloaded. Now one image of
   each series comes first (the exam opens with the full strip and the hanging protocol builds the viewports) and
