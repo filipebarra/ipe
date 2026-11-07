@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.87 — user guide with screenshots of the program
+- The PDF guide gained 19 figures: database, viewer with the AI segmentation, toolbar, layout, measurements, MPR,
+  3D (PET MIP), mammography and tomosynthesis, breast MR and the dynamic window, priors, PET/CT fusion, spine
+  levels, Structures, export and the settings (toolbar, network, central server).
+- The screens use real anonymized exams (EXEMPLO patients, shifted dates, new UIDs, no institution or private
+  tags) and are redone at every version by the `tools/guia/capturas.py` script, which opens the program without a
+  window and photographs each screen. The guide generator accepts `![caption](file.png)`.
+
 ## 0.99.86 — faster opening (JPEG-LS) and the opening stopwatch in the log
 - JPEG-LS images (Ipê's lossless compression; all stored mammography) are now decoded by pyjpegls (CharLS)
   instead of gdcm: on a 2850×2394 mammogram from your database, 122 ms instead of 280 ms, and viewports decode

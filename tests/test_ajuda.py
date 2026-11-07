@@ -108,3 +108,26 @@ def test_o_gerador_do_guia_esta_no_projeto(tmp_path):
     assert not g.simbolos_sem_fonte(texto), "há símbolo no guia que a fonte não desenha"
     saida = g.gerar([tmp_path / "guia.pdf"])[0]
     assert saida.read_bytes()[:5] == b"%PDF-"
+
+
+def test_o_guia_tem_as_capturas_de_tela(tmp_path):
+    """0.99.87: cada ![legenda](arquivo) do guia aponta para uma captura que existe, e o PDF leva as imagens."""
+    import re
+    texto = (RAIZ / "tools" / "guia" / "guia.md").read_text(encoding="utf-8")
+    figuras = re.findall(r"^!\[(.+)\]\(([^)]+)\)", texto, flags=re.M)
+    assert len(figuras) >= 15
+    pasta = RAIZ / "tools" / "guia" / "capturas"
+    faltam = [a for _, a in figuras if not (pasta / a).exists()]
+    assert not faltam, f"capturas em falta: {faltam} (rode tools/guia/capturas.py)"
+    assert all(leg.strip() for leg, _ in figuras)
+    pdf = (RAIZ / "docs" / "Ipe-guia-do-usuario.pdf").read_bytes()
+    assert pdf.count(b"/Subtype /Image") >= len({a for _, a in figuras})
+
+
+def test_figura_em_falta_nao_derruba_o_guia(tmp_path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("gerar_guia", RAIZ / "tools" / "guia" / "gerar_guia.py")
+    g = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(g)
+    partes = g._figura("nao_existe.png", "Legenda", 400, "0")
+    assert len(partes) == 1 and "figura em falta" in partes[0].text

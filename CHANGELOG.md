@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.87 — guia do usuário com telas do programa
+- O guia em PDF ganhou 19 figuras: banco de dados, visualizador com a segmentação de IA, barra de ferramentas,
+  layout, medidas, MPR, 3D (MIP do PET), mamografia e tomossíntese, RM de mama e a janela da dinâmica, anteriores,
+  fusão PET/CT, níveis da coluna, Estruturas, exportar e as configurações (barra, rede, servidor central).
+- As telas usam exames reais anonimizados (pacientes EXEMPLO, datas deslocadas, UIDs novos, sem instituição nem
+  tags privadas) e são refeitas a cada versão pelo roteiro `tools/guia/capturas.py`, que abre o programa sem
+  janela e fotografa cada tela. O gerador do guia aceita `![legenda](arquivo.png)`.
+
 ## 0.99.86 — abertura mais rápida (JPEG-LS) e cronômetro da abertura no registro
 - As imagens em JPEG-LS (a compressão sem perda do Ipê; toda a mamografia guardada) passam a ser lidas pelo
   pyjpegls (CharLS) em vez do gdcm: numa mamografia 2850×2394 do seu banco, 122 ms em vez de 280 ms, e os quadros

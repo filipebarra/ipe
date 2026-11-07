@@ -17,6 +17,8 @@ Sintaxe aceita em `guia.md`:
     ```  bloco de comando/código  ```
     **negrito**, *itálico*, `código`
     {versao} no texto vira a versão do programa
+    ![Legenda](arquivo.png)                (figura de tools/guia/capturas/, largura da página, legenda embaixo;
+                                            ![Legenda](arquivo.png){60} = 60% da largura)
 """
 from __future__ import annotations
 
@@ -55,6 +57,43 @@ BARRA_AVISO = colors.HexColor("#e0a020")
 FUNDO_COD = colors.HexColor("#f3f4f6")
 
 
+CAPTURAS = Path(__file__).with_name("capturas")
+
+
+def _figura(arquivo: str, legenda: str, largura: float, versao: str, fracao: float = 1.0) -> list:
+    """0.99.87: captura de tela do programa, com borda fina e legenda. Sem o arquivo, um aviso no lugar
+    (o guia continua saindo; o roteiro `capturas.py` refaz as imagens)."""
+    from reportlab.platypus import Image
+    p = (CAPTURAS / arquivo) if not Path(arquivo).is_absolute() else Path(arquivo)
+    if not p.exists():
+        return [Paragraph(f"<i>[figura em falta: {arquivo}]</i>", ST["corpo"])]
+    from PIL import Image as PILImage
+    with PILImage.open(p) as im:
+        w, h = im.size
+    larg = largura * max(0.2, min(1.0, fracao))
+    alt = larg * h / w
+    maximo = 150 * mm                                   # figura alta demais: reduz para caber na página
+    if alt > maximo:
+        larg, alt = larg * maximo / alt, maximo
+    fonte = p
+    if p.stat().st_size > 150_000:          # tela cheia: JPEG de boa qualidade deixa o PDF ~3× menor
+        import tempfile
+        fonte = Path(tempfile.gettempdir()) / f"ipe_guia_{p.stem}.jpg"
+        with PILImage.open(p) as im:
+            im.convert("RGB").save(fonte, "JPEG", quality=86, optimize=True)
+    img = Image(str(fonte), width=larg, height=alt)
+    moldura = Table([[img]], colWidths=[larg + 2], style=TableStyle([
+        ("BOX", (0, 0), (-1, -1), 0.5, LINHA), ("LEFTPADDING", (0, 0), (-1, -1), 1),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 1), ("TOPPADDING", (0, 0), (-1, -1), 1),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 1)]))
+    moldura.hAlign = "CENTER"
+    partes = [Spacer(1, 3), moldura]
+    if legenda:
+        partes.append(Paragraph(_inline(legenda, versao), ST["legenda"]))
+    partes.append(Spacer(1, 6))
+    return [KeepTogether(partes)]
+
+
 # ------------------------------------------------------------------ fontes
 def _registrar_fontes() -> tuple[str, str, str, str]:
     """DejaVu (tem as setas, ▸, ⠿, ✕, ↻); no Windows sem DejaVu, Segoe UI / Arial."""
@@ -80,6 +119,8 @@ def _registrar_fontes() -> tuple[str, str, str, str]:
 F, FB, FI, FM = _registrar_fontes()
 
 ST = {
+    "legenda": ParagraphStyle("legenda", fontName=FI, fontSize=8.2, leading=10.5, textColor=CINZA,
+                              alignment=1, spaceBefore=2, spaceAfter=2),
     "corpo": ParagraphStyle("corpo", fontName=F, fontSize=9.6, leading=13.6, spaceAfter=5,
                             alignment=TA_LEFT),
     "item": ParagraphStyle("item", fontName=F, fontSize=9.6, leading=13.4, leftIndent=13,
@@ -272,6 +313,13 @@ def montar(texto: str, versao: str, largura: float) -> list:
                 bloco.append(corpo[k].rstrip())
                 k += 1
             hist += [_codigo(bloco, largura), Spacer(1, 5)]
+            k += 1
+            continue
+        m_fig = re.fullmatch(r"!\[(.*)\]\(([^)]+)\)(?:\{(\d+)\})?", s)
+        if m_fig:
+            fecha_par(); fecha_item()
+            hist += _figura(m_fig.group(2), m_fig.group(1), largura, versao,
+                            int(m_fig.group(3)) / 100 if m_fig.group(3) else 1.0)
             k += 1
             continue
         if s.startswith("# "):

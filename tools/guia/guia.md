@@ -70,6 +70,8 @@ Pelo código: na pasta do Ipê, `./instalar.sh` e depois `./executar.sh`. Precis
 
 **F1** (fora de um exame), o botão **Ajuda** da tela inicial ou **Ajuda ▸ Guia do usuário (PDF)** abrem este guia no leitor de PDF do computador. **Ajuda ▸ Sobre o Ipê…** mostra a versão. Dentro de um exame o F1 é do filme (capítulo 12).
 
+As figuras deste guia são telas do próprio programa, refeitas a cada versão, com exames reais **anonimizados** (pacientes EXEMPLO, datas deslocadas, sem instituição). Nas telas de outro sistema (Windows ou Linux) a fonte e o desenho das janelas mudam um pouco; os botões e menus são os mesmos.
+
 ## O que o programa nunca faz com o original
 
 - Exportar, empacotar, anonimizar e corrigir etiquetas (tags) geram arquivos novos; o original fica intacto.
@@ -82,6 +84,8 @@ Pelo código: na pasta do Ipê, `./instalar.sh` e depois `./executar.sh`. Precis
 ## Lista de exames
 
 A tabela central lista os exames do local selecionado. Em cima dela: o campo **Buscar**, o botão **Colunas ▾** (escolhe quais colunas aparecem) e **Limpar filtros**. O painel da direita mostra as séries do exame selecionado.
+
+![A tela do banco de dados com os exames de exemplo (anonimizados). À esquerda, os locais e o banco de casos; à direita, as séries e os comentários do exame escolhido.](banco.png)
 
 Botão direito num exame (ou em vários selecionados), arrumado em grupos desde a 0.99.78:
 
@@ -144,6 +148,8 @@ Botões: **+ Lista**, **+ Pasta**, **▶ Modo reunião**. Botão direito na árv
 
 Cada exame abre numa aba com a barra de ferramentas em cima, a tira de miniaturas das séries à esquerda e os quadros no centro. No fim da barra fica o bloco das **aplicações do exame** (MPR, 3D, Dinâmica, Fusão, MN): cada uma aparece só quando serve ao exame aberto — pela modalidade, pela região do corpo (do BodyPartExamined e das descrições) e pelo tipo de série (angio, T1 3D, T2 3D, dinâmica, volume). Numa mamografia não há MPR, 3D, Fusão nem MN; numa RM de mama aparece a Dinâmica. O botão **Aplicações** lista todas, inclusive as que ficaram de fora, com o motivo — e elas rodam mesmo assim. Botão direito numa aplicação: **Automático**, **Sempre** ou **Nunca**, em todos os exames ou só nos exames daquela região. A ordem, os modos e o dicionário de regiões ficam em Configurações ▸ Visualizador ▸ *Barra de ferramentas e aplicações* e Configurações ▸ Protocolos de exame ▸ *Regiões do corpo* (com uma caixa para testar descrições).
 
+![TC de abdome na fase portal, com os órgãos e os segmentos hepáticos da segmentação de IA (TotalSegmentator) sobrepostos.](visualizador_tc_orgaos.png)
+
 ## Mouse
 
 A ferramenta do botão esquerdo é a que estiver acesa na barra. Os outros botões, a roda e os cliques se configuram em Configurações ▸ Visualizador ▸ Mouse. De fábrica:
@@ -164,6 +170,8 @@ Shift e Ctrl emprestam o botão esquerdo: a ferramenta escolhida na barra não m
 ## As ferramentas
 
 A ferramenta do botão esquerdo se escolhe na barra, no menu do botão direito do quadro — em **Ferramenta do botão esquerdo ▸ Navegar** (o que move a imagem), **▸ Medir** (o que mede) e **▸ Desenhar** (seta, texto, lápis, pincel) — ou clicando no canto que mostra a ferramenta atual.
+
+![A barra do visualizador. As aplicações (MPR, 3D, composição, Genant…) aparecem no fim da barra só quando servem ao exame aberto.](barra_ferramentas.png)
 
 ### O menu do botão direito no quadro (0.99.78)
 
@@ -206,6 +214,8 @@ A coluna *tecla* abaixo é sugestão: quase toda a lista de atalhos vem de fábr
 - **Zoom digitado**: duplo clique no "Zoom N%" do canto abre o menu — *Ajustar à janela*, *1 pixel da imagem = 1 pixel da tela (1:1)*, 50 a 400% e **Digitar o zoom…** (aceita `150`, `150%`, `2x`, `1:1` e `2:1`). O número é o mesmo do canto: 100% é a imagem ajustada ao quadro.
 - **Cortes não mostrados**: rolando depressa (roda, arrasto, Shift), a imagem anda vários cortes entre duas pinturas da tela e os do meio nunca aparecem. Quando isso acontece, ao lado da barra de posição aparece por um segundo e meio, em âmbar, "N corte(s) não mostrado(s)". Ir a um corte (clique na barra, duplo clique no número da imagem, sincronia) não avisa.
 
+![RM de crânio no protocolo de exibição: quatro séries, com as linhas de referência de um quadro nos outros.](layout_rm_cranio.png)
+
 ## Selos de integridade
 
 Uma faixa no alto do quadro avisa o que pode tornar a imagem imprópria para ler. Clicar nela explica cada selo.
@@ -247,6 +257,8 @@ As duas vêm de fábrica e podem ser trocadas em Configurações ▸ Visualizado
 
 Botão **Sincronizar**. A seta ao lado abre as opções: Automática no mesmo estudo, Janela/nível, Zoom e pan, Linhas de referência e Tira de séries. Todas ficam guardadas entre as sessões.
 
+![O painel Anteriores (à direita) lista os outros exames do paciente; daqui eles vêm para a aba e se ligam ao exame atual.](anteriores.png)
+
 **Alinhar automaticamente com o outro exame** (menu da sincronização) faz o **registro rígido** — rotação e translação em 3D — entre dois exames do mesmo paciente: abra o outro exame num quadro ao lado (botão Anteriores) e deixe ativo o quadro do exame atual.
 
 - A medida de semelhança é escolhida sozinha: **correlação** para a mesma modalidade e a mesma sequência; **informação mútua** para modalidades ou sequências diferentes (TC × RM, T1 × T2, PET × TC). A barra de status diz a rotação, o deslocamento e a qualidade (boa, razoável, fraca).
@@ -259,6 +271,8 @@ Botão **Sincronizar**. A seta ao lado abre as opções: Automática no mesmo es
 ## Medidas
 
 O botão **Medidas** abre uma janela com tudo o que foi medido no exame: série, imagem, tipo, valor, lesão e texto. Clicar numa linha leva até a imagem com a medida já selecionada. A lista sai do banco, não dos quadros abertos — medida feita semana passada está lá.
+
+![Régua e elipse na TC: a régua dá o comprimento; a elipse, a média ± desvio-padrão, mínimo, máximo e área.](medidas.png)
 
 - A ferramenta **Selecionar** edita o que já existe: clique escolhe, arrastar move, arrastar a ponta redimensiona, Delete apaga.
 - **Editar lesão…** (ou duplo clique numa linha de segmentação) reabre a segmentação com o limiar e o mamilo que você usou (capítulo 6).
@@ -324,6 +338,10 @@ K (sugestão) marca e desmarca a imagem do quadro como imagem-chave; Shift+K mos
 - **Estruturas no 3D** (0.99.82): com o 3D aberto, o botão **Estruturas** da barra do 3D (ou o botão direito ▸ *Estruturas segmentadas*) mostra como superfícies coloridas tudo o que está segmentado no exame e ligado: órgãos da IA, segmentos e lesões do fígado, nódulos, lesões segmentadas à mão, níveis linfonodais, SEG e RTSTRUCT de outros sistemas. As estruturas acompanham o giro, o corte, o plano e a escultura do volume; o que está atrás do osso do VR aparece apagado. Desligar um objeto na lista de CAD/IA tira ele do 3D na próxima vez que ligar.
 - O plano reconstruído sai sempre na convenção de leitura — axial com anterior em cima e esquerda do paciente à direita — mesmo quando a aquisição foi sagital.
 - **Tirar a mesa da TC**: botão direito no MPR ou no 3D de uma TC ▸ *Tirar a mesa da TC (MPR e 3D)*. O programa acha o corpo (o que passa pelo meio do volume) e apaga o que está fora dele, corte a corte — a mesa sai, os pulmões e as vias aéreas ficam. Vale para os volumes montados dali em diante (feche e abra o MPR/3D); a série original não muda.
+
+![MPR nos três planos, com o cursor 3D e as estruturas da segmentação também nos planos reformatados.](mpr.png)
+
+![3D no próprio quadro: MIP do PET de corpo inteiro (o modo, o preset, a opacidade e as vistas ficam na barra de cima).](3d_mip_pet.png)
 
 > **O volume é montado na memória.** Em Configurações ▸ Sistema ▸ Desempenho há um teto; acima dele o programa pergunta antes de montar. O 3D roda na CPU, e o detalhe (lado do volume) também se ajusta ali.
 
@@ -409,6 +427,10 @@ Sem arranjo definido, a repartição automática segue esta ordem: se as linhas 
 ## Usar no exame
 
 Com a mamografia aberta, a barra **Mamografia:** traz o combo do protocolo, o combo **etapa:**, e ◀ / ▶ para andar. As teclas de fábrica são **→** (próxima etapa), **←** (etapa anterior) e **Q** (zoom por quadrante). Ainda na barra:
+
+![Mamografia no protocolo de 4 incidências (CC e MLO, direita e esquerda), com cada mama encostada na borda de fora do quadro.](mamografia.png)
+
+![O mesmo exame com a tomossíntese ligada no primeiro quadro: o mostrador embaixo à esquerda indica o corte e a profundidade.](mamografia_tomo.png)
 
 - **Quadrante ↻** (Q) e **1:1** — leitura em tamanho real;
 - **Lupa** — segure o botão; a roda muda o aumento;
@@ -533,6 +555,10 @@ Três métodos aparecem lado a lado, com a máscara desenhada sobre a imagem. Os
 ## RM de mama dinâmica
 
 O programa reproduz o fluxo do CADstream: detecta as fases, corrige movimento, calcula os mapas paramétricos, classifica a cinética em seis cores e mede a lesão sobre o realce.
+
+![RM de mama: T2 e as fases da dinâmica lado a lado, sincronizadas.](rm_mama.png)
+
+![A janela da dinâmica: as fases detectadas, o pré-contraste, as fases do SER e os parâmetros do mapa cinético.](dinamica_fases.png){70}
 
 ### Abrir a dinâmica
 
@@ -876,6 +902,8 @@ A tradução cobre as telas, menus, mensagens e as IAs. Ficam como estão os nom
 
 **Configurações ▸ Rede ▸ Nós DICOM…**. A aba *Este computador* define o AE title, a porta e quem pode se conectar — é assim que o aparelho ou o PACS manda exames para cá. As outras abas cadastram os nós remotos.
 
+![Configurações ▸ Rede ▸ Nós DICOM, aba Este computador: o nó DICOM e a chamada externa.](config_rede.png){75}
+
 ### Dois tipos de nó: DIMSE e DICOMweb
 
 No cadastro de um nó, o primeiro campo é **Tipo de conexão**, e ele muda os campos seguintes:
@@ -962,6 +990,8 @@ A aba **Histórico** mostra o que cada regra fez e quando.
 ## Servidor central (intranet)
 
 **Configurações ▸ Rede ▸ Servidor central…** põe uma instalação no papel de servidor, com login e banco compartilhado; as outras entram como cliente. É para um grupo pequeno na mesma rede — o banco é SQLite.
+
+![Configurações ▸ Rede ▸ Servidor central: o modo deste computador (local, servidor ou cliente).](config_servidor_central.png){65}
 
 **Abrir enquanto baixa.** No cliente, o exame que ainda não está no computador abre em poucos segundos: primeiro chega uma imagem de cada série (a tira mostra todas e o protocolo de exibição monta os quadros), depois o resto de cada série vai chegando e os quadros crescem sozinhos. A barra de status mostra *Baixando do servidor central: N de M imagem(ns)…*. Só o exame aberto (e o anterior que o protocolo pede para comparar) é baixado. Reabrir um exame que já chegou é imediato; o cache tem o limite de **Configurações ▸ Rede ▸ Servidor central**, e os exames abertos há mais tempo saem primeiro.
 
@@ -1431,6 +1461,8 @@ Clicar no botão mostra ou oculta todos. A escolha fica guardada por tipo: se vo
 
 Botão **3D** ▸ *Estruturas: editar máscaras* (ou o menu do botão **CAD/IA**). Abre uma janela, ao lado do visualizador, para **corrigir e organizar** as máscaras do exame — a lesão que a segmentação 3D ou a captura da dinâmica pegou com um vaso junto, o órgão que a IA contornou mal — e gravá-las no exame.
 
+![O painel Estruturas: a lista, o pincel, os limites da edição e as correções (crescer, encolher, buracos, interpolar).](estruturas_painel.png){60}
+
 - **Série de referência**: a do quadro ativo quando a janela abre. As estruturas são guardadas na grade dela, mas aparecem em **todas as séries e planos** do exame, e o pincel pinta em qualquer quadro do exame, no plano que está na tela (inclusive MPR).
 - **Lista**: para cada estrutura, *Ver* (mostrar/ocultar; duplo clique muda a cor), nome (editável), tipo (lesão, órgão, outro), volume em mL, *Travada* e de onde veio. Embaixo, os números da escolhida: volume, voxels, cortes, os três eixos, média ± desvio, mínimo, máximo, **mediana, percentis 10 e 90, assimetria, curtose, entropia e uniformidade** (as definições do pyradiomics/IBSI), **maior diâmetro (Feret), esfericidade, alongamento e achatamento**, e quantas ilhas separadas ela tem. **Copiar os números** põe uma linha por estrutura, separada por tabulação, na área de transferência — cola direto na planilha. A esfericidade é calculada pela malha da superfície; em estrutura pequena (raio de menos de uns 10 voxels) ela é aproximada.
 - **Nova** cria uma estrutura vazia; **Importar do exame** traz uma lesão guardada, um segmento de SEG (inclusive os da IA: órgãos, cefalometria, implante), um contorno de RTSTRUCT — ou todos. Enquanto a cópia é editada, o original sai da tela; volta ao fechar.
@@ -1449,6 +1481,8 @@ Ao fechar com estruturas alteradas e não gravadas, a janela pergunta se grava c
 ## Fusão
 
 Botão **Fusão**: sobrepõe uma série a outra no quadro ativo (PET sobre a TC, por exemplo), com opacidade, tabela de cores e limites mínimo e máximo, e a opção de ocultar o que está abaixo do mínimo.
+
+![PET/CT fundido: o PET (em SUV, cor ferro quente) sobre a TC, com opacidade, cor e janela do PET na barra de cima.](pet_fusao.png)
 
 **Fundir por arrastar** (0.99.64): arraste uma série da tira até o **canto inferior esquerdo** do quadro ("Fundir por cima") — ela entra como fusão, em cores e com transparência, em vez de trocar a série. Para fundir o que outro quadro mostra — um mapa da dinâmica (SER, realce, cinético…), uma fase, o ADC —, botão direito nele ▸ **Quadro ▸ Fundir este quadro sobre…** ▸ o quadro de destino (ADC sobre a T2, cinético sobre a DWI). A fusão usa as coordenadas do paciente: séries de referenciais diferentes ganham o aviso para conferir o alinhamento.
 
@@ -1534,6 +1568,8 @@ Todas as janelas de configuração **diminuem e maximizam** (botões de maximiza
 
 **Identificar vértebras e discos desta série** (na seta do botão **Genant** da barra — ou do botão **Aplicações** —, ou no botão direito da série no banco, numa TC ou RM da coluna) dá nome a cada vértebra e disco. Os nomes aparecem em qualquer série e plano do exame.
 
+![RM lombar com os níveis da coluna marcados pela segmentação, incluindo a vértebra de transição (S1 lombarizada).](rm_coluna_niveis.png)
+
 **De onde vem a numeração** — a janela final e a lista do objeto dizem qual foi usada:
 
 | Âncora | Quando |
@@ -1565,6 +1601,8 @@ Com C2 e costelas juntas, a costela confere a contagem: a última costela em L1 
 ## O menu Configurações
 
 Tudo o que se configura mora no menu **Configurações** (e no botão Configurações da tela inicial), com um submenu por assunto: **Visualizador** (barra e aplicações, botões extras, mouse, atalhos, presets de janela, anotações, texto sobre a imagem, sincronização), **Protocolos de exame** (protocolos de exibição, mamografia, dinâmica da mama, dinâmicos, regiões do corpo), **CAD/IA**, **Monitores** (papel, layout, ordem e calibração GSDF), **Rede** (nós DICOM, automação, servidor central, link ipe://), **Impressão** (impressoras DICOM e configurações de impressão), **Banco de dados** (importação, pasta do banco), **Usuários** e **Sistema** (ao abrir o programa, desempenho, módulos, idioma). Cada item abre a sua própria janela, só com aquele assunto. Os menus Exibir, Rede, Impressão e Usuário ficam só com ações.
+
+![Configurações ▸ Visualizador ▸ Barra e aplicações: em que exames cada aplicação aparece na barra.](config_barra.png){75}
 
 **Clicar no nome do grupo** (Visualizador, Protocolos de exame, CAD/IA, Laudos…) abre uma janela só daquele grupo, com as etapas dele numa lista à esquerda: as páginas de preferências aparecem ali mesmo e são gravadas juntas no OK; as que têm janela própria (Barra de ferramentas, Nós DICOM…) mostram um botão **Abrir…**. Clicar num item do submenu continua abrindo só aquele item.
 
@@ -1677,6 +1715,8 @@ Botão **Usuários**. Quatro perfis de fábrica — Administrador, Médico, Resi
 ## Exportar
 
 **Arquivo ▸ Exportar…** (ou o botão **Exportar**) exporta o exame aberto ou os selecionados no banco:
+
+![Exportar: DICOM (com DICOMDIR e visualizador no navegador) ou imagens, com a anonimização das cópias.](exportar.png){65}
 
 - **DICOM** — pasta, CD ou pendrive, com DICOMDIR e, se quiser, um visualizador que abre no navegador (completo, com medidas, valores, ROIs e MPR; ou leve). Pode sair compactado em .zip.
 - **Imagens** — JPG ou PNG, com formato, qualidade, janela (a do arquivo ou a do quadro atual), intervalo e tamanho máximo.
