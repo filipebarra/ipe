@@ -60,6 +60,7 @@ def _instalar_uso() -> None:
 
 class MainWindow(QMainWindow):
     upload_message = Signal(str)            # modo cliente: envio ao servidor central terminou
+    download_message = Signal(str)          # modo cliente: andamento do exame chegando do servidor (0.99.85)
 
     def __init__(self, paths: AppPaths, settings: Settings, session=None, auth=None, repo=None, db=None,
                  storage=None):
@@ -241,6 +242,7 @@ class MainWindow(QMainWindow):
         self._update_status()
         self.apply_permissions()
         self.upload_message.connect(lambda m: (self.statusBar().showMessage(m, 10000), self.browser.refresh()))
+        self.download_message.connect(lambda m: self.statusBar().showMessage(m, 10000))
         self._ligar_parado()                     # 0.99.31 (onda A8): fechar os exames depois de parado
 
     # ------------------------------------------------------------ menus

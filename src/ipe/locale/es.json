@@ -8131,5 +8131,11 @@
  "{}: {}. Instale em Configurações ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS)… — uma vez, com internet.": "{}: {}. Instale en Configuración ▸ Instalar los modelos extra (MedSAM2, autoPET, BraTS)… — una vez, con internet.",
  "Lendo as segmentações de IA do exame…": "Leyendo las segmentaciones de IA del estudio…",
  "SEG do exame": "SEG del estudio",
- "sobreposições do exame": "superposiciones del estudio"
+ "sobreposições do exame": "superposiciones del estudio",
+ "Baixando as primeiras imagens do servidor central…": "Descargando las primeras imágenes del servidor central…",
+ "Não foi possível baixar o exame do servidor central.": "No fue posible descargar el estudio del servidor central.",
+ "download do servidor central": "descarga del servidor central",
+ "Baixando do servidor central: {} de {} imagem(ns)…": "Descargando del servidor central: {} de {} imagen(es)…",
+ "Exame baixado do servidor central ({} imagem(ns)).": "Estudio descargado del servidor central ({} imagen(es)).",
+ "Falha ao baixar do servidor central: {}": "Falló la descarga del servidor central: {}"
 }

@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.85 — cliente do servidor central abre o exame enquanto baixa; instalação no Linux
+- No modo cliente, o exame que ainda não está no computador abria só depois de baixar todas as imagens. Agora
+  chega primeiro uma imagem de cada série (o exame abre com a tira completa e o protocolo monta os quadros) e o
+  resto de cada série vem em segundo plano, em lotes; os quadros crescem sozinhos. A barra de status mostra
+  "N de M imagens", e o registro anota o exame e o total a baixar.
+- `instalar.sh`: para com uma mensagem clara em Linux antigo (glibc < 2.34), escolhe um Python 3.10+ do sistema
+  em vez do Anaconda (e refaz um `.venv` antigo) e instala as bibliotecas da janela que faltam (`libxcb-cursor0`…).
+
 ## 0.99.84 — abertura mais rápida dos exames com SEG de IA
 - A SEG de órgãos do TotalSegmentator (milhares de quadros) era lida na tela principal a cada abertura e travava o
   exame por segundos. Agora os quadros saem direto dos bytes do arquivo (2–5× mais rápido), a leitura das SEG

@@ -6052,7 +6052,10 @@
   "· autoPET",
   "Lendo as segmentações de IA do exame…",
   "SEG do exame",
-  "sobreposições do exame"
+  "sobreposições do exame",
+  "Baixando as primeiras imagens do servidor central…",
+  "Não foi possível baixar o exame do servidor central.",
+  "download do servidor central"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7637,6 +7640,9 @@
   "{} ({} {})",
   "{} ilha(s) menor(es) que {} mL ficaram de fora",
   "{} lesão(ões), MTV {} mL, TLG {} g, SUVmáx {}",
-  "{}: {}. Instale em Configurações ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS)… — uma vez, com internet."
+  "{}: {}. Instale em Configurações ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS)… — uma vez, com internet.",
+  "Baixando do servidor central: {} de {} imagem(ns)…",
+  "Exame baixado do servidor central ({} imagem(ns)).",
+  "Falha ao baixar do servidor central: {}"
  ]
 }

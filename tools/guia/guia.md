@@ -62,6 +62,10 @@ O instalador pergunta duas pastas: a **do programa** (sugere `AppData\Local\Prog
 
 Para desinstalar: **Configurações do Windows ▸ Aplicativos ▸ Aplicativos instalados ▸ Ipê ▸ Desinstalar** (ou o Painel de Controle ▸ Programas e Recursos). Sai o programa, com os atalhos e o link ipe://. O banco, os exames, os laudos e as configurações ficam: são seus. Para apagá-los também, apague a pasta do banco e a pasta `AppData\Local\DicomViewer` depois de desinstalar.
 
+### Instalar no Linux
+
+Pelo código: na pasta do Ipê, `./instalar.sh` e depois `./executar.sh`. Precisa de um Linux com **glibc 2.34 ou mais nova** (Ubuntu 22.04, Debian 12, Fedora 35 ou depois), porque o Qt do Ipê não tem pacote para sistemas mais antigos — o script avisa e para. Ele procura sozinho um **Python 3.10 ou mais novo do sistema** (não o do Anaconda, que costuma vir antes no caminho e ser mais velho), refaz o ambiente `.venv` se ele foi criado com um Python antigo e instala as bibliotecas da janela que o Ubuntu não traz (`libxcb-cursor0` e companhia, com `sudo`). A versão portátil de Linux dispensa o Python, mas também precisa dessas bibliotecas.
+
 ## Ajuda
 
 **F1** (fora de um exame), o botão **Ajuda** da tela inicial ou **Ajuda ▸ Guia do usuário (PDF)** abrem este guia no leitor de PDF do computador. **Ajuda ▸ Sobre o Ipê…** mostra a versão. Dentro de um exame o F1 é do filme (capítulo 12).
@@ -958,6 +962,8 @@ A aba **Histórico** mostra o que cada regra fez e quando.
 ## Servidor central (intranet)
 
 **Configurações ▸ Rede ▸ Servidor central…** põe uma instalação no papel de servidor, com login e banco compartilhado; as outras entram como cliente. É para um grupo pequeno na mesma rede — o banco é SQLite.
+
+**Abrir enquanto baixa.** No cliente, o exame que ainda não está no computador abre em poucos segundos: primeiro chega uma imagem de cada série (a tira mostra todas e o protocolo de exibição monta os quadros), depois o resto de cada série vai chegando e os quadros crescem sozinhos. A barra de status mostra *Baixando do servidor central: N de M imagem(ns)…*. Só o exame aberto (e o anterior que o protocolo pede para comparar) é baixado. Reabrir um exame que já chegou é imediato; o cache tem o limite de **Configurações ▸ Rede ▸ Servidor central**, e os exames abertos há mais tempo saem primeiro.
 
 ### HTTPS na rede interna (certificado do Ipê)
 

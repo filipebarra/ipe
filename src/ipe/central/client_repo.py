@@ -23,6 +23,13 @@ LOCAL_ONLY = {"instances_for_series", "series_meta", "has_thumbnail", "files_for
 LOCAL_FIRST = {"series_for_study", "study_info"}
 
 
+def _num(v) -> float:
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return 1e9
+
+
 class ClientRepository:
     remote = True
 
@@ -34,6 +41,10 @@ class ClientRepository:
         self._upload_lock = threading.Lock()
         self.on_upload_done = None           # callback(texto)
         self._banco_pendente: dict[str, tuple[str, str]] = {}   # 0.99.28: banco de exame que ainda vai subir
+        self._baixando: dict = {}            # 0.99.85: study_uid -> (thread, primeiro_lote, parar)
+        self._baixar_lock = threading.Lock()
+        self.on_download_status = None       # callback(texto), andamento do download
+        self.progressivo = True              # abre o exame antes de terminar de baixar
 
     # ------------------------------------------------------------------ roteamento
     def __getattr__(self, name: str):
@@ -106,35 +117,137 @@ class ClientRepository:
             if self.is_cached(study_uid) else {}
         return [u for u, n in remote.items() if local.get(u, 0) < n]
 
-    def download(self, study_uid: str, progress=None, cancel=None) -> int:
-        """Baixa (WADO-RS) o que falta do estudo e importa no cache. Devolve arquivos baixados."""
+    #: 0.99.85: de quantas em quantas imagens (ou segundos) o que chegou entra no cache, para o exame
+    #: abrir com as primeiras e ir crescendo enquanto o resto baixa
+    LOTE_IMAGENS = 24
+    LOTE_SEGUNDOS = 1.5
+
+    def download(self, study_uid: str, progress=None, cancel=None, primeiro_lote=None) -> int:
+        """Baixa (WADO-RS) o que falta do estudo e importa no cache. Devolve arquivos baixados.
+
+        0.99.85: série por série (na ordem do número da série), e o que chega entra no cache em
+        lotes pequenos, não só no fim. `primeiro_lote` (threading.Event) é sinalizado assim que há
+        imagens do exame no cache — é o que deixa o exame abrir antes de o download terminar."""
+        import time
+
         from ipe.importer.scanner import Importer
         from ipe.importer.thumbnails import generate_thumbnails
-        missing = self.missing_series(study_uid)
-        if not missing:
+        remotas = list(self.client.rpc("series_for_study", study_uid) or [])
+        local = {s.series_uid: s.num_images for s in self.local.series_for_study(study_uid)} \
+            if self.is_cached(study_uid) else {}
+        faltam = [s for s in remotas if local.get(s.series_uid, 0) < (s.num_images or 0)]
+        faltam.sort(key=lambda s: (_num(getattr(s, "series_number", None)), s.series_uid))
+        if not faltam:
             self._touch(study_uid)
+            if primeiro_lote is not None:
+                primeiro_lote.set()
             return 0
+        total = sum(int(s.num_images or 0) for s in faltam)
+        log.info("servidor central: baixando %s — %d imagem(ns) em %d série(s)", study_uid, total, len(faltam))
         tmp = Path(tempfile.mkdtemp(prefix="dv_cache_"))
+        imp = Importer(self.local.db, self.storage)
         count = 0
+
+        def importar(arquivos: list) -> None:
+            if not arquivos:
+                return
+            r = imp.import_paths(arquivos)
+            for f in arquivos:
+                try:
+                    Path(f).unlink()
+                except OSError:
+                    pass
+            if r.new_series:
+                try:
+                    generate_thumbnails(self.local, r.new_series)
+                except Exception:  # noqa: BLE001
+                    log.exception("miniaturas do cache")
+            if primeiro_lote is not None and self.is_cached(study_uid):
+                primeiro_lote.set()
+
         try:
-            whole = not self.is_cached(study_uid)
-            targets = [None] if whole else missing
-            for se in targets:
+            if primeiro_lote is not None:
+                # 0.99.85: antes de tudo, uma imagem do meio de cada série que falta — o exame abre com
+                # todas as séries na tira e o protocolo de exibição monta os quadros como sempre; o
+                # resto de cada série vai chegando e a aba acrescenta
+                amostras = []
+                for se in faltam:
+                    if cancel and cancel():
+                        break
+                    if local.get(se.series_uid, 0):
+                        continue
+                    try:
+                        inst = self.client.rpc("instances_for_series", se.series_uid) or []
+                        if not inst:
+                            continue
+                        meio = inst[len(inst) // 2]["sop_uid"]
+                        amostras += self.client.retrieve(study_uid, tmp / "amostras" / se.series_uid,
+                                                         se.series_uid, sop_uid=meio)
+                    except Exception:  # noqa: BLE001
+                        log.debug("amostra da série %s", se.series_uid, exc_info=True)
+                importar(amostras)
+            for se in faltam:
                 if cancel and cancel():
                     break
-                files = self.client.retrieve(study_uid, tmp / (se or "all"), se,
-                                             progress=lambda n, base=count: progress and progress(base + n))
+                pasta = tmp / se.series_uid
+                estado = {"feitos": 0, "quando": time.monotonic()}
+
+                def chegou(n, pasta=pasta, estado=estado, base=count):
+                    if progress:
+                        progress(base + n, total)
+                    if n - estado["feitos"] >= self.LOTE_IMAGENS or \
+                            time.monotonic() - estado["quando"] >= self.LOTE_SEGUNDOS:
+                        lote = [pasta / f"{i:06d}.dcm" for i in range(estado["feitos"], n)]
+                        estado["feitos"], estado["quando"] = n, time.monotonic()
+                        importar(lote)
+
+                files = self.client.retrieve(study_uid, pasta, se.series_uid, progress=chegou)
+                importar([pasta / f"{i:06d}.dcm" for i in range(estado["feitos"], len(files))])
                 count += len(files)
-            r = Importer(self.local.db, self.storage).import_paths([tmp])
-            try:
-                generate_thumbnails(self.local, r.new_series)
-            except Exception:  # noqa: BLE001
-                log.exception("miniaturas do cache")
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
+            if primeiro_lote is not None:
+                primeiro_lote.set()              # terminou (ou falhou): quem espera não fica preso
         self._touch(study_uid)
-        self.evict()
+        self.evict(keep={study_uid})
         return count
+
+    def baixando(self, study_uid: str) -> bool:
+        """0.99.85: o exame ainda está chegando do servidor em segundo plano?"""
+        b = self._baixando.get(study_uid)
+        return b is not None and b[0].is_alive()
+
+    def baixar_em_segundo_plano(self, study_uid: str):
+        """Começa (ou reaproveita) o download do exame numa linha à parte; devolve (thread, primeiro_lote,
+        parar). O andamento vai para `on_download_status(texto)`."""
+        with self._baixar_lock:
+            b = self._baixando.get(study_uid)
+            if b is not None and b[0].is_alive():
+                return b
+            primeiro, parar = threading.Event(), threading.Event()
+            avisar = self.on_download_status or (lambda m: None)
+            ultimo = {"t": 0.0}
+
+            def andamento(n, total):
+                import time
+                if time.monotonic() - ultimo["t"] >= 0.5 or n >= total:
+                    ultimo["t"] = time.monotonic()
+                    avisar(f"Baixando do servidor central: {n} de {total} imagem(ns)…")
+
+            def trabalho():
+                try:
+                    n = self.download(study_uid, progress=andamento, cancel=parar.is_set, primeiro_lote=primeiro)
+                    avisar(f"Exame baixado do servidor central ({n} imagem(ns)).")
+                except Exception as e:  # noqa: BLE001
+                    log.exception("download do servidor central")
+                    avisar(f"Falha ao baixar do servidor central: {e}")
+                finally:
+                    primeiro.set()
+
+            th = threading.Thread(target=trabalho, name="ipe-baixar", daemon=True)
+            self._baixando[study_uid] = (th, primeiro, parar)
+            th.start()
+            return self._baixando[study_uid]
 
     def _touch(self, study_uid: str) -> None:
         try:
@@ -185,41 +298,28 @@ class ClientRepository:
         if not missing:
             self._touch(study_uid)
             return True
-        if parent is None:
+        if parent is None or not self.progressivo:
+            # sem janela (linha de comando, testes): baixa tudo antes de voltar, como sempre
             self.download(study_uid)
             return self.is_cached(study_uid)
-        from PySide6.QtCore import QObject, Qt, Signal
+        # 0.99.85: abre com as primeiras imagens e o resto continua chegando em segundo plano
+        # (a aba acrescenta o que chega pela vigia de séries da janela principal)
+        th, primeiro, parar = self.baixar_em_segundo_plano(study_uid)
+        from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QApplication, QMessageBox, QProgressDialog
-
-        class _B(QObject):
-            prog = Signal(int)
-            done = Signal(object)
-        b = _B()
-        dlg = QProgressDialog("Baixando do servidor central…", "Cancelar", 0, 0, parent)
-        dlg.setWindowTitle("Servidor central")
-        dlg.setWindowModality(Qt.WindowModal)
-        dlg.setMinimumDuration(300)
-        stop = threading.Event()
-        dlg.canceled.connect(stop.set)
-        b.prog.connect(lambda n: dlg.setLabelText(f"Baixando do servidor central… {n} imagem(ns)"))
-        state: dict = {}
-        b.done.connect(lambda res: state.update(res=res))
-
-        def work():
-            try:
-                b.done.emit(self.download(study_uid, progress=b.prog.emit, cancel=stop.is_set))
-            except Exception as e:  # noqa: BLE001
-                b.done.emit(e)
-        th = threading.Thread(target=work, daemon=True)
-        th.start()
-        while "res" not in state:
+        if not primeiro.is_set():
+            dlg = QProgressDialog("Baixando as primeiras imagens do servidor central…", "Cancelar", 0, 0, parent)
+            dlg.setWindowTitle("Servidor central")
+            dlg.setWindowModality(Qt.WindowModal)
+            dlg.setMinimumDuration(400)
+            dlg.canceled.connect(parar.set)
+            while not primeiro.is_set() and not parar.is_set():
+                QApplication.processEvents()
+                primeiro.wait(0.03)
+            dlg.close()
             QApplication.processEvents()
-            th.join(0.03)
-        QApplication.processEvents()
-        dlg.close()
-        if isinstance(state["res"], Exception):
-            QMessageBox.warning(parent, "Servidor central", f"Não foi possível baixar o exame:\n{state['res']}")
-            return self.is_cached(study_uid)
+        if not self.is_cached(study_uid) and not parar.is_set():
+            QMessageBox.warning(parent, "Servidor central", "Não foi possível baixar o exame do servidor central.")
         return self.is_cached(study_uid)
 
     # ------------------------------------------------------------------ envio ao servidor

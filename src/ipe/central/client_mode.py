@@ -48,5 +48,6 @@ def open_client_window(paths, settings, login=True):
         return d.exec() == QDialog.Accepted
     client.on_unauthorized = relogin
     repo.on_upload_done = lambda msg: win.upload_message.emit(msg)
+    repo.on_download_status = lambda msg: win.download_message.emit(msg)
     win.start_session(s)
     return win

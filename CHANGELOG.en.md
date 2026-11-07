@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.85 — central server client opens the exam while downloading; Linux install
+- In client mode, an exam not yet on the computer only opened after all images were downloaded. Now one image of
+  each series comes first (the exam opens with the full strip and the hanging protocol builds the viewports) and
+  the rest of each series arrives in the background, in batches; the viewports grow by themselves. The status bar
+  shows "N of M images", and the log records the exam and the total to download.
+- `instalar.sh`: stops with a clear message on old Linux (glibc < 2.34), picks a system Python 3.10+ instead of
+  Anaconda's (and rebuilds an old `.venv`) and installs the missing window libraries (`libxcb-cursor0`…).
+
 ## 0.99.84 — faster opening of exams with AI SEGs
 - The TotalSegmentator organ SEG (thousands of frames) was read on the main screen at every opening and froze the
   exam for seconds. Now the frames come straight from the file bytes (2–5× faster), large SEGs are read in the

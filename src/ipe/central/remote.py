@@ -172,9 +172,12 @@ class RemoteClient:
                 return json.loads(r.read() or b"[]")
         return self._retry(call)
 
-    def retrieve(self, study_uid: str, dest: Path, series_uid: str | None = None, progress=None) -> list[Path]:
-        """WADO-RS: baixa o estudo (ou uma série) para `dest`, arquivo por arquivo."""
+    def retrieve(self, study_uid: str, dest: Path, series_uid: str | None = None, progress=None,
+                 sop_uid: str | None = None) -> list[Path]:
+        """WADO-RS: baixa o estudo (ou uma série, ou uma imagem) para `dest`, arquivo por arquivo."""
         path = f"/dicomweb/studies/{study_uid}" + (f"/series/{series_uid}" if series_uid else "")
+        if series_uid and sop_uid:
+            path += f"/instances/{sop_uid}"
 
         def call():
             r = self._open(path, headers={"Accept": 'multipart/related; type="application/dicom"'},
