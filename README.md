@@ -31,12 +31,16 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
 - Local database (SQLite): patient → study → series → image, with thumbnails and search by name, ID,
   accession or description (several terms with `|`), modality and date range.
 - Import from folders, CD/DVD, ZIP and loose files, including drag and drop onto the window; in the
-  background, without duplicates. Copy into storage or just reference the files.
+  background, without duplicates. Copy into storage or just reference the files. RAR, 7z and other
+  archives too.
 - Several study locations (external drive, network folder), comments, case lists and smart lists,
   protected studies, hiding and deleting series.
 - Marks for studies that already have AI results (✦) or an AI running (⚙).
 - Anonymize copies of studies; fix tags by writing a copy (the original is never changed).
 - Lossless compression, checked pixel by pixel, and an archive report.
+- PDFs and images attached to the study; study status; saved analysis state (reopen where you left).
+- Worklist with priority, subspecialty and deadline; productivity panel; patient recall and
+  mammography filters.
 
 ### Viewer
 - Many viewport layouts, several monitors treated as **one** workstation, layout memory per monitor
@@ -48,6 +52,7 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
 - On-screen annotations in four levels (full, partial 1, partial 2, none), configurable.
 - Ctrl+C copies the viewport as shown, in high resolution.
 - Prior studies in the thumbnail strip; click an empty viewport to choose the series.
+- Mosaic inside a viewport, typed zoom, key images and annotations saved as DICOM.
 - A toolbar that adapts to the study: applications (dynamic, 3D, NM…) appear only when they suit the
   open study; the Applications button lists all of them, and each can be always, never or automatic.
 - Settings menu with a submenu per topic and one window per item.
@@ -57,11 +62,14 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
 - Volume rendering, surface, cropping and sculpting; PET/CT fusion.
 - Export 3D meshes as STL, OBJ, PLY, GLB and 3MF.
 - 4D cardiac and digital subtraction (DSA).
+- Rigid registration between studies (with a visual check) and motion correction in dynamic studies.
+- Structures in 3D: edit masks and save them as SEG or RTSTRUCT.
 
 ### Measurements
 - Ruler, polyline, angle, Cobb, ROIs (ellipse, rectangle, freehand) with mean and SD, text, arrow,
   curve; manual calibration per image or series.
 - Ultrasound calibrated by the file's region, image by image.
+- Extended ROI statistics, cloned and mirrored ROIs, doubling time; draft measurements.
 - Panel with all measurements of the study; export to a spreadsheet and save as DICOM SR.
 - 3D region-growing segmentation, with volume and three perpendicular axes.
 - Guided measurements (Indices): MRPI and MRPI 2.0, Evans index and callosal angle, with checks of
@@ -72,6 +80,10 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
   level).
 - Nasopharynx cephalometry on CT, automatic (TotalSegmentator) or manual: minimum airway area
   perpendicular to the axis, soft palate, posterior airway space, hyoid and tongue, in report format.
+- Body: composition at L3 (with weight and height) and liver attenuation; liver fat and iron on MR
+  (1.5 T and 3 T); biometry and a steatosis result; diffusion (ADC) on any MR.
+- Chest and vessels: emphysema per lobe, vertebral fractures (Genant), coronary calcium score
+  (Agatston, CAC-DRS) and aortic diameters per segment, measured perpendicular to the centreline.
 
 ### Breast
 - Mammography and tomosynthesis: step-by-step protocol, distribution across monitors, breast
@@ -81,6 +93,7 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
 - Dynamic MR: MSI, PEI, SER maps and a 6-color kinetic map (CADstream style), in any plane;
   configurable layouts; lesion measurement with angiovolume and kinetic patterns; lesion distance to
   skin, nipple and pectoralis.
+- Fusion by dragging one series onto another, colour maps and findings recorded by markers.
 
 ### Nuclear medicine
 - Multi-frame NM reading (detectors, phases, energy windows), ANT/POST and geometric mean with a
@@ -88,6 +101,8 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
 - ROIs and time-activity curves, renogram, gastric emptying, HIDA, salivary glands, DMSA,
   parathyroid, thyroid uptake and transit, with decay correction. The program returns numbers; it
   does not interpret them.
+- PET: SUV by body weight, lean mass and glucose correction; PET reading layout; tumour burden
+  (FDG, PSMA, DOTA: MTV, TLG, lesion count) and follow-up across dates.
 
 ### Oncology and AI
 - Lesions tracked across studies; CAD/AI objects (SEG, GSPS, SR, RTSTRUCT) that can be switched on
@@ -96,6 +111,9 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
   identification of vertebrae and discs.
 - AI tasks window: progress of every AI (including the ones that run automatically when a study
   arrives), with cancel.
+- Reviewable AI findings (confirm, correct or discard) that can go into the report text; complete lung
+  nodule workup; liver lesions by Couinaud segment.
+- Optional extra models: SynthSeg, MedSAM2 (interactive segmentation), autoPET and BraTS.
 
 ### DICOM networking
 - DICOM node (C-ECHO, C-FIND, C-MOVE, C-GET, C-STORE) and DICOMweb client (QIDO, WADO, STOW).
@@ -104,6 +122,25 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
   from the modalities reached the PACS and send what is missing).
 - External calls by `ipe://` link, command line or local HTTP API, including opening only the
   viewer.
+
+### Web viewer (central server)
+The central server also serves a viewer in the browser, with nothing to install on the reading
+computer: open `http(s)://<server>:8043/web` (the address is shown in the server window) and log in
+with the Ipê user. It is meant for the internal network for now.
+- Study list, thumbnail strip (click or drag a series onto a viewport), 1×1 to 2×3 layouts, window
+  presets, cine.
+- MPR, oblique, thick slabs and MIP, with one-click plane change, as in Ipê.
+- Measurements with Ipê's numbers (ruler, angle, Cobb, ROIs, pixel, arrow, calibration), saved in
+  the server database: what is measured in the browser shows up in Ipê and vice versa. Ultrasound
+  calibrated by the device's region.
+- PET/CT: fusion, PET and PET MIP with the axial views moving together, SUV by Ipê's calculation,
+  Ipê's colour tables, maximum SUV near the cursor, and the study's SEGs (tumour burden, organs) as
+  masks.
+- Fast loading: images go over the network as lossless HTJ2K (a checked transport copy; the
+  archive is not changed), load progressively and are kept in the browser cache; each thumbnail
+  shows the percentage already available, and the **Loading** button shows network speed and
+  decoding time.
+- Coming next: mammography hanging protocol across two monitors, breast dynamics and reporting.
 
 ### Films, printing and reporting
 - Film composer; printing to an ordinary printer, PDF and DICOM printer.
@@ -114,6 +151,10 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
 
 ### Users and languages
 - One user or several, with profiles and permissions; optional central server.
+- Profiles by group and computer, settings exported and imported, updates through the server or
+  straight from GitHub in one click.
+- HTTPS on the internal network with Ipê's own certificate; OAuth2/OIDC on DICOMweb nodes; stored
+  passwords encrypted.
 - English, Portuguese and Spanish, with a translation editor for other languages.
 
 ---
@@ -123,7 +164,7 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
 ### Windows — installer
 The `Ipe-<version>-installer.exe` installer (and the portable `.zip` package) installs into the
 user profile, without asking for administrator rights. Its first screen asks for the language, with
-English selected. To build it from source, see [installer/LEIAME.md](installer/LEIAME.md).
+English selected; then it asks for the program folder and the database folder. To build it from source, see [installer/LEIAME.md](installer/LEIAME.md).
 
 ### Windows — from source
 1. Install **Python 3.12** from <https://www.python.org/downloads/>, ticking **"Add python.exe to

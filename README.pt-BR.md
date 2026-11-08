@@ -31,12 +31,16 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 - Banco local (SQLite): paciente → exame → série → imagem, com miniaturas e busca por nome, ID,
   accession ou descrição (vários termos com `|`), modalidade e período.
 - Importação de pastas, CD/DVD, ZIP e arquivos soltos, inclusive arrastando para a janela; em
-  segundo plano, sem duplicar. Copiar para o armazenamento ou só referenciar.
+  segundo plano, sem duplicar. Copiar para o armazenamento ou só referenciar. Também RAR, 7z e
+  outros compactados.
 - Vários locais de exames (HD externo, pasta de rede), comentários, listas de casos e listas
   inteligentes, exame protegido, ocultar e apagar séries.
 - Marca nos exames que já têm resultado de IA (✦) ou uma IA rodando (⚙).
 - Anonimizar cópias de exames; corrigir tags gravando cópia (o original nunca é alterado).
 - Compressão sem perda, com conferência pixel a pixel, e relatório do acervo.
+- PDFs e imagens anexados ao exame; estado do exame; estado da análise salvo (reabre onde parou).
+- Lista de trabalho com prioridade, subespecialidade e prazo; painel de produtividade; busca ativa
+  de pacientes e filtros de mamografia.
 
 ### Visualizador
 - Vários layouts de quadros, vários monitores tratados como **uma** estação, memória de layout por
@@ -48,6 +52,7 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 - Anotações da tela em quatro níveis (completa, parcial 1, parcial 2, ausente), configuráveis.
 - Ctrl+C copia o quadro como está na tela, em alta resolução.
 - Exames anteriores na tira de miniaturas; clique num quadro vazio para escolher a série.
+- Mosaico dentro do quadro, zoom digitado, imagens-chave e anotações gravadas em DICOM.
 - Barra que se arruma pelo exame: as aplicações (dinâmica, 3D, MN…) aparecem só quando servem ao
   exame aberto; o botão Aplicações lista todas, e cada uma pode ficar sempre, nunca ou automática.
 - Menu Configurações com um submenu por assunto e uma janela por item.
@@ -57,11 +62,14 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 - Volume rendering, superfície, recorte e escultura; fusão PET/CT.
 - Exportar malha 3D em STL, OBJ, PLY, GLB e 3MF.
 - Cardíaco 4D e subtração digital (DSA).
+- Registro rígido entre exames (com conferência visual) e correção de movimento na dinâmica.
+- Estruturas em 3D: editar máscaras e gravar como SEG ou RTSTRUCT.
 
 ### Medidas
 - Régua, polilinha, ângulo, Cobb, ROIs (elipse, retângulo, mão livre) com média e desvio, texto,
   seta, curva; calibração manual por imagem ou série.
 - Ultrassom calibrado pela região do arquivo, imagem a imagem.
+- Estatística estendida da ROI, ROI clonada e espelhada, tempo de duplicação; medidas em rascunho.
 - Painel com todas as medidas do exame; exportar para planilha e gravar como DICOM SR.
 - Segmentação 3D por crescimento de região, com volume e três eixos perpendiculares.
 - Medidas guiadas (Índices): MRPI e MRPI 2.0, índice de Evans e ângulo calosal, com conferência
@@ -71,6 +79,10 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 - Níveis linfonodais cervicais na TC (mapa I a VII em qualquer plano; a lesão segmentada ganha o nível).
 - Cefalometria do cavum na TC, automática (TotalSegmentator) ou à mão: área mínima da via aérea
   perpendicular ao eixo, palato mole, espaço aéreo posterior, hioide e língua, no formato do laudo.
+- Corpo: composição em L3 (com peso e altura) e atenuação hepática; gordura e ferro hepáticos na RM
+  (1,5 T e 3 T); biometria e resultado de esteatose; difusão (ADC) em qualquer RM.
+- Tórax e vasos: enfisema por lobo, fraturas vertebrais (Genant), escore de cálcio coronariano
+  (Agatston, CAC-DRS) e diâmetros da aorta por segmento, medidos perpendiculares à linha central.
 
 ### Mama
 - Mamografia e tomossíntese: protocolo por etapas, distribuição entre monitores, enquadramento da
@@ -80,6 +92,7 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 - RM dinâmica: mapas MSI, PEI, SER e mapa cinético de 6 cores (estilo CADstream), em qualquer
   plano; layouts configuráveis; medida da lesão com angiovolume e padrões cinéticos; distância da
   lesão à pele, ao mamilo e ao peitoral.
+- Fusão arrastando uma série sobre a outra, mapas de cores e achados registrados por marcadores.
 
 ### Medicina nuclear
 - Leitura NM multi-frame (detectores, fases, janelas de energia), ANT/POST e média geométrica com
@@ -87,6 +100,8 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 - ROIs e curvas atividade-tempo, renograma, esvaziamento gástrico, DISIDA, salivares, DMSA,
   paratireoide, captação de tireoide e trânsito, com correção de decaimento. O programa devolve
   números; não interpreta.
+- PET: SUV por peso, massa magra e corrigido pela glicemia; layout de leitura de PET; carga tumoral
+  (FDG, PSMA, DOTA: MTV, TLG, número de lesões) e seguimento entre datas.
 
 ### Oncologia e IA
 - Lesões acompanhadas entre exames; objetos de CAD/IA (SEG, GSPS, SR, RTSTRUCT) que ligam e desligam.
@@ -94,6 +109,9 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
   identificação de vértebras e discos.
 - Janela Tarefas de IA: o andamento de cada IA (inclusive as que rodam sozinhas quando o exame
   chega), com cancelar.
+- Achados de IA revisáveis (confirmar, corrigir ou descartar) que podem ir para o texto do laudo; nódulo
+  pulmonar completo; lesões hepáticas por segmento de Couinaud.
+- Modelos extras opcionais: SynthSeg, MedSAM2 (segmentação interativa), autoPET e BraTS.
 
 ### Rede DICOM
 - Nó DICOM (C-ECHO, C-FIND, C-MOVE, C-GET, C-STORE) e cliente DICOMweb (QIDO, WADO, STOW).
@@ -102,6 +120,24 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
   exames das modalidades chegaram ao PACS e enviar o que falta).
 - Chamada externa por link `ipe://`, linha de comando ou API HTTP local, inclusive abrindo só o
   visualizador.
+
+### Visualizador web (servidor central)
+O servidor central também serve um visualizador no navegador, sem instalar nada no computador de
+leitura: abra `http(s)://<servidor>:8043/web` (o endereço aparece na janela do servidor) e entre com o
+usuário do Ipê. Por enquanto, para a rede interna.
+- Lista de exames, tira de séries (clique ou arraste a série até o quadro), quadros de 1×1 a 2×3,
+  janelas prontas, cine.
+- MPR, oblíquo, espessura e MIP, com troca de plano em um clique, como no Ipê.
+- Medidas com o número do Ipê (régua, ângulo, Cobb, ROIs, pixel, seta, calibração), gravadas no banco
+  do servidor: o que se mede no navegador aparece no Ipê e vice-versa. Ultrassom calibrado pela
+  região do aparelho.
+- PET/CT: fusão, PET e MIP do PET com os axiais andando juntos, SUV pela conta do Ipê, tabelas de
+  cores do Ipê, SUV máximo perto do cursor e as SEG do exame (carga tumoral, órgãos) como máscaras.
+- Carga rápida: as imagens vão pela rede em HTJ2K sem perda (cópia de envio conferida; o acervo não
+  muda), chegam de forma progressiva e ficam no cache do navegador; cada miniatura mostra a
+  porcentagem já disponível, e o botão **Carga** mostra a velocidade da rede e o tempo de
+  decodificação.
+- Próximas fases: protocolo de mamografia em dois monitores, dinâmica de mama e laudo.
 
 ### Filmes, impressão e laudo
 - Compositor de filmes; impressão em impressora comum, PDF e impressora DICOM.
@@ -112,6 +148,10 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 
 ### Usuários e idiomas
 - Um usuário ou vários, com perfis e permissões; servidor central opcional.
+- Perfis por grupo e por computador, configurações exportadas e importadas, atualização pelo
+  servidor ou direto do GitHub em um clique.
+- HTTPS na rede interna com certificado próprio do Ipê; OAuth2/OIDC nos nós DICOMweb; senhas
+  guardadas cifradas.
 - Português, inglês e espanhol, com editor de traduções para outros idiomas.
 
 ---
@@ -120,7 +160,7 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 
 ### Windows — instalador
 O instalador `Ipe-<versão>-installer.exe` (e o pacote portátil `.zip`) instala no perfil do
-usuário, sem pedir administrador. A primeira tela pergunta o idioma, com o inglês marcado. Para gerá-lo a partir do código, veja
+usuário, sem pedir administrador. A primeira tela pergunta o idioma, com o inglês marcado; depois, a pasta do programa e a do banco. Para gerá-lo a partir do código, veja
 [installer/LEIAME.md](installer/LEIAME.md).
 
 ### Windows — a partir do código

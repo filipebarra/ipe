@@ -27,35 +27,59 @@ y existe gracias a bibliotecas abiertas de DICOM, cálculo e IA.
 ## Funciones
 
 - **Base de estudios:** base local SQLite con miniaturas y búsqueda; importación de carpetas, CD/DVD,
-  ZIP o arrastrando; varias ubicaciones; listas de casos; copias anonimizadas; corrección de tags
-  que graba una copia; compresión sin pérdida con verificación píxel a píxel.
+  ZIP, RAR, 7z o arrastrando; varias ubicaciones; listas de casos; copias anonimizadas; corrección
+  de tags que graba una copia; compresión sin pérdida con verificación píxel a píxel; PDFs e imágenes
+  adjuntos; estado del estudio y del análisis; lista de trabajo con prioridad y plazo; panel de
+  productividad.
 - **Visor:** varios layouts, varios monitores como una sola estación, protocolos de visualización,
   ventana/nivel, zoom, cine, filtros, escalas de color editables, sincronización automática o
   manual, cursor 3D y líneas de referencia, anotaciones en cuatro niveles, Ctrl+C copia el cuadro
   en alta resolución, estudios anteriores en la tira de miniaturas.
 - **Reconstrucciones y 3D:** MPR ortogonal, oblicuo y curvo, slab, volume rendering, superficie,
-  recorte, fusión PET/TC, exportación de malla 3D (STL, OBJ, PLY, GLB, 3MF), 4D cardíaco, DSA.
+  recorte, fusión PET/TC, exportación de malla 3D (STL, OBJ, PLY, GLB, 3MF), 4D cardíaco, DSA,
+  registro rígido entre estudios, corrección de movimiento, estructuras 3D grabadas como SEG o
+  RTSTRUCT.
 - **Medidas:** regla, ángulo, Cobb, ROIs, ecografía calibrada, panel de medidas, DICOM SR,
-  segmentación 3D con volumen y tres ejes perpendiculares.
+  segmentación 3D con volumen y tres ejes perpendiculares; índices de cráneo (SynthSeg), niveles
+  ganglionares cervicales, cefalometría del cavum; composición corporal en L3, grasa y hierro
+  hepáticos en RM, esteatosis, difusión; enfisema por lóbulo, fracturas vertebrales (Genant), calcio
+  coronario (Agatston) y diámetros de la aorta por segmento.
 - **Mama:** mamografía y tomosíntesis por etapas entre monitores, encuadre de la mama, implante,
   densidad mamaria (tres métodos), RM dinámica con MSI/PEI/SER y mapa cinético de 6 colores,
-  medida de la lesión y distancias a la piel, al pezón y al pectoral.
+  medida de la lesión y distancias a la piel, al pezón y al pectoral; fusión arrastrando, mapas de
+  color y hallazgos por marcadores; búsqueda activa de pacientes.
 - **Medicina nuclear:** NM multi-frame, ANT/POST y media geométrica, ROIs y curvas, renograma,
-  vaciamiento gástrico, DISIDA, salivales, DMSA, paratiroides, captación tiroidea y tránsito.
+  vaciamiento gástrico, DISIDA, salivales, DMSA, paratiroides, captación tiroidea y tránsito; PET
+  con SUV por peso, masa magra y glucemia, carga tumoral (FDG, PSMA, DOTA) y seguimiento entre
+  fechas.
 - **Oncología e IA:** seguimiento de lesiones, objetos de CAD/IA (SEG, GSPS, SR, RTSTRUCT),
-  segmentación de órganos con TotalSegmentator (opcional), vértebras y discos.
+  segmentación de órganos con TotalSegmentator (opcional), vértebras y discos; hallazgos de IA
+  revisables que pueden ir al informe; nódulo pulmonar completo; lesiones hepáticas por segmento;
+  modelos extra opcionales (SynthSeg, MedSAM2, autoPET, BraTS).
 - **Red DICOM:** nodo DICOM y cliente DICOMweb, búsqueda en el PACS, descarga por serie,
   automatización, verificación de envíos al PACS, llamadas externas por enlace `ipe://`, línea de
   comandos o API HTTP local.
+- **Visor web (servidor central):** en el navegador, sin instalar nada, en
+  `http(s)://<servidor>:8043/web` (por ahora en la red interna): MPR, oblicuo, MIP, medidas con los
+  números del Ipê grabadas en la base del servidor, ecografía calibrada, PET/TC con SUV, fusión,
+  SUV máximo cerca del cursor y SEG como máscaras; arrastrar series a los cuadros; carga rápida en
+  HTJ2K sin pérdida, progresiva y con caché del navegador, con el porcentaje disponible y el botón
+  **Carga**. Próximas fases: mamografía en dos monitores, dinámica de mama e informe.
 - **Placas, impresión e informe:** compositor de placas, impresoras del sistema y DICOM, el programa
   como impresora DICOM, informes con BI-RADS (PDF, DICOM PDF, SR), exportación a DICOM, JPG/PNG y
   un visor HTML completo.
-- **Usuarios e idiomas:** uno o varios usuarios con permisos, servidor central opcional;
-  portugués, inglés y español, con editor de traducciones.
+- **Usuarios e idiomas:** uno o varios usuarios con permisos, servidor central opcional, perfiles
+  por grupo y computadora, actualización por el servidor o desde GitHub en un clic, HTTPS en la red
+  interna con certificado propio, OAuth2/OIDC y contraseñas cifradas; portugués, inglés y español,
+  con editor de traducciones.
 
 ## Instalación
 
-**Windows:** instale **Python 3.12** (marque *"Add python.exe to PATH"*), haga doble clic en
+**Windows — instalador:** `Ipe-<versión>-installer.exe` (o el paquete portátil `.zip`), en
+[Releases](https://github.com/filipebarra/ipe/releases); instala en el perfil del usuario, sin
+administrador, y pregunta el idioma, la carpeta del programa y la de la base.
+
+**Windows — desde el código:** instale **Python 3.12** (marque *"Add python.exe to PATH"*), haga doble clic en
 `instalar.bat` una vez y luego en `executar.bat`. Para generar el instalador de Windows vea
 [installer/LEIAME.md](installer/LEIAME.md).
 
