@@ -4,6 +4,7 @@
 import "./estilo.css";
 import * as API from "./api";
 import { setLang, tr } from "./i18n";
+import { apagarSelecionadas } from "./medidas";
 import { Grade, aplicarBotoes, carregarSerie, iniciar, type Ferramenta, type Projecao } from "./visor";
 
 const app = document.getElementById("app")!;
@@ -119,6 +120,12 @@ async function telaLista(): Promise<void> {
 }
 
 // ------------------------------------------------------------------ exame
+const NOMES_FERRAMENTAS: Record<Ferramenta, string> = {
+  janela: "Janela", mover: "Mover", zoom: "Zoom", rolar: "Rolar", linhas: "Linhas de referência",
+  regua: "Régua", angulo: "Ângulo", cobb: "Ângulo de Cobb", elipse: "ROI elíptica", retangulo: "ROI retangular",
+  poligono: "ROI livre", pixel: "Valor do pixel", seta: "Seta", calibracao: "Calibração",
+};
+
 const LAYOUTS: [number, number][] = [[1, 1], [1, 2], [2, 1], [2, 2], [2, 3]];
 
 function janelasProntas(modalidade: string): [string, number, number][] {
@@ -145,9 +152,8 @@ async function telaExame(study: string): Promise<void> {
   const layout = el("select", { title: tr("Layout") },
     ...LAYOUTS.map(([l, c]) => el("option", { value: `${l}x${c}` }, `${l}×${c}`))) as HTMLSelectElement;
   const ferr = el("select", { title: tr("Botão esquerdo:") },
-    ...(["janela", "mover", "zoom", "rolar", "linhas"] as Ferramenta[]).map((f) =>
-      el("option", { value: f }, tr({ janela: "Janela", mover: "Mover", zoom: "Zoom", rolar: "Rolar",
-        linhas: "Linhas de referência" }[f])))) as HTMLSelectElement;
+    ...(Object.entries(NOMES_FERRAMENTAS) as [Ferramenta, string][]).map(([f, n]) =>
+      el("option", { value: f }, tr(n)))) as HTMLSelectElement;
   const presets = el("select", { title: tr("Janelas prontas") }) as HTMLSelectElement;
   const fps = el("select", { title: tr("quadros/s") },
     ...[5, 10, 15, 20, 30].map((n) => el("option", { value: n, selected: n === 10 }, `${n} ${tr("quadros/s")}`))) as HTMLSelectElement;
@@ -165,8 +171,9 @@ async function telaExame(study: string): Promise<void> {
   const obliquo = el("button", { title: tr("Dois cliques no quadro ativo definem a reta; o oblíquo vai para o outro quadro de volume") }, tr("Oblíquo"));
   let girando = false;
   const girar = el("button", { title: tr("Gira o MIP (a roda do mouse também gira)") }, tr("Girar MIP"));
+  const apagarMedida = el("button", { title: tr("Apaga a medida selecionada (clique nela antes)") }, tr("Apagar medida"));
   const barra = el("nav", { class: "barra" }, voltar, layout,
-    el("label", {}, tr("Botão esquerdo:"), ferr), presets, inverter, cine, fps, restaurar,
+    el("label", {}, tr("Botão esquerdo:"), ferr), apagarMedida, presets, inverter, cine, fps, restaurar,
     el("span", { class: "sep" }), mpr, espessura, projecao, obliquo, girar);
 
   // tira
@@ -251,6 +258,9 @@ async function telaExame(study: string): Promise<void> {
     girando = !girando;
     g.girar(girando);
     girar.textContent = girando ? tr("Parar o giro") : tr("Girar MIP");
+  };
+  apagarMedida.onclick = () => {
+    if (!apagarSelecionadas()) aviso.textContent = tr("Clique numa medida para selecioná-la antes de apagar.");
   };
   inverter.onclick = () => g.inverter();
   restaurar.onclick = () => g.restaurar();

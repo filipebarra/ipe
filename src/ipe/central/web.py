@@ -220,3 +220,58 @@ def configuracao(settings, prefs: dict | None, usuario: dict) -> dict:
     from ipe import __version__
     out["versao"] = __version__
     return json.loads(json.dumps(out, default=str))
+
+
+# ------------------------------------------------------------------ medidas (0.99.93, W2)
+#: os tipos que o site desenha e grava (os outros do Ipê ficam no banco, intocados)
+TIPOS_MEDIDA = ("line", "angle", "cobb", "ellipse", "rect", "polygon", "probe", "arrow", "calibration")
+
+
+def medidas(repo, s, method: str, path: str, q: dict, corpo: dict, pode_ver) -> object:
+    """GET ?series=…&study=… lista; POST grava (devolve o número); POST …/apagar apaga. Quem fez vai em
+    `owner` e em meta.autor (do login, não do que o navegador manda); só mexe em medida de exame visível."""
+    if not s.can("view"):
+        raise PermissionError("sem permissão")
+    if method == "GET":
+        study = (q.get("study") or [""])[0]
+        series = (q.get("series") or [""])[0]
+        if not study or not series or not pode_ver(s, study):
+            raise PermissionError("exame não visível")
+        return [r for r in repo.annotations_for_series([series]) if r["study_uid"] == study]
+    if method != "POST":
+        raise ValueError("método")
+    if path.endswith("/apagar"):
+        reg = repo.annotation_by_id(int(corpo["db_id"]))
+        if reg is None:
+            return {"ok": True}
+        if not pode_ver(s, reg["study_uid"]):
+            raise PermissionError("exame não visível")
+        repo.delete_annotation(int(corpo["db_id"]))
+        return {"ok": True}
+    study = str(corpo["study_uid"])
+    if not pode_ver(s, study):
+        raise PermissionError("exame não visível")
+    kind = str(corpo["kind"])
+    if kind not in TIPOS_MEDIDA:
+        raise ValueError(f"tipo de medida desconhecido: {kind}")
+    dados = corpo.get("data") or {}
+    if isinstance(dados, str):
+        dados = json.loads(dados or "{}")
+    pontos = [[float(x), float(y)] for x, y in dados.get("points", [])]
+    meta = dict(dados.get("meta") or {})
+    db_id = corpo.get("db_id")
+    antigo = repo.annotation_by_id(int(db_id)) if db_id else None
+    if antigo is not None:
+        if antigo["study_uid"] != study:
+            raise PermissionError("a medida é de outro exame")
+        meta["autor"] = (json.loads(antigo["data"] or "{}").get("meta") or {}).get("autor") or antigo.get("owner") or ""
+    else:
+        db_id = None
+        meta["autor"] = s.username
+    d = {"points": pontos, "text": str(dados.get("text", ""))}
+    if meta:
+        d["meta"] = meta
+    novo = repo.save_annotation(db_id=db_id, study_uid=study, series_uid=str(corpo["series_uid"]),
+                                sop_uid=str(corpo["sop_uid"]), frame_index=int(corpo.get("frame_index", 0)),
+                                kind=kind, data=json.dumps(d), owner=s.username)
+    return {"id": novo}

@@ -6254,7 +6254,10 @@
   "arquivo do site não encontrado",
   "miniatura (web)",
   "o visualizador web não está instalado neste servidor",
-  "sem miniatura"
+  "sem miniatura",
+  "a medida é de outro exame",
+  "exame não visível",
+  "método"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7903,6 +7906,7 @@
   "{}: diâmetro máximo {}",
   "<small>Visualizador web (navegador, com o mesmo usuário e senha): <a href='{}://{}:{}/web/'>{}://{}:{}/web/</a> — Chrome ou Edge.</small>",
   "abriu no navegador: {}",
-  "quadro {} fora de 1..{}"
+  "quadro {} fora de 1..{}",
+  "tipo de medida desconhecido: {}"
  ]
 }

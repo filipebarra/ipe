@@ -985,19 +985,30 @@ class Repository:
                  .order_by(AnnotationRecord.id))
             return [{"id": a.id, "study_uid": a.study_uid, "series_uid": a.series_uid,
                      "sop_uid": a.sop_uid, "frame_index": a.frame_index, "kind": a.kind,
-                     "data": a.data} for a in s.scalars(q)]
+                     "data": a.data, "owner": a.owner} for a in s.scalars(q)]
 
     def save_annotation(self, *, db_id: int | None, study_uid: str, series_uid: str, sop_uid: str,
-                        frame_index: int, kind: str, data: str) -> int:
+                        frame_index: int, kind: str, data: str, owner: str = "") -> int:
         with self.db.session() as s:
             row = s.get(AnnotationRecord, db_id) if db_id else None
             if row is None:
                 row = AnnotationRecord(study_uid=study_uid, series_uid=series_uid, sop_uid=sop_uid,
                                        frame_index=frame_index, kind=kind)
+                if owner:                       # 0.99.93: quem fez (o visualizador web manda o usuário)
+                    row.owner = owner
                 s.add(row)
             row.data = data
             s.flush()
             return row.id
+
+    def annotation_by_id(self, db_id: int) -> dict | None:
+        """0.99.93: uma medida pelo número (o visualizador web confere de que exame ela é antes de mexer)."""
+        with self.db.session() as s:
+            a = s.get(AnnotationRecord, int(db_id))
+            if a is None:
+                return None
+            return {"id": a.id, "study_uid": a.study_uid, "series_uid": a.series_uid, "sop_uid": a.sop_uid,
+                    "frame_index": a.frame_index, "kind": a.kind, "data": a.data, "owner": a.owner}
 
     def delete_annotation(self, db_id: int) -> None:
         with self.db.session() as s:

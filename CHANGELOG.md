@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.93 — visualizador web: medidas no banco e calibração do ultrassom (fase 3)
+- **Medidas no visualizador web**: régua, ângulo, Cobb, ROI elíptica, retangular e livre, pixel, seta e calibração.
+  O número é o do Ipê (mesma escala, mesma regra da ROI, mesmo texto).
+- As medidas ficam **no banco do servidor**, no formato do Ipê, com quem mediu: o que se mede no navegador aparece no
+  Ipê e vice-versa. Mexer numa ponta atualiza; clicar na medida e em **Apagar medida** apaga.
+- **Ultrassom**: a distância usa a região calibrada do aparelho (atravessar duas regiões fica em pixels);
+  **calibração** à mão vale para aquela imagem (nas outras modalidades, para a série).
+- Correção: ao trocar a grade de quadros, a imagem podia aparecer minúscula num canto.
+
 ## 0.99.92 — visualizador web: MPR, oblíquo e MIP (fase 2)
 - Cada quadro do visualizador web ganhou **A, C, S, MIP e Original** no alto: muda o plano com um clique,
   reconstruindo a série no navegador.

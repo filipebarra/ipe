@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.93 — web viewer: measurements in the database and ultrasound calibration (phase 3)
+- **Measurements in the web viewer**: ruler, angle, Cobb, elliptical, rectangular and freehand ROI, pixel, arrow and
+  calibration. The number is Ipê's (same scale, same ROI rule, same text).
+- Measurements are stored **in the server database**, in Ipê's format, with who measured: what is measured in the
+  browser shows up in Ipê and vice versa. Moving an end updates it; clicking the measurement and **Delete
+  measurement** deletes it.
+- **Ultrasound**: distance uses the device's calibrated region (crossing two regions stays in pixels); manual
+  **calibration** applies to that image (in other modalities, to the series).
+- Fix: when changing the viewport grid, the image could appear tiny in a corner.
+
 ## 0.99.92 — web viewer: MPR, oblique and MIP (phase 2)
 - Each web viewer viewport gained **A, C, S, MIP and Original** at the top: changes the plane with one click,
   reconstructing the series in the browser.

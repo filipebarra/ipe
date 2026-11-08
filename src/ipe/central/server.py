@@ -490,6 +490,16 @@ class _Handler(BaseHTTPRequestHandler):
             prefs = c.repo.user_prefs(s.user_id) if s.user_id else {}
             return self._json(200, WEB.configuracao(c.settings, prefs, {
                 "username": s.username, "full_name": s.full_name, "role": s.role, "perms": sorted(s.perms)}), raw=True)
+        if path.startswith("/api/web/medidas"):                          # 0.99.93 (W2): medidas no banco
+            from ipe.central import web as WEB
+            try:
+                r = WEB.medidas(c.repo, s, method, path, parse_qs(parts.query),
+                                json.loads(self._body() or b"{}") if method == "POST" else {}, c.pode_ver)
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            return self._json(200, r, raw=True)
         if path == "/api/web/abriu" and method == "POST":
             data = json.loads(self._body() or b"{}")
             uid = str(data.get("study_uid", ""))

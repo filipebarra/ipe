@@ -1016,7 +1016,13 @@ Nesta primeira fase:
 - **MIP girando**: **Girar MIP** liga o giro em volta do eixo do paciente; a roda do mouse sobre o MIP gira aos poucos. **Clicar num ponto do MIP** leva os outros quadros ao ponto mais claro daquela linha de visão. Na TC o MIP abre com janela larga; no PET, invertido.
 - Série que não dá volume (imagem única, cortes com orientações ou tamanhos diferentes, vários quadros num arquivo) fica em cortes, com o aviso do motivo. Volumes maiores que 1,5 GB não são montados no navegador.
 
-As próximas fases trazem as medidas (gravadas no banco, que aparecem no Ipê), a fusão PET/CT, a mamografia com o protocolo e dois monitores, a dinâmica da mama e o laudo. Por enquanto é só na rede da clínica; de fora, entre pela VPN.
+**Medidas (0.99.93).** No **Botão esquerdo**: régua, ângulo, Cobb, ROI elíptica, retangular e livre, pixel, seta e calibração.
+
+- **O número é o do Ipê**: a mesma escala (calibração desta imagem, depois a da série, a região do ultrassom e o espaçamento do arquivo), a mesma regra da ROI (o pixel conta se o centro está dentro) e o mesmo texto — média ± DP, mínimo e máximo, área.
+- **Ficam no banco do servidor**, no formato do Ipê: o que se mede no navegador aparece no Ipê (e o que se mediu no Ipê aparece no navegador), com quem mediu. Mexer numa ponta atualiza a medida; para apagar, clique na medida (com qualquer ferramenta) e em **Apagar medida**. Só vale para os quadros de cortes ("Original"): no MPR as medidas ficam só na tela, como no Ipê.
+- **Ultrassom**: a distância usa a região calibrada do próprio aparelho; uma régua que atravessa duas regiões (do 2D para o Doppler, por exemplo) fica em pixels. **Calibração**: trace uma distância conhecida e digite os milímetros — no ultrassom vale só para aquela imagem; nas outras modalidades, para a série.
+
+As próximas fases trazem a fusão PET/CT, a mamografia com o protocolo e dois monitores, a dinâmica da mama e o laudo. Por enquanto é só na rede da clínica; de fora, entre pela VPN.
 
 ### HTTPS na rede interna (certificado do Ipê)
 

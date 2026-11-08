@@ -8397,5 +8397,9 @@
  "sem miniatura": "sin miniatura",
  "<small>Visualizador web (navegador, com o mesmo usuário e senha): <a href='{}://{}:{}/web/'>{}://{}:{}/web/</a> — Chrome ou Edge.</small>": "<small>Visualizador web (navegador, con el mismo usuario y contraseña): <a href='{}://{}:{}/web/'>{}://{}:{}/web/</a> — Chrome o Edge.</small>",
  "abriu no navegador: {}": "abrió en el navegador: {}",
- "quadro {} fora de 1..{}": "cuadro {} fuera de 1..{}"
+ "quadro {} fora de 1..{}": "cuadro {} fuera de 1..{}",
+ "a medida é de outro exame": "la medida es de otro examen",
+ "exame não visível": "examen no visible",
+ "método": "método",
+ "tipo de medida desconhecido: {}": "tipo de medida desconocido: {}"
 }

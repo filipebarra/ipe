@@ -12,6 +12,7 @@ import {
   metaData,
   setUseCPURendering,
   setVolumesForViewports,
+  utilities as csUtils,
   volumeLoader,
   type Types,
 } from "@cornerstonejs/core";
@@ -20,6 +21,8 @@ import * as csTools from "@cornerstonejs/tools";
 
 import { DICOMWEB, cabecalhos, metadados, valor, type DicomJson } from "./api";
 import { tr } from "./i18n";
+import { FERRAMENTA_DA_ESCOLHA, adicionarFerramentas, carregarMedidas, ouvirAnotacoes, selecionarAoClicar } from "./medidas";
+import { META } from "./meta";
 
 const {
   PanTool, ZoomTool, WindowLevelTool, StackScrollTool, CrosshairsTool, MIPJumpToClickTool, ToolGroupManager,
@@ -36,14 +39,16 @@ export const LIMITE_VOLUME = 1.5 * 1024 ** 3;
 let iniciado = false;
 let motor: RenderingEngine | null = null;
 
-export type Ferramenta = "janela" | "mover" | "zoom" | "rolar" | "linhas";
+export type Ferramenta = "janela" | "mover" | "zoom" | "rolar" | "linhas" | "regua" | "angulo" | "cobb" | "elipse"
+  | "retangulo" | "poligono" | "pixel" | "seta" | "calibracao";
 export type Plano = "AXIAL" | "CORONAL" | "SAGITTAL";
 export type Projecao = "fino" | "mip" | "minip" | "media";
-const NOME: Record<Exclude<Ferramenta, "linhas">, string> = {
+const NOME: Record<string, string> = {
   janela: WindowLevelTool.toolName,
   mover: PanTool.toolName,
   zoom: ZoomTool.toolName,
   rolar: StackScrollTool.toolName,
+  ...FERRAMENTA_DA_ESCOLHA,
 };
 
 export async function iniciar(): Promise<void> {
@@ -85,9 +90,12 @@ export async function iniciar(): Promise<void> {
     getReferenceLineSlabThicknessControlsOn: () => false,
   });
   tm.addTool(MIPJumpToClickTool.toolName, { targetViewportIds: [] });
+  adicionarFerramentas([t2, tv]); // W2: medidas (na pilha vão para o banco; no MPR, só na sessão)
+  ouvirAnotacoes();
   aplicarBotoes("janela");
   motor = new RenderingEngine(RE_ID);
   (window as unknown as Record<string, unknown>).__ipeGeo = { planoPorDoisPontos, girarVetor }; // testes
+  (window as unknown as Record<string, unknown>).__ipeCs = { imageToWorldCoords: csUtils.imageToWorldCoords };
   iniciado = true;
 }
 
@@ -104,6 +112,7 @@ export function aplicarBotoes(f: Ferramenta): void {
       [WindowLevelTool.toolName]: [],
     };
     if (id === TG_VOL) fixos[CrosshairsTool.toolName] = [];
+    if (id !== TG_MIP) for (const nome of Object.values(FERRAMENTA_DA_ESCOLHA)) fixos[nome] = [];
     if (id === TG_MIP) {
       fixos[MIPJumpToClickTool.toolName] = [MB.Primary];
     } else if (f === "linhas") {
@@ -120,7 +129,6 @@ export function aplicarBotoes(f: Ferramenta): void {
 }
 
 // ------------------------------------------------------------------ séries -> imageIds
-const META = new Map<string, DicomJson>();
 
 export interface SerieCarregada {
   study: string;
@@ -275,6 +283,7 @@ export class Grade {
       const el = document.createElement("div");
       el.className = "tela";
       el.oncontextmenu = (e) => e.preventDefault();
+      selecionarAoClicar(el);
       const textos = document.createElement("div");
       textos.className = "textos";
       const botoes = document.createElement("div");
@@ -378,7 +387,10 @@ export class Grade {
       const pilha = vp as Types.IStackViewport;
       const meio = Math.floor(s.imageIds.length / 2);
       await pilha.setStack(s.imageIds, s.imageIds.length > 2 ? meio : 0);
+      // a grade pode ter sido refeita enquanto a imagem carregava: a câmera é ajustada ao tamanho de agora
+      pilha.resetCamera();
       pilha.render();
+      void carregarMedidas(s.study, s.series, s.imageIds, q.el); // as medidas do banco (feitas aqui ou no Ipê)
     } else {
       const vid = await volumeDa(s);
       await setVolumesForViewports(motor!, [{ volumeId: vid }], [q.id]);
