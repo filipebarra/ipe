@@ -116,7 +116,7 @@ def _synthseg(vol_kji, afim) -> tuple:
     return lab.transpose(2, 1, 0), nomes, np.asarray(lab_1mm).astype(np.uint8), afim_1mm
 
 
-#: 0.99.89: fantoma da carga tumoral no PET — {tarefa: {id: (código do HU, classe)}}
+#: 0.99.88: fantoma da carga tumoral no PET — {tarefa: {id: (código do HU, classe)}}
 CARGA_SIM = {
     "total": {1: (1, "liver"), 2: (2, "spleen"), 3: (3, "kidney_left"), 4: (4, "kidney_right"),
               5: (5, "urinary_bladder"), 6: (6, "brain"), 7: (7, "heart"), 8: (8, "aorta"),
@@ -141,7 +141,16 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
                 lab[vol == 2000 + cod] = cid
             saida[nome] = (lab, {cid: n for cid, (_c, n) in codigos.items()})
             continue
-        if t.get("carga"):                   # 0.99.89: carga tumoral PET — HU = 4000 + código do órgão
+        if t.get("calcio"):                  # 0.99.89: cálcio coronariano — coração 41 (e 451, cálcio dentro dele),
+            classes = {1: "heart", 2: "aorta", 3: "sternum", 4: "vertebrae_T8", 5: "rib_left_5",
+                       6: "costal_cartilages"}          # aorta 43, ossos 701–704; com contraste: 341 e 343
+            lab[np.isin(vol, (41, 451, 341))] = 1
+            lab[np.isin(vol, (43, 343))] = 2
+            for cid, hu in ((3, 701), (4, 702), (5, 703), (6, 704)):
+                lab[vol == hu] = cid
+            saida[nome] = (lab, classes)
+            continue
+        if t.get("carga"):                   # 0.99.88: carga tumoral PET — HU = 4000 + código do órgão
             codigos = CARGA_SIM.get(nome, {})
             for cid, (cod, _n) in codigos.items():
                 lab[vol == 4000 + cod] = cid

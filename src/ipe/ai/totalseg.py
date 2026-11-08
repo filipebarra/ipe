@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 #: o que marca as séries desta função: ficam só neste computador (o envio ao PACS as pula)
 MARCA = "· TotalSegmentator"
 #: as marcas das séries que o CAD/IA grava (ficam só neste computador): TotalSegmentator e SynthSeg (0.99.17)
-MARCAS_IA = (MARCA, "· SynthSeg")
+MARCAS_IA = (MARCA, "· SynthSeg", "· Ipê")          # 0.99.89: + carga tumoral e cálcio (· Ipê)
 DESC_SEG = f"Órgãos abdominais {MARCA}"
 DESC_TABELA = f"Volumetria abdominal {MARCA}"
 SERIE_SEG, SERIE_TABELA = 970, 971

@@ -1,4 +1,4 @@
-"""Carga tumoral total no PET, sem IA de lesão, e o fluxo do PSMA (0.99.89; backlog PET/CT itens 2 e 3).
+"""Carga tumoral total no PET, sem IA de lesão, e o fluxo do PSMA (0.99.88; backlog PET/CT itens 2 e 3).
 
 A ideia é a do LesionID (MIM): tudo o que passa de um **limiar** vira foco; a captação **fisiológica** sai pelas
 máscaras dos órgãos que o TotalSegmentator acha na **TC** do PET/CT; cada foco que sobra é uma lesão revisável

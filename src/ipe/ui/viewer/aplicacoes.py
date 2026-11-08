@@ -40,7 +40,8 @@ REGIOES_FABRICA: dict[str, tuple[str, str]] = {
              "MASTOID|OUVIDO|TEMPORAL BONE|ROCHED|CAVUM|RINOFARING|NASOFARING|ADENOIDE|APNEIA|CEFALOMETR"),
     "mama": ("Mama", "BREAST|MAMA|MAMAS|MAMARIA|MAMOGRAF|MAMMO"),
     "torax": ("Tórax", "CHEST|THORAX|TORAX|TORACIC|LUNG|PULMAO|PULMON"),
-    "coracao": ("Coração", "HEART|CARDIAC|CARDIACA|CORONAR|CORACAO|CARDIO"),
+    "coracao": ("Coração", "HEART|CARDIAC|CARDIACA|CORONAR|CORACAO|CARDIO|CALCIUM|ESCORE DE CALCIO|"
+                           "SCORE DE CALCIO|ESCORE CALCIO"),
     "abdome": ("Abdome", "ABD|ABDOM|LIVER|FIGADO|HEPAT|PANCREA|RENAL|RINS|RIM|KIDNEY|ENTERO|"
                          "COLANGIO|MRCP|ADRENAL|SUPRARREN"),
     "pelve": ("Pelve", "PELV|PELVE|PROSTAT|UTER|UTERO|OVARI|RETO|RECTUM|BEXIGA|BLADDER|ENDOMETR"),
@@ -196,6 +197,10 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
               descricao="Lesões hepáticas (IA): volume e diâmetro de cada uma e a carga por segmento de Couinaud"),
     Aplicacao("autopet", "autoPET", frozenset({"PT"}),
               descricao="Lesões no PET-FDG (IA, modelo extra): MTV, TLG e o SUV de cada lesão"),
+    Aplicacao("calcio", "Cálcio coronariano", frozenset({"CT"}),
+              ((frozenset({"coracao"}), frozenset()), (frozenset({"torax"}), frozenset())),
+              descricao="Escore de cálcio coronariano (IA): Agatston e volume por vaso, CAC-DRS e a categoria "
+                        "da SCCT/STR, na TC sem contraste"),
     Aplicacao("carga_pet", "Carga tumoral", frozenset({"PT"}),
               descricao="Carga tumoral no PET (FDG, PSMA, DOTA): focos acima do limiar sem a captação fisiológica, "
                         "MTV, TLG, regiões e, no PSMA, miTNM e miPSMA"),

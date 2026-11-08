@@ -467,7 +467,7 @@ class AchadosPainel(QDialog):
             fr = getattr(mod, "frase", None)
             if ferr == "nodulos" and fr is not None:
                 fr = self._frase_com_crescimento(fr)
-            proprio = getattr(mod, "laudo", None)          # 0.99.89: a ferramenta monta o texto (totais refeitos)
+            proprio = getattr(mod, "laudo", None)          # 0.99.88: a ferramenta monta o texto (totais refeitos)
             txt = proprio(lista) if callable(proprio) else AC.texto_do_laudo(lista, fr)
             if txt:
                 partes.append(txt)

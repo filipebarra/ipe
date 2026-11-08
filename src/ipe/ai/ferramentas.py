@@ -25,7 +25,8 @@ GENERICAS = {
     "figado_lesoes": "ipe.ai.figado_lesoes",    # 0.99.82
     "autopet": "ipe.ai.autopet",                # 0.99.83 (modelo extra)
     "brats": "ipe.ai.brats",                    # 0.99.83 (modelo extra)
-    "carga_pet": "ipe.ai.carga_pet",            # 0.99.89: limiar + órgãos do TotalSegmentator (FDG/PSMA/DOTA)
+    "calcio": "ipe.ai.calcio",                  # 0.99.89: Agatston + órgãos do TotalSegmentator
+    "carga_pet": "ipe.ai.carga_pet",            # 0.99.88: limiar + órgãos do TotalSegmentator (FDG/PSMA/DOTA)
 }
 
 

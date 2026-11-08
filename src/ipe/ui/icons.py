@@ -424,7 +424,7 @@ def _draw(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por ícone
 _APPS_IA = {"app_nodulos": True, "app_enfisema": True, "app_composicao": True, "app_figado": True,
             "app_orgaos": True, "app_genant": True, "app_linfonodos": True, "app_cefalometria": True,
             "app_indices": True, "app_difusao": False, "app_figado_lesoes": True,
-            "app_autopet": True, "app_brats": True, "app_carga_pet": True}
+            "app_autopet": True, "app_brats": True, "app_carga_pet": True, "app_calcio": True}
 
 
 def _pulmoes(p: QPainter) -> None:
@@ -519,6 +519,23 @@ def _draw_app(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por aplic
         p.setBrush(ACCENT)
         p.drawEllipse(QRectF(14, 20, 9, 9))
         p.drawEllipse(QRectF(36, 31, 6, 6))
+    elif name == "app_calcio":          # coração com as coronárias e placas de cálcio brancas
+        p.setPen(_pen(FG, 3.5))
+        cor = QPainterPath()
+        cor.moveTo(32, 58)
+        cor.cubicTo(8, 42, 4, 24, 16, 14)
+        cor.cubicTo(24, 8, 31, 14, 32, 20)
+        cor.cubicTo(33, 14, 40, 8, 48, 14)
+        cor.cubicTo(60, 24, 56, 42, 32, 58)
+        p.drawPath(cor)
+        p.setPen(_pen(ACCENT, 3.0))
+        p.drawLine(P(33, 22), P(30, 48))          # DA
+        p.drawLine(P(33, 22), P(48, 30))          # CX
+        p.drawLine(P(31, 21), P(16, 30))          # CD
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(255, 255, 255))
+        for x, y in ((31, 33), (43, 27), (20, 28)):
+            p.drawRect(QRectF(x - 3, y - 3, 6, 6))
     elif name == "app_carga_pet":       # esqueleto simples com vários focos e a barra da carga ao lado
         p.setPen(_pen(FG, 3.2))
         p.drawEllipse(QRectF(12, 4, 14, 12))

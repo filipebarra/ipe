@@ -1288,6 +1288,8 @@ class ViewerTab(OncoMixin, QWidget):
                  "Lesões no PET-FDG: MTV e TLG (IA)", "autoPET"),
                 ("brats", "Segmentar o glioma (captante, necrose, edema) nesta RM (IA)…",
                  "Glioma na RM — BraTS (IA)", "BraTS"),
+                ("calcio", "Medir o escore de cálcio coronariano (Agatston) nesta TC sem contraste…",
+                 "Cálcio coronariano — Agatston (IA)", "Cálcio"),
                 ("carga_pet", "Medir a carga tumoral deste PET (FDG, PSMA ou DOTA)…",
                  "Carga tumoral no PET (FDG/PSMA/DOTA)", "Carga")):
             menu_x = self._menu()
@@ -5934,7 +5936,7 @@ class ViewerTab(OncoMixin, QWidget):
         vp = vp or self.active or next((v for v in self.viewports if v.frames), None)
         if vp is None:
             return None
-        if tipo == "carga_pet":                 # 0.99.89: os órgãos saem da TC do PET/CT, a conta é no PET
+        if tipo == "carga_pet":                 # 0.99.88: os órgãos saem da TC do PET/CT, a conta é no PET
             from ipe.ai import carga_pet as CP
             serie, motivo = CP.escolher_serie(self.repo, vp.study_uid or self.study_uid, self.settings)
             if not serie:

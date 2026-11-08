@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.89 — puntaje de calcio coronario (Agatston)
+- **Calcio coronario** (botón **Calcio**, o Aplicaciones ▸ Calcio coronario) en la TC sin contraste: TotalSegmentator
+  halla el corazón, la aorta y los huesos; alrededor del corazón, el calcio ≥ 130 HU se puntúa por Agatston corte a
+  corte (cortes finos sumados en láminas de 3 mm), con el volumen y el vaso sugerido de cada lesión (TCI, DA, CX, CD).
+  Sale el total, el **CAC-DRS** y la categoría de la SCCT/STR; la aorta y lo que está dentro del corazón (válvula,
+  anillo mitral) salen aparte. Un hallazgo por vaso: corregirlo o descartarlo cambia el total del informe. Con
+  contraste el puntaje no se mide.
+- Corrección: la SEG de la carga tumoral en el PET (0.99.88) no aparecía sola en la pestaña después del cálculo y no
+  se trataba como serie de la propia computadora.
+
 ## 0.99.88 — PET: carga tumoral (FDG, PSMA, DOTA), lectura PET y SUV por la glucemia
 - **Carga tumoral en el PET** (botón **Carga**, o Aplicaciones ▸ Carga tumoral): TotalSegmentator halla los órganos
   en la TC del PET/TC; en el PET, los focos sobre el umbral del trazador (FDG: PERCIST; PSMA: SUV 3; DOTA: hígado)

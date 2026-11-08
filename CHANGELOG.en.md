@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.89 — coronary calcium score (Agatston)
+- **Coronary calcium** (**Calcium** button, or Applications ▸ Coronary calcium) on non-contrast CT: TotalSegmentator
+  finds the heart, the aorta and the bones; around the heart, calcium ≥ 130 HU is scored by Agatston slice by slice
+  (thin slices summed into 3 mm slabs), with the volume and the suggested vessel of each lesion (LM, LAD, LCX, RCA).
+  You get the total, **CAC-DRS** and the SCCT/STR category; the aorta and what lies inside the heart (valve, mitral
+  annulus) are reported separately. One finding per vessel: correcting or discarding it changes the report total.
+  With contrast the score is not measured.
+- Fix: the PET tumour-burden SEG (0.99.88) did not show up in the tab by itself after the calculation and was not
+  treated as a local series.
+
 ## 0.99.88 — PET: tumour burden (FDG, PSMA, DOTA), PET reading and glucose-corrected SUV
 - **PET tumour burden** (**Burden** button, or Applications ▸ Tumour burden): TotalSegmentator finds the organs on
   the PET/CT's CT; on the PET, the foci above the tracer threshold (FDG: PERCIST; PSMA: SUV 3; DOTA: liver) outside

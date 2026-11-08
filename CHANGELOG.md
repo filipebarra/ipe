@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.89 — escore de cálcio coronariano (Agatston)
+- **Cálcio coronariano** (botão **Cálcio**, ou Aplicações ▸ Cálcio coronariano) na TC sem contraste: o
+  TotalSegmentator acha o coração, a aorta e os ossos; em volta do coração, o cálcio ≥ 130 HU é pontuado pelo
+  Agatston corte a corte (cortes finos somados em fatias de 3 mm), com o volume e o vaso sugerido de cada lesão
+  (TCE, DA, CX, CD). Sai o total, o **CAC-DRS** e a categoria da SCCT/STR; a aorta e o que está dentro do coração
+  (valva, anel mitral) saem à parte. Um achado por vaso: corrigir ou descartar muda o total do laudo. Com contraste o
+  escore não é medido.
+- Correção: a SEG da carga tumoral no PET (0.99.88) não aparecia sozinha na aba depois da conta e não era tratada
+  como série do próprio computador.
+
 ## 0.99.88 — PET: carga tumoral (FDG, PSMA, DOTA), leitura PET e SUV pela glicemia
 - **Carga tumoral no PET** (botão **Carga**, ou Aplicações ▸ Carga tumoral): o TotalSegmentator acha os órgãos na
   TC do PET/CT; no PET, os focos acima do limiar do traçador (FDG: PERCIST; PSMA: SUV 3; DOTA: fígado) fora da

@@ -1,4 +1,4 @@
-"""0.99.89: carga tumoral no PET (limiar + órgãos do TotalSegmentator), miTNM e miPSMA."""
+"""0.99.88: carga tumoral no PET (limiar + órgãos do TotalSegmentator), miTNM e miPSMA."""
 from types import SimpleNamespace
 
 import numpy as np
@@ -108,6 +108,7 @@ def test_psma_regioes_mitnm_e_mipsma(env, tmp_path):
     # banco, SEG e laudo pelos confirmados (descartar tira do total)
     out = FE.gravar(t, CP, res, versao, db, paths.storage, repo, None)
     assert CP.ja_feita(repo, study) and len(out["achados"]) == 1 + len(res.lesoes)
+    assert out["seg_path"]                          # a aba acha a SEG para mostrar
     achados = repo.achados(study, "carga_pet")
     resumo = next(a for a in achados if a["tipo"] == CP.TIPO_RESUMO)
     assert resumo["local"].startswith("PSMA · miT+")

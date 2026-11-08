@@ -1455,6 +1455,19 @@ Na TC ou na RM de abdome, o botão **Lesões** (ou Aplicações ▸ Lesões hep�
 
 O modelo não diz o que a lesão é (cisto, hemangioma, metástase): é contagem e volume. Funciona melhor em fase com contraste (portal ou hepatobiliar) e corte fino; a revisão avisa quando não é o caso. As máscaras (lesões e segmentos) ficam numa SEG que aparece só na série calculada e no 3D, em *Estruturas*.
 
+### Cálcio coronariano — Agatston (0.99.89)
+
+Na TC **sem contraste** (escore de cálcio ou TC de tórax), o botão **Cálcio** (ou Aplicações ▸ Cálcio coronariano) mede o escore de Agatston:
+
+- **Órgãos**: o TotalSegmentator acha o coração, a aorta e os ossos do tórax (esterno, cartilagens costais, costelas, vértebras). O cálcio é procurado em volta do coração, com 8 mm de margem, que é onde correm as coronárias; o osso fica de fora.
+- **Agatston**, corte a corte: pixel ≥ 130 HU, lesão de pelo menos 1 mm² num corte, peso pelo HU máximo (130–199 = 1, 200–299 = 2, 300–399 = 3, ≥ 400 = 4), escore = área × peso × espessura ÷ 3 mm. Sai também o **volume** (mm³). Cortes finos (até 2 mm) são **somados em fatias de ~3 mm** (média dos HU), como a reconstrução em que o escore foi definido: corte fino aumenta o escore. Limiar, menor lesão e a soma dos cortes ficam em Configurações ▸ CAD/IA ▸ Cálcio coronariano.
+- **Vaso sugerido** de cada lesão, pela posição: perto da raiz da aorta e à esquerda dela, **TCE**; em volta do coração, anterior e à esquerda **DA**, à esquerda e atrás **CX**, à direita e posteroinferior **CD**. A tarefa das coronárias do TotalSegmentator exige licença, então o vaso é uma sugestão: confira na SEG (uma cor por vaso) e corrija.
+- **Fora do escore coronariano**, à parte: o cálcio encostado na **aorta** (inclui a raiz e a valva aórtica) e o que está mais de 5 mm **dentro do coração** (valva, anel mitral).
+- **Resultado**: o Agatston e o volume totais e por vaso, o **CAC-DRS** (A0 = 0, A1 = 1–99, A2 = 100–299, A3 ≥ 300, com N = número de vasos com cálcio) e a categoria da SCCT/STR para TC de tórax (nenhum, leve, moderado, grave).
+- **Achados de IA**: um resumo e um achado por vaso. Para mudar uma lesão de vaso, corrija o Agatston dos dois vasos; descartar um vaso tira ele do total. O texto do laudo refaz o total, o CAC-DRS e a categoria com os vasos confirmados ou corrigidos.
+
+Avisos: com contraste o escore **não é medido** (o sangue passa de 130 HU); TC sem sincronização com o ECG (o movimento subestima o escore); kV diferente de 120; corte fino sem somar ou corte grosso. O percentil por idade e sexo (MESA) não é calculado.
+
 ### Modelos extras: MedSAM2, autoPET e BraTS (0.99.83)
 
 Três IAs que não vêm com a segmentação e se instalam uma vez, com internet, em **Configurações ▸ CAD/IA ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS)…** (a janela diz o que já está pronto e o que falta). Rodam no mesmo ambiente do TotalSegmentator, em CPU.
