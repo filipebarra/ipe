@@ -6,11 +6,18 @@ import * as API from "./api";
 import { setLang, tr } from "./i18n";
 import { apagarSelecionadas } from "./medidas";
 import { COR_PADRAO, SUV_PADRAO, registrarCores } from "./pet";
-import { Grade, aplicarBotoes, carregarSerie, iniciar, type Ferramenta, type Projecao } from "./visor";
+import { Disponiveis } from "./disponiveis";
+import { Grade, TIPO_ARRASTO, aplicarBotoes, carregarSerie, iniciar, type Ferramenta, type Projecao } from "./visor";
 
 const app = document.getElementById("app")!;
 let config: API.Config | null = null;
 let grade: Grade | null = null;
+let disp: Disponiveis | null = null;
+
+function pararDisponiveis(): void {
+  disp?.parar();
+  disp = null;
+}
 const NAO_MOSTRA = new Set(["SR", "KO", "PR", "DOC", "RTSTRUCT", "RTPLAN", "SEG", "REG", "OT_PDF"]);
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Record<string, unknown> = {},
@@ -31,6 +38,7 @@ function tarja(): HTMLElement {
 
 // ------------------------------------------------------------------ login
 function telaLogin(msg = ""): void {
+  pararDisponiveis();
   grade?.desmontar();
   grade = null;
   const u = el("input", { id: "usuario", autocomplete: "username", required: true }) as HTMLInputElement;
@@ -78,6 +86,7 @@ function dataBr(d: string): string {
 }
 
 async function telaLista(): Promise<void> {
+  pararDisponiveis();
   grade?.desmontar();
   grade = null;
   const busca = el("input", { placeholder: tr("Nome, ID ou acesso"), id: "busca" }) as HTMLInputElement;
@@ -138,6 +147,7 @@ function janelasProntas(modalidade: string): [string, number, number][] {
 }
 
 async function telaExame(study: string): Promise<void> {
+  pararDisponiveis();
   grade?.desmontar();
   const todas = await API.qido(`/studies/${study}/series`);
   const segs = todas.filter((s) => API.texto(s, "00080060") === "SEG");
@@ -196,9 +206,12 @@ async function telaExame(study: string): Promise<void> {
     el("span", { class: "sep" }), petct, cores, opacidade, topoSuv, seg);
 
   // tira
-  const tira = el("aside", { class: "tira" }, el("div", { class: "dica" }, tr("Clique numa série para mostrar no quadro ativo.")));
+  const tira = el("aside", { class: "tira" }, el("div", { class: "dica" }, tr("Clique numa série para mostrar no quadro ativo, ou arraste-a até um quadro.")));
   const telas = el("section", { class: "grade" });
   const aviso = el("div", { class: "estado" });
+  // imagens disponíveis no navegador: o total do exame no cabeçalho, o de cada série na tira
+  const geral = el("span", { class: "disponiveis", title: tr("Imagens já baixadas e prontas no navegador") });
+  barra.append(geral);
   app.replaceChildren(cabecalho(barra), el("main", { class: "telaexame" }, tira, el("div", { class: "area" }, telas, aviso)), tarja());
 
   grade = new Grade(telas);
@@ -206,9 +219,30 @@ async function telaExame(study: string): Promise<void> {
   grade.aviso = (m: string) => { aviso.textContent = m; };
   (window as unknown as Record<string, unknown>).__ipeGrade = grade; // para os testes de ponta a ponta
   const g = grade;
+  const d = new Disponiveis();
+  disp = d;
+  const barras = new Map<string, { item: HTMLElement; barra: HTMLElement; texto: HTMLElement }>();
+  d.aoMudar = () => {
+    for (const [uid, b] of barras) {
+      const pc = d.porcentagem(uid);
+      const fim = pc === null || pc >= 100;
+      b.item.classList.toggle("baixando", !fim);
+      b.barra.style.width = `${pc ?? 0}%`;
+      b.texto.textContent = fim ? "" : `${pc}%`;
+    }
+    const g0 = d.geral();
+    geral.textContent = g0.porcentagem >= 100 ? ""
+      : `${tr("Imagens disponíveis:")} ${g0.porcentagem}%${d.cheio ? ` (${tr("memória do navegador cheia; o resto vem ao mostrar")})` : ""}`;
+  };
+  (window as unknown as Record<string, unknown>).__ipeDisp = d; // testes
   const carregadas = new Map<string, Promise<Awaited<ReturnType<typeof carregarSerie>>>>();
   const pegar = (uid: string) => {
-    if (!carregadas.has(uid)) carregadas.set(uid, carregarSerie(study, uid));
+    if (!carregadas.has(uid)) {
+      carregadas.set(uid, carregarSerie(study, uid).then((s) => {
+        if (s && disp === d) d.conhecer(uid, s.imageIds);
+        return s;
+      }));
+    }
     return carregadas.get(uid)!;
   };
   const encherPresets = () => {
@@ -242,12 +276,22 @@ async function telaExame(study: string): Promise<void> {
     const uid = API.texto(s, "0020000E");
     const img = el("img", { alt: "" }) as HTMLImageElement;
     void API.miniatura(study, uid).then((u) => { if (u) img.src = u; });
-    const item = el("button", { class: "serie", title: API.texto(s, "0008103E") }, img,
+    const barra = el("i");
+    const texto = el("b");
+    const item = el("button", { class: "serie", title: API.texto(s, "0008103E"), draggable: "true",
+      "data-serie": uid }, img,
       el("span", {}, `${API.texto(s, "00200011")} ${API.texto(s, "00080060")} · ${API.texto(s, "00201209")}`),
-      el("small", {}, API.texto(s, "0008103E")));
+      el("small", {}, API.texto(s, "0008103E")), el("div", { class: "disp" }, barra), texto);
     item.onclick = () => void mostrarNoAtivo(uid);
+    item.ondragstart = (e) => {
+      e.dataTransfer?.setData(TIPO_ARRASTO, uid);
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = "copy";
+    };
+    barras.set(uid, { item, barra, texto });
+    d.estimar(uid, Number(API.texto(s, "00201209") || 0));
     tira.append(item);
   }
+  g.aoSoltar = (uid, i) => void mostrarNoAtivo(uid, i);
   const montar = (l: number, c: number) => {
     g.montar(l, c);
     // quadros vazios ganham as primeiras séries, na ordem
@@ -323,6 +367,18 @@ async function telaExame(study: string): Promise<void> {
   layout.value = `${inicial[0]}x${inicial[1]}`;
   montar(...inicial);
   encherPresets();
+  // pré-carga: primeiro as séries que estão nos quadros, depois as outras, na ordem da tira
+  void (async () => {
+    await new Promise((r) => setTimeout(r, 300));
+    const nosQuadros = new Set(g.quadros.map((q) => q.serie?.series).filter(Boolean) as string[]);
+    const ordem = series.map((x) => API.texto(x, "0020000E"));
+    ordem.sort((a, b) => Number(nosQuadros.has(b)) - Number(nosQuadros.has(a)));
+    for (const uid of ordem) {
+      if (disp !== d) return;
+      const s = await pegar(uid);
+      if (s && disp === d) d.preCarregar(s.imageIds);
+    }
+  })();
 }
 
 // ------------------------------------------------------------------ rotas

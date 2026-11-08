@@ -1002,7 +1002,8 @@ O servidor central traz um **visualizador no navegador**: em qualquer computador
 Nesta primeira fase:
 
 - **Lista de exames** com busca por nome, ID ou acesso, por datas e por modalidade; cada um vê só o que pode ver no Ipê (as mesmas permissões e o banco pessoal). Duplo clique abre o exame.
-- **Tira de séries** com as miniaturas; clicar põe a série no quadro ativo (contorno amarelo).
+- **Tira de séries** com as miniaturas; clicar põe a série no quadro ativo (contorno amarelo), ou **arraste a miniatura até o quadro** que quiser (0.99.95).
+- **Imagens disponíveis** (0.99.95): assim que o exame abre, o navegador baixa as séries em segundo plano — primeiro as que estão nos quadros, depois as outras, na ordem da tira. Cada miniatura mostra a porcentagem e uma barrinha até ficar pronta, e o alto da tela mostra o total do exame; com 100%, somem. Se a memória do navegador encher (exames muito grandes), a pré-carga para e o resto vem quando for mostrado.
 - **Quadros** de 1×1 a 2×3. Botões do mouse como no Ipê: o esquerdo é a ferramenta escolhida (janela, mover, zoom ou rolar), o do meio move, o direito dá zoom e a roda rola os cortes. **Janelas prontas** (as suas, do Ipê, e a do arquivo), **Inverter**, **Cine** com a velocidade e **Restaurar**. Os textos dos cantos trazem o paciente, a série, o corte, o zoom e a janela.
 - **As imagens vão como estão no banco**: JPEG-LS, JPEG 2000 e JPEG são decodificados no próprio navegador, e a mamografia usa a janela do aparelho (inclusive a sigmoide).
 - **Segurança**: nada do paciente fica gravado no navegador; recarregar a página pede o login de novo e a sessão parada se encerra sozinha. Cada exame aberto fica no registro de acesso ("abriu no navegador"). Na rede interna, use HTTPS com o certificado do Ipê.

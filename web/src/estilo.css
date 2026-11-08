@@ -77,3 +77,15 @@ table.lista tbody tr:hover, table.lista tbody tr:focus { background: #262a31; }
 .planos button { font-size: 11px; padding: 1px 6px; background: rgba(20, 22, 26, 0.85); }
 .planos button.ligado { border-color: var(--acento); color: var(--acento); }
 .barra .sep { width: 1px; align-self: stretch; background: var(--borda); margin: 0 4px; }
+
+/* 0.99.95: imagens disponíveis e arrastar a série */
+.serie { position: relative; cursor: grab; }
+.serie .disp { width: 96px; height: 3px; background: #333; border-radius: 2px; overflow: hidden; visibility: hidden; }
+.serie .disp i { display: block; height: 100%; width: 0; background: var(--acento); transition: width 0.3s; }
+.serie b { position: absolute; top: 6px; right: 8px; font-size: 10px; font-weight: 600; color: #fff;
+  background: rgba(0, 0, 0, 0.65); padding: 0 3px; border-radius: 3px; }
+.serie b:empty { display: none; }
+.serie.baixando .disp { visibility: visible; }
+.barra .disponiveis { color: var(--suave); font-size: 12px; white-space: nowrap; }
+.quadro.alvo { outline: 2px dashed var(--acento); outline-offset: -3px; }
+@media (max-width: 700px) { .serie .disp { width: 72px; } }

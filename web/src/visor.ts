@@ -40,6 +40,8 @@ const TG_VOL = "ipe-vol";
 const TG_MIP = "ipe-mip";
 /** volumes acima disto (bytes) não são montados: a placa de vídeo comum não aguenta */
 export const LIMITE_VOLUME = 1.5 * 1024 ** 3;
+/** o tipo do arrasto da tira de séries (o valor é o SeriesInstanceUID) */
+export const TIPO_ARRASTO = "application/x-ipe-serie";
 let iniciado = false;
 let ferramentaAtual: Ferramenta = "janela";
 let motor: RenderingEngine | null = null;
@@ -296,6 +298,8 @@ export class Grade {
   paciente = "";
   aoMudar: () => void = () => {};
   aviso: (msg: string) => void = () => {};
+  /** soltaram uma série (arrastada da tira) no quadro i */
+  aoSoltar: (series: string, i: number) => void = () => {};
 
   constructor(public raiz: HTMLElement) {}
 
@@ -323,6 +327,22 @@ export class Grade {
       botoes.className = "planos";
       cel.append(el, textos, botoes);
       cel.addEventListener("mousedown", () => this.ativar(i), true);
+      // arrastar a série da tira para o quadro
+      cel.addEventListener("dragover", (e) => {
+        if (!e.dataTransfer?.types.includes(TIPO_ARRASTO)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        cel.classList.add("alvo");
+      });
+      cel.addEventListener("dragleave", () => cel.classList.remove("alvo"));
+      cel.addEventListener("drop", (e) => {
+        cel.classList.remove("alvo");
+        const uid = e.dataTransfer?.getData(TIPO_ARRASTO);
+        if (!uid) return;
+        e.preventDefault();
+        this.ativar(i);
+        this.aoSoltar(uid, i);
+      });
       this.raiz.append(cel);
       const id = `q${i}`;
       const q: Quadro = { id, el, textos, botoes, serie: null, tipo, plano: sp?.plano ?? "AXIAL",
@@ -418,6 +438,7 @@ export class Grade {
       this.especificar(i, { serie: s, tipo: "pilha", plano: q.plano, projecao: "fino", espessura: 0 });
       return;
     }
+    if (q.serie && q.serie.series !== s.series) q.sobre = null; // outra série no quadro da fusão: sai a fusão
     q.serie = s;
     const vp = this.viewport(i)!;
     if (q.tipo === "pilha") {

@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.95 — web viewer: drag series and available images
+- **Drag a series** from the strip onto any web viewer viewport (clicking still puts it in the active viewport).
+- **Available images**: when the exam opens, the browser downloads the series in the background (those in the
+  viewports first); each thumbnail shows the percentage ready and the top of the screen the exam total. With memory
+  full, preloading stops.
+
 ## 0.99.94 — web viewer: PET/CT (phase 4)
 - **PET/CT** in the web viewer: fusion (CT + PET), inverted greyscale PET and the PET MIP, with the axial views moving
   together and a click on the MIP taking the slices to the brightest point.

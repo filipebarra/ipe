@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.95 — visualizador web: arrastrar series e imágenes disponibles
+- **Arrastrar la serie** de la tira hasta cualquier cuadro del visualizador web (el clic sigue poniéndola en el cuadro
+  activo).
+- **Imágenes disponibles**: al abrir el examen, el navegador descarga las series en segundo plano (las de los cuadros
+  primero); cada miniatura muestra el porcentaje listo y la parte superior, el total del examen. Con la memoria llena,
+  la precarga se detiene.
+
 ## 0.99.94 — visualizador web: PET/TC (fase 4)
 - **PET/TC** en el visualizador web: fusión (TC + PET), PET en grises invertidos y el MIP del PET, con los axiales
   moviéndose juntos y un clic en el MIP llevando los cortes al punto más brillante.
