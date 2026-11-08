@@ -9,6 +9,7 @@ import * as csTools from "@cornerstonejs/tools";
 import { cabecalhos, valor, type DicomJson } from "./api";
 import { tr } from "./i18n";
 import { META, partesDoImageId } from "./meta";
+import { SUV } from "./pet";
 
 type P2 = [number, number];
 type V3 = [number, number, number];
@@ -198,10 +199,17 @@ export function escala(imageId: string, pts: P2[]): { sp: Esp; fonte: string } {
 function pixelsDa(imageId: string): { px: ArrayLike<number>; w: number; h: number } | null {
   const im = cache.getImage(imageId) as unknown as {
     getPixelData: () => ArrayLike<number>; width: number; height: number; slope?: number; intercept?: number;
-    preScale?: { scaled?: boolean };
+    preScale?: { scaled?: boolean; scalingParameters?: { suvbw?: number } };
   } | undefined;
   if (!im) return null;
   const bruto = im.getPixelData();
+  // o PET chega em SUV (W3); as contas do Ipê partem do valor do arquivo (Bq/ml) e multiplicam pelo fator
+  const suvbw = im.preScale?.scaled ? im.preScale.scalingParameters?.suvbw : undefined;
+  if (suvbw) {
+    const px = new Float32Array(bruto.length);
+    for (let i = 0; i < bruto.length; i++) px[i] = bruto[i] / suvbw;
+    return { px, w: im.width, h: im.height };
+  }
   if (im.preScale?.scaled || ((im.slope ?? 1) === 1 && (im.intercept ?? 0) === 0)) return { px: bruto, w: im.width, h: im.height };
   const k = im.slope ?? 1, b = im.intercept ?? 0;
   const px = new Float32Array(bruto.length);
@@ -232,6 +240,7 @@ export function linhas(kind: string, pts: P2[], imageId: string, texto = "", met
   const { sp } = escala(imageId, pts);
   const un = sp ? "mm" : "px";
   const mod = String(valor(META.get(imageId) || {}, "00080060") ?? "").toUpperCase();
+  const suv = mod === "PT" ? SUV.get(partesDoImageId(imageId)?.series || "") : undefined;
   if (kind === "calibration") {
     if (!texto) return [tr("Calibração")];
     return [meta.escopo === "imagem" ? `${tr("Calibração:")} ${texto} mm ${tr("(só esta imagem)")}` : `${tr("Calibração:")} ${texto} mm`];
@@ -247,6 +256,7 @@ export function linhas(kind: string, pts: P2[], imageId: string, texto = "", met
     if (!pd) return [];
     const c = Math.floor(pts[0][0]), r = Math.floor(pts[0][1]);
     if (c < 0 || r < 0 || c >= pd.w || r >= pd.h) return [];
+    if (suv) return [`SUV ${(pd.px[r * pd.w + c] * suv).toFixed(2)}`, `${num(pd.px[r * pd.w + c])} Bq/ml`];
     return [`${num(pd.px[r * pd.w + c])}${mod === "CT" ? " HU" : ""}`];
   }
   if (kind === "ellipse" || kind === "rect" || kind === "polygon") {
@@ -254,6 +264,9 @@ export function linhas(kind: string, pts: P2[], imageId: string, texto = "", met
     const st = pd ? estatRoi(pd.px, pd.w, pd.h, kind, pts, sp) : estatRoi([], 0, 0, kind, pts, sp);
     const u = mod === "CT" ? " HU" : "";
     const out: string[] = [];
+    if (st.media !== null && suv) {
+      out.push(`SUVmáx ${(st.max! * suv).toFixed(2)}  SUVméd ${(st.media * suv).toFixed(2)}`);
+    }
     if (st.media !== null) {
       out.push(`${tr("Média")} ${num(st.media)} ± ${num(st.dp!)}${u}`);
       out.push(`${tr("Mín")} ${num(st.min!)}  ${tr("Máx")} ${num(st.max!)}`);

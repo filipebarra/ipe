@@ -71,6 +71,8 @@ export interface Config {
   "viewer.wl_presets_mod": Record<string, Record<string, [string, number, number]>> | null;
   hanging_protocols: unknown;
   mg_protocols: unknown;
+  /** 0.99.94 (W3): as tabelas de cores do Ipê — pontos [posição 0–1, r, g, b em 0–1] */
+  tabelas_cores?: Record<string, { nome: string; pontos: number[][] }>;
 }
 
 export async function configuracao(): Promise<Config> {
@@ -119,4 +121,33 @@ export async function miniatura(study: string, series: string): Promise<string> 
   const r = await pedir(`${DICOMWEB}/studies/${study}/series/${series}/thumbnail`);
   if (!r.ok) return "";
   return URL.createObjectURL(await r.blob());
+}
+
+// ------------------------------------------------------------------ PET/CT (0.99.94, W3)
+/** O fator de SUV (pelo peso) da série de PET, pela conta do Ipê; `null` com o motivo quando não dá. */
+export async function fatorSuv(study: string, series: string): Promise<{ fator: number | null; motivo: string }> {
+  const r = await pedir(`${location.origin}/api/web/suv?study=${encodeURIComponent(study)}&series=${encodeURIComponent(series)}`);
+  if (!r.ok) return { fator: null, motivo: String(r.status) };
+  return (await r.json()) as { fator: number | null; motivo: string };
+}
+
+export interface MapaSeg {
+  ref_series: string;
+  descricao: string;
+  segmentos: { n: number; nome: string; cor: number[] }[];
+  fatias: { sop: string; r0: number; c0: number; h: number; w: number; dados: string }[];
+}
+
+/** A SEG como mapa de rótulos sobre a série de origem (o servidor lê a SEG como o Ipê). */
+export async function mapaSeg(study: string, series: string): Promise<MapaSeg | null> {
+  const r = await pedir(`${location.origin}/api/web/seg?study=${encodeURIComponent(study)}&series=${encodeURIComponent(series)}`);
+  if (!r.ok) return null;
+  return (await r.json()) as MapaSeg;
+}
+
+/** Os bytes de uma fatia (zlib + base64). */
+export async function descomprimir(b64: string): Promise<Uint8Array> {
+  const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  const fluxo = new Blob([bin]).stream().pipeThrough(new DecompressionStream("deflate"));
+  return new Uint8Array(await new Response(fluxo).arrayBuffer());
 }

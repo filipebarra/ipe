@@ -19,10 +19,14 @@ import {
 import { init as loaderInit, wadors } from "@cornerstonejs/dicom-image-loader";
 import * as csTools from "@cornerstonejs/tools";
 
-import { DICOMWEB, cabecalhos, metadados, valor, type DicomJson } from "./api";
+import { DICOMWEB, cabecalhos, fatorSuv, metadados, valor, type DicomJson } from "./api";
 import { tr } from "./i18n";
 import { FERRAMENTA_DA_ESCOLHA, adicionarFerramentas, carregarMedidas, ouvirAnotacoes, selecionarAoClicar } from "./medidas";
 import { META } from "./meta";
+import {
+  COR_PADRAO, RAIO_MAXIMO_MM, SUV, SUV_PADRAO, carregarSeg, esquecerSegs, maximoPerto, mostrarSeg,
+  propriedadesDaFusao, registrarEscalaSuv, tirarSeg, type SegCarregada,
+} from "./pet";
 
 const {
   PanTool, ZoomTool, WindowLevelTool, StackScrollTool, CrosshairsTool, MIPJumpToClickTool, ToolGroupManager,
@@ -37,10 +41,11 @@ const TG_MIP = "ipe-mip";
 /** volumes acima disto (bytes) não são montados: a placa de vídeo comum não aguenta */
 export const LIMITE_VOLUME = 1.5 * 1024 ** 3;
 let iniciado = false;
+let ferramentaAtual: Ferramenta = "janela";
 let motor: RenderingEngine | null = null;
 
 export type Ferramenta = "janela" | "mover" | "zoom" | "rolar" | "linhas" | "regua" | "angulo" | "cobb" | "elipse"
-  | "retangulo" | "poligono" | "pixel" | "seta" | "calibracao";
+  | "retangulo" | "poligono" | "pixel" | "seta" | "calibracao" | "suvmax";
 export type Plano = "AXIAL" | "CORONAL" | "SAGITTAL";
 export type Projecao = "fino" | "mip" | "minip" | "media";
 const NOME: Record<string, string> = {
@@ -72,6 +77,7 @@ export async function iniciar(): Promise<void> {
     const fn = String(valor(m, "00281056") ?? "").trim().toUpperCase();
     return { windowCenter: nums("00281050"), windowWidth: nums("00281051"), voiLUTFunction: fn ? [fn] : undefined };
   }, 10000);
+  registrarEscalaSuv(); // W3: o PET chega em SUV (o fator é o do Ipê, pedido ao servidor)
   csTools.init();
   for (const t of [PanTool, ZoomTool, WindowLevelTool, StackScrollTool, CrosshairsTool, MIPJumpToClickTool]) {
     csTools.addTool(t);
@@ -95,13 +101,15 @@ export async function iniciar(): Promise<void> {
   aplicarBotoes("janela");
   motor = new RenderingEngine(RE_ID);
   (window as unknown as Record<string, unknown>).__ipeGeo = { planoPorDoisPontos, girarVetor }; // testes
-  (window as unknown as Record<string, unknown>).__ipeCs = { imageToWorldCoords: csUtils.imageToWorldCoords };
+  (window as unknown as Record<string, unknown>).__ipeCs = { imageToWorldCoords: csUtils.imageToWorldCoords, cache,
+    segmentation: csTools.segmentation };
   iniciado = true;
 }
 
 /** O botão esquerdo vira a ferramenta `f` (nos quadros de volume, "linhas" = a cruz das linhas de referência);
  * meio = mover, direito = zoom e a roda = rolar continuam. No MIP, o esquerdo leva os cortes ao ponto mais claro. */
 export function aplicarBotoes(f: Ferramenta): void {
+  ferramentaAtual = f;
   for (const id of [TG_2D, TG_VOL, TG_MIP]) {
     const tg = ToolGroupManager.getToolGroup(id);
     if (!tg) continue;
@@ -115,6 +123,8 @@ export function aplicarBotoes(f: Ferramenta): void {
     if (id !== TG_MIP) for (const nome of Object.values(FERRAMENTA_DA_ESCOLHA)) fixos[nome] = [];
     if (id === TG_MIP) {
       fixos[MIPJumpToClickTool.toolName] = [MB.Primary];
+    } else if (f === "suvmax") {
+      // o clique é tratado pela grade (procura o SUV máximo perto do ponto); nenhuma ferramenta no esquerdo
     } else if (f === "linhas") {
       if (id === TG_VOL) fixos[CrosshairsTool.toolName].push(MB.Primary);
       else fixos[WindowLevelTool.toolName].push(MB.Primary);
@@ -140,6 +150,9 @@ export interface SerieCarregada {
   /** "" se dá para montar o volume; senão, o motivo */
   semVolume: string;
   bytes: number;
+  /** W3: fator de SUV (PET com peso, dose e horários); null se não é PET ou falta dado */
+  suv: number | null;
+  suvMotivo: string;
 }
 
 function ordem(m: DicomJson): number {
@@ -186,10 +199,21 @@ export async function carregarSerie(study: string, series: string): Promise<Seri
     }
   }
   const m0 = ordenados[0];
+  const modalidade = String(valor(m0, "00080060") ?? "").toUpperCase();
+  let suv: number | null = null;
+  let suvMotivo = "";
+  if (modalidade === "PT") {
+    // antes de qualquer imagem chegar: o carregador pede o fator (scalingModule) ao montar cada uma
+    const r = await fatorSuv(study, series).catch(() => ({ fator: null, motivo: "" }));
+    suv = r.fator && r.fator > 0 ? r.fator : null;
+    suvMotivo = r.motivo;
+    if (suv) SUV.set(series, suv);
+  }
   const bytes = ids.length * Number(valor(m0, "00280010") ?? 0) * Number(valor(m0, "00280011") ?? 0) * 4;
   return {
     study, series, imageIds: ids,
     modalidade: String(valor(m0, "00080060") ?? ""),
+    suv, suvMotivo,
     descricao: String(valor(m0, "0008103E") ?? ""),
     numero: String(valor(m0, "00200011") ?? ""),
     semVolume: motivoSemVolume(ordenados),
@@ -197,7 +221,7 @@ export async function carregarSerie(study: string, series: string): Promise<Seri
   };
 }
 
-async function volumeDa(s: SerieCarregada): Promise<string> {
+export async function volumeDa(s: SerieCarregada): Promise<string> {
   const id = `cornerstoneStreamingImageVolume:${s.series}`;
   if (!cache.getVolume(id)) {
     const v = await volumeLoader.createAndCacheVolume(id, { imageIds: s.imageIds });
@@ -250,9 +274,19 @@ export interface Quadro {
   projecao: Projecao;
   espessura: number;
   girando: number | null;
+  /** W3: a série sobreposta (o PET da fusão), com a tabela, a opacidade e o topo da janela de SUV */
+  sobre: SerieCarregada | null;
+  cor: string;
+  opacidade: number;
+  suvMax: number;
+  /** o último SUV máximo achado perto do cursor neste quadro */
+  achado: string;
 }
 
-interface Spec { serie: SerieCarregada | null; tipo: Tipo; plano: Plano; projecao: Projecao; espessura: number }
+interface Spec {
+  serie: SerieCarregada | null; tipo: Tipo; plano: Plano; projecao: Projecao; espessura: number;
+  sobre?: SerieCarregada | null; cor?: string; opacidade?: number; suvMax?: number;
+}
 
 export class Grade {
   quadros: Quadro[] = [];
@@ -267,8 +301,7 @@ export class Grade {
 
   /** Monta os quadros. `specs` (opcional) diz o que vai em cada um; sem ele, ficam as séries de antes. */
   montar(linhas: number, colunas: number, specs?: Spec[]): void {
-    const antigas: Spec[] = specs ?? this.quadros.map((q) => ({ serie: q.serie, tipo: q.tipo, plano: q.plano,
-      projecao: q.projecao, espessura: q.espessura }));
+    const antigas: Spec[] = specs ?? this.quadros.map((q) => this.specDe(q));
     this.desmontar(false);
     this.raiz.style.gridTemplateColumns = `repeat(${colunas}, 1fr)`;
     this.raiz.style.gridTemplateRows = `repeat(${linhas}, 1fr)`;
@@ -293,7 +326,10 @@ export class Grade {
       this.raiz.append(cel);
       const id = `q${i}`;
       const q: Quadro = { id, el, textos, botoes, serie: null, tipo, plano: sp?.plano ?? "AXIAL",
-        projecao: sp?.projecao ?? "fino", espessura: sp?.espessura ?? 0, girando: null };
+        projecao: sp?.projecao ?? "fino", espessura: sp?.espessura ?? 0, girando: null,
+        sobre: tipo === "plano" ? sp?.sobre ?? null : null, cor: sp?.cor ?? COR_PADRAO, opacidade: sp?.opacidade ?? 0.5,
+        suvMax: sp?.suvMax ?? SUV_PADRAO, achado: "" };
+      el.addEventListener("mousedown", (e) => this.cliqueSuvMax(e, q), true);
       this.quadros.push(q);
       entradas.push(tipo === "pilha"
         ? { viewportId: id, type: Enums.ViewportType.STACK, element: el,
@@ -321,6 +357,7 @@ export class Grade {
       }
     }
     this.configurarMip();
+    this.sincronizar();
     this.ativo = Math.min(this.ativo, this.quadros.length - 1);
     this.marcarAtivo();
     antigas.forEach((s, i) => { if (s?.serie && i < this.quadros.length) void this.mostrar(i, s.serie); });
@@ -393,24 +430,42 @@ export class Grade {
       void carregarMedidas(s.study, s.series, s.imageIds, q.el); // as medidas do banco (feitas aqui ou no Ipê)
     } else {
       const vid = await volumeDa(s);
-      await setVolumesForViewports(motor!, [{ volumeId: vid }], [q.id]);
+      const vols = [{ volumeId: vid }];
+      if (q.sobre && q.tipo === "plano") {
+        if (this.volumeOk(q.sobre)) vols.push({ volumeId: await volumeDa(q.sobre) });
+        else q.sobre = null;
+      }
+      await setVolumesForViewports(motor!, vols, [q.id]);
       this.aplicarProjecao(q);
+      const v = vp as Types.IVolumeViewport;
+      if (q.sobre) {
+        // a fusão: a TC embaixo em partes moles, o PET em cima com a tabela do Ipê e o que é baixo transparente
+        if (s.modalidade === "CT") v.setProperties({ voiRange: { lower: -160, upper: 240 } }, vid);
+        this.aplicarFusao(q);
+      } else if (s.suv && q.tipo === "plano") {
+        v.setProperties({ voiRange: { lower: 0, upper: q.suvMax }, invert: true });
+      }
       if (q.tipo === "mip") {
         this.configurarMip();
         // a janela do MIP: na TC, larga (o MIP só tem o que é claro); no PET/MN, invertido como no Ipê
-        const v = vp as Types.IVolumeViewport;
         if (s.modalidade === "CT") v.setProperties({ voiRange: { lower: -350, upper: 1150 } });
+        else if (s.suv) v.setProperties({ voiRange: { lower: 0, upper: q.suvMax }, invert: true });
         else if (s.modalidade === "PT" || s.modalidade === "NM") v.setProperties({ invert: true });
       }
-      (vp as Types.IVolumeViewport).render();
+      v.render();
+      this.reporSeg();
     }
     this.escreverTextos(q);
   }
 
+  private specDe(q: Quadro): Spec {
+    return { serie: q.serie, tipo: q.tipo, plano: q.plano, projecao: q.projecao, espessura: q.espessura,
+      sobre: q.sobre, cor: q.cor, opacidade: q.opacidade, suvMax: q.suvMax };
+  }
+
   /** Troca o que vai no quadro i (pode mudar o tipo do quadro: refaz a grade com as mesmas séries). */
   especificar(i: number, sp: Spec): void {
-    const specs: Spec[] = this.quadros.map((q) => ({ serie: q.serie, tipo: q.tipo, plano: q.plano,
-      projecao: q.projecao, espessura: q.espessura }));
+    const specs: Spec[] = this.quadros.map((q) => this.specDe(q));
     specs[i] = sp;
     this.montar(this.linhas, this.colunas, specs);
   }
@@ -434,13 +489,16 @@ export class Grade {
       this.escreverTextos(q);
       return;
     }
-    this.especificar(i, { serie: q.serie, tipo: "plano", plano, projecao: q.projecao, espessura: q.espessura });
+    this.especificar(i, { serie: q.serie, tipo: "plano", plano, projecao: q.projecao, espessura: q.espessura,
+      cor: q.cor, opacidade: q.opacidade, suvMax: q.suvMax });
   }
 
   mudarParaMip(i: number): void {
     const q = this.quadros[i];
-    if (!q?.serie || !this.volumeOk(q.serie)) return;
-    this.especificar(i, { serie: q.serie, tipo: "mip", plano: q.plano, projecao: "mip", espessura: 0 });
+    if (!q?.serie || !this.volumeOk(q.sobre ?? q.serie)) return;
+    // a fusão vira o MIP do PET (o MIP da TC embaixo não diz nada)
+    const s = q.sobre ?? q.serie;
+    this.especificar(i, { serie: s, tipo: "mip", plano: q.plano, projecao: "mip", espessura: 0, suvMax: q.suvMax });
   }
 
   /** O MPR da série do quadro ativo: axial, coronal, sagital e o MIP girando, com as linhas de referência. */
@@ -451,6 +509,171 @@ export class Grade {
     this.ativo = 0;
     this.montar(2, 2, [sp("plano", "AXIAL"), sp("plano", "CORONAL"), sp("plano", "SAGITTAL"), sp("mip", "CORONAL")]);
     return true;
+  }
+
+  // -------------------------------------------------------------- PET/CT (W3)
+  /** A leitura de PET como na 0.99.88 do Ipê: fusão (TC + PET), PET em cinza invertido e o MIP do PET; o clique no
+   * MIP leva os cortes ao ponto mais claro e os dois axiais andam juntos. */
+  abrirPETCT(tc: SerieCarregada, pet: SerieCarregada): boolean {
+    if (!this.volumeOk(tc) || !this.volumeOk(pet)) return false;
+    const base = { projecao: "fino" as Projecao, espessura: 0, plano: "AXIAL" as Plano };
+    this.ativo = 0;
+    this.montar(1, 3, [{ ...base, serie: tc, sobre: pet, tipo: "plano" }, { ...base, serie: pet, tipo: "plano" },
+      { ...base, serie: pet, tipo: "mip", projecao: "mip" }]);
+    return true;
+  }
+
+  private sobreDe(q: Quadro): SerieCarregada | null {
+    return q.sobre ?? null;
+  }
+
+  /** O volume em SUV que o quadro mostra (o PET da fusão, ou o próprio PET). */
+  private volumePetDe(q: Quadro): string | null {
+    const s = this.sobreDe(q) ?? (q.serie?.modalidade === "PT" ? q.serie : null);
+    return s ? `cornerstoneStreamingImageVolume:${s.series}` : null;
+  }
+
+  private aplicarFusao(q: Quadro): void {
+    const vp = motor?.getViewport(q.id) as Types.IVolumeViewport | undefined;
+    if (!vp || !q.sobre) return;
+    const id = `cornerstoneStreamingImageVolume:${q.sobre.series}`;
+    // sem o fator de SUV a janela fica nos valores da série (Bq/ml): o topo vem do arquivo
+    const topo = q.sobre.suv ? q.suvMax : undefined;
+    const p = propriedadesDaFusao(q.cor, q.opacidade, topo ?? 1);
+    if (topo === undefined) delete (p as { voiRange?: unknown }).voiRange;
+    try { vp.setProperties(p, id); } catch { /* o volume ainda não chegou: o mostrar aplica */ }
+    this.amostrarFusao(q);
+  }
+
+  /** O PET de cima é traçado por raios dentro da fatia do corte: com o passo padrão (do tamanho do voxel do PET)
+   * o raio quase não pega amostra numa fatia fina e a fusão some. Passo bem curto, e a opacidade medida na
+   * espessura da fatia — assim a opacidade escolhida é a que aparece. */
+  private amostrarFusao(q: Quadro): void {
+    const vp = motor?.getViewport(q.id) as Types.IVolumeViewport | undefined;
+    if (!vp || !q.sobre) return;
+    const id = `cornerstoneStreamingImageVolume:${q.sobre.series}`;
+    const ator = vp.getActors().find((a) => a.referencedId === id)?.actor as unknown as {
+      getMapper: () => { setSampleDistance: (d: number) => void };
+      getProperty: () => { setScalarOpacityUnitDistance: (i: number, d: number) => void };
+    } | undefined;
+    if (!ator) return;
+    let fatia = 0.05;
+    try { fatia = Math.max(vp.getSlabThickness() || 0.05, 0.05); } catch { /* padrão */ }
+    ator.getMapper().setSampleDistance(Math.min(0.02, fatia / 3));
+    ator.getProperty().setScalarOpacityUnitDistance(0, fatia);
+  }
+
+  /** Muda a fusão do quadro ativo (ou de todos, se o ativo não tem fusão): tabela, opacidade e topo do SUV. */
+  fusao(o: { cor?: string; opacidade?: number; suvMax?: number }): boolean {
+    const alvos = this.quadros[this.ativo]?.sobre ? [this.quadros[this.ativo]] : this.quadros.filter((q) => q.sobre);
+    const pets = o.suvMax !== undefined ? this.quadros.filter((q) => !q.sobre && q.serie?.suv && q.tipo !== "pilha") : [];
+    if (!alvos.length && !pets.length) {
+      this.aviso(tr("Abra a fusão PET/CT antes (botão PET/CT)."));
+      return false;
+    }
+    for (const q of alvos) {
+      if (o.cor) q.cor = o.cor;
+      if (o.opacidade !== undefined) q.opacidade = o.opacidade;
+      if (o.suvMax !== undefined) q.suvMax = o.suvMax;
+      this.aplicarFusao(q);
+      motor?.getViewport(q.id)?.render();
+      this.escreverTextos(q);
+    }
+    for (const q of pets) {
+      q.suvMax = o.suvMax!;
+      const vp = motor?.getViewport(q.id) as Types.IVolumeViewport | undefined;
+      try {
+        vp?.setProperties({ voiRange: { lower: 0, upper: q.suvMax } });
+        vp?.render();
+      } catch { /* o volume ainda não chegou: o mostrar usa o topo novo */ }
+      this.escreverTextos(q);
+    }
+    return true;
+  }
+
+  private sincronizador: { destroy: () => void } | null = null;
+
+  /** Os quadros de volume no mesmo plano (a fusão e o PET) andam juntos: corte, zoom e posição. */
+  private sincronizar(): void {
+    try { this.sincronizador?.destroy(); } catch { /* nada */ }
+    this.sincronizador = null;
+    const planos = this.quadros.filter((q) => q.tipo === "plano");
+    if (planos.length < 2 || !this.quadros.some((q) => q.sobre)) return;
+    const sync = csTools.synchronizers.createCameraPositionSynchronizer(`ipe-camera-${Date.now()}`);
+    for (const q of planos) sync.add({ renderingEngineId: RE_ID, viewportId: q.id });
+    this.sincronizador = sync as unknown as { destroy: () => void };
+  }
+
+  /** "Ir ao SUV máximo perto do cursor (3 cm)": o clique procura o máximo numa esfera em volta do ponto e leva
+   * os cortes de todos os quadros até ele. */
+  private cliqueSuvMax(e: MouseEvent, q: Quadro): void {
+    if (ferramentaAtual !== "suvmax" || e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const vid = this.volumePetDe(q);
+    const vp = motor?.getViewport(q.id) as Types.IVolumeViewport | undefined;
+    if (!vid || !vp || q.tipo === "pilha" || !cache.getVolume(vid)) {
+      this.aviso(tr("O SUV máximo é procurado num quadro de volume do PET (A, C, S ou a fusão)."));
+      return;
+    }
+    const r = q.el.getBoundingClientRect();
+    const ponto = vp.canvasToWorld([e.clientX - r.left, e.clientY - r.top]) as V3;
+    const m = maximoPerto(vid, ponto, RAIO_MAXIMO_MM);
+    if (!m) return;
+    this.irAoPonto(m.ponto);
+    const u = this.sobreDe(q)?.suv || q.serie?.suv ? "" : " Bq/ml";
+    q.achado = `${tr("SUV máximo perto do cursor:")} ${m.valor.toFixed(2)}${u}`;
+    this.aviso(`${q.achado}.`);
+    this.ultimoMaximo = m;
+    this.escreverTextos(q);
+  }
+
+  ultimoMaximo: { ponto: V3; valor: number } | null = null;
+
+  /** Leva os cortes dos quadros de volume ao ponto (sem mexer no enquadramento). */
+  irAoPonto(p: V3): void {
+    for (const q of this.quadros) {
+      if (q.tipo !== "plano") continue;
+      const vp = motor?.getViewport(q.id) as Types.IVolumeViewport | undefined;
+      if (!vp) continue;
+      const cam = vp.getCamera();
+      const n = cam.viewPlaneNormal as V3;
+      const d = dot(sub(p, cam.focalPoint as V3), n);
+      vp.setCamera({ focalPoint: add(cam.focalPoint as V3, mul(n, d)) as Types.Point3,
+        position: add(cam.position as V3, mul(n, d)) as Types.Point3 });
+      vp.render();
+      this.escreverTextos(q);
+    }
+  }
+
+  // SEG: a escolhida fica nos quadros de volume, mesmo depois de trocar a grade
+  seg: SegCarregada | null = null;
+
+  async mostrarSegDaSerie(study: string, segSerie: string | null,
+    pegar: (series: string) => Promise<SerieCarregada | null>): Promise<SegCarregada | null> {
+    if (!segSerie) {
+      this.seg = null;
+      tirarSeg(this.quadros.map((q) => q.id));
+      return null;
+    }
+    const s = await carregarSeg(study, segSerie, async (ref) => {
+      const sr = await pegar(ref);
+      if (!sr || sr.semVolume) return null;
+      return volumeDa(sr);
+    });
+    if (!s) {
+      this.aviso(tr("Não deu para mostrar esta segmentação (a série de origem precisa formar um volume)."));
+      return null;
+    }
+    this.seg = s;
+    this.reporSeg();
+    return s;
+  }
+
+  private reporSeg(): void {
+    if (!this.seg) return;
+    const ids = this.quadros.filter((q) => q.tipo !== "pilha" && q.serie).map((q) => q.id);
+    mostrarSeg(this.seg, ids);
   }
 
   // -------------------------------------------------------------- espessura e projeção
@@ -468,6 +691,7 @@ export class Grade {
     vp.setBlendMode(modo);
     if (q.projecao === "fino" || q.espessura <= 0) vp.resetSlabThickness();
     else vp.setSlabThickness(q.espessura);
+    if (q.sobre) this.amostrarFusao(q);
   }
 
   private diagonal(q: Quadro): number {
@@ -579,6 +803,7 @@ export class Grade {
       } catch { posicao = ""; }
       const n = v.getCamera().viewPlaneNormal as V3;
       plano = q.tipo === "mip" ? tr("MIP") : nomeDoPlano(n);
+      if (q.sobre) plano = `${tr("Fusão")} ${q.sobre.modalidade} · ${plano}`;
       if (q.tipo === "plano" && q.projecao !== "fino" && q.espessura > 0) {
         plano += ` · ${{ mip: "MIP", minip: "MinIP", media: tr("Média") }[q.projecao]} ${q.espessura} mm`;
       }
@@ -601,8 +826,10 @@ export class Grade {
     };
     canto("se", [this.paciente]);
     canto("sd", [`${tr("Se")} ${q.serie.numero} ${q.serie.modalidade}`.trim(), q.serie.descricao, plano]);
-    canto("ie", [posicao, zoom]);
-    canto("id", [jan, p.invert ? tr("Inverter") : ""]);
+    canto("ie", [posicao, zoom, q.achado]);
+    const emSuv = q.sobre?.suv || (q.serie.suv && q.tipo !== "pilha");
+    canto("id", [emSuv ? `SUV 0–${q.suvMax}` : jan, q.sobre ? `${Math.round(q.opacidade * 100)}%` : "",
+      p.invert && !q.serie.suv ? tr("Inverter") : ""]);
   }
 
   // -------------------------------------------------------------- comandos da barra
@@ -668,7 +895,11 @@ export class Grade {
     }
     this.quadros = [];
     this.raiz.innerHTML = "";
+    try { this.sincronizador?.destroy(); } catch { /* nada */ }
+    this.sincronizador = null;
     if (tudo) {
+      this.seg = null;
+      esquecerSegs();
       try { cache.purgeVolumeCache?.(); } catch { /* nada */ }
     }
   }

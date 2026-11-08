@@ -500,6 +500,16 @@ class _Handler(BaseHTTPRequestHandler):
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, r, raw=True)
+        if path in ("/api/web/suv", "/api/web/seg") and method == "GET":   # 0.99.94 (W3): PET/CT
+            from ipe.central import web as WEB
+            fn = WEB.suv_da_serie if path.endswith("suv") else WEB.seg_mapa
+            try:
+                r = fn(c.repo, s, parse_qs(parts.query), c.pode_ver)
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            return self._json(200, r, raw=True)
         if path == "/api/web/abriu" and method == "POST":
             data = json.loads(self._body() or b"{}")
             uid = str(data.get("study_uid", ""))

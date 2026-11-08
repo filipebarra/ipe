@@ -6257,7 +6257,13 @@
   "sem miniatura",
   "a medida é de outro exame",
   "exame não visível",
-  "método"
+  "método",
+  "SEG sem arquivo",
+  "a SEG não aponta para uma série deste exame",
+  "a série de origem não tem a posição dos cortes",
+  "a série não é deste exame",
+  "a série não é uma SEG",
+  "série sem arquivos"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

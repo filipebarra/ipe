@@ -1022,7 +1022,15 @@ Nesta primeira fase:
 - **Ficam no banco do servidor**, no formato do Ipê: o que se mede no navegador aparece no Ipê (e o que se mediu no Ipê aparece no navegador), com quem mediu. Mexer numa ponta atualiza a medida; para apagar, clique na medida (com qualquer ferramenta) e em **Apagar medida**. Só vale para os quadros de cortes ("Original"): no MPR as medidas ficam só na tela, como no Ipê.
 - **Ultrassom**: a distância usa a região calibrada do próprio aparelho; uma régua que atravessa duas regiões (do 2D para o Doppler, por exemplo) fica em pixels. **Calibração**: trace uma distância conhecida e digite os milímetros — no ultrassom vale só para aquela imagem; nas outras modalidades, para a série.
 
-As próximas fases trazem a fusão PET/CT, a mamografia com o protocolo e dois monitores, a dinâmica da mama e o laudo. Por enquanto é só na rede da clínica; de fora, entre pela VPN.
+**PET/CT (0.99.94).**
+
+- **PET/CT** (barra): a leitura de PET como no Ipê — a **fusão** (a TC em partes moles com o PET por cima), o **PET** em cinza invertido e o **MIP do PET**. Os dois axiais andam juntos (corte, zoom e posição); clicar no MIP leva os cortes ao ponto mais claro. O programa escolhe o PET do quadro ativo (ou o maior do exame) e a maior TC.
+- **SUV pela conta do Ipê**: o PET chega ao navegador já em SUV (pelo peso, com a dose e os horários do arquivo); sem peso ou sem dados do radiofármaco, o aviso diz o que falta e os valores ficam em Bq/ml. A ROI e o valor do pixel no PET trazem o SUVmáx e o SUVméd como no Ipê.
+- **Cor da fusão** (as tabelas do Ipê: Hot Iron, PET, arco-íris…), **opacidade** e **topo da janela de SUV** (o fundo é zero). O que fica abaixo de 8% do topo não pinta, como no Ipê.
+- **SUV máximo perto do cursor**: escolha no Botão esquerdo e clique perto da lesão num quadro de volume do PET (a fusão, A, C ou S): o programa acha o voxel mais quente numa esfera de 3 cm e leva os cortes até ele; o valor aparece no canto.
+- **Segmentação (SEG)**: as segmentações gravadas no exame (a carga tumoral, os órgãos e as lesões da IA do Ipê) aparecem como máscaras coloridas nos quadros de volume, com as cores do Ipê.
+
+As próximas fases trazem a mamografia com o protocolo e dois monitores, a dinâmica da mama e o laudo. Por enquanto é só na rede da clínica; de fora, entre pela VPN.
 
 ### HTTPS na rede interna (certificado do Ipê)
 

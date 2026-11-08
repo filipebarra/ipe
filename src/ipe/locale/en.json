@@ -8401,5 +8401,11 @@
  "a medida é de outro exame": "the measurement belongs to another exam",
  "exame não visível": "exam not visible",
  "método": "method",
- "tipo de medida desconhecido: {}": "unknown measurement type: {}"
+ "tipo de medida desconhecido: {}": "unknown measurement type: {}",
+ "SEG sem arquivo": "SEG without a file",
+ "a SEG não aponta para uma série deste exame": "the SEG does not point to a series of this exam",
+ "a série de origem não tem a posição dos cortes": "the source series has no slice positions",
+ "a série não é deste exame": "the series is not from this exam",
+ "a série não é uma SEG": "the series is not a SEG",
+ "série sem arquivos": "series without files"
 }

@@ -219,6 +219,7 @@ def configuracao(settings, prefs: dict | None, usuario: dict) -> dict:
         out[chave] = v
     from ipe import __version__
     out["versao"] = __version__
+    out["tabelas_cores"] = tabelas_de_cores()                 # 0.99.94 (W3): as cores da fusão são as do Ipê
     return json.loads(json.dumps(out, default=str))
 
 
@@ -275,3 +276,121 @@ def medidas(repo, s, method: str, path: str, q: dict, corpo: dict, pode_ver) -> 
                                 sop_uid=str(corpo["sop_uid"]), frame_index=int(corpo.get("frame_index", 0)),
                                 kind=kind, data=json.dumps(d), owner=s.username)
     return {"id": novo}
+
+
+# ------------------------------------------------------------------ PET/CT (0.99.94, W3)
+def _serie_do_exame(repo, s, q: dict, pode_ver) -> tuple[str, str]:
+    """(exame, série) do pedido, conferindo que o usuário vê o exame e que a série é dele."""
+    if not s.can("view"):
+        raise PermissionError("sem permissão")
+    study = (q.get("study") or [""])[0]
+    series = (q.get("series") or [""])[0]
+    if not study or not series or not pode_ver(s, study):
+        raise PermissionError("exame não visível")
+    if series not in {r.series_uid for r in repo.series_for_study(study, ocultas=True)}:
+        raise PermissionError("a série não é deste exame")
+    return study, series
+
+
+def suv_da_serie(repo, s, q: dict, pode_ver) -> dict:
+    """O fator de SUV (pelo peso) da série de PET, com a mesma conta do Ipê (imaging/suv.py)."""
+    from ipe.imaging.suv import suv_factor_for_file
+    _study, series = _serie_do_exame(repo, s, q, pode_ver)
+    for caminho in CAMINHOS.da_serie(repo, series).values():
+        if Path(caminho).exists():
+            fator, motivo = suv_factor_for_file(caminho)
+            return {"fator": fator, "motivo": motivo}
+    return {"fator": None, "motivo": "série sem arquivos"}
+
+
+def _geometria(caminho: str):
+    import numpy as np
+    import pydicom
+    ds = pydicom.dcmread(caminho, stop_before_pixels=True, force=True)
+    try:
+        ipp = np.array([float(v) for v in ds.ImagePositionPatient])
+        iop = np.array([float(v) for v in ds.ImageOrientationPatient])
+        sp = tuple(float(v) for v in ds.PixelSpacing)
+        return ipp, iop, sp, int(ds.Rows), int(ds.Columns)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def seg_mapa(repo, s, q: dict, pode_ver) -> dict:
+    """A SEG do exame como mapa de rótulos sobre a série de origem: por corte dela (SOP), o recorte com algo
+    (zlib + base64), o número do segmento em cada pixel. O nome e a cor de cada segmento vão à parte.
+    Só os quadros na mesma orientação e espaçamento da série de origem (as SEG do Ipê e da IA são assim)."""
+    import base64
+    import zlib
+
+    import numpy as np
+    import pydicom
+
+    from ipe.imaging import overlays as O
+    study, series = _serie_do_exame(repo, s, q, pode_ver)
+    caminhos = [c for c in CAMINHOS.da_serie(repo, series).values() if Path(c).exists()]
+    if not caminhos:
+        raise ValueError("SEG sem arquivo")
+    ds = pydicom.dcmread(caminhos[0], force=True)
+    if str(ds.get("Modality", "")).upper() != "SEG":
+        raise ValueError("a série não é uma SEG")
+    obj = O.parse_seg(ds, caminhos[0])
+    ref = obj.series_ref
+    if not ref or ref not in {r.series_uid for r in repo.series_for_study(study, ocultas=True)}:
+        raise ValueError("a SEG não aponta para uma série deste exame")
+    nomes = list(dict.fromkeys(m.label for m in obj.masks))
+    cores = {m.label: m.color for m in obj.masks}
+    num = {n: i + 1 for i, n in enumerate(nomes)}
+    cortes = []
+    for sop, cam in CAMINHOS.da_serie(repo, ref).items():
+        g = _geometria(cam) if Path(cam).exists() else None
+        if g is not None:
+            cortes.append((sop, *g))
+    if not cortes:
+        raise ValueError("a série de origem não tem a posição dos cortes")
+    normal = np.cross(cortes[0][2][:3], cortes[0][2][3:])
+    d_ref = np.array([float(np.dot(c[1], normal)) for c in cortes])
+    passo = float(np.median(np.diff(np.sort(d_ref)))) if len(d_ref) > 1 else 1.0
+    tol = max(abs(passo) / 2, 0.01)
+    mapas: dict[str, np.ndarray] = {}
+    for m in obj.masks:
+        if m.position is None or m.orientation is None or m.spacing is None:
+            continue
+        k = int(np.argmin(np.abs(d_ref - float(np.dot(m.position, normal)))))
+        sop, ipp, iop, sp, linhas, colunas = cortes[k]
+        if abs(d_ref[k] - float(np.dot(m.position, normal))) > tol or not np.allclose(m.orientation, iop, atol=1e-3) \
+                or not np.allclose(m.spacing, sp, rtol=0.01):
+            continue
+        dv = m.position - ipp
+        c0 = int(round(float(np.dot(dv, iop[:3])) / sp[1]))
+        r0 = int(round(float(np.dot(dv, iop[3:])) / sp[0]))
+        alvo = mapas.setdefault(sop, np.zeros((linhas, colunas), np.uint8))
+        h, w = m.mask.shape
+        rr0, cc0 = max(r0, 0), max(c0, 0)
+        rr1, cc1 = min(r0 + h, linhas), min(c0 + w, colunas)
+        if rr1 <= rr0 or cc1 <= cc0:
+            continue
+        sub = m.mask[rr0 - r0:rr1 - r0, cc0 - c0:cc1 - c0]
+        alvo[rr0:rr1, cc0:cc1][sub] = num[m.label]
+    fatias = []
+    for sop, a in mapas.items():
+        rs, cs = np.flatnonzero(a.any(axis=1)), np.flatnonzero(a.any(axis=0))
+        if not len(rs):
+            continue
+        r0, r1, c0, c1 = int(rs[0]), int(rs[-1]) + 1, int(cs[0]), int(cs[-1]) + 1
+        rec = np.ascontiguousarray(a[r0:r1, c0:c1])
+        fatias.append({"sop": sop, "r0": r0, "c0": c0, "h": r1 - r0, "w": c1 - c0,
+                       "dados": base64.b64encode(zlib.compress(rec.tobytes(), 6)).decode()})
+    return {"ref_series": ref, "descricao": str(ds.get("SeriesDescription", "") or obj.label),
+            "segmentos": [{"n": num[n], "nome": n, "cor": list(cores[n])} for n in nomes], "fatias": fatias}
+
+
+def tabelas_de_cores() -> dict:
+    """As tabelas de cores do Ipê (imaging/colormaps.py) para o site, como pontos (0–1, r, g, b em 0–1)."""
+    from ipe.imaging import colormaps as CM
+    out = {}
+    for chave, (nome, pontos) in CM.COLORMAPS.items():
+        if chave.startswith("vr_"):
+            continue
+        out[chave] = {"nome": nome, "pontos": [[float(x), *(float(v) / 255 for v in rgb)] for x, rgb in pontos]}
+    return out

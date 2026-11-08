@@ -5,6 +5,7 @@ import "./estilo.css";
 import * as API from "./api";
 import { setLang, tr } from "./i18n";
 import { apagarSelecionadas } from "./medidas";
+import { COR_PADRAO, SUV_PADRAO, registrarCores } from "./pet";
 import { Grade, aplicarBotoes, carregarSerie, iniciar, type Ferramenta, type Projecao } from "./visor";
 
 const app = document.getElementById("app")!;
@@ -48,6 +49,7 @@ function telaLogin(msg = ""): void {
       config = await API.configuracao();
       setLang(config.lang);
       await iniciar();
+      registrarCores(config);
       rota();
     } catch (e) {
       const m = String((e as Error).message);
@@ -124,9 +126,10 @@ const NOMES_FERRAMENTAS: Record<Ferramenta, string> = {
   janela: "Janela", mover: "Mover", zoom: "Zoom", rolar: "Rolar", linhas: "Linhas de referência",
   regua: "Régua", angulo: "Ângulo", cobb: "Ângulo de Cobb", elipse: "ROI elíptica", retangulo: "ROI retangular",
   poligono: "ROI livre", pixel: "Valor do pixel", seta: "Seta", calibracao: "Calibração",
+  suvmax: "SUV máximo perto do cursor",
 };
 
-const LAYOUTS: [number, number][] = [[1, 1], [1, 2], [2, 1], [2, 2], [2, 3]];
+const LAYOUTS: [number, number][] = [[1, 1], [1, 2], [2, 1], [1, 3], [2, 2], [2, 3]];
 
 function janelasProntas(modalidade: string): [string, number, number][] {
   const porMod = config?.["viewer.wl_presets_mod"]?.[modalidade.toUpperCase()];
@@ -136,7 +139,9 @@ function janelasProntas(modalidade: string): [string, number, number][] {
 
 async function telaExame(study: string): Promise<void> {
   grade?.desmontar();
-  const series = (await API.qido(`/studies/${study}/series`))
+  const todas = await API.qido(`/studies/${study}/series`);
+  const segs = todas.filter((s) => API.texto(s, "00080060") === "SEG");
+  const series = todas
     .filter((s) => !NAO_MOSTRA.has(API.texto(s, "00080060")))
     .sort((a, b) => Number(API.texto(a, "00200011") || 0) - Number(API.texto(b, "00200011") || 0));
   const estudo = (await API.qido(`/studies?StudyInstanceUID=${study}`))[0];
@@ -171,10 +176,24 @@ async function telaExame(study: string): Promise<void> {
   const obliquo = el("button", { title: tr("Dois cliques no quadro ativo definem a reta; o oblíquo vai para o outro quadro de volume") }, tr("Oblíquo"));
   let girando = false;
   const girar = el("button", { title: tr("Gira o MIP (a roda do mouse também gira)") }, tr("Girar MIP"));
+  // W3: PET/CT
+  const petct = el("button", { title: tr("Fusão, PET e o MIP do PET, com os axiais andando juntos") }, tr("PET/CT"));
+  const cores = el("select", { title: tr("Cor da fusão") },
+    ...(config?.tabelas_cores ? Object.entries(config.tabelas_cores) : []).map(([k, t]) =>
+      el("option", { value: k, selected: k === COR_PADRAO }, tr(t.nome)))) as HTMLSelectElement;
+  const opacidade = el("select", { title: tr("Opacidade da fusão") },
+    ...[20, 35, 50, 65, 80, 100].map((n) => el("option", { value: n / 100, selected: n === 50 }, `${n}%`))) as HTMLSelectElement;
+  const topoSuv = el("select", { title: tr("Topo da janela de SUV") },
+    ...[3, 5, 6, 8, 10, 15, 20].map((n) => el("option", { value: n, selected: n === SUV_PADRAO }, `SUV ${n}`))) as HTMLSelectElement;
+  const seg = el("select", { title: tr("Segmentação (SEG)") }, el("option", { value: "" }, tr("Sem segmentação")),
+    ...segs.map((x) => el("option", { value: API.texto(x, "0020000E") },
+      `${API.texto(x, "00200011")} · ${API.texto(x, "0008103E") || "SEG"}`))) as HTMLSelectElement;
+  if (!segs.length) seg.disabled = true;
   const apagarMedida = el("button", { title: tr("Apaga a medida selecionada (clique nela antes)") }, tr("Apagar medida"));
   const barra = el("nav", { class: "barra" }, voltar, layout,
     el("label", {}, tr("Botão esquerdo:"), ferr), apagarMedida, presets, inverter, cine, fps, restaurar,
-    el("span", { class: "sep" }), mpr, espessura, projecao, obliquo, girar);
+    el("span", { class: "sep" }), mpr, espessura, projecao, obliquo, girar,
+    el("span", { class: "sep" }), petct, cores, opacidade, topoSuv, seg);
 
   // tira
   const tira = el("aside", { class: "tira" }, el("div", { class: "dica" }, tr("Clique numa série para mostrar no quadro ativo.")));
@@ -249,6 +268,36 @@ async function telaExame(study: string): Promise<void> {
       aplicarBotoes("linhas");
       aviso.textContent = "";
     }
+  };
+  petct.onclick = async () => {
+    // o PET: o do quadro ativo, ou o maior PET do exame; a TC: a maior do exame
+    const maior = (mod: string) => series.filter((x) => API.texto(x, "00080060") === mod)
+      .sort((a, b) => Number(API.texto(b, "00201209") || 0) - Number(API.texto(a, "00201209") || 0))[0];
+    const ativa = g.quadros[g.ativo]?.serie;
+    const ptUid = ativa?.modalidade === "PT" ? ativa.series : (maior("PT") ? API.texto(maior("PT"), "0020000E") : "");
+    const ctUid = maior("CT") ? API.texto(maior("CT"), "0020000E") : "";
+    if (!ptUid || !ctUid) {
+      aviso.textContent = tr("O PET/CT pede uma série de PET e uma de TC no exame.");
+      return;
+    }
+    aviso.textContent = tr("Carregando…");
+    const [tc, pet] = await Promise.all([pegar(ctUid), pegar(ptUid)]);
+    aviso.textContent = "";
+    if (!tc || !pet) return;
+    if (!pet.suv) aviso.textContent = `${tr("Sem SUV:")} ${pet.suvMotivo || "?"}.`;
+    if (g.abrirPETCT(tc, pet)) {
+      layout.value = "1x3";
+      g.fusao({ cor: cores.value, opacidade: Number(opacidade.value), suvMax: Number(topoSuv.value) });
+    }
+  };
+  cores.onchange = () => g.fusao({ cor: cores.value });
+  opacidade.onchange = () => g.fusao({ opacidade: Number(opacidade.value) });
+  topoSuv.onchange = () => g.fusao({ suvMax: Number(topoSuv.value) });
+  seg.onchange = async () => {
+    aviso.textContent = seg.value ? tr("Carregando…") : "";
+    const r = await g.mostrarSegDaSerie(study, seg.value || null, pegar);
+    if (r) aviso.textContent = `${r.descricao}: ${r.segmentos.map((x) => x.nome).join(", ")}`;
+    else if (seg.value) seg.value = "";
   };
   const aplicarEspessura = () => g.espessura(Number(espessura.value), projecao.value as Projecao);
   espessura.onchange = aplicarEspessura;

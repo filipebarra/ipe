@@ -3,6 +3,17 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.94 — visualizador web: PET/TC (fase 4)
+- **PET/TC** en el visualizador web: fusión (TC + PET), PET en grises invertidos y el MIP del PET, con los axiales
+  moviéndose juntos y un clic en el MIP llevando los cortes al punto más brillante.
+- El PET llega **en SUV con el cálculo del Ipê** (peso, dosis y horarios); la ROI y el valor del píxel en el PET
+  muestran SUVmáx y SUVmed como en el Ipê.
+- **Color de la fusión** con las tablas del Ipê, **opacidad** y **tope de la ventana de SUV**; por debajo del 8% del
+  tope no se pinta.
+- **SUV máximo cerca del cursor** (esfera de 3 cm) lleva los cortes al vóxel más caliente.
+- Las **segmentaciones (SEG)** del examen — carga tumoral, órganos, lesiones de la IA — como máscaras con los colores
+  del Ipê.
+
 ## 0.99.93 — visualizador web: medidas en la base y calibración del ultrasonido (fase 3)
 - **Medidas en el visualizador web**: regla, ángulo, Cobb, ROI elíptica, rectangular y libre, píxel, flecha y
   calibración. El número es el del Ipê (misma escala, misma regla de la ROI, mismo texto).
