@@ -30,7 +30,7 @@ header { display: flex; align-items: center; gap: 12px; padding: 6px 12px; backg
   border-bottom: 1px solid var(--borda); flex-wrap: wrap; }
 header strong { color: var(--acento); }
 header .quem { margin-left: auto; color: var(--suave); }
-.barra { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.barra { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex: 1 1 600px; }
 .barra label { display: flex; gap: 4px; align-items: center; color: var(--suave); }
 
 .telalista { padding: 12px; overflow: auto; flex: 1; }
@@ -69,3 +69,11 @@ table.lista tbody tr:hover, table.lista tbody tr:focus { background: #262a31; }
   .tira { width: 100px; }
   .serie img { width: 72px; height: 72px; }
 }
+
+/* W1: botões de plano em cada quadro (A, C, S, MIP, original) */
+.planos { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); display: flex; gap: 2px;
+  opacity: 0.25; transition: opacity 0.15s; }
+.quadro:hover .planos, .quadro.ativo .planos { opacity: 0.95; }
+.planos button { font-size: 11px; padding: 1px 6px; background: rgba(20, 22, 26, 0.85); }
+.planos button.ligado { border-color: var(--acento); color: var(--acento); }
+.barra .sep { width: 1px; align-self: stretch; background: var(--borda); margin: 0 4px; }

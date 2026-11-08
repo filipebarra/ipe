@@ -1007,7 +1007,16 @@ Nesta primeira fase:
 - **As imagens vão como estão no banco**: JPEG-LS, JPEG 2000 e JPEG são decodificados no próprio navegador, e a mamografia usa a janela do aparelho (inclusive a sigmoide).
 - **Segurança**: nada do paciente fica gravado no navegador; recarregar a página pede o login de novo e a sessão parada se encerra sozinha. Cada exame aberto fica no registro de acesso ("abriu no navegador"). Na rede interna, use HTTPS com o certificado do Ipê.
 
-As próximas fases trazem MPR, oblíquo e MIP, medidas (gravadas no banco, que aparecem no Ipê), fusão PET/CT, a mamografia com o protocolo e dois monitores, a dinâmica da mama e o laudo. Por enquanto é só na rede da clínica; de fora, entre pela VPN.
+**Volume: MPR, oblíquo e MIP (0.99.92).**
+
+- **Mudar o plano com um clique**: no alto de cada quadro, **A**, **C** e **S** reconstroem a série naquele plano (axial, coronal, sagital), **MIP** põe o MIP girando e **Original** volta aos cortes como foram adquiridos.
+- **MPR** (barra): o quadro ativo vira quatro — axial, coronal, sagital e o MIP girando — com as **linhas de referência**. O botão esquerdo passa a ser "Linhas de referência": arrastar o centro leva os outros planos ao ponto; arrastar a ponta de uma linha gira a linha, e os outros quadros viram planos **oblíquos**.
+- **Oblíquo** (barra): dois cliques no quadro ativo marcam uma reta; o outro quadro de volume vira o plano que contém essa reta, perpendicular ao plano onde ela foi desenhada (como o oblíquo do Ipê).
+- **Espessura**: 3, 5, 10 ou 20 mm, em **MIP**, **MinIP** ou **Média**, no quadro de volume ativo; o canto diz o plano e a espessura.
+- **MIP girando**: **Girar MIP** liga o giro em volta do eixo do paciente; a roda do mouse sobre o MIP gira aos poucos. **Clicar num ponto do MIP** leva os outros quadros ao ponto mais claro daquela linha de visão. Na TC o MIP abre com janela larga; no PET, invertido.
+- Série que não dá volume (imagem única, cortes com orientações ou tamanhos diferentes, vários quadros num arquivo) fica em cortes, com o aviso do motivo. Volumes maiores que 1,5 GB não são montados no navegador.
+
+As próximas fases trazem as medidas (gravadas no banco, que aparecem no Ipê), a fusão PET/CT, a mamografia com o protocolo e dois monitores, a dinâmica da mama e o laudo. Por enquanto é só na rede da clínica; de fora, entre pela VPN.
 
 ### HTTPS na rede interna (certificado do Ipê)
 

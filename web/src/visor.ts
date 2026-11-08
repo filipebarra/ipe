@@ -1,13 +1,18 @@
-// Quadros 2D (W0): Cornerstone3D com o carregador WADO-RS do servidor central.
-// Botões do mouse como no Ipê: esquerdo = a ferramenta escolhida (janela por padrão), meio = mover,
-// direito = zoom, roda = rolar os cortes. Nenhum atalho de teclado de fábrica.
+// Quadros do visualizador web: pilha 2D (W0) e volume (W1: MPR, oblíquo, espessura, MIP girando).
+// Cornerstone3D com o carregador WADO-RS do servidor central.
+// Botões do mouse como no Ipê: esquerdo = a ferramenta escolhida, meio = mover, direito = zoom, roda = rolar os
+// cortes (no MIP, a roda gira). Nenhum atalho de teclado de fábrica.
 
 import {
   Enums,
   RenderingEngine,
+  cache,
+  cornerstoneStreamingImageVolumeLoader,
   init as csInit,
   metaData,
   setUseCPURendering,
+  setVolumesForViewports,
+  volumeLoader,
   type Types,
 } from "@cornerstonejs/core";
 import { init as loaderInit, wadors } from "@cornerstonejs/dicom-image-loader";
@@ -16,16 +21,25 @@ import * as csTools from "@cornerstonejs/tools";
 import { DICOMWEB, cabecalhos, metadados, valor, type DicomJson } from "./api";
 import { tr } from "./i18n";
 
-const { PanTool, ZoomTool, WindowLevelTool, StackScrollTool, ToolGroupManager, Enums: TE } = csTools;
+const {
+  PanTool, ZoomTool, WindowLevelTool, StackScrollTool, CrosshairsTool, MIPJumpToClickTool, ToolGroupManager,
+  Enums: TE,
+} = csTools;
 const MB = TE.MouseBindings;
 
 const RE_ID = "ipe";
-const TG_ID = "ipe-2d";
+const TG_2D = "ipe-2d";
+const TG_VOL = "ipe-vol";
+const TG_MIP = "ipe-mip";
+/** volumes acima disto (bytes) não são montados: a placa de vídeo comum não aguenta */
+export const LIMITE_VOLUME = 1.5 * 1024 ** 3;
 let iniciado = false;
 let motor: RenderingEngine | null = null;
 
-export type Ferramenta = "janela" | "mover" | "zoom" | "rolar";
-const NOME: Record<Ferramenta, string> = {
+export type Ferramenta = "janela" | "mover" | "zoom" | "rolar" | "linhas";
+export type Plano = "AXIAL" | "CORONAL" | "SAGITTAL";
+export type Projecao = "fino" | "mip" | "minip" | "media";
+const NOME: Record<Exclude<Ferramenta, "linhas">, string> = {
   janela: WindowLevelTool.toolName,
   mover: PanTool.toolName,
   zoom: ZoomTool.toolName,
@@ -36,11 +50,13 @@ export async function iniciar(): Promise<void> {
   if (iniciado) return;
   const gl = document.createElement("canvas").getContext("webgl2");
   csInit();
-  if (!gl) setUseCPURendering(true); // sem WebGL 2: o 2D ainda funciona pela CPU
+  if (!gl) setUseCPURendering(true); // sem WebGL 2: o 2D ainda funciona pela CPU (o volume não)
   loaderInit({
     maxWebWorkers: Math.max(1, Math.min(4, Math.floor((navigator.hardwareConcurrency || 2) / 2))),
     beforeSend: () => cabecalhos(),
   });
+  volumeLoader.registerUnknownVolumeLoader(cornerstoneStreamingImageVolumeLoader as never);
+  volumeLoader.registerVolumeLoader("cornerstoneStreamingImageVolume", cornerstoneStreamingImageVolumeLoader as never);
   // O carregador WADO-RS lê a função da VOI LUT como lista e pega a primeira letra do texto ("SIGMOID" → "S"):
   // a mamografia da GE (sigmoide) ficava toda branca. Este provedor, consultado antes, devolve a lista.
   metaData.addProvider((tipo: string, imageId: string) => {
@@ -52,30 +68,53 @@ export async function iniciar(): Promise<void> {
     return { windowCenter: nums("00281050"), windowWidth: nums("00281051"), voiLUTFunction: fn ? [fn] : undefined };
   }, 10000);
   csTools.init();
-  for (const t of [PanTool, ZoomTool, WindowLevelTool, StackScrollTool]) csTools.addTool(t);
-  const tg = ToolGroupManager.createToolGroup(TG_ID)!;
-  for (const t of [PanTool, ZoomTool, WindowLevelTool, StackScrollTool]) tg.addTool(t.toolName);
+  for (const t of [PanTool, ZoomTool, WindowLevelTool, StackScrollTool, CrosshairsTool, MIPJumpToClickTool]) {
+    csTools.addTool(t);
+  }
+  const t2 = ToolGroupManager.createToolGroup(TG_2D)!;
+  const tv = ToolGroupManager.createToolGroup(TG_VOL)!;
+  const tm = ToolGroupManager.createToolGroup(TG_MIP)!;
+  for (const tg of [t2, tv, tm]) {
+    for (const t of [PanTool, ZoomTool, WindowLevelTool, StackScrollTool]) tg.addTool(t.toolName);
+  }
+  tv.addTool(CrosshairsTool.toolName, {
+    getReferenceLineColor: (id: string) => ({ q0: "rgb(240, 90, 80)", q1: "rgb(80, 200, 120)",
+      q2: "rgb(80, 160, 250)", q3: "rgb(230, 200, 60)" } as Record<string, string>)[id] || "rgb(230, 200, 60)",
+    getReferenceLineControllable: () => true,
+    getReferenceLineDraggableRotatable: () => true,
+    getReferenceLineSlabThicknessControlsOn: () => false,
+  });
+  tm.addTool(MIPJumpToClickTool.toolName, { targetViewportIds: [] });
   aplicarBotoes("janela");
   motor = new RenderingEngine(RE_ID);
+  (window as unknown as Record<string, unknown>).__ipeGeo = { planoPorDoisPontos, girarVetor }; // testes
   iniciado = true;
 }
 
-/** O botão esquerdo vira a ferramenta `f`; meio = mover, direito = zoom e a roda = rolar continuam. */
+/** O botão esquerdo vira a ferramenta `f` (nos quadros de volume, "linhas" = a cruz das linhas de referência);
+ * meio = mover, direito = zoom e a roda = rolar continuam. No MIP, o esquerdo leva os cortes ao ponto mais claro. */
 export function aplicarBotoes(f: Ferramenta): void {
-  const tg = ToolGroupManager.getToolGroup(TG_ID);
-  if (!tg) return;
-  const fixos: Record<string, number[]> = {
-    [PanTool.toolName]: [MB.Auxiliary],
-    [ZoomTool.toolName]: [MB.Secondary],
-    [StackScrollTool.toolName]: [MB.Wheel],
-    [WindowLevelTool.toolName]: [],
-  };
-  fixos[NOME[f]] = [...fixos[NOME[f]], MB.Primary];
-  for (const [nome, botoes] of Object.entries(fixos)) {
-    if (botoes.length) {
-      tg.setToolActive(nome, { bindings: botoes.map((b) => ({ mouseButton: b })) });
+  for (const id of [TG_2D, TG_VOL, TG_MIP]) {
+    const tg = ToolGroupManager.getToolGroup(id);
+    if (!tg) continue;
+    const fixos: Record<string, number[]> = {
+      [PanTool.toolName]: [MB.Auxiliary],
+      [ZoomTool.toolName]: [MB.Secondary],
+      [StackScrollTool.toolName]: id === TG_MIP ? [] : [MB.Wheel],
+      [WindowLevelTool.toolName]: [],
+    };
+    if (id === TG_VOL) fixos[CrosshairsTool.toolName] = [];
+    if (id === TG_MIP) {
+      fixos[MIPJumpToClickTool.toolName] = [MB.Primary];
+    } else if (f === "linhas") {
+      if (id === TG_VOL) fixos[CrosshairsTool.toolName].push(MB.Primary);
+      else fixos[WindowLevelTool.toolName].push(MB.Primary);
     } else {
-      tg.setToolPassive(nome);
+      fixos[NOME[f]].push(MB.Primary);
+    }
+    for (const [nome, botoes] of Object.entries(fixos)) {
+      if (botoes.length) tg.setToolActive(nome, { bindings: botoes.map((b) => ({ mouseButton: b })) });
+      else tg.setToolPassive(nome);
     }
   }
 }
@@ -90,6 +129,9 @@ export interface SerieCarregada {
   modalidade: string;
   descricao: string;
   numero: string;
+  /** "" se dá para montar o volume; senão, o motivo */
+  semVolume: string;
+  bytes: number;
 }
 
 function ordem(m: DicomJson): number {
@@ -101,6 +143,21 @@ function ordem(m: DicomJson): number {
     return n[0] * ipp[0] + n[1] * ipp[1] + n[2] * ipp[2];
   }
   return Number(valor(m, "00200013") ?? 0);
+}
+
+/** Dá para montar o volume? Pelo menos 3 cortes, todos com posição, a mesma orientação e o mesmo tamanho. */
+function motivoSemVolume(meta: DicomJson[]): string {
+  if (meta.length < 3) return tr("a série tem poucos cortes para o volume");
+  if (meta.some((m) => Number(valor(m, "00280008") ?? 1) > 1)) return tr("série de vários quadros num arquivo (sem volume por enquanto)");
+  if (!meta.every((m) => m["00200032"]?.Value && m["00200037"]?.Value)) return tr("a série não tem a posição dos cortes");
+  const iop0 = (meta[0]["00200037"].Value as number[]).map(Number);
+  const tam0 = `${valor(meta[0], "00280010")}x${valor(meta[0], "00280011")}`;
+  for (const m of meta) {
+    const iop = (m["00200037"].Value as number[]).map(Number);
+    if (iop.some((v, k) => Math.abs(v - iop0[k]) > 1e-3)) return tr("os cortes não têm a mesma orientação");
+    if (`${valor(m, "00280010")}x${valor(m, "00280011")}` !== tam0) return tr("os cortes não têm o mesmo tamanho");
+  }
+  return "";
 }
 
 export async function carregarSerie(study: string, series: string): Promise<SerieCarregada | null> {
@@ -121,21 +178,73 @@ export async function carregarSerie(study: string, series: string): Promise<Seri
     }
   }
   const m0 = ordenados[0];
+  const bytes = ids.length * Number(valor(m0, "00280010") ?? 0) * Number(valor(m0, "00280011") ?? 0) * 4;
   return {
     study, series, imageIds: ids,
     modalidade: String(valor(m0, "00080060") ?? ""),
     descricao: String(valor(m0, "0008103E") ?? ""),
     numero: String(valor(m0, "00200011") ?? ""),
+    semVolume: motivoSemVolume(ordenados),
+    bytes,
   };
 }
 
+async function volumeDa(s: SerieCarregada): Promise<string> {
+  const id = `cornerstoneStreamingImageVolume:${s.series}`;
+  if (!cache.getVolume(id)) {
+    const v = await volumeLoader.createAndCacheVolume(id, { imageIds: s.imageIds });
+    (v as unknown as { load: () => void }).load();
+  }
+  return id;
+}
+
+// ------------------------------------------------------------------ geometria
+type V3 = [number, number, number];
+const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const mul = (a: V3, k: number): V3 => [a[0] * k, a[1] * k, a[2] * k];
+const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a: V3, b: V3): V3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const norm = (a: V3): V3 => mul(a, 1 / (Math.hypot(...a) || 1));
+
+/** Gira o vetor `v` em torno do eixo unitário `k` por `ang` radianos (Rodrigues). */
+export function girarVetor(v: V3, k: V3, ang: number): V3 {
+  const c = Math.cos(ang), s = Math.sin(ang);
+  return add(add(mul(v, c), mul(cross(k, v), s)), mul(k, dot(k, v) * (1 - c)));
+}
+
+/** O plano oblíquo por dois pontos (como o "oblíquo" do Ipê): contém a reta p0→p1 e a normal do plano onde ela
+ * foi desenhada. Devolve a normal do plano novo e o "para cima" (a normal antiga). */
+export function planoPorDoisPontos(p0: V3, p1: V3, normalAtual: V3): { normal: V3; cima: V3 } {
+  const d = norm(sub(p1, p0));
+  return { normal: norm(cross(d, normalAtual)), cima: norm(normalAtual) };
+}
+
+/** Nome do plano pela normal: axial, coronal, sagital ou oblíquo. */
+export function nomeDoPlano(n: V3): string {
+  const a = n.map((x) => Math.abs(x));
+  const k = a.indexOf(Math.max(...a));
+  if (a[k] < 0.985) return tr("Oblíquo");
+  return [tr("Sagital"), tr("Coronal"), tr("Axial")][k];
+}
+
 // ------------------------------------------------------------------ os quadros
+export type Tipo = "pilha" | "plano" | "mip";
+
 export interface Quadro {
   id: string;
   el: HTMLDivElement;
   textos: HTMLDivElement;
+  botoes: HTMLDivElement;
   serie: SerieCarregada | null;
+  tipo: Tipo;
+  plano: Plano;
+  projecao: Projecao;
+  espessura: number;
+  girando: number | null;
 }
+
+interface Spec { serie: SerieCarregada | null; tipo: Tipo; plano: Plano; projecao: Projecao; espessura: number }
 
 export class Grade {
   quadros: Quadro[] = [];
@@ -144,30 +253,23 @@ export class Grade {
   colunas = 1;
   paciente = "";
   aoMudar: () => void = () => {};
+  aviso: (msg: string) => void = () => {};
 
   constructor(public raiz: HTMLElement) {}
 
-  montar(linhas: number, colunas: number): void {
-    const antigas = this.quadros.map((q) => q.serie);
-    if (motor) for (const q of this.quadros) {
-      try {
-        csTools.utilities.cine.stopClip(q.el);
-      } catch { /* nada tocando */ }
-    }
-    this.raiz.innerHTML = "";
+  /** Monta os quadros. `specs` (opcional) diz o que vai em cada um; sem ele, ficam as séries de antes. */
+  montar(linhas: number, colunas: number, specs?: Spec[]): void {
+    const antigas: Spec[] = specs ?? this.quadros.map((q) => ({ serie: q.serie, tipo: q.tipo, plano: q.plano,
+      projecao: q.projecao, espessura: q.espessura }));
+    this.desmontar(false);
     this.raiz.style.gridTemplateColumns = `repeat(${colunas}, 1fr)`;
     this.raiz.style.gridTemplateRows = `repeat(${linhas}, 1fr)`;
     this.linhas = linhas;
     this.colunas = colunas;
-    const tg = ToolGroupManager.getToolGroup(TG_ID)!;
-    for (const q of this.quadros) {
-      try {
-        tg.removeViewports(RE_ID, q.id);
-      } catch { /* já saiu */ }
-    }
-    this.quadros = [];
     const entradas: Types.PublicViewportInput[] = [];
     for (let i = 0; i < linhas * colunas; i++) {
+      const sp = antigas[i];
+      const tipo: Tipo = sp?.tipo ?? "pilha";
       const cel = document.createElement("div");
       cel.className = "quadro";
       const el = document.createElement("div");
@@ -175,25 +277,64 @@ export class Grade {
       el.oncontextmenu = (e) => e.preventDefault();
       const textos = document.createElement("div");
       textos.className = "textos";
-      cel.append(el, textos);
+      const botoes = document.createElement("div");
+      botoes.className = "planos";
+      cel.append(el, textos, botoes);
       cel.addEventListener("mousedown", () => this.ativar(i), true);
       this.raiz.append(cel);
       const id = `q${i}`;
-      this.quadros.push({ id, el, textos, serie: null });
-      entradas.push({ viewportId: id, type: Enums.ViewportType.STACK, element: el,
-        defaultOptions: { background: [0, 0, 0] as Types.Point3 } });
+      const q: Quadro = { id, el, textos, botoes, serie: null, tipo, plano: sp?.plano ?? "AXIAL",
+        projecao: sp?.projecao ?? "fino", espessura: sp?.espessura ?? 0, girando: null };
+      this.quadros.push(q);
+      entradas.push(tipo === "pilha"
+        ? { viewportId: id, type: Enums.ViewportType.STACK, element: el,
+          defaultOptions: { background: [0, 0, 0] as Types.Point3 } }
+        : { viewportId: id, type: Enums.ViewportType.ORTHOGRAPHIC, element: el,
+          defaultOptions: { background: [0, 0, 0] as Types.Point3,
+            orientation: (tipo === "mip" ? Enums.OrientationAxis.CORONAL
+              : Enums.OrientationAxis[q.plano]) as Enums.OrientationAxis } });
+      this.botoesDePlano(q, i);
+      if (tipo === "mip") {
+        el.addEventListener("wheel", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.girarMip(i, (e.deltaY > 0 ? 1 : -1) * (Math.PI / 36));
+        }, { capture: true, passive: false });
+      }
     }
     motor!.setViewports(entradas);
     for (const q of this.quadros) {
-      tg.addViewport(q.id, RE_ID);
-      for (const ev of [Enums.Events.IMAGE_RENDERED, Enums.Events.VOI_MODIFIED, Enums.Events.STACK_NEW_IMAGE]) {
+      ToolGroupManager.getToolGroup(q.tipo === "pilha" ? TG_2D : q.tipo === "mip" ? TG_MIP : TG_VOL)!
+        .addViewport(q.id, RE_ID);
+      for (const ev of [Enums.Events.IMAGE_RENDERED, Enums.Events.VOI_MODIFIED, Enums.Events.STACK_NEW_IMAGE,
+        Enums.Events.VOLUME_NEW_IMAGE, Enums.Events.CAMERA_MODIFIED]) {
         q.el.addEventListener(ev, () => this.escreverTextos(q));
       }
     }
+    this.configurarMip();
     this.ativo = Math.min(this.ativo, this.quadros.length - 1);
     this.marcarAtivo();
-    // as séries que já estavam voltam aos mesmos lugares
-    antigas.forEach((s, i) => { if (s && i < this.quadros.length) void this.mostrar(i, s); });
+    antigas.forEach((s, i) => { if (s?.serie && i < this.quadros.length) void this.mostrar(i, s.serie); });
+  }
+
+  private botoesDePlano(q: Quadro, i: number): void {
+    q.botoes.replaceChildren();
+    const opcoes: [string, () => void][] = [
+      [tr("Original"), () => this.mudarPlano(i, null)],
+      ["A", () => this.mudarPlano(i, "AXIAL")],
+      ["C", () => this.mudarPlano(i, "CORONAL")],
+      ["S", () => this.mudarPlano(i, "SAGITTAL")],
+      ["MIP", () => this.mudarParaMip(i)],
+    ];
+    const ativo = q.tipo === "pilha" ? tr("Original") : q.tipo === "mip" ? "MIP" : q.plano[0];
+    for (const [txt, fn] of opcoes) {
+      const b = document.createElement("button");
+      b.textContent = txt;
+      b.title = { A: tr("Axial"), C: tr("Coronal"), S: tr("Sagital"), MIP: tr("MIP girando (clique leva os cortes ao ponto mais claro)") }[txt] || tr("Os cortes como foram adquiridos");
+      if (txt === ativo) b.classList.add("ligado");
+      b.onclick = (e) => { e.stopPropagation(); this.ativar(i); fn(); };
+      q.botoes.append(b);
+    }
   }
 
   ativar(i: number): void {
@@ -206,31 +347,232 @@ export class Grade {
     this.quadros.forEach((q, i) => q.el.parentElement!.classList.toggle("ativo", i === this.ativo));
   }
 
-  viewport(i = this.ativo): Types.IStackViewport | null {
+  viewport(i = this.ativo): Types.IViewport | null {
     const q = this.quadros[i];
-    return q ? (motor!.getViewport(q.id) as Types.IStackViewport) : null;
+    return q ? motor!.getViewport(q.id) : null;
+  }
+
+  private volumeOk(s: SerieCarregada): boolean {
+    if (s.semVolume) {
+      this.aviso(`${tr("Sem volume:")} ${s.semVolume}.`);
+      return false;
+    }
+    if (s.bytes > LIMITE_VOLUME) {
+      this.aviso(tr("Série grande demais para o volume no navegador (mais de 1,5 GB)."));
+      return false;
+    }
+    return true;
   }
 
   async mostrar(i: number, s: SerieCarregada): Promise<void> {
     const q = this.quadros[i];
     if (!q) return;
+    if (q.tipo !== "pilha" && !this.volumeOk(s)) {
+      // sem volume: o quadro volta a ser pilha
+      this.especificar(i, { serie: s, tipo: "pilha", plano: q.plano, projecao: "fino", espessura: 0 });
+      return;
+    }
     q.serie = s;
     const vp = this.viewport(i)!;
-    const meio = Math.floor(s.imageIds.length / 2);
-    await vp.setStack(s.imageIds, s.imageIds.length > 2 ? meio : 0);
-    vp.render();
+    if (q.tipo === "pilha") {
+      const pilha = vp as Types.IStackViewport;
+      const meio = Math.floor(s.imageIds.length / 2);
+      await pilha.setStack(s.imageIds, s.imageIds.length > 2 ? meio : 0);
+      pilha.render();
+    } else {
+      const vid = await volumeDa(s);
+      await setVolumesForViewports(motor!, [{ volumeId: vid }], [q.id]);
+      this.aplicarProjecao(q);
+      if (q.tipo === "mip") {
+        this.configurarMip();
+        // a janela do MIP: na TC, larga (o MIP só tem o que é claro); no PET/MN, invertido como no Ipê
+        const v = vp as Types.IVolumeViewport;
+        if (s.modalidade === "CT") v.setProperties({ voiRange: { lower: -350, upper: 1150 } });
+        else if (s.modalidade === "PT" || s.modalidade === "NM") v.setProperties({ invert: true });
+      }
+      (vp as Types.IVolumeViewport).render();
+    }
     this.escreverTextos(q);
   }
 
+  /** Troca o que vai no quadro i (pode mudar o tipo do quadro: refaz a grade com as mesmas séries). */
+  especificar(i: number, sp: Spec): void {
+    const specs: Spec[] = this.quadros.map((q) => ({ serie: q.serie, tipo: q.tipo, plano: q.plano,
+      projecao: q.projecao, espessura: q.espessura }));
+    specs[i] = sp;
+    this.montar(this.linhas, this.colunas, specs);
+  }
+
+  /** Mudar o plano com um clique: A, C, S (volume) ou o original (pilha). */
+  mudarPlano(i: number, plano: Plano | null): void {
+    const q = this.quadros[i];
+    if (!q?.serie) return;
+    if (plano === null) {
+      if (q.tipo !== "pilha") this.especificar(i, { serie: q.serie, tipo: "pilha", plano: q.plano, projecao: "fino", espessura: 0 });
+      return;
+    }
+    if (!this.volumeOk(q.serie)) return;
+    if (q.tipo === "plano") {
+      q.plano = plano;
+      const vp = this.viewport(i) as Types.IVolumeViewport;
+      vp.setOrientation(Enums.OrientationAxis[plano] as Enums.OrientationAxis);
+      this.aplicarProjecao(q);
+      vp.render();
+      this.botoesDePlano(q, i);
+      this.escreverTextos(q);
+      return;
+    }
+    this.especificar(i, { serie: q.serie, tipo: "plano", plano, projecao: q.projecao, espessura: q.espessura });
+  }
+
+  mudarParaMip(i: number): void {
+    const q = this.quadros[i];
+    if (!q?.serie || !this.volumeOk(q.serie)) return;
+    this.especificar(i, { serie: q.serie, tipo: "mip", plano: q.plano, projecao: "mip", espessura: 0 });
+  }
+
+  /** O MPR da série do quadro ativo: axial, coronal, sagital e o MIP girando, com as linhas de referência. */
+  abrirMPR(): boolean {
+    const s = this.quadros[this.ativo]?.serie;
+    if (!s || !this.volumeOk(s)) return false;
+    const sp = (tipo: Tipo, plano: Plano): Spec => ({ serie: s, tipo, plano, projecao: tipo === "mip" ? "mip" : "fino", espessura: 0 });
+    this.ativo = 0;
+    this.montar(2, 2, [sp("plano", "AXIAL"), sp("plano", "CORONAL"), sp("plano", "SAGITTAL"), sp("mip", "CORONAL")]);
+    return true;
+  }
+
+  // -------------------------------------------------------------- espessura e projeção
+  private aplicarProjecao(q: Quadro): void {
+    const vp = motor?.getViewport(q.id) as Types.IVolumeViewport | undefined;
+    if (!vp || q.tipo === "pilha") return;
+    const B = Enums.BlendModes;
+    if (q.tipo === "mip") {
+      vp.setBlendMode(B.MAXIMUM_INTENSITY_BLEND);
+      vp.setSlabThickness(this.diagonal(q));
+      return;
+    }
+    const modo = { fino: B.COMPOSITE, mip: B.MAXIMUM_INTENSITY_BLEND, minip: B.MINIMUM_INTENSITY_BLEND,
+      media: B.AVERAGE_INTENSITY_BLEND }[q.projecao];
+    vp.setBlendMode(modo);
+    if (q.projecao === "fino" || q.espessura <= 0) vp.resetSlabThickness();
+    else vp.setSlabThickness(q.espessura);
+  }
+
+  private diagonal(q: Quadro): number {
+    const v = q.serie ? cache.getVolume(`cornerstoneStreamingImageVolume:${q.serie.series}`) : null;
+    if (!v) return 1000;
+    const [a, b, c] = v.dimensions, [x, y, z] = v.spacing;
+    return Math.hypot(a * x, b * y, c * z);
+  }
+
+  espessura(mm: number, projecao: Projecao): void {
+    const q = this.quadros[this.ativo];
+    if (!q || q.tipo !== "plano") {
+      this.aviso(tr("A espessura vale nos quadros de volume (A, C, S)."));
+      return;
+    }
+    q.espessura = mm;
+    q.projecao = mm > 0 ? (projecao === "fino" ? "mip" : projecao) : "fino";
+    this.aplicarProjecao(q);
+    (this.viewport() as Types.IVolumeViewport).render();
+    this.escreverTextos(q);
+  }
+
+  // -------------------------------------------------------------- MIP girando e clicável
+  private configurarMip(): void {
+    const tm = ToolGroupManager.getToolGroup(TG_MIP);
+    if (!tm) return;
+    const alvos = this.quadros.filter((q) => q.tipo !== "mip").map((q) => q.id);
+    tm.setToolConfiguration(MIPJumpToClickTool.toolName, { targetViewportIds: alvos });
+  }
+
+  girarMip(i: number, ang: number): void {
+    const q = this.quadros[i];
+    const vp = this.viewport(i) as Types.IVolumeViewport | null;
+    if (!q || q.tipo !== "mip" || !vp) return;
+    const cam = vp.getCamera();
+    const eixo: V3 = [0, 0, 1];                         // em volta do eixo crânio-caudal do paciente
+    const n = girarVetor(cam.viewPlaneNormal as V3, eixo, ang);
+    const dist = Math.hypot(...sub(cam.position as V3, cam.focalPoint as V3));
+    vp.setCamera({ viewPlaneNormal: n as Types.Point3, viewUp: [0, 0, 1] as Types.Point3,
+      position: add(cam.focalPoint as V3, mul(n, dist)) as Types.Point3 });
+    vp.render();
+  }
+
+  girar(ligar: boolean): void {
+    for (const [i, q] of this.quadros.entries()) {
+      if (q.tipo !== "mip") continue;
+      if (q.girando !== null) { clearInterval(q.girando); q.girando = null; }
+      if (ligar) q.girando = window.setInterval(() => this.girarMip(i, Math.PI / 45), 66);
+    }
+  }
+
+  // -------------------------------------------------------------- oblíquo por dois pontos
+  /** Os dois próximos cliques no quadro ativo (de volume) definem a reta; o oblíquo vai para o próximo quadro de
+   * volume (ou para o próprio, se só houver um). */
+  obliquoPorDoisPontos(): boolean {
+    const i = this.ativo;
+    const q = this.quadros[i];
+    if (!q || q.tipo !== "plano") {
+      this.aviso(tr("O oblíquo por dois pontos parte de um quadro de volume (A, C, S)."));
+      return false;
+    }
+    const vp = this.viewport(i) as Types.IVolumeViewport;
+    const pts: V3[] = [];
+    this.aviso(tr("Oblíquo: clique em dois pontos da reta no quadro ativo."));
+    const clique = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const r = q.el.getBoundingClientRect();
+      pts.push(vp.canvasToWorld([e.clientX - r.left, e.clientY - r.top]) as V3);
+      if (pts.length < 2) return;
+      q.el.removeEventListener("mousedown", clique, true);
+      const alvo = this.quadros.findIndex((x, k) => k !== i && x.tipo === "plano");
+      this.aplicarObliquo(alvo >= 0 ? alvo : i, pts[0], pts[1], vp.getCamera().viewPlaneNormal as V3);
+      this.aviso("");
+    };
+    q.el.addEventListener("mousedown", clique, true);
+    return true;
+  }
+
+  aplicarObliquo(i: number, p0: V3, p1: V3, normalAtual: V3): void {
+    const vp = this.viewport(i) as Types.IVolumeViewport;
+    const { normal, cima } = planoPorDoisPontos(p0, p1, normalAtual);
+    const cam = vp.getCamera();
+    const dist = Math.hypot(...sub(cam.position as V3, cam.focalPoint as V3)) || 500;
+    const centro = mul(add(p0, p1), 0.5);
+    vp.setCamera({ viewPlaneNormal: normal as Types.Point3, viewUp: cima as Types.Point3,
+      focalPoint: centro as Types.Point3, position: add(centro, mul(normal, dist)) as Types.Point3 });
+    vp.render();
+    this.escreverTextos(this.quadros[i]);
+  }
+
+  // -------------------------------------------------------------- textos
   escreverTextos(q: Quadro): void {
-    const vp = motor?.getViewport(q.id) as Types.IStackViewport | undefined;
+    const vp = motor?.getViewport(q.id);
     if (!vp || !q.serie) {
       q.textos.innerHTML = "";
       return;
     }
-    const n = vp.getCurrentImageIdIndex() + 1;
-    const tot = q.serie.imageIds.length;
-    const p = vp.getProperties();
+    let posicao = "";
+    let plano = "";
+    if (q.tipo === "pilha") {
+      const p = vp as Types.IStackViewport;
+      posicao = `${tr("Im")} ${p.getCurrentImageIdIndex() + 1} / ${q.serie.imageIds.length}`;
+    } else {
+      const v = vp as Types.IVolumeViewport;
+      try {
+        posicao = q.tipo === "mip" ? "" : `${v.getSliceIndex() + 1} / ${v.getNumberOfSlices()}`;
+      } catch { posicao = ""; }
+      const n = v.getCamera().viewPlaneNormal as V3;
+      plano = q.tipo === "mip" ? tr("MIP") : nomeDoPlano(n);
+      if (q.tipo === "plano" && q.projecao !== "fino" && q.espessura > 0) {
+        plano += ` · ${{ mip: "MIP", minip: "MinIP", media: tr("Média") }[q.projecao]} ${q.espessura} mm`;
+      }
+    }
+    let p: { voiRange?: { lower: number; upper: number }; invert?: boolean } = {};
+    try { p = (vp as Types.IStackViewport).getProperties() || {}; } catch { p = {}; }
     let jan = "";
     if (p.voiRange) {
       const ww = p.voiRange.upper - p.voiRange.lower;
@@ -246,38 +588,44 @@ export class Grade {
       q.textos.append(d);
     };
     canto("se", [this.paciente]);
-    canto("sd", [`${tr("Se")} ${q.serie.numero} ${q.serie.modalidade}`.trim(), q.serie.descricao]);
-    canto("ie", [`${tr("Im")} ${n} / ${tot}`, zoom]);
+    canto("sd", [`${tr("Se")} ${q.serie.numero} ${q.serie.modalidade}`.trim(), q.serie.descricao, plano]);
+    canto("ie", [posicao, zoom]);
     canto("id", [jan, p.invert ? tr("Inverter") : ""]);
   }
 
   // -------------------------------------------------------------- comandos da barra
   janela(largura: number, nivel: number): void {
-    const vp = this.viewport();
+    const vp = this.viewport() as Types.IStackViewport | null;
     if (!vp) return;
     vp.setProperties({ voiRange: { lower: nivel - largura / 2, upper: nivel + largura / 2 } });
     vp.render();
   }
 
   janelaDoArquivo(): void {
-    const vp = this.viewport();
+    const vp = this.viewport() as Types.IStackViewport | null;
     if (!vp) return;
     vp.resetProperties();
     vp.render();
   }
 
   inverter(): void {
-    const vp = this.viewport();
+    const vp = this.viewport() as Types.IStackViewport | null;
     if (!vp) return;
     vp.setProperties({ invert: !vp.getProperties().invert });
     vp.render();
   }
 
   restaurar(): void {
-    const vp = this.viewport();
-    if (!vp) return;
+    const q = this.quadros[this.ativo];
+    const vp = this.viewport() as Types.IStackViewport | null;
+    if (!vp || !q) return;
     vp.resetCamera();
     vp.resetProperties();
+    if (q.tipo !== "pilha") {
+      q.projecao = q.tipo === "mip" ? "mip" : "fino";
+      q.espessura = 0;
+      this.aplicarProjecao(q);
+    }
     vp.render();
   }
 
@@ -295,16 +643,21 @@ export class Grade {
     motor?.resize(true, true);
   }
 
-  desmontar(): void {
+  desmontar(tudo = true): void {
     for (const q of this.quadros) {
       try { csTools.utilities.cine.stopClip(q.el); } catch { /* nada */ }
+      if (q.girando !== null) clearInterval(q.girando);
     }
-    const tg = ToolGroupManager.getToolGroup(TG_ID);
     for (const q of this.quadros) {
-      try { tg?.removeViewports(RE_ID, q.id); } catch { /* nada */ }
+      for (const id of [TG_2D, TG_VOL, TG_MIP]) {
+        try { ToolGroupManager.getToolGroup(id)?.removeViewports(RE_ID, q.id); } catch { /* nada */ }
+      }
       try { motor?.disableElement(q.id); } catch { /* nada */ }
     }
     this.quadros = [];
     this.raiz.innerHTML = "";
+    if (tudo) {
+      try { cache.purgeVolumeCache?.(); } catch { /* nada */ }
+    }
   }
 }

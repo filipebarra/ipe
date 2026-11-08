@@ -4,7 +4,7 @@
 import "./estilo.css";
 import * as API from "./api";
 import { setLang, tr } from "./i18n";
-import { Grade, aplicarBotoes, carregarSerie, iniciar, type Ferramenta } from "./visor";
+import { Grade, aplicarBotoes, carregarSerie, iniciar, type Ferramenta, type Projecao } from "./visor";
 
 const app = document.getElementById("app")!;
 let config: API.Config | null = null;
@@ -145,8 +145,9 @@ async function telaExame(study: string): Promise<void> {
   const layout = el("select", { title: tr("Layout") },
     ...LAYOUTS.map(([l, c]) => el("option", { value: `${l}x${c}` }, `${l}×${c}`))) as HTMLSelectElement;
   const ferr = el("select", { title: tr("Botão esquerdo:") },
-    ...(["janela", "mover", "zoom", "rolar"] as Ferramenta[]).map((f) =>
-      el("option", { value: f }, tr({ janela: "Janela", mover: "Mover", zoom: "Zoom", rolar: "Rolar" }[f])))) as HTMLSelectElement;
+    ...(["janela", "mover", "zoom", "rolar", "linhas"] as Ferramenta[]).map((f) =>
+      el("option", { value: f }, tr({ janela: "Janela", mover: "Mover", zoom: "Zoom", rolar: "Rolar",
+        linhas: "Linhas de referência" }[f])))) as HTMLSelectElement;
   const presets = el("select", { title: tr("Janelas prontas") }) as HTMLSelectElement;
   const fps = el("select", { title: tr("quadros/s") },
     ...[5, 10, 15, 20, 30].map((n) => el("option", { value: n, selected: n === 10 }, `${n} ${tr("quadros/s")}`))) as HTMLSelectElement;
@@ -154,8 +155,19 @@ async function telaExame(study: string): Promise<void> {
   const cine = el("button", {}, tr("Cine"));
   const inverter = el("button", {}, tr("Inverter"));
   const restaurar = el("button", {}, tr("Restaurar"));
+  // W1: volume
+  const mpr = el("button", { title: tr("Axial, coronal, sagital e o MIP girando da série do quadro ativo, com as linhas de referência") }, tr("MPR"));
+  const espessura = el("select", { title: tr("Espessura (quadros A, C, S)") },
+    ...[0, 3, 5, 10, 20].map((n) => el("option", { value: n }, n ? `${n} mm` : tr("Corte fino")))) as HTMLSelectElement;
+  const projecao = el("select", { title: tr("Projeção da espessura") },
+    el("option", { value: "mip" }, "MIP"), el("option", { value: "minip" }, "MinIP"),
+    el("option", { value: "media" }, tr("Média"))) as HTMLSelectElement;
+  const obliquo = el("button", { title: tr("Dois cliques no quadro ativo definem a reta; o oblíquo vai para o outro quadro de volume") }, tr("Oblíquo"));
+  let girando = false;
+  const girar = el("button", { title: tr("Gira o MIP (a roda do mouse também gira)") }, tr("Girar MIP"));
   const barra = el("nav", { class: "barra" }, voltar, layout,
-    el("label", {}, tr("Botão esquerdo:"), ferr), presets, inverter, cine, fps, restaurar);
+    el("label", {}, tr("Botão esquerdo:"), ferr), presets, inverter, cine, fps, restaurar,
+    el("span", { class: "sep" }), mpr, espessura, projecao, obliquo, girar);
 
   // tira
   const tira = el("aside", { class: "tira" }, el("div", { class: "dica" }, tr("Clique numa série para mostrar no quadro ativo.")));
@@ -165,6 +177,7 @@ async function telaExame(study: string): Promise<void> {
 
   grade = new Grade(telas);
   grade.paciente = paciente;
+  grade.aviso = (m: string) => { aviso.textContent = m; };
   (window as unknown as Record<string, unknown>).__ipeGrade = grade; // para os testes de ponta a ponta
   const g = grade;
   const carregadas = new Map<string, Promise<Awaited<ReturnType<typeof carregarSerie>>>>();
@@ -222,6 +235,23 @@ async function telaExame(study: string): Promise<void> {
     montar(l, c);
   };
   ferr.onchange = () => aplicarBotoes(ferr.value as Ferramenta);
+  mpr.onclick = () => {
+    if (g.abrirMPR()) {
+      layout.value = "2x2";
+      ferr.value = "linhas";
+      aplicarBotoes("linhas");
+      aviso.textContent = "";
+    }
+  };
+  const aplicarEspessura = () => g.espessura(Number(espessura.value), projecao.value as Projecao);
+  espessura.onchange = aplicarEspessura;
+  projecao.onchange = aplicarEspessura;
+  obliquo.onclick = () => g.obliquoPorDoisPontos();
+  girar.onclick = () => {
+    girando = !girando;
+    g.girar(girando);
+    girar.textContent = girando ? tr("Parar o giro") : tr("Girar MIP");
+  };
   inverter.onclick = () => g.inverter();
   restaurar.onclick = () => g.restaurar();
   cine.onclick = () => {

@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.92 — visualizador web: MPR, oblicuo y MIP (fase 2)
+- Cada cuadro del visualizador web ganó **A, C, S, MIP y Original** arriba: cambia el plano con un clic,
+  reconstruyendo la serie en el navegador.
+- **MPR** (barra): axial, coronal, sagital y el MIP girando, con las líneas de referencia — arrastrar el centro lleva
+  los planos al punto; girar una línea hace los oblicuos.
+- **Oblicuo por dos puntos**, **espesor** (3 a 20 mm en MIP, MinIP o media) y **MIP girando** (botón o rueda del
+  mouse); un clic en el MIP lleva los cortes al punto más claro.
+- La serie que no forma volumen sigue en cortes, con el motivo; los volúmenes de más de 1,5 GB no se montan.
+
 ## 0.99.91 — visualizador web en el servidor central (fase 1)
 - El servidor central trae un **visualizador en el navegador** en `http(s)://servidor:8043/web/` (Chrome o Edge),
   con el mismo login del Ipê: lista de estudios con búsqueda y filtros, tira de series con miniaturas, cuadros de

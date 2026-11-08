@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.92 — web viewer: MPR, oblique and MIP (phase 2)
+- Each web viewer viewport gained **A, C, S, MIP and Original** at the top: changes the plane with one click,
+  reconstructing the series in the browser.
+- **MPR** (toolbar): axial, coronal, sagittal and the rotating MIP, with reference lines — dragging the centre takes
+  the planes to the point; rotating a line makes the obliques.
+- **Two-point oblique**, **thickness** (3 to 20 mm as MIP, MinIP or average) and **rotating MIP** (button or mouse
+  wheel); clicking the MIP takes the slices to the brightest point.
+- A series that cannot form a volume stays as slices, with the reason; volumes over 1.5 GB are not built.
+
 ## 0.99.91 — web viewer in the central server (phase 1)
 - The central server includes a **browser viewer** at `http(s)://server:8043/web/` (Chrome or Edge), with the same
   Ipê login: exam list with search and filters, series strip with thumbnails, 1×1 to 2×3 viewports, window, pan,
