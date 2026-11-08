@@ -16,6 +16,27 @@ log = logging.getLogger(__name__)
 PREFIXO = "biometria."
 ALTURA = (1.0, 2.3)        # m
 PESO = (20.0, 350.0)       # kg
+GLICEMIA = (20.0, 800.0)   # mg/dL (0.99.88)
+GLICEMIA_REF = 100.0       # o SUV corrigido é normalizado para 100 mg/dL
+
+
+def _glicemia(v) -> float | None:
+    """mg/dL; aceita mmol/L (valor abaixo de 35 vira × 18)."""
+    try:
+        g = float(str(v).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+    if 1.0 <= g < 35.0:
+        g *= 18.0
+    return round(g, 1) if GLICEMIA[0] <= g <= GLICEMIA[1] else None
+
+
+def fator_glicemia(glicemia_mgdl) -> float | None:
+    """SUV corrigido pela glicemia (SUVglic) = SUV × glicemia ÷ 100 mg/dL — a correção linear das diretrizes
+    (EANM/PERCIST): a captação de FDG do tumor compete com a glicose do sangue, e um paciente com 160 mg/dL
+    tem o SUV subestimado em relação ao mesmo tumor com 100 mg/dL."""
+    g = _glicemia(glicemia_mgdl)
+    return round(g / GLICEMIA_REF, 4) if g else None
 
 
 def _altura(v) -> float | None:
@@ -70,6 +91,7 @@ def ler(repo, study_uid: str, path=None) -> dict:
     arq = do_arquivo(path)
     g = guardado(repo, study_uid)
     out = {"fonte": {}}
+    out["glicemia_mgdl"] = _glicemia(g.get("glicemia_mgdl"))   # só digitada: não vem no DICOM
     for k in ("altura_m", "peso_kg", "sexo"):
         if g.get(k) not in (None, ""):
             out[k] = g[k]
@@ -80,13 +102,31 @@ def ler(repo, study_uid: str, path=None) -> dict:
     return out
 
 
-def guardar(repo, study_uid: str, altura_m=None, peso_kg=None, sexo=None) -> dict:
+_SEM = object()
+
+
+def guardar(repo, study_uid: str, altura_m=None, peso_kg=None, sexo=None, glicemia_mgdl=_SEM) -> dict:
     v = {"altura_m": _altura(altura_m) if altura_m not in (None, "") else None,
          "peso_kg": _peso(peso_kg) if peso_kg not in (None, "") else None,
          "sexo": (sexo or "").upper()[:1] if (sexo or "").upper()[:1] in ("M", "F") else ""}
+    # a glicemia guardada não se perde quando só a altura e o peso são editados (e vice-versa, em glicemia())
+    v["glicemia_mgdl"] = (guardado(repo, study_uid).get("glicemia_mgdl") if glicemia_mgdl is _SEM
+                          else _glicemia(glicemia_mgdl) if glicemia_mgdl not in (None, "") else None)
     if repo is not None and study_uid:
         repo.guardar_biometria(study_uid, v)
     return v
+
+
+def glicemia(repo, study_uid: str) -> float | None:
+    return _glicemia(guardado(repo, study_uid).get("glicemia_mgdl"))
+
+
+def guardar_glicemia(repo, study_uid: str, glicemia_mgdl) -> float | None:
+    g = dict(guardado(repo, study_uid))
+    g["glicemia_mgdl"] = _glicemia(glicemia_mgdl) if glicemia_mgdl not in (None, "", 0) else None
+    if repo is not None and study_uid:
+        repo.guardar_biometria(study_uid, g)
+    return g["glicemia_mgdl"]
 
 
 def imc(altura_m, peso_kg) -> float | None:

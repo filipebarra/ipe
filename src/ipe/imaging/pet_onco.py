@@ -37,6 +37,31 @@ NIVEIS = {"ok": "✓", "info": "·", "aviso": "⚠", "erro": "✗"}
 
 
 # ------------------------------------------------------------------ SUL
+def maximo_perto(vol, centro_mm, raio_mm: float = 15.0) -> np.ndarray | None:
+    """0.99.88: ponto (mm do paciente) do voxel de maior valor numa esfera em volta de `centro_mm`."""
+    try:
+        ijk = np.asarray(vol.patient_to_voxel(np.asarray(centro_mm, float)), float)   # (i=x, j=y, k=z)
+    except Exception:  # noqa: BLE001
+        return None
+    nz, ny, nx = vol.shape
+    sx, sy, sz = float(vol.dx), float(vol.dy), float(vol.dz)
+    ri, rj, rk = (max(1, int(np.ceil(raio_mm / max(s, 1e-3)))) for s in (sx, sy, sz))
+    ci, cj, ck = (int(round(v)) for v in ijk)
+    i0, i1 = max(0, ci - ri), min(nx, ci + ri + 1)
+    j0, j1 = max(0, cj - rj), min(ny, cj + rj + 1)
+    k0, k1 = max(0, ck - rk), min(nz, ck + rk + 1)
+    if i0 >= i1 or j0 >= j1 or k0 >= k1:
+        return None
+    bloco = np.asarray(vol.data[k0:k1, j0:j1, i0:i1], float)
+    kk, jj, ii = np.meshgrid(np.arange(k0, k1), np.arange(j0, j1), np.arange(i0, i1), indexing="ij")
+    dentro = ((ii - ijk[0]) * sx) ** 2 + ((jj - ijk[1]) * sy) ** 2 + ((kk - ijk[2]) * sz) ** 2 <= raio_mm ** 2
+    if not dentro.any():
+        return None
+    b = np.where(dentro, bloco, -np.inf)
+    k, j, i = np.unravel_index(int(np.argmax(b)), b.shape)
+    return np.asarray(vol.voxel_to_patient(i + i0, j + j0, k + k0), float)
+
+
 def massa_magra_kg(peso_kg: float, altura_m: float, sexo: str) -> float | None:
     """Massa magra de Janmahasatian (2005); None sem peso, altura ou sexo (M/F)."""
     sexo = (sexo or "").upper()[:1]
@@ -386,6 +411,21 @@ def comparar(a: dict, b: dict) -> list[tuple[str, str, str]]:
     if not [x for x in out if x[0] == "aviso"]:
         out.insert(0, ("ok", "Comparáveis", "nada no cabeçalho impede a comparação"))
     return out
+
+
+def conferir_glicemia(mgdl) -> tuple[str, str, str]:
+    """0.99.88: glicemia antes da injeção. EANM 2015: até 200 mg/dL (11 mmol/L) faz; acima, remarcar ou
+    considerar. Até 150 mg/dL é o ideal para PERCIST/ensaios. Sem valor: lembrar (não vem no DICOM)."""
+    if not mgdl:
+        return ("info", "Glicemia", "não informada (não vem no DICOM): digite acima a da ficha; "
+                                    "o PERCIST pede menos de 200 mg/dL")
+    g = float(mgdl)
+    if g > 200:
+        return ("aviso", "Glicemia", f"{g:.0f} mg/dL: acima de 200 (EANM: remarcar ou interpretar com cautela; "
+                                     f"SUV subestimado) — SUVglic = SUV × {g / 100:.2f}")
+    if g > 150:
+        return ("info", "Glicemia", f"{g:.0f} mg/dL: entre 150 e 200, aceitável; SUVglic = SUV × {g / 100:.2f}")
+    return ("ok", "Glicemia", f"{g:.0f} mg/dL; SUVglic = SUV × {g / 100:.2f}")
 
 
 def texto(itens: list[tuple[str, str, str]]) -> str:

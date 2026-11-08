@@ -116,6 +116,16 @@ def _synthseg(vol_kji, afim) -> tuple:
     return lab.transpose(2, 1, 0), nomes, np.asarray(lab_1mm).astype(np.uint8), afim_1mm
 
 
+#: 0.99.89: fantoma da carga tumoral no PET — {tarefa: {id: (código do HU, classe)}}
+CARGA_SIM = {
+    "total": {1: (1, "liver"), 2: (2, "spleen"), 3: (3, "kidney_left"), 4: (4, "kidney_right"),
+              5: (5, "urinary_bladder"), 6: (6, "brain"), 7: (7, "heart"), 8: (8, "aorta"),
+              9: (9, "vertebrae_L3"), 10: (10, "hip_left"), 11: (11, "hip_right"), 12: (12, "prostate"),
+              13: (13, "lung_upper_lobe_left")},
+    "head_glands_cavities": {1: (21, "parotid_gland_left"), 2: (22, "parotid_gland_right")},
+}
+
+
 def _simular(vol, tarefas: list, afim=None) -> dict:
     """Para os testes do programa (sem PyTorch e sem modelo): rótulos de geometria conhecida."""
     import numpy as np
@@ -129,6 +139,12 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
             codigos = LINFO_SIM.get(nome, {})
             for cid, (cod, _n) in codigos.items():
                 lab[vol == 2000 + cod] = cid
+            saida[nome] = (lab, {cid: n for cid, (_c, n) in codigos.items()})
+            continue
+        if t.get("carga"):                   # 0.99.89: carga tumoral PET — HU = 4000 + código do órgão
+            codigos = CARGA_SIM.get(nome, {})
+            for cid, (cod, _n) in codigos.items():
+                lab[vol == 4000 + cod] = cid
             saida[nome] = (lab, {cid: n for cid, (_c, n) in codigos.items()})
             continue
         if t.get("figado_rm"):               # 0.99.49: fígado = 600 (metade esquerda S2, direita S7), baço = 500

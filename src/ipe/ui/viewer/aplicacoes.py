@@ -196,6 +196,9 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
               descricao="Lesões hepáticas (IA): volume e diâmetro de cada uma e a carga por segmento de Couinaud"),
     Aplicacao("autopet", "autoPET", frozenset({"PT"}),
               descricao="Lesões no PET-FDG (IA, modelo extra): MTV, TLG e o SUV de cada lesão"),
+    Aplicacao("carga_pet", "Carga tumoral", frozenset({"PT"}),
+              descricao="Carga tumoral no PET (FDG, PSMA, DOTA): focos acima do limiar sem a captação fisiológica, "
+                        "MTV, TLG, regiões e, no PSMA, miTNM e miPSMA"),
     Aplicacao("brats", "BraTS", frozenset({"MR"}), ((frozenset({"cranio"}), frozenset()),),
               descricao="Glioma na RM (IA, modelo extra): volumes da parte captante, necrose e edema"),
     Aplicacao("difusao", "Difusão", frozenset({"MR"}), ((frozenset(), frozenset({"difusao"})),),

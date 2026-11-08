@@ -51,6 +51,7 @@ class SegResult:
     truncated: bool = False
     notes: list[str] = field(default_factory=list)
     sul_razao: float | None = None   # 0.99.60: massa magra / peso (SUL = SUV × razão)
+    glic: float | None = None        # 0.99.88: glicemia ÷ 100 (SUVglic = SUV × glic)
 
     def summary(self) -> str:
         s = f"{self.ml:.2f} mL"
@@ -78,6 +79,10 @@ class SegResult:
             for k in ("suvmax", "suvmean", "suvpeak"):
                 if k in d:
                     d["sul" + k[3:]] = round(d[k] * self.sul_razao, 3)
+        if self.glic:
+            for k in ("suvmax", "suvmean", "suvpeak"):
+                if k in d:
+                    d["suvg" + k[3:]] = round(d[k] * self.glic, 3)
         if self.max_diam_mm:
             d["mm"] = round(self.max_diam_mm, 2)
         if self.eixos_mm:

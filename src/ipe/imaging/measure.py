@@ -239,7 +239,7 @@ def _num(v: float) -> str:
 
 
 def labels(ann: Annotation, pixels: np.ndarray | None, spacing: tuple[float, float] | None,
-           modality: str = "", suv: float | None = None) -> list[str]:
+           modality: str = "", suv: float | None = None, glic: float | None = None) -> list[str]:
     """Texto que acompanha a medida na tela."""
     pts, k = ann.points, ann.kind
     unit = "mm" if spacing else "px"
@@ -306,6 +306,8 @@ def labels(ann: Annotation, pixels: np.ndarray | None, spacing: tuple[float, flo
         u = f" {u}" if u else ""
         if st.mean is not None and suv:
             out.append(f"SUVmáx {st.maximum * suv:.2f}  SUVméd {st.mean * suv:.2f}")
+            if glic:                             # 0.99.88: corrigido pela glicemia (× glicemia ÷ 100)
+                out.append(f"SUVglic máx {st.maximum * suv * glic:.2f}  méd {st.mean * suv * glic:.2f}")
         if st.mean is not None:
             out.append(f"Média {_num(st.mean)} ± {_num(st.sd)}{u}")
             out.append(f"Mín {_num(st.minimum)}  Máx {_num(st.maximum)}")
@@ -329,6 +331,8 @@ def labels(ann: Annotation, pixels: np.ndarray | None, spacing: tuple[float, flo
             out.append(f"Mamilo {m['dist_mamilo_mm']:.0f} mm")
         if m.get("suvmax") is not None:
             out.append(f"SUVmáx {m['suvmax']:.2f}  SUVpk {m.get('suvpeak') or 0:.2f}")
+            if m.get("suvgmax") is not None:
+                out.append(f"SUVglic máx {m['suvgmax']:.2f}  pk {m.get('suvgpeak') or 0:.2f}")
             out.append(f"TLG {m.get('tlg') or 0:.1f}")
         elif m.get("mean") is not None:
             u = unit_for(modality)

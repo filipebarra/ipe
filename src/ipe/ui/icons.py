@@ -424,7 +424,7 @@ def _draw(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por ícone
 _APPS_IA = {"app_nodulos": True, "app_enfisema": True, "app_composicao": True, "app_figado": True,
             "app_orgaos": True, "app_genant": True, "app_linfonodos": True, "app_cefalometria": True,
             "app_indices": True, "app_difusao": False, "app_figado_lesoes": True,
-            "app_autopet": True, "app_brats": True}
+            "app_autopet": True, "app_brats": True, "app_carga_pet": True}
 
 
 def _pulmoes(p: QPainter) -> None:
@@ -519,6 +519,24 @@ def _draw_app(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por aplic
         p.setBrush(ACCENT)
         p.drawEllipse(QRectF(14, 20, 9, 9))
         p.drawEllipse(QRectF(36, 31, 6, 6))
+    elif name == "app_carga_pet":       # esqueleto simples com vários focos e a barra da carga ao lado
+        p.setPen(_pen(FG, 3.2))
+        p.drawEllipse(QRectF(12, 4, 14, 12))
+        p.drawLine(P(19, 16), P(19, 44))          # coluna
+        p.drawLine(P(8, 22), P(30, 22))           # ombros
+        p.drawLine(P(11, 44), P(27, 44))          # bacia
+        p.drawLine(P(13, 44), P(11, 60))
+        p.drawLine(P(25, 44), P(27, 60))
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(255, 120, 40))
+        for x, y, r in ((19, 30, 6), (9, 26, 5), (25, 40, 5), (12, 53, 5)):
+            p.drawEllipse(QRectF(x - r / 2, y - r / 2, r, r))
+        p.setPen(_pen(FG, 2.5))
+        p.setBrush(Qt.NoBrush)
+        p.drawRect(QRectF(40, 10, 14, 48))
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(255, 120, 40))
+        p.drawRect(QRectF(43, 32, 8, 23))
     elif name == "app_autopet":         # silhueta do corpo com focos quentes (PET)
         p.setPen(_pen(FG, 3.5))
         p.drawEllipse(QRectF(24, 4, 16, 14))

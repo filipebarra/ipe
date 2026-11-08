@@ -3,6 +3,17 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.88 — PET: carga tumoral (FDG, PSMA, DOTA), leitura PET e SUV pela glicemia
+- **Carga tumoral no PET** (botão **Carga**, ou Aplicações ▸ Carga tumoral): o TotalSegmentator acha os órgãos na
+  TC do PET/CT; no PET, os focos acima do limiar do traçador (FDG: PERCIST; PSMA: SUV 3; DOTA: fígado) fora da
+  captação fisiológica viram achados, com volume, SUVmáx/médio/peak, TLG e região (próstata, osso, linfonodo pélvico
+  ou extrapélvico, víscera). Sai o MTV e a TLG totais; no PSMA, o **miTNM** (PROMISE) e o escore **miPSMA** de cada
+  foco. Descartar um foco nos Achados tira ele do total do laudo. A máscara fica numa SEG sobre o PET.
+- **Leitura PET** (botão Fusão): fusão, PET e MIP girando em três quadros; clicar num foco do MIP leva os cortes até
+  ele. **Ir ao SUV máximo perto do cursor (3 cm)**.
+- **Glicemia** na janela PET…: fica guardada no exame, entra no Q.Check (aviso acima de 200 mg/dL) e as medidas no
+  PET mostram também o SUVglic (SUV × glicemia ÷ 100).
+
 ## 0.99.87 — guia do usuário com telas do programa
 - O guia em PDF ganhou 19 figuras: banco de dados, visualizador com a segmentação de IA, barra de ferramentas,
   layout, medidas, MPR, 3D (MIP do PET), mamografia e tomossíntese, RM de mama e a janela da dinâmica, anteriores,

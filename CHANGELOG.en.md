@@ -3,6 +3,17 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.88 — PET: tumour burden (FDG, PSMA, DOTA), PET reading and glucose-corrected SUV
+- **PET tumour burden** (**Burden** button, or Applications ▸ Tumour burden): TotalSegmentator finds the organs on
+  the PET/CT's CT; on the PET, the foci above the tracer threshold (FDG: PERCIST; PSMA: SUV 3; DOTA: liver) outside
+  physiologic uptake become findings, with volume, SUVmax/mean/peak, TLG and region (prostate, bone, pelvic or
+  extrapelvic node, viscera). Total MTV and TLG; in PSMA, **miTNM** (PROMISE) and each focus's **miPSMA** score.
+  Discarding a focus in Findings removes it from the report total. The mask is saved as a SEG over the PET.
+- **PET reading** (Fusion button): fusion, PET and rotating MIP in three viewports; clicking a focus on the MIP
+  brings the slices to it. **Go to the SUV maximum near the cursor (3 cm)**.
+- **Blood glucose** in the PET… window: stored with the exam, checked by Q.Check (warning above 200 mg/dL), and PET
+  measurements also show SUVglu (SUV × glucose ÷ 100).
+
 ## 0.99.87 — user guide with screenshots of the program
 - The PDF guide gained 19 figures: database, viewer with the AI segmentation, toolbar, layout, measurements, MPR,
   3D (PET MIP), mammography and tomosynthesis, breast MR and the dynamic window, priors, PET/CT fusion, spine

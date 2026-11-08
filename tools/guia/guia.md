@@ -1330,9 +1330,29 @@ O painel de lesões dá nome a cada lesão, e as medidas de exames diferentes se
 - **Referência do fígado**: *Fígado: clicar* — clique no lobo direito, no PET; a esfera de 3 cm procura, até 2 cm do clique, o lugar mais homogêneo (menor desvio-padrão). *Fígado: automático* — usa a segmentação do fígado do exame (Órgãos/TotalSegmentator na TC do PET/CT), coloca a esfera inteira dentro dele, no lobo direito. **Mediastino**: clique na aorta descendente (esfera de 1 cm). As referências ficam por exame.
 - **PERCIST**: limiar de lesão mensurável = 1,5 × SULmédio do fígado + 2 × DP (sem fígado, 2 × pool + 2 × DP). O painel mostra a referência e o limiar em cada exame; avisa quando a lesão mais ávida da base fica abaixo do limiar e quando o fígado varia mais de 20% ou 0,3 entre os exames (não comparáveis).
 - **Deauville / Lugano** (critério novo no painel): o escore de cada lesão em cada exame é proposto pelos números — 2 até o mediastino, 3 até o fígado, 4 acima do fígado, 5 acima de 2 × o SUVmáx do fígado (ajustável) ou lesão nova, 1 ausente — e se troca no botão direito ▸ *Deauville neste exame* (inclui o X). A resposta metabólica sai pelo maior escore: 1–3 completa; 4–5 com captação menor que a da base, parcial; igual, sem resposta; maior ou lesão nova, progressão.
-- **Q.Check**: o cabeçalho do PET deste exame — tempo de captação (50–70 min), peso, altura e sexo, dose, meia-vida, unidade, correções de decaimento e atenuação, matriz, espessura, reconstrução e aparelho — e a comparação com o exame de base (diferença de captação até 15 min, mesmo aparelho e reconstrução, peso, dose, fígado). A glicemia não vem no DICOM: confira na ficha.
+- **Q.Check**: o cabeçalho do PET deste exame — tempo de captação (50–70 min), peso, altura e sexo, dose, meia-vida, unidade, correções de decaimento e atenuação, matriz, espessura, reconstrução e aparelho — e a comparação com o exame de base (diferença de captação até 15 min, mesmo aparelho e reconstrução, peso, dose, fígado). A glicemia não vem no DICOM: digite a da ficha no campo **Glicemia** da janela PET… (0.99.88). Ela fica guardada no exame; o Q.Check avisa acima de 200 mg/dL (a EANM recomenda remarcar ou interpretar com cautela, o SUV fica subestimado) e diz que 150–200 é aceitável. Com a glicemia, as medidas no PET mostram também o **SUVglic** = SUV × glicemia ÷ 100 mg/dL (aceita mmol/L: valores abaixo de 35 viram mg/dL × 18).
 
 A segmentação 3D mede volume, SUV máximo e médio, TLG e, somando as lesões, TMTV. Os limiares (percentual do SUVmáx, SUV mínimo, método) ficam guardados, e a barra do limiar vale também para o percentual do SUVmáx.
+
+## Leitura PET e o SUV máximo perto do cursor (0.99.88)
+
+No botão **Fusão** dos exames de PET/CT:
+
+- **Leitura PET: fusão, PET e MIP girando…** monta três quadros: a TC com o PET fundido, o PET sozinho e o MIP do PET em 3D, invertido e girando. **Clique num foco do MIP** para levar os cortes dos outros quadros até ele. O PET corrigido por atenuação é preferido ao NAC.
+- **Ir ao SUV máximo perto do cursor (3 cm)** procura o voxel mais ávido numa esfera de 3 cm em volta do cursor de referência e leva os cortes até ele; a barra de status diz o SUV. Útil para cravar o SUVmáx de uma lesão sem caçar o pixel à mão.
+
+## Carga tumoral no PET: FDG, PSMA e DOTA (0.99.88)
+
+Botão **Carga** (ou Aplicações ▸ Carga tumoral) num PET/CT. O TotalSegmentator acha os órgãos e os ossos na TC do exame (e, no PSMA, as glândulas salivares); os órgãos são levados à grade do PET. No PET, tudo acima do limiar do traçador que não está num órgão de captação fisiológica (dilatado 1 voxel) vira um **foco**:
+
+- **Traçador**: lido do cabeçalho (radiofármaco, descrição do exame ou da série). Sem ele, as contas são de FDG e o aviso diz isso.
+- **Limiar**: FDG — PERCIST (1,5 × fígado + 2 DP, pela esfera de 3 cm no fígado segmentado; sem fígado, SUV 2,5), ou um SUV fixo nas configurações; **PSMA** — SUV 3 (qPSMA); **DOTA** — a média do fígado (Krenning).
+- **Captação fisiológica tirada**, por traçador: no FDG, encéfalo, coração, rins e bexiga; no PSMA, glândulas salivares, rins, bexiga, fígado, baço e intestino; no DOTA, fígado, baço, adrenais, rins, bexiga e intestino A lista tirada sai nos avisos — no PSMA e no DOTA uma lesão hepática **não entra** na conta.
+- Cada foco (≥ 0,3 mL, ajustável) tem volume, SUVmáx, SUVmédio, SUVpeak, TLG e **região**: próstata, osso (com o nome do osso: L3, 5º arco costal direito…), linfonodo pélvico (abaixo da crista ilíaca), linfonodo/partes moles extrapélvico ou víscera (pulmão, fígado…). Sai o **MTV** e a **TLG** totais.
+- **No PSMA**: o **miTNM** (PROMISE: miT pela próstata, miN1 pélvico, miM1a extrapélvico, M1b osso — uni, oligo até 3 ou disseminado —, M1c víscera) e o **escore miPSMA** de cada foco pelas referências do exame: 0 abaixo do pool sanguíneo (aorta), 1 abaixo do fígado, 2 abaixo da parótida, 3 acima.
+- Cada foco vira um achado em **Aplicações ▸ Achados de IA**. **Descartar** um foco (inflamação, músculo, gordura marrom, intestino…) tira ele do total: o texto do **laudo** soma só os confirmados e refaz o miTNM. A máscara fica numa SEG sobre o PET (série 987), um segmento por região.
+
+São contas automáticas por limiar: confira cada foco antes de usar o número.
 
 ## Tarefas de IA: andamento e cancelar
 

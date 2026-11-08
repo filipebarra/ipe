@@ -131,6 +131,8 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("genant.auto", "Fratura vertebral — Genant (IA)", "Medidas"),
     ("figado_lesoes.auto", "Lesões hepáticas e carga por segmento (IA)", "Medidas"),
     ("autopet.auto", "Lesões no PET-FDG: MTV e TLG (IA)", "Medidas"),
+    ("carga_pet.auto", "Carga tumoral no PET (FDG/PSMA/DOTA)", "Medidas"),
+    ("pet.maximo", "Ir ao SUV máximo perto do cursor", "Medidas"),
     ("brats.auto", "Glioma na RM — BraTS (IA)", "Medidas"),
     ("achados.abrir", "Achados de IA: revisar, confirmar, descartar", "Medidas"),
     ("estruturas.abrir", "Estruturas: editar máscaras (SEG / RTSTRUCT)", "Medidas"),

@@ -76,7 +76,7 @@ def peak_mean(pixels: np.ndarray, center: tuple[int, int], radius_px: tuple[floa
 
 
 def measure_values(kind: str, points: list, pixels: np.ndarray | None, spacing,
-                   suv: float | None = None, sul_razao: float | None = None) -> dict:
+                   suv: float | None = None, sul_razao: float | None = None, glic: float | None = None) -> dict:
     """Valores guardados na medida ligada à lesão: mm (diâmetro), SUV (máx/pico/médio), média, área."""
     from ipe.imaging import measure as M
     out: dict = {}
@@ -112,6 +112,10 @@ def measure_values(kind: str, points: list, pixels: np.ndarray | None, spacing,
                     for k in ("suvmax", "suvmean", "suvpeak"):
                         if k in out:
                             out["sul" + k[3:]] = round(out[k] * sul_razao, 3)
+                if glic:                         # 0.99.88: SUVglic = SUV × glicemia ÷ 100
+                    for k in ("suvmax", "suvmean", "suvpeak"):
+                        if k in out:
+                            out["suvg" + k[3:]] = round(out[k] * glic, 3)
     return out
 
 

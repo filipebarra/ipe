@@ -281,11 +281,13 @@ class Viewport(AnnotationMixin, QWidget):
         self._load_current()
         self.suv_factor = None
         self.sul_razao = None
+        self.glic = None
         mod = (self._img.header.get("Modality", "") if self._img is not None else "") or self.modality
         if frames and mod == "PT":
             from ipe.imaging.pet_onco import fatores_do_arquivo
             fs = fatores_do_arquivo(frames[0].path)
             self.suv_factor, self.sul_razao = fs["suv"], fs["sul_razao"]
+            self.atualizar_glicemia()
         if frames and mod == "NM" and self.settings is not None \
                 and self.settings.get("nm.invert", True):
             # medicina nuclear se lê com a captação escura; é a convenção da área
@@ -1624,6 +1626,20 @@ class Viewport(AnnotationMixin, QWidget):
         self._qimage_key = None
         self.update()
         self.sig.view_changed.emit(self, "filter")
+
+    def atualizar_glicemia(self) -> None:
+        """0.99.88: o fator da glicemia digitada para o exame (SUVglic = SUV × glicemia ÷ 100)."""
+        self.glic = None
+        if not self.suv_factor:
+            return
+        repo = getattr(self.window(), "repo", None)
+        if repo is None or not self.study_uid:
+            return
+        try:
+            from ipe.ai import biometria as B
+            self.glic = B.fator_glicemia(B.glicemia(repo, self.study_uid))
+        except Exception:  # noqa: BLE001
+            log.debug("glicemia do exame", exc_info=True)
 
     def paintEvent(self, _event) -> None:  # noqa: N802
         p = QPainter(self)

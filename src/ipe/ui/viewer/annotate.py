@@ -294,7 +294,7 @@ class AnnotationMixin:
         keep = {k: v for k, v in ann.meta.items() if k in ("lesion", "lesion_name", "role") + REF_CHAVES}
         try:
             vals = measure_values(ann.kind, ann.points, pix, self.measure_spacing(ann), getattr(self, "suv_factor", None),
-                                  getattr(self, "sul_razao", None))
+                                  getattr(self, "sul_razao", None), getattr(self, "glic", None))
         except Exception as e:  # noqa: BLE001
             log.warning("valores da lesão: %s", e)
             vals = {}
@@ -900,7 +900,7 @@ class AnnotationMixin:
             show = a.done or k in ("seg", "line", "ellipse", "rect", "angle", "cobb", "ctr", "height",
                                    "probe", "polyline", "calibration")
             spacing = self.measure_spacing(a) if usa_regiao else spacing_base
-            texts = M.labels(a, pix, spacing, self.modality, getattr(self, "suv_factor", None)) if show and k != "spine" else []
+            texts = M.labels(a, pix, spacing, self.modality, getattr(self, "suv_factor", None), getattr(self, "glic", None)) if show and k != "spine" else []
             if texts and a.done:
                 texts += M.linhas_extras(a, pix, spacing, incerteza=incerteza, espessura=espessura,
                                          ref_media=ref_media)

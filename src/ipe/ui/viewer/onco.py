@@ -1250,6 +1250,7 @@ class SegmentDialog(QDialog):
                 self.res = segment(self.vol, self.seed, m, lo, hi, self.suv, self.pct.value(), self.abs.value(),
                                    self.radius.value(), self.modality)
             self.res.sul_razao = getattr(self.vp, "sul_razao", None) if self.suv else None
+            self.res.glic = getattr(self.vp, "glic", None) if self.suv else None
         except Exception as e:  # noqa: BLE001
             log.exception("segmentação")
             self.result.setText(f"Erro: {e}")

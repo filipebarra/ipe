@@ -71,6 +71,18 @@ class PetDialog(QDialog):
         self.fator5.setSuffix(" × o SUVmáx do fígado")
         self.fator5.setValue(float(self._dados().get("fator5") or PO.FATOR_DEAUVILLE_5))
         self.fator5.valueChanged.connect(self._fator5)
+        # 0.99.88: glicemia do dia (não vem no DICOM) → SUVglic nas medidas e na segmentação, e o Q.Check
+        from ipe.ai import biometria as B
+        self.glicemia = QDoubleSpinBox()
+        self.glicemia.setRange(0, 800)
+        self.glicemia.setDecimals(0)
+        self.glicemia.setSingleStep(5)
+        self.glicemia.setSuffix(" mg/dL")
+        self.glicemia.setSpecialValueText("não informada")
+        self.glicemia.setToolTip("Glicemia antes da injeção. Com ela, as medidas no PET mostram também o SUVglic "
+                                 "(SUV × glicemia ÷ 100 mg/dL). Fica guardada no exame.")
+        self.glicemia.setValue(float(B.glicemia(tab.repo, self.study_uid) or 0))
+        self.glicemia.valueChanged.connect(self._glicemia)
         self.qc = QPlainTextEdit()
         self.qc.setReadOnly(True)
         b_copiar = QPushButton("Copiar o Q.Check")
@@ -82,6 +94,7 @@ class PetDialog(QDialog):
         form.addRow("Mediastino:", self.l_medi)
         form.addRow("PERCIST:", self.l_limiar)
         form.addRow("Deauville 5 acima de:", self.fator5)
+        form.addRow("Glicemia:", self.glicemia)
         h1 = QHBoxLayout()
         for b in (b_auto, b_fig, b_med):
             h1.addWidget(b)
@@ -132,6 +145,15 @@ class PetDialog(QDialog):
         dados["refs"] = refs
         self._gravar(dados)
         self.recarregar()
+
+    def _glicemia(self, v: float) -> None:
+        from ipe.ai import biometria as B
+        B.guardar_glicemia(self.tab.repo, self.study_uid, v or None)
+        for vp in getattr(self.tab, "viewports", []):
+            if getattr(vp, "suv_factor", None):
+                vp.atualizar_glicemia()
+                vp.update()
+        self.qc.setPlainText(self.texto_qc())
 
     def _fator5(self, v: float) -> None:
         dados = self._dados()
@@ -185,7 +207,7 @@ class PetDialog(QDialog):
                 cf = PO.comparar_figado(PO.em_sul(self.refs(base).get("figado")), PO.em_sul(self.refs().get("figado")))
                 if cf is not None:
                     linhas.append(PO.texto([(cf[0], "Fígado (PERCIST)", cf[1])]))
-        linhas += ["", "A glicemia não vem no DICOM: confira na ficha (o PERCIST pede menos de 200 mg/dL)."]
+        linhas += ["", PO.texto([PO.conferir_glicemia(self.glicemia.value() or None)])]
         return "\n".join(linhas)
 
     def _exame_de_comparacao(self) -> str:
