@@ -2894,6 +2894,7 @@ class MainWindow(QMainWindow):
                                     certfile=self.settings.get("central.certfile", "") or "",
                                     keyfile=self.settings.get("central.keyfile", "") or "")
                 srv.on_import = lambda _s: self._refresh_timer.start()
+                srv.settings = self.settings
                 srv.start()
                 self.central = srv
             except OSError as e:

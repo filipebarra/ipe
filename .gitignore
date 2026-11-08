@@ -21,3 +21,6 @@ Claude outputs/
 *.tgz
 _imp_*
 _dv_*
+
+# visualizador web (0.99.91): só as fontes e o site construído (src/ipe/web_dist) vão para o git
+web/node_modules/

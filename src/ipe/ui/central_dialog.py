@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QButtonGroup, QCheckBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QFileDialog, QFormLayout, QGroupBox,
     QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QRadioButton, QSpinBox, QVBoxLayout, QWidget,
@@ -66,6 +67,17 @@ class CentralDialog(QDialog):
                       "Outros visualizadores DICOMweb podem usar /dicomweb com usuário e senha.</small>")
         hint.setWordWrap(True)
         fs.addRow(hint)
+        # 0.99.91: o visualizador web, no próprio servidor
+        porta = int(settings.get("central.port", 8043) or 8043)
+        esquema = "https" if (settings.get("central.certfile", "") or "") else "http"
+        ip1 = (local_ips() or ["127.0.0.1"])[0]
+        self.web_link = QLabel(f"<small>Visualizador web (navegador, com o mesmo usuário e senha): "
+                               f"<a href='{esquema}://{ip1}:{porta}/web/'>{esquema}://{ip1}:{porta}/web/</a>"
+                               f" — Chrome ou Edge.</small>")
+        self.web_link.setOpenExternalLinks(True)
+        self.web_link.setWordWrap(True)
+        self.web_link.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        fs.addRow(self.web_link)
         # 0.99.24: sem certificado o servidor fala HTTP, e a senha de cada login passa aberta na rede
         self.aviso_http = QLabel("<small><span style='color:#c03030'>Sem certificado o servidor usa HTTP: "
                                  "usuário e senha passam pela rede sem criptografia. Use só numa rede "

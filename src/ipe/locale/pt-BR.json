@@ -6248,7 +6248,13 @@
   "≥ 40 mm costuma ser relatado como dilatação; a raiz se mede seio a seio, com ECG",
   "≥ 40 mm costuma ser relatado como dilatação; ≥ 55 mm (≥ 50 mm em centro experiente) é o limiar de cirurgia (ACC/AHA 2022)",
   "≥ 40 mm costuma ser relatado como dilatação; ≥ 55 mm, cirurgia (ACC/AHA 2022)",
-  "≥ 40 mm costuma ser relatado como dilatação; ≥ 55 mm, reparo (ACC/AHA 2022)"
+  "≥ 40 mm costuma ser relatado como dilatação; ≥ 55 mm, reparo (ACC/AHA 2022)",
+  "Location",
+  "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+  "arquivo do site não encontrado",
+  "miniatura (web)",
+  "o visualizador web não está instalado neste servidor",
+  "sem miniatura"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7894,6 +7900,9 @@
   "cortes a cada {} mm: o plano perpendicular perde nitidez; prefira ≤ 3 mm",
   "maior: {}",
   "{} {} mm",
-  "{}: diâmetro máximo {}"
+  "{}: diâmetro máximo {}",
+  "<small>Visualizador web (navegador, com o mesmo usuário e senha): <a href='{}://{}:{}/web/'>{}://{}:{}/web/</a> — Chrome ou Edge.</small>",
+  "abriu no navegador: {}",
+  "quadro {} fora de 1..{}"
  ]
 }

@@ -26,6 +26,12 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [RapidOCR](https://github.com/RapidAI/RapidOCR) | OCR das folhas de impressão recebidas (identificar o paciente) | Apache-2.0 |
 | [ONNX Runtime](https://onnxruntime.ai) | roda as redes neurais na CPU (OCR, densidade mamária) | MIT |
 | [cryptography](https://cryptography.io) | a AC interna e os certificados HTTPS da rede (0.99.74) | Apache-2.0 ou BSD-3-Clause |
+| [Cornerstone3D](https://github.com/cornerstonejs/cornerstone3D) | o visualizador web do servidor central: quadros, janela, rolagem, cine (e, nas próximas fases, MPR, MIP, fusão e medidas) | MIT |
+| [vtk.js (Kitware)](https://github.com/Kitware/vtk-js) | o desenho em WebGL por baixo do Cornerstone3D | BSD-3-Clause |
+| [dicomParser](https://github.com/cornerstonejs/dicomParser) | leitura de DICOM no navegador | MIT |
+| [CharLS (WebAssembly)](https://github.com/team-charls/charls) | JPEG-LS no navegador: as imagens do banco vão como estão | BSD-3-Clause |
+| [OpenJPEG e OpenJPH (WebAssembly)](https://github.com/uclouvain/openjpeg) | JPEG 2000 e HTJ2K no navegador | BSD-2-Clause |
+| [libjpeg-turbo e libjxl (WebAssembly)](https://github.com/libjpeg-turbo/libjpeg-turbo) | JPEG e JPEG XL no navegador | IJG/BSD-3-Clause/zlib e BSD-3-Clause |
 
 ## Opcional, instalado à parte
 
@@ -73,6 +79,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | Ferramenta | Para que serve | Licença |
 |---|---|---|
 | [ReportLab](https://www.reportlab.com/opensource/) | o guia do usuário em PDF | BSD |
+| [Vite, TypeScript e Terser](https://vite.dev) | constroem o visualizador web (src/ipe/web_dist) | MIT, Apache-2.0 e BSD-2-Clause |
 | [pytest](https://pytest.org) | os testes automáticos | MIT |
 | [Claude (Anthropic)](https://www.anthropic.com/claude) | escreve o código a partir dos pedidos do autor, testa e documenta | serviço da Anthropic |
 

@@ -8388,5 +8388,14 @@
  "cortes a cada {} mm: o plano perpendicular perde nitidez; prefira ≤ 3 mm": "cortes cada {} mm: el plano perpendicular pierde nitidez; prefiera ≤ 3 mm",
  "maior: {}": "mayor: {}",
  "{} {} mm": "{} {} mm",
- "{}: diâmetro máximo {}": "{}: diámetro máximo {}"
+ "{}: diâmetro máximo {}": "{}: diámetro máximo {}",
+ "Location": "Location",
+ "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+ "arquivo do site não encontrado": "archivo del sitio no encontrado",
+ "miniatura (web)": "miniatura (web)",
+ "o visualizador web não está instalado neste servidor": "el visualizador web no está instalado en este servidor",
+ "sem miniatura": "sin miniatura",
+ "<small>Visualizador web (navegador, com o mesmo usuário e senha): <a href='{}://{}:{}/web/'>{}://{}:{}/web/</a> — Chrome ou Edge.</small>": "<small>Visualizador web (navegador, con el mismo usuario y contraseña): <a href='{}://{}:{}/web/'>{}://{}:{}/web/</a> — Chrome o Edge.</small>",
+ "abriu no navegador: {}": "abrió en el navegador: {}",
+ "quadro {} fora de 1..{}": "cuadro {} fuera de 1..{}"
 }

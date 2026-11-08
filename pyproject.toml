@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ipe"
-version = "0.99.90"
+version = "0.99.91"
 description = "Ipê — visualizador DICOM para pesquisa e ensino (Windows e Linux)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -44,7 +44,7 @@ dicomviewer-gui = "ipe.__main__:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-ipe = ["locale/*.json", "ajuda/*.pdf", "ajuda/*.md"]
+ipe = ["locale/*.json", "ajuda/*.pdf", "ajuda/*.md", "web_dist/*", "web_dist/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

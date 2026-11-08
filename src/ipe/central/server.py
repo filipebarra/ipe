@@ -56,6 +56,7 @@ class CentralServer:
         self.leituras = Leituras()       # 0.99.31: quem está laudando cada exame
         from ipe.central.atualizacoes import Atualizacoes
         self.atualizacoes = Atualizacoes(self.storage.parent / "Atualizacoes")   # 0.99.56 (onda B1)
+        self.settings = None             # 0.99.91: o visualizador web lê idioma, janelas e protocolos daqui
 
     # ------------------------------------------------------------------ ciclo de vida
     @property
@@ -372,10 +373,13 @@ class _Handler(BaseHTTPRequestHandler):
     # ------------------------------------------------------------------ respostas
     def _send(self, code: int, body: bytes, ctype: str = "application/json; charset=utf-8",
               extra: dict | None = None) -> None:
+        from ipe.central import web as WEB
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        for k, v in (extra or {}).items():
+        cab = WEB.cabecalhos(bool(self.central.certfile), pagina=ctype.startswith("text/html"))
+        cab.update(extra or {})
+        for k, v in cab.items():
             self.send_header(k, v)
         self.end_headers()
         if self.command != "HEAD":
@@ -400,7 +404,8 @@ class _Handler(BaseHTTPRequestHandler):
             return None
         if s is None:
             self.send_response(401)
-            self.send_header("WWW-Authenticate", 'Basic realm="Ipe"')
+            if not self.headers.get("X-Ipe-Web"):        # 0.99.91: no site, sem a janela de senha do navegador
+                self.send_header("WWW-Authenticate", 'Basic realm="Ipe"')
             self.send_header("Content-Type", "application/json")
             body = b'{"error": "login necessario"}'
             self.send_header("Content-Length", str(len(body)))
@@ -439,6 +444,18 @@ class _Handler(BaseHTTPRequestHandler):
             if pem is None:
                 return self._error(404, "este servidor não tem AC interna")
             return self._send(200, pem, "application/x-pem-file")
+        if path == "/web" or path.startswith("/web/"):                   # 0.99.91: o visualizador web (público)
+            from ipe.central import web as WEB
+            bruto = unquote(parts.path)
+            if bruto == "/web":
+                return self._send(301, b"", "text/plain", {"Location": "/web/"})
+            achado = WEB.arquivo_estatico(bruto[len("/web/"):])
+            if achado is None:
+                return self._error(404, "arquivo do site não encontrado" if WEB.site_instalado()
+                                   else "o visualizador web não está instalado neste servidor")
+            return self._send(200, achado[0], achado[1])
+        if path == "" and method == "GET":
+            return self._send(302, b"", "text/plain", {"Location": "/web/"})
         if path == "/api/login" and method == "POST":
             try:
                 data = json.loads(self._body() or b"{}")
@@ -468,6 +485,17 @@ class _Handler(BaseHTTPRequestHandler):
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, {"result": res})
+        if path == "/api/web/config" and method == "GET":
+            from ipe.central import web as WEB
+            prefs = c.repo.user_prefs(s.user_id) if s.user_id else {}
+            return self._json(200, WEB.configuracao(c.settings, prefs, {
+                "username": s.username, "full_name": s.full_name, "role": s.role, "perms": sorted(s.perms)}), raw=True)
+        if path == "/api/web/abriu" and method == "POST":
+            data = json.loads(self._body() or b"{}")
+            uid = str(data.get("study_uid", ""))
+            if uid and c.pode_ver(s, uid):
+                c.repo.audit("web_abriu", f"abriu no navegador: {uid}", user=s.username, host=self.client_address[0])
+            return self._json(200, {"ok": True}, raw=True)
         if path.startswith("/api/atualizacao"):
             return self._atualizacao(method, path, parse_qs(parts.query), s)
         if path.startswith("/dicomweb"):
@@ -559,6 +587,38 @@ class _Handler(BaseHTTPRequestHandler):
             rows = c.repo.instances_for_series(seg[3])
             return self._send(200, json.dumps([DW.instance_json(seg[1], seg[3], i) for i in rows]).encode(),
                               "application/dicom+json")
+        # 0.99.91: o que o visualizador web pede (metadados, quadros, miniatura)
+        if len(seg) == 5 and seg[0] == "studies" and seg[2] == "series" and seg[4] == "metadata":
+            from ipe.central import web as WEB
+            meta = WEB.metadados_da_serie(c.repo, seg[1], seg[3], "/dicomweb")
+            if not meta:
+                return self._error(404, "nada encontrado")
+            return self._send(200, json.dumps(meta).encode(), "application/dicom+json")
+        if len(seg) == 5 and seg[0] == "studies" and seg[2] == "series" and seg[4] == "thumbnail":
+            png = next((r.thumbnail for r in c.repo.series_for_study(seg[1]) if r.series_uid == seg[3]), None)
+            if not png:                                       # ainda não feita: faz agora (a do Ipê)
+                from ipe.importer.thumbnails import generate_thumbnails
+                try:
+                    generate_thumbnails(c.repo, [seg[3]])
+                except Exception:  # noqa: BLE001
+                    log.exception("miniatura (web)")
+                png = next((r.thumbnail for r in c.repo.series_for_study(seg[1]) if r.series_uid == seg[3]), None)
+            if not png:
+                return self._error(404, "sem miniatura")
+            return self._send(200, bytes(png), "image/png")
+        if len(seg) == 8 and seg[0] == "studies" and seg[4] == "instances" and seg[6] == "frames":
+            from ipe.central import web as WEB
+            caminho = WEB.CAMINHOS.da_serie(c.repo, seg[3]).get(seg[5])
+            if not caminho or not Path(caminho).exists():
+                return self._error(404, "nada encontrado")
+            try:
+                numeros = [int(x) for x in seg[7].split(",") if x.strip()]
+                partes = WEB.quadros(caminho, numeros)
+            except (ValueError, IndexError) as e:
+                return self._error(400, str(e))
+            boundary = DW.new_boundary()
+            corpo = WEB.multipart_quadros(partes, boundary)
+            return self._send(200, corpo, f'multipart/related; type="application/octet-stream"; boundary={boundary}')
         # WADO-RS
         files: list[str] = []
         if len(seg) == 2 and seg[0] == "studies":

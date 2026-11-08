@@ -995,6 +995,20 @@ A aba **Histórico** mostra o que cada regra fez e quando.
 
 **Abrir enquanto baixa.** No cliente, o exame que ainda não está no computador abre em poucos segundos: primeiro chega uma imagem de cada série (a tira mostra todas e o protocolo de exibição monta os quadros), depois o resto de cada série vai chegando e os quadros crescem sozinhos. A barra de status mostra *Baixando do servidor central: N de M imagem(ns)…*. Só o exame aberto (e o anterior que o protocolo pede para comparar) é baixado. Reabrir um exame que já chegou é imediato; o cache tem o limite de **Configurações ▸ Rede ▸ Servidor central**, e os exames abertos há mais tempo saem primeiro.
 
+### Visualizador web (0.99.91)
+
+O servidor central traz um **visualizador no navegador**: em qualquer computador da rede, abra **`http://IP-do-servidor:8043/web/`** (ou `https://…`, com o certificado do Ipê) no Chrome ou no Edge e entre com o mesmo usuário e senha do Ipê. Não precisa instalar nada. O endereço aparece em Configurações ▸ Rede ▸ Servidor central, com o link.
+
+Nesta primeira fase:
+
+- **Lista de exames** com busca por nome, ID ou acesso, por datas e por modalidade; cada um vê só o que pode ver no Ipê (as mesmas permissões e o banco pessoal). Duplo clique abre o exame.
+- **Tira de séries** com as miniaturas; clicar põe a série no quadro ativo (contorno amarelo).
+- **Quadros** de 1×1 a 2×3. Botões do mouse como no Ipê: o esquerdo é a ferramenta escolhida (janela, mover, zoom ou rolar), o do meio move, o direito dá zoom e a roda rola os cortes. **Janelas prontas** (as suas, do Ipê, e a do arquivo), **Inverter**, **Cine** com a velocidade e **Restaurar**. Os textos dos cantos trazem o paciente, a série, o corte, o zoom e a janela.
+- **As imagens vão como estão no banco**: JPEG-LS, JPEG 2000 e JPEG são decodificados no próprio navegador, e a mamografia usa a janela do aparelho (inclusive a sigmoide).
+- **Segurança**: nada do paciente fica gravado no navegador; recarregar a página pede o login de novo e a sessão parada se encerra sozinha. Cada exame aberto fica no registro de acesso ("abriu no navegador"). Na rede interna, use HTTPS com o certificado do Ipê.
+
+As próximas fases trazem MPR, oblíquo e MIP, medidas (gravadas no banco, que aparecem no Ipê), fusão PET/CT, a mamografia com o protocolo e dois monitores, a dinâmica da mama e o laudo. Por enquanto é só na rede da clínica; de fora, entre pela VPN.
+
 ### HTTPS na rede interna (certificado do Ipê)
 
 Sem certificado, o servidor central usa HTTP e a senha de cada login passa aberta pela rede. Um certificado de autoridade pública não serve para um endereço como 192.168.1.10, então o próprio Ipê faz o papel de **autoridade certificadora (AC) interna**:

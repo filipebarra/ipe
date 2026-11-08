@@ -1,0 +1,21 @@
+{
+  "name": "ipe-web",
+  "private": true,
+  "version": "0.99.91",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "@cornerstonejs/core": "5.13.2",
+    "@cornerstonejs/dicom-image-loader": "5.13.2",
+    "@cornerstonejs/tools": "5.13.2",
+    "events": "^3.3.0"
+  },
+  "devDependencies": {
+    "terser": "^5.36.0",
+    "typescript": "5.6.3",
+    "vite": "5.4.11"
+  }
+}

@@ -44,6 +44,7 @@ def run_server(args) -> int:
     port = args.port or int(settings.get("central.port", 8043))
     srv = CentralServer(db, repo, paths.storage, port=port, certfile=settings.get("central.certfile", "") or "",
                         keyfile=settings.get("central.keyfile", "") or "")
+    srv.settings = settings
     srv.start()
     net = None
     if not args.no_dicom:

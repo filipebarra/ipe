@@ -91,6 +91,20 @@ CREDITOS: tuple[Credito, ...] = (
             "licença freeware do UnRAR", "https://www.rarlab.com", onde="opcional"),
     Credito("ReportLab", "o guia do usuário em PDF", "BSD", "https://www.reportlab.com/opensource/",
             onde="desenvolvimento", modulos=("reportlab",)),
+    # ------------------------------------------------------------------ visualizador web (0.99.91)
+    Credito("Cornerstone3D", "o visualizador web do servidor central: quadros, janela, rolagem, cine (e, nas "
+            "próximas fases, MPR, MIP, fusão e medidas)", "MIT", "https://github.com/cornerstonejs/cornerstone3D"),
+    Credito("vtk.js (Kitware)", "o desenho em WebGL por baixo do Cornerstone3D", "BSD-3-Clause",
+            "https://github.com/Kitware/vtk-js"),
+    Credito("dicomParser", "leitura de DICOM no navegador", "MIT", "https://github.com/cornerstonejs/dicomParser"),
+    Credito("CharLS (WebAssembly)", "JPEG-LS no navegador: as imagens do banco vão como estão", "BSD-3-Clause",
+            "https://github.com/team-charls/charls"),
+    Credito("OpenJPEG e OpenJPH (WebAssembly)", "JPEG 2000 e HTJ2K no navegador", "BSD-2-Clause",
+            "https://github.com/uclouvain/openjpeg"),
+    Credito("libjpeg-turbo e libjxl (WebAssembly)", "JPEG e JPEG XL no navegador",
+            "IJG/BSD-3-Clause/zlib e BSD-3-Clause", "https://github.com/libjpeg-turbo/libjpeg-turbo"),
+    Credito("Vite, TypeScript e Terser", "constroem o visualizador web (src/ipe/web_dist)",
+            "MIT, Apache-2.0 e BSD-2-Clause", "https://vite.dev", onde="desenvolvimento"),
     # ------------------------------------------------------------------ inteligência artificial
     Credito("TotalSegmentator", "segmentação de órgãos abdominais, vértebras e discos (TC e RM) e das "
             "estruturas da cefalometria — palato, faringe, hioide, mandíbula e língua (TC; tarefas abertas "

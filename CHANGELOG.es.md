@@ -3,6 +3,17 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.91 — visualizador web en el servidor central (fase 1)
+- El servidor central trae un **visualizador en el navegador** en `http(s)://servidor:8043/web/` (Chrome o Edge),
+  con el mismo login del Ipê: lista de estudios con búsqueda y filtros, tira de series con miniaturas, cuadros de
+  1×1 a 2×3, ventana, mover, zoom, desplazamiento, cine, invertir y las ventanas predefinidas del Ipê. Hecho con
+  Cornerstone3D.
+- Las imágenes van como están en el banco: JPEG-LS, JPEG 2000 y JPEG se decodifican en el navegador; la mamografía
+  usa la ventana del equipo (incluso la sigmoide de GE).
+- Nada del paciente queda grabado en el navegador; cada apertura entra en el registro de acceso. La dirección
+  aparece en Configuración ▸ Red ▸ Servidor central.
+- En el servidor: metadatos y cuadros del DICOMweb (WADO-RS), miniatura de la serie y encabezados de seguridad.
+
 ## 0.99.90 — diámetro de la aorta por segmento
 - **Aorta** (botón **Aorta**, o Aplicaciones ▸ Aorta) en la TC de tórax o de abdomen, con o sin contraste:
   TotalSegmentator halla la aorta y los reparos; el programa traza la línea central y mide, en planos perpendiculares

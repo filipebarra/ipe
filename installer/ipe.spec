@@ -27,6 +27,8 @@ def versao() -> str:
 datas = [(str(SRC / "ipe" / "locale"), "ipe/locale")]
 # o guia do usuário (Ajuda ▸ Guia do usuário, F1)
 datas += [(str(SRC / "ipe" / "ajuda"), "ipe/ajuda")]
+if (SRC / "ipe" / "web_dist").is_dir():          # 0.99.91: o visualizador web do servidor central
+    datas += [(str(SRC / "ipe" / "web_dist"), "ipe/web_dist")]
 # o trabalhador do TotalSegmentator (0.98) roda num Python separado: vai como arquivo .py, não
 # compilado dentro do pacote — é o ambiente da segmentação que o executa
 datas += [(str(SRC / "ipe" / "ai" / "totalseg_worker.py"), "ipe/ai")]
