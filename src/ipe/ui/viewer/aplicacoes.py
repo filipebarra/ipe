@@ -39,7 +39,7 @@ REGIOES_FABRICA: dict[str, tuple[str, str]] = {
              "FACE|FACIAL|SEIOS|SINUS|PARANASAL|MANDIB|MAXIL|ATM|TMJ|DENTAL|ODONTO|CBCT|"
              "MASTOID|OUVIDO|TEMPORAL BONE|ROCHED|CAVUM|RINOFARING|NASOFARING|ADENOIDE|APNEIA|CEFALOMETR"),
     "mama": ("Mama", "BREAST|MAMA|MAMAS|MAMARIA|MAMOGRAF|MAMMO"),
-    "torax": ("Tórax", "CHEST|THORAX|TORAX|TORACIC|LUNG|PULMAO|PULMON"),
+    "torax": ("Tórax", "CHEST|THORAX|TORAX|TORACIC|LUNG|PULMAO|PULMON|AORTA|AORTIC"),
     "coracao": ("Coração", "HEART|CARDIAC|CARDIACA|CORONAR|CORACAO|CARDIO|CALCIUM|ESCORE DE CALCIO|"
                            "SCORE DE CALCIO|ESCORE CALCIO"),
     "abdome": ("Abdome", "ABD|ABDOM|LIVER|FIGADO|HEPAT|PANCREA|RENAL|RINS|RIM|KIDNEY|ENTERO|"
@@ -197,6 +197,11 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
               descricao="Lesões hepáticas (IA): volume e diâmetro de cada uma e a carga por segmento de Couinaud"),
     Aplicacao("autopet", "autoPET", frozenset({"PT"}),
               descricao="Lesões no PET-FDG (IA, modelo extra): MTV, TLG e o SUV de cada lesão"),
+    Aplicacao("aorta", "Aorta", frozenset({"CT"}),
+              ((frozenset({"torax"}), frozenset()), (frozenset({"abdome"}), frozenset()),
+               (frozenset({"coracao"}), frozenset()), (frozenset(), frozenset({"angio"}))),
+              descricao="Aorta (IA): linha central e diâmetro máximo perpendicular ao eixo em cada segmento, da raiz "
+                        "à bifurcação"),
     Aplicacao("calcio", "Cálcio coronariano", frozenset({"CT"}),
               ((frozenset({"coracao"}), frozenset()), (frozenset({"torax"}), frozenset())),
               descricao="Escore de cálcio coronariano (IA): Agatston e volume por vaso, CAC-DRS e a categoria "

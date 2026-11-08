@@ -1468,6 +1468,17 @@ Na TC **sem contraste** (escore de cálcio ou TC de tórax), o botão **Cálcio*
 
 Avisos: com contraste o escore **não é medido** (o sangue passa de 130 HU); TC sem sincronização com o ECG (o movimento subestima o escore); kV diferente de 120; corte fino sem somar ou corte grosso. O percentil por idade e sexo (MESA) não é calculado.
 
+### Aorta: diâmetro por segmento (0.99.90)
+
+Na TC de tórax ou de abdome, com ou sem contraste, o botão **Aorta** (ou Aplicações ▸ Aorta) mede o diâmetro da aorta **perpendicular ao eixo**, de forma automática:
+
+- **Linha central**: o TotalSegmentator acha a aorta e os marcos (tronco braquiocefálico, subclávia esquerda, T12, rins). O programa traça a linha pelo meio da aorta, da raiz (quando a série pega o coração) até a bifurcação ou o fim da série, e a ajusta ao centro de cada corte perpendicular.
+- **Planos perpendiculares** a cada 2 mm: em cada um, o **diâmetro máximo**, o **perpendicular** a ele e o diâmetro pela área.
+- **Segmentos** e o maior diâmetro de cada um: **raiz** (os primeiros 15 mm), **ascendente** (até o tronco braquiocefálico), **arco** (até 10 mm depois da subclávia esquerda), **descendente torácica** (até a borda de baixo de T12), **abdominal suprarrenal** (até o meio dos rins) e **infrarrenal**. Sem os ramos do arco, o arco é o trecho de 30 mm de cada lado do ponto mais alto; numa série só do abdome saem só os segmentos abdominais.
+- **Achados de IA**: um resumo e um achado por segmento; clicar leva ao ponto do maior diâmetro. A SEG pinta cada segmento de uma cor. O texto do laudo leva os segmentos confirmados ou corrigidos ("Aorta ascendente: diâmetro máximo 46 × 45 mm, perpendicular ao eixo, parede externa").
+
+A medida é **da parede externa à externa** (a máscara pega a parede e o trombo). A ACC/AHA (2022) pede a raiz e a ascendente de borda interna a interna, em TC sincronizada com o ECG; sem ECG, a raiz não vale. As referências aparecem como texto no achado, nunca como veredito: ascendente, arco e descendente ≥ 40 mm costumam ser relatados como dilatação, e ≥ 55 mm é o limiar de cirurgia (ACC/AHA 2022); na infrarrenal, aneurisma é ≥ 30 mm, com o intervalo de controle do ACR (2013) para o tamanho medido.
+
 ### Modelos extras: MedSAM2, autoPET e BraTS (0.99.83)
 
 Três IAs que não vêm com a segmentação e se instalam uma vez, com internet, em **Configurações ▸ CAD/IA ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS)…** (a janela diz o que já está pronto e o que falta). Rodam no mesmo ambiente do TotalSegmentator, em CPU.

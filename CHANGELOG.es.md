@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.90 — diámetro de la aorta por segmento
+- **Aorta** (botón **Aorta**, o Aplicaciones ▸ Aorta) en la TC de tórax o de abdomen, con o sin contraste:
+  TotalSegmentator halla la aorta y los reparos; el programa traza la línea central y mide, en planos perpendiculares
+  cada 2 mm, el diámetro máximo y el perpendicular. Sale el mayor de cada segmento — raíz, ascendente, arco,
+  descendente torácica, abdominal suprarrenal e infrarrenal —, de pared externa a externa, con la referencia como
+  texto (ACC/AHA 2022; aneurisma infrarrenal ≥ 30 mm y el control del ACR 2013). Un hallazgo por segmento y la SEG
+  con un color por tramo.
+
 ## 0.99.89 — puntaje de calcio coronario (Agatston)
 - **Calcio coronario** (botón **Calcio**, o Aplicaciones ▸ Calcio coronario) en la TC sin contraste: TotalSegmentator
   halla el corazón, la aorta y los huesos; alrededor del corazón, el calcio ≥ 130 HU se puntúa por Agatston corte a

@@ -1288,6 +1288,8 @@ class ViewerTab(OncoMixin, QWidget):
                  "Lesões no PET-FDG: MTV e TLG (IA)", "autoPET"),
                 ("brats", "Segmentar o glioma (captante, necrose, edema) nesta RM (IA)…",
                  "Glioma na RM — BraTS (IA)", "BraTS"),
+                ("aorta", "Medir o diâmetro da aorta por segmento (perpendicular ao eixo) nesta TC…",
+                 "Aorta: diâmetro por segmento (IA)", "Aorta"),
                 ("calcio", "Medir o escore de cálcio coronariano (Agatston) nesta TC sem contraste…",
                  "Cálcio coronariano — Agatston (IA)", "Cálcio"),
                 ("carga_pet", "Medir a carga tumoral deste PET (FDG, PSMA ou DOTA)…",

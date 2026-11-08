@@ -141,6 +141,15 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
                 lab[vol == 2000 + cod] = cid
             saida[nome] = (lab, {cid: n for cid, (_c, n) in codigos.items()})
             continue
+        if t.get("aorta"):                   # 0.99.90: aorta = 45 (e 145, com contraste), ramos e marcos por código
+            classes = {1: "aorta", 2: "brachiocephalic_trunk", 3: "subclavian_artery_left",
+                       4: "common_carotid_artery_left", 5: "vertebrae_T12", 6: "kidney_left", 7: "kidney_right",
+                       8: "heart"}
+            for cid, hus in ((1, (45, 145)), (2, (46,)), (3, (47,)), (4, (48,)), (5, (702,)), (6, (49,)), (7, (50,)),
+                             (8, (41,))):
+                lab[np.isin(vol, hus)] = cid
+            saida[nome] = (lab, classes)
+            continue
         if t.get("calcio"):                  # 0.99.89: cálcio coronariano — coração 41 (e 451, cálcio dentro dele),
             classes = {1: "heart", 2: "aorta", 3: "sternum", 4: "vertebrae_T8", 5: "rib_left_5",
                        6: "costal_cartilages"}          # aorta 43, ossos 701–704; com contraste: 341 e 343

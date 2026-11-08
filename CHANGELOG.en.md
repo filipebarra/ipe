@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.90 — aortic diameter per segment
+- **Aorta** (**Aorta** button, or Applications ▸ Aorta) on chest or abdominal CT, with or without contrast:
+  TotalSegmentator finds the aorta and the landmarks; the program traces the centreline and measures, in planes
+  perpendicular to it every 2 mm, the maximum and the perpendicular diameter. You get the largest of each segment —
+  root, ascending, arch, descending thoracic, suprarenal and infrarenal abdominal —, outer wall to outer wall, with
+  the reference as text (ACC/AHA 2022; infrarenal aneurysm ≥ 30 mm and the ACR 2013 follow-up). One finding per
+  segment and a SEG with one colour per segment.
+
 ## 0.99.89 — coronary calcium score (Agatston)
 - **Coronary calcium** (**Calcium** button, or Applications ▸ Coronary calcium) on non-contrast CT: TotalSegmentator
   finds the heart, the aorta and the bones; around the heart, calcium ≥ 130 HU is scored by Agatston slice by slice
