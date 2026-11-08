@@ -70,6 +70,8 @@ class CentralServer:
     def start(self) -> None:
         if self._httpd is not None:
             return
+        from ipe.central import envio
+        envio.configurar(self.storage)                       # 0.99.96: cópias de envio do visualizador web
         server = self
 
         class Handler(_Handler):
@@ -613,7 +615,15 @@ class _Handler(BaseHTTPRequestHandler):
             meta = WEB.metadados_da_serie(c.repo, seg[1], seg[3], "/dicomweb")
             if not meta:
                 return self._error(404, "nada encontrado")
-            return self._send(200, json.dumps(meta).encode(), "application/dicom+json")
+            # 0.99.96: as cópias de envio da série começam já (o navegador vai pedir os quadros em seguida)
+            from ipe.central import envio
+            envio.preparar_serie([p for p in WEB.CAMINHOS.da_serie(c.repo, seg[3]).values() if p])
+            corpo = json.dumps(meta).encode()
+            if "gzip" in (self.headers.get("Accept-Encoding") or "") and len(corpo) > 4096:
+                import gzip                                   # os metadados de uma TC grande: ~10× menores
+                return self._send(200, gzip.compress(corpo, 5), "application/dicom+json",
+                                  extra={"Content-Encoding": "gzip", "Vary": "Accept-Encoding"})
+            return self._send(200, corpo, "application/dicom+json")
         if len(seg) == 5 and seg[0] == "studies" and seg[2] == "series" and seg[4] == "thumbnail":
             png = next((r.thumbnail for r in c.repo.series_for_study(seg[1]) if r.series_uid == seg[3]), None)
             if not png:                                       # ainda não feita: faz agora (a do Ipê)
@@ -631,14 +641,28 @@ class _Handler(BaseHTTPRequestHandler):
             caminho = WEB.CAMINHOS.da_serie(c.repo, seg[3]).get(seg[5])
             if not caminho or not Path(caminho).exists():
                 return self._error(404, "nada encontrado")
+            from ipe.central import envio
+            # 0.99.96: o conteúdo de uma instância não muda — o navegador guarda e só revalida (304, sem corpo).
+            # "no-cache" (e não "immutable"): a revalidação passa pela senha, então outro usuário no mesmo navegador
+            # não vê do cache o que não pode ver.
+            tag = envio.etag(caminho, seg[7])
+            cache = {"Cache-Control": "private, no-cache", "ETag": tag} if tag else {}
+            if tag and self.headers.get("If-None-Match") == tag:
+                self.send_response(304)
+                for k, v in cache.items():
+                    self.send_header(k, v)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
             try:
                 numeros = [int(x) for x in seg[7].split(",") if x.strip()]
-                partes = WEB.quadros(caminho, numeros)
+                partes = WEB.quadros_para_web(caminho, numeros)
             except (ValueError, IndexError) as e:
                 return self._error(400, str(e))
             boundary = DW.new_boundary()
             corpo = WEB.multipart_quadros(partes, boundary)
-            return self._send(200, corpo, f'multipart/related; type="application/octet-stream"; boundary={boundary}')
+            return self._send(200, corpo, f'multipart/related; type="application/octet-stream"; boundary={boundary}',
+                              extra=cache)
         # WADO-RS
         files: list[str] = []
         if len(seg) == 2 and seg[0] == "studies":

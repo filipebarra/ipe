@@ -89,3 +89,10 @@ table.lista tbody tr:hover, table.lista tbody tr:focus { background: #262a31; }
 .barra .disponiveis { color: var(--suave); font-size: 12px; white-space: nowrap; }
 .quadro.alvo { outline: 2px dashed var(--acento); outline-offset: -3px; }
 @media (max-width: 700px) { .serie .disp { width: 72px; } }
+
+/* 0.99.96: cronômetro da carga */
+.area { position: relative; }
+.painel-carga { position: absolute; right: 8px; bottom: 30px; margin: 0; padding: 8px 10px; z-index: 5;
+  background: rgba(16, 18, 22, 0.92); border: 1px solid var(--borda); border-radius: 6px; color: var(--texto, #ddd);
+  font: 12px/1.5 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; max-width: min(560px, 92vw); }
+.barra button.ligado { border-color: var(--acento); color: var(--acento); }

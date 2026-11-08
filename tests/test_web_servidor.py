@@ -94,11 +94,29 @@ def test_metadados_quadros_e_miniatura(servidor):
     corpo = r.read()
     bound = ctype.split("boundary=")[1]
     cab, resto = corpo.split(b"\r\n\r\n", 1)
-    assert b"transfer-syntax=1.2.840.10008.1.2.1" in cab
+    # 0.99.96: o quadro sem compressão vai como HTJ2K sem perda (a cópia de envio), com os mesmos pixels
+    assert b"transfer-syntax=1.2.840.10008.1.2.4.202" in cab
     dados = resto[: resto.rindex(f"\r\n--{bound}--".encode())]
     caminho = next(i["path"] for i in repo.instances_for_series(se.series_uid) if i["sop_uid"] == sop)
     ds = pydicom.dcmread(caminho)
-    assert dados == ds.PixelData[: len(dados)] and len(dados) == ds.Rows * ds.Columns * ds.BitsAllocated // 8
+    import imagecodecs
+    assert len(dados) < ds.Rows * ds.Columns * ds.BitsAllocated // 8
+    assert (imagecodecs.htj2k_decode(dados).reshape(ds.Rows, ds.Columns) == ds.pixel_array).all()
+    # o navegador guarda e revalida: com o ETag, 304 sem corpo
+    etag = r.headers["ETag"]
+    assert etag and "no-cache" in r.headers["Cache-Control"] and "private" in r.headers["Cache-Control"]
+    req = urllib.request.Request(f"http://127.0.0.1:{srv.port}/dicomweb/studies/{uid}/series/{se.series_uid}"
+                                 f"/instances/{sop}/frames/1", headers={"Authorization": f"Bearer {tok}",
+                                                                         "If-None-Match": etag})
+    with pytest.raises(urllib.error.HTTPError) as e304:
+        urllib.request.urlopen(req)
+    assert e304.value.code == 304
+    # sem a senha, o ETag não adianta: 401
+    req = urllib.request.Request(f"http://127.0.0.1:{srv.port}/dicomweb/studies/{uid}/series/{se.series_uid}"
+                                 f"/instances/{sop}/frames/1", headers={"If-None-Match": etag, "X-Ipe-Web": "1"})
+    with pytest.raises(urllib.error.HTTPError) as e401:
+        urllib.request.urlopen(req)
+    assert e401.value.code == 401
     with pytest.raises(urllib.error.HTTPError) as e:
         _pedir(srv, f"/dicomweb/studies/{uid}/series/{se.series_uid}/instances/{sop}/frames/9", tok)
     assert e.value.code == 400

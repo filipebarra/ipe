@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ipe"
-version = "0.99.95"
+version = "0.99.96"
 description = "Ipê — visualizador DICOM para pesquisa e ensino (Windows e Linux)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -25,7 +25,8 @@ dependencies = [
     # OCR das folhas de impressão (0.80): os modelos vêm dentro do pacote — sem internet e sem
     # instalar nada à parte. A versão 3 ("rapidocr") baixaria os modelos na primeira leitura.
     "rapidocr_onnxruntime>=1.2.3",
-    "cryptography>=42",        # 0.99.74: certificados da rede interna (AC do Ipê, HTTPS do servidor central)
+    "cryptography>=42",
+    "imagecodecs>=2025.3",     # 0.99.96: HTJ2K sem perda (OpenJPH) na cópia de envio do visualizador web        # 0.99.74: certificados da rede interna (AC do Ipê, HTTPS do servidor central)
 ]
 
 [project.optional-dependencies]

@@ -104,6 +104,9 @@ def _abrir(pg, srv, acesso):
     pg.wait_for_selector(".quadro canvas")
     pg.select_option("select[title=Layout]", "1x1")
     assert _esperar(lambda: pg.locator(".quadro").count() == 1)
+    # a imagem já desenhada (a carga é progressiva desde a 0.99.96)
+    assert _esperar(lambda: pg.evaluate("""() => { const vp = window.__ipeGrade.viewport(0);
+        const im = vp && vp.getCornerstoneImage && vp.getCornerstoneImage(); return !!(im && im.imageQualityStatus >= 8); }"""))
 
 
 def _tela(pg, x, y):

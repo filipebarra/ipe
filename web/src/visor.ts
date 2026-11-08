@@ -5,6 +5,7 @@
 
 import {
   Enums,
+  ProgressiveRetrieveImages,
   RenderingEngine,
   cache,
   cornerstoneStreamingImageVolumeLoader,
@@ -64,9 +65,16 @@ export async function iniciar(): Promise<void> {
   csInit();
   if (!gl) setUseCPURendering(true); // sem WebGL 2: o 2D ainda funciona pela CPU (o volume não)
   loaderInit({
-    maxWebWorkers: Math.max(1, Math.min(4, Math.floor((navigator.hardwareConcurrency || 2) / 2))),
+    // 0.99.96: decodificar é trabalho de CPU em paralelo — todos os núcleos menos um (a tela fica com ele)
+    maxWebWorkers: Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 2) - 1)),
     beforeSend: () => cabecalhos(),
   });
+  // 0.99.96: o quadro chega em HTJ2K com ordem RPCL (a cópia de envio do servidor): pedido em fluxo, o navegador
+  // decodifica uma versão menor com os primeiros bytes e refina até a imagem inteira. O volume vem intercalado
+  // (1 a cada 4 cortes primeiro, os vizinhos repetidos) — o MPR aparece cedo e vai se completando.
+  const progressivo = { retrieveOptions: { default: { streaming: true } } };
+  csUtils.imageRetrieveMetadataProvider.add("stack", { ...ProgressiveRetrieveImages.singleRetrieveStages, ...progressivo });
+  csUtils.imageRetrieveMetadataProvider.add("volume", { ...ProgressiveRetrieveImages.interleavedRetrieveStages, ...progressivo });
   volumeLoader.registerUnknownVolumeLoader(cornerstoneStreamingImageVolumeLoader as never);
   volumeLoader.registerVolumeLoader("cornerstoneStreamingImageVolume", cornerstoneStreamingImageVolumeLoader as never);
   // O carregador WADO-RS lê a função da VOI LUT como lista e pega a primeira letra do texto ("SIGMOID" → "S"):

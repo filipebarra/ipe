@@ -54,6 +54,11 @@ if MODELOS.is_dir() and any(MODELOS.glob("*.onnx")):
 hidden = collect_submodules("pydicom") + collect_submodules("pynetdicom")
 hidden += ["pylibjpeg", "libjpeg", "openjpeg", "gdcm",
            "pylibjpeg_libjpeg", "pylibjpeg_openjpeg", "jpeg_ls", "pyjpegls", "sqlalchemy.dialects.sqlite"]
+try:                                             # 0.99.96: HTJ2K para o visualizador web (sem ele, JPEG-LS)
+    import imagecodecs  # noqa: F401
+    hidden += ["imagecodecs", "imagecodecs._htj2k", "imagecodecs._shared", "imagecodecs._shared_cython", "imagecodecs._imcd"]
+except ImportError:
+    pass
 try:                                             # opcional: sem ele, a rede de densidade não roda
     import onnxruntime  # noqa: F401
     hidden += collect_submodules("onnxruntime")

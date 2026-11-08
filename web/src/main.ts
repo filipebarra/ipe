@@ -6,6 +6,7 @@ import * as API from "./api";
 import { setLang, tr } from "./i18n";
 import { apagarSelecionadas } from "./medidas";
 import { COR_PADRAO, SUV_PADRAO, registrarCores } from "./pet";
+import { Cronometro } from "./carga";
 import { Disponiveis } from "./disponiveis";
 import { Grade, TIPO_ARRASTO, aplicarBotoes, carregarSerie, iniciar, type Ferramenta, type Projecao } from "./visor";
 
@@ -14,9 +15,13 @@ let config: API.Config | null = null;
 let grade: Grade | null = null;
 let disp: Disponiveis | null = null;
 
+let cronometro: Cronometro | null = null;
+
 function pararDisponiveis(): void {
   disp?.parar();
   disp = null;
+  cronometro?.parar();
+  cronometro = null;
 }
 const NAO_MOSTRA = new Set(["SR", "KO", "PR", "DOC", "RTSTRUCT", "RTPLAN", "SEG", "REG", "OT_PDF"]);
 
@@ -186,6 +191,24 @@ async function telaExame(study: string): Promise<void> {
   const obliquo = el("button", { title: tr("Dois cliques no quadro ativo definem a reta; o oblíquo vai para o outro quadro de volume") }, tr("Oblíquo"));
   let girando = false;
   const girar = el("button", { title: tr("Gira o MIP (a roda do mouse também gira)") }, tr("Girar MIP"));
+  // 0.99.96: cronômetro da carga (rede × decodificação)
+  const painelCarga = el("pre", { class: "painel-carga", hidden: true });
+  const carga = el("button", { title: tr("Quanto veio pela rede, em quanto tempo, e quanto levou para decodificar") },
+    tr("Carga"));
+  let relogio = 0;
+  carga.onclick = () => {
+    painelCarga.hidden = !painelCarga.hidden;
+    carga.classList.toggle("ligado", !painelCarga.hidden);
+    window.clearInterval(relogio);
+    if (!painelCarga.hidden) {
+      const mostrar = () => {
+        if (cronometro !== cron) return window.clearInterval(relogio);
+        painelCarga.textContent = cron.texto(tr);
+      };
+      mostrar();
+      relogio = window.setInterval(mostrar, 1000);
+    }
+  };
   // W3: PET/CT
   const petct = el("button", { title: tr("Fusão, PET e o MIP do PET, com os axiais andando juntos") }, tr("PET/CT"));
   const cores = el("select", { title: tr("Cor da fusão") },
@@ -203,7 +226,7 @@ async function telaExame(study: string): Promise<void> {
   const barra = el("nav", { class: "barra" }, voltar, layout,
     el("label", {}, tr("Botão esquerdo:"), ferr), apagarMedida, presets, inverter, cine, fps, restaurar,
     el("span", { class: "sep" }), mpr, espessura, projecao, obliquo, girar,
-    el("span", { class: "sep" }), petct, cores, opacidade, topoSuv, seg);
+    el("span", { class: "sep" }), petct, cores, opacidade, topoSuv, seg, el("span", { class: "sep" }), carga);
 
   // tira
   const tira = el("aside", { class: "tira" }, el("div", { class: "dica" }, tr("Clique numa série para mostrar no quadro ativo, ou arraste-a até um quadro.")));
@@ -212,7 +235,7 @@ async function telaExame(study: string): Promise<void> {
   // imagens disponíveis no navegador: o total do exame no cabeçalho, o de cada série na tira
   const geral = el("span", { class: "disponiveis", title: tr("Imagens já baixadas e prontas no navegador") });
   barra.append(geral);
-  app.replaceChildren(cabecalho(barra), el("main", { class: "telaexame" }, tira, el("div", { class: "area" }, telas, aviso)), tarja());
+  app.replaceChildren(cabecalho(barra), el("main", { class: "telaexame" }, tira, el("div", { class: "area" }, telas, aviso, painelCarga)), tarja());
 
   grade = new Grade(telas);
   grade.paciente = paciente;
@@ -221,6 +244,9 @@ async function telaExame(study: string): Promise<void> {
   const g = grade;
   const d = new Disponiveis();
   disp = d;
+  const cron = new Cronometro();
+  cronometro = cron;
+  (window as unknown as Record<string, unknown>).__ipeCarga = cron; // testes
   const barras = new Map<string, { item: HTMLElement; barra: HTMLElement; texto: HTMLElement }>();
   d.aoMudar = () => {
     for (const [uid, b] of barras) {

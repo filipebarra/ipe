@@ -178,6 +178,20 @@ def quadros(caminho: str, numeros: list[int]) -> list[tuple[bytes, str]]:
             for n in numeros]
 
 
+def quadros_para_web(caminho: str, numeros: list[int] | None) -> list[tuple[bytes, str]]:
+    """Como `quadros`, mas cada quadro passa pela cópia de envio (HTJ2K/JPEG-LS sem perda, conferida, em cache).
+    `numeros` None = todos (para preparar a série em segundo plano)."""
+    import pydicom
+
+    from ipe.central import envio
+    ds = pydicom.dcmread(caminho, stop_before_pixels=True, force=True)
+    n_quadros = int(getattr(ds, "NumberOfFrames", 1) or 1)
+    if numeros is None:
+        numeros = list(range(1, n_quadros + 1))
+    originais = quadros(caminho, numeros)
+    return [envio.quadro(ds, caminho, n, dados, ts) for n, (dados, ts) in zip(numeros, originais)]
+
+
 def multipart_quadros(partes: list[tuple[bytes, str]], boundary: str) -> bytes:
     out = bytearray()
     for dados, ts in partes:

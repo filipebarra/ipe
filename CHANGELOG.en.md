@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.96 — web viewer: faster loading
+- Images go to the browser as **lossless HTJ2K** (a transport copy checked pixel by pixel and cached; the archive does
+  not change): 2 to 5 times fewer bytes on a CT, fast decoding and **progressive loading**.
+- **Interleaved volume** (MPR appears early and fills in), **browser cache** with revalidation (reopening barely uses
+  the network), decoding on all cores but one, and compressed metadata.
+- **Loading** (toolbar): MB over the network, MB/s, decoding time per image, format and what came from the cache.
+
 ## 0.99.95 — web viewer: drag series and available images
 - **Drag a series** from the strip onto any web viewer viewport (clicking still puts it in the active viewport).
 - **Available images**: when the exam opens, the browser downloads the series in the background (those in the

@@ -146,7 +146,8 @@ def test_login_lista_exame_e_quadros(servidor):
         assert _esperar(lambda: "J " in pg.locator(".quadro .canto.id").first.inner_text())
         info = json.loads(pg.evaluate("""() => { const im = window.__ipeGrade.viewport(0).getCornerstoneImage();
             return JSON.stringify({voi: im.voiLUTFunction, ts: im.transferSyntaxUID, max: im.maxPixelValue}); }"""))
-        assert info["voi"] == "SIGMOID" and info["ts"] == "1.2.840.10008.1.2.4.80" and info["max"] > 2000
+        # 0.99.96: o JPEG-LS guardado vai para a rede como HTJ2K sem perda (a cópia de envio)
+        assert info["voi"] == "SIGMOID" and info["ts"] == "1.2.840.10008.1.2.4.202" and info["max"] > 2000
         media, dp = _pixels(pg)
         assert media < 230 and dp > 5, (media, dp)
         # sair volta ao login

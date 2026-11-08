@@ -8407,5 +8407,8 @@
  "a série de origem não tem a posição dos cortes": "the source series has no slice positions",
  "a série não é deste exame": "the series is not from this exam",
  "a série não é uma SEG": "the series is not a SEG",
- "série sem arquivos": "series without files"
+ "série sem arquivos": "series without files",
+ "Vary": "Vary",
+ "cache de envio": "transport cache",
+ "private, no-cache": "private, no-cache"
 }

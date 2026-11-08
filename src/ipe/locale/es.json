@@ -8407,5 +8407,8 @@
  "a série de origem não tem a posição dos cortes": "la serie de origen no tiene la posición de los cortes",
  "a série não é deste exame": "la serie no es de este examen",
  "a série não é uma SEG": "la serie no es una SEG",
- "série sem arquivos": "serie sin archivos"
+ "série sem arquivos": "serie sin archivos",
+ "Vary": "Vary",
+ "cache de envio": "caché de envío",
+ "private, no-cache": "private, no-cache"
 }

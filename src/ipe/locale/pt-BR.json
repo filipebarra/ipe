@@ -6263,7 +6263,10 @@
   "a série de origem não tem a posição dos cortes",
   "a série não é deste exame",
   "a série não é uma SEG",
-  "série sem arquivos"
+  "série sem arquivos",
+  "Vary",
+  "cache de envio",
+  "private, no-cache"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

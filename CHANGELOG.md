@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.96 — visualizador web: carga mais rápida
+- As imagens vão para o navegador em **HTJ2K sem perda** (cópia de envio conferida pixel a pixel, em cache; o acervo
+  não muda): 2 a 5 vezes menos bytes numa TC, decodificação rápida e **carga progressiva**.
+- **Volume intercalado** (o MPR aparece cedo e se completa), **cache do navegador** com revalidação (reabrir quase não
+  usa a rede), decodificação em todos os núcleos menos um e metadados comprimidos.
+- **Carga** (barra): MB pela rede, MB/s, tempo de decodificação por imagem, formato e o que veio do cache.
+
 ## 0.99.95 — visualizador web: arrastar séries e imagens disponíveis
 - **Arrastar a série** da tira até qualquer quadro do visualizador web (clicar continua pondo no quadro ativo).
 - **Imagens disponíveis**: ao abrir o exame, o navegador baixa as séries em segundo plano (as dos quadros primeiro);

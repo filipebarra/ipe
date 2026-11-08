@@ -18,6 +18,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [pylibjpeg-libjpeg](https://github.com/pydicom/pylibjpeg-libjpeg) | JPEG e JPEG-LS (biblioteca libjpeg de Thomas Richter) | GPL-3.0 |
 | [pylibjpeg-openjpeg](https://github.com/pydicom/pylibjpeg-openjpeg) | JPEG 2000 (OpenJPEG) | MIT (OpenJPEG: BSD-2-Clause) |
 | [pyjpegls](https://github.com/pydicom/pyjpegls) | gravação em JPEG-LS (CharLS) na compressão sem perda | MIT (CharLS: BSD-3-Clause) |
+| [imagecodecs (OpenJPH)](https://github.com/cgohlke/imagecodecs) | HTJ2K sem perda na cópia de envio do visualizador web: menos bytes na rede e carga progressiva no navegador | BSD-3-Clause (OpenJPH: BSD-2-Clause) |
 | [GDCM / python-gdcm](https://github.com/tfmoraes/python-gdcm) | decodificador de reserva para arquivos DICOM incomuns | BSD-3-Clause (GDCM); Apache-2.0 (pacote Python) |
 | [NumPy](https://numpy.org) | todas as contas com as imagens (janela, MPR, 3D, mapas, medidas) | BSD-3-Clause |
 | [SQLAlchemy](https://www.sqlalchemy.org) | o banco de dados dos exames (SQLite) | MIT |
@@ -29,7 +30,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [Cornerstone3D](https://github.com/cornerstonejs/cornerstone3D) | o visualizador web do servidor central: quadros, janela, rolagem, cine (e, nas próximas fases, MPR, MIP, fusão e medidas) | MIT |
 | [vtk.js (Kitware)](https://github.com/Kitware/vtk-js) | o desenho em WebGL por baixo do Cornerstone3D | BSD-3-Clause |
 | [dicomParser](https://github.com/cornerstonejs/dicomParser) | leitura de DICOM no navegador | MIT |
-| [CharLS (WebAssembly)](https://github.com/team-charls/charls) | JPEG-LS no navegador: as imagens do banco vão como estão | BSD-3-Clause |
+| [CharLS (WebAssembly)](https://github.com/team-charls/charls) | JPEG-LS no navegador | BSD-3-Clause |
 | [OpenJPEG e OpenJPH (WebAssembly)](https://github.com/uclouvain/openjpeg) | JPEG 2000 e HTJ2K no navegador | BSD-2-Clause |
 | [libjpeg-turbo e libjxl (WebAssembly)](https://github.com/libjpeg-turbo/libjpeg-turbo) | JPEG e JPEG XL no navegador | IJG/BSD-3-Clause/zlib e BSD-3-Clause |
 
