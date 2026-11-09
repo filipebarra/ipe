@@ -632,16 +632,17 @@ class _Handler(BaseHTTPRequestHandler):
         # 0.99.91: o que o visualizador web pede (metadados, quadros, miniatura)
         if len(seg) == 5 and seg[0] == "studies" and seg[2] == "series" and seg[4] == "metadata":
             from ipe.central import web as WEB
-            meta = WEB.metadados_da_serie(c.repo, seg[1], seg[3], "/dicomweb")
-            if not meta:
+            # 0.99.99: lido em paralelo e guardado; e as outras séries do exame já começam a ser lidas
+            WEB.aquecer_exame(c.repo, seg[1], "/dicomweb", primeiro=seg[3])
+            pronto = WEB.metadados_prontos(c.repo, seg[1], seg[3], "/dicomweb")
+            if not pronto:
                 return self._error(404, "nada encontrado")
+            corpo, gz = pronto
             # 0.99.96: as cópias de envio da série começam já (o navegador vai pedir os quadros em seguida)
             from ipe.central import envio
             envio.preparar_serie([p for p in WEB.CAMINHOS.da_serie(c.repo, seg[3]).values() if p])
-            corpo = json.dumps(meta).encode()
             if "gzip" in (self.headers.get("Accept-Encoding") or "") and len(corpo) > 4096:
-                import gzip                                   # os metadados de uma TC grande: ~10× menores
-                return self._send(200, gzip.compress(corpo, 5), "application/dicom+json",
+                return self._send(200, gz, "application/dicom+json",      # os metadados de uma TC: ~10× menores
                                   extra={"Content-Encoding": "gzip", "Vary": "Accept-Encoding"})
             return self._send(200, corpo, "application/dicom+json")
         if len(seg) == 5 and seg[0] == "studies" and seg[2] == "series" and seg[4] == "thumbnail":
@@ -676,7 +677,8 @@ class _Handler(BaseHTTPRequestHandler):
                 return
             try:
                 numeros = [int(x) for x in seg[7].split(",") if x.strip()]
-                partes = WEB.quadros_para_web(caminho, numeros)
+                with envio.atendendo():
+                    partes = WEB.quadros_para_web(caminho, numeros)
             except (ValueError, IndexError) as e:
                 return self._error(400, str(e))
             boundary = DW.new_boundary()

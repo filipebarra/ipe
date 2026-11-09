@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import logging
 import mimetypes
+import os
 import threading
 import time
 from pathlib import Path
@@ -122,32 +123,123 @@ def _bulk(raiz_url: str):
     return handler
 
 
+def _meta_da_instancia(sop: str, caminho: str, url_serie: str) -> dict | None:
+    import pydicom
+    try:
+        ds = pydicom.dcmread(caminho, stop_before_pixels=True, force=True)
+    except Exception:  # noqa: BLE001
+        log.exception("metadados: %s", caminho)
+        return None
+    url = f"{url_serie}/instances/{sop}"
+    try:
+        # tudo junto (sem BulkDataURI): as tabelas de VOI LUT da mamografia e as sobreposições vão no JSON —
+        # os pixels já ficaram de fora (stop_before_pixels)
+        d = ds.to_json_dict(bulk_data_threshold=1 << 30, bulk_data_element_handler=_bulk(url + "/bulk"))
+    except Exception:  # noqa: BLE001
+        log.exception("metadados (json): %s", caminho)
+        return None
+    ts = str(getattr(getattr(ds, "file_meta", None), "TransferSyntaxUID", "") or EXPLICITA)
+    d["00020010"] = {"vr": "UI", "Value": [ts]}
+    d["7FE00010"] = {"vr": "OW", "BulkDataURI": url + "/frames/1"}
+    return d
+
+
+#: 0.99.99: os cabeçalhos são lidos em paralelo (no Windows, abrir arquivo é o que mais demora) e a resposta
+#: pronta fica guardada — a série já lida sai na hora, e o exame inteiro é lido assim que abre
+_LEITORES = 8
+_META: dict[tuple, tuple[str, bytes, bytes]] = {}
+_META_TRAVA = threading.Lock()
+_META_FAZENDO: dict[tuple, threading.Event] = {}
+
+
+def _assinatura(caminhos: dict) -> str:
+    import hashlib
+    h = hashlib.sha1()
+    for sop, c in sorted(caminhos.items()):
+        try:
+            st = os.stat(c)
+            h.update(f"{sop}|{c}|{st.st_mtime_ns}|{st.st_size}\n".encode())
+        except OSError:
+            h.update(f"{sop}|{c}|-\n".encode())
+    return h.hexdigest()
+
+
 def metadados_da_serie(repo, study_uid: str, series_uid: str, base_url: str) -> list[dict]:
     """DICOM JSON de cada instância da série (PS3.18 F.2), com o PixelData como BulkDataURI. Inclui a
     sintaxe de transferência (0002,0010), que o site usa para saber como pedir o quadro."""
-    import pydicom
-    out = []
-    for sop, caminho in CAMINHOS.da_serie(repo, series_uid).items():
-        if not Path(caminho).exists():
+    from concurrent.futures import ThreadPoolExecutor
+    caminhos = {s: c for s, c in CAMINHOS.da_serie(repo, series_uid).items() if Path(c).exists()}
+    url_serie = f"{base_url}/studies/{study_uid}/series/{series_uid}"
+    itens = list(caminhos.items())
+    if len(itens) <= 2:
+        res = [_meta_da_instancia(s, c, url_serie) for s, c in itens]
+    else:
+        with ThreadPoolExecutor(max_workers=min(_LEITORES, len(itens)), thread_name_prefix="ipe-meta") as ex:
+            res = list(ex.map(lambda sc: _meta_da_instancia(sc[0], sc[1], url_serie), itens))
+    return [d for d in res if d is not None]
+
+
+def metadados_prontos(repo, study_uid: str, series_uid: str, base_url: str) -> tuple[bytes, bytes] | None:
+    """(json, json em gzip) da série — do guardado quando os arquivos não mudaram. None se não há nada.
+    Dois pedidos da mesma série ao mesmo tempo leem uma vez só."""
+    import gzip
+    chave = (study_uid, series_uid, base_url)
+    while True:
+        assin = _assinatura({s: c for s, c in CAMINHOS.da_serie(repo, series_uid).items()})
+        with _META_TRAVA:
+            it = _META.get(chave)
+            if it and it[0] == assin:
+                return it[1], it[2]
+            ev = _META_FAZENDO.get(chave)
+            if ev is None:
+                ev = _META_FAZENDO[chave] = threading.Event()
+                minha = True
+            else:
+                minha = False
+        if not minha:
+            ev.wait(120)
             continue
         try:
-            ds = pydicom.dcmread(caminho, stop_before_pixels=True, force=True)
-        except Exception:  # noqa: BLE001
-            log.exception("metadados: %s", caminho)
-            continue
-        url = f"{base_url}/studies/{study_uid}/series/{series_uid}/instances/{sop}"
+            meta = metadados_da_serie(repo, study_uid, series_uid, base_url)
+            if not meta:
+                return None
+            corpo = json.dumps(meta).encode()
+            gz = gzip.compress(corpo, 5)
+            with _META_TRAVA:
+                _META[chave] = (assin, corpo, gz)
+                if len(_META) > 300:
+                    for k in list(_META)[:100]:
+                        _META.pop(k, None)
+            return corpo, gz
+        finally:
+            with _META_TRAVA:
+                _META_FAZENDO.pop(chave, None)
+            ev.set()
+
+
+_AQUECENDO: set[str] = set()
+
+
+def aquecer_exame(repo, study_uid: str, base_url: str, primeiro: str = "") -> None:
+    """Em segundo plano: lê os metadados de todas as séries do exame (a que foi pedida primeiro já está sendo
+    lida). Quando o navegador pedir a próxima série, ela sai na hora."""
+    with _META_TRAVA:
+        if study_uid in _AQUECENDO:
+            return
+        _AQUECENDO.add(study_uid)
+
+    def trabalho():
         try:
-            # tudo junto (sem BulkDataURI): as tabelas de VOI LUT da mamografia e as sobreposições vão no JSON —
-            # os pixels já ficaram de fora (stop_before_pixels)
-            d = ds.to_json_dict(bulk_data_threshold=1 << 30, bulk_data_element_handler=_bulk(url + "/bulk"))
-        except Exception:  # noqa: BLE001
-            log.exception("metadados (json): %s", caminho)
-            continue
-        ts = str(getattr(getattr(ds, "file_meta", None), "TransferSyntaxUID", "") or EXPLICITA)
-        d["00020010"] = {"vr": "UI", "Value": [ts]}
-        d["7FE00010"] = {"vr": "OW", "BulkDataURI": url + "/frames/1"}
-        out.append(d)
-    return out
+            for r in repo.series_for_study(study_uid):
+                if r.series_uid != primeiro:
+                    try:
+                        metadados_prontos(repo, study_uid, r.series_uid, base_url)
+                    except Exception:  # noqa: BLE001
+                        log.exception("metadados (json): %s", r.series_uid)
+        finally:
+            with _META_TRAVA:
+                _AQUECENDO.discard(study_uid)
+    threading.Thread(target=trabalho, name="ipe-meta-exame", daemon=True).start()
 
 
 # ------------------------------------------------------------------ quadros

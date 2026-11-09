@@ -104,3 +104,21 @@ def test_preparar_serie_em_segundo_plano(tmp_path, cache):
     while time.time() < fim and len(list(cache.rglob("*.jph"))) < 5:
         time.sleep(0.1)
     assert len(list(cache.rglob("*.jph"))) == 5
+
+
+def test_fundo_espera_os_quadros_pedidos(tmp_path, cache):
+    """0.99.99: um trabalhador só, e ele espera enquanto o navegador está pedindo quadros."""
+    import threading
+    import time
+    ps = [_arquivo(tmp_path, (np.arange(32 * 32).reshape(32, 32) + k).astype(np.uint16), False, nome=f"e{k}.dcm")
+          for k in range(4)]
+    with envio.atendendo():
+        envio.preparar_serie(ps[:2])
+        envio.preparar_serie(ps[2:])
+        time.sleep(0.8)
+        assert len(list(cache.rglob("*.jph"))) == 0           # parado: há um pedido de quadro em andamento
+        assert len([t for t in threading.enumerate() if t.name == "ipe-envio"]) == 1
+    fim = time.time() + 20
+    while time.time() < fim and len(list(cache.rglob("*.jph"))) < 4:
+        time.sleep(0.1)
+    assert len(list(cache.rglob("*.jph"))) == 4               # as duas séries, em fila, depois do pedido

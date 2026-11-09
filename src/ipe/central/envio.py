@@ -145,20 +145,50 @@ def quadro(ds, caminho: str, n: int, original: bytes, ts: str) -> tuple[bytes, s
     return r if r else (original, ts)
 
 
-def preparar_serie(caminhos: list[str]) -> None:
-    """Em segundo plano: faz as cópias de envio da série toda (o navegador vai pedir logo)."""
-    if not codec() or _pasta is None:
-        return
-    chave = hashlib.sha1("|".join(sorted(caminhos)).encode()).hexdigest()
-    with _lock:
-        if chave in _ocupadas:
-            return
-        _ocupadas.add(chave)
+# 0.99.99: as cópias da série inteira são feitas por UM trabalhador, em fila, e só quando nenhum quadro está
+# sendo pedido — antes, cada série aberta ganhava uma thread que disputava o processador com os quadros que o
+# navegador estava esperando (e as séries seguintes demoravam a começar).
+_fila: list[tuple[str, list[str]]] = []
+_ativos = 0
+_cond = threading.Condition()
+_trabalhador: threading.Thread | None = None
 
-    def trabalho():
-        from ipe.central import web as WEB
+
+class atendendo:
+    """`with envio.atendendo():` em volta de um pedido de quadro: o trabalhador de fundo espera."""
+
+    def __enter__(self):
+        global _ativos
+        with _cond:
+            _ativos += 1
+
+    def __exit__(self, *exc):
+        global _ativos
+        with _cond:
+            _ativos -= 1
+            _cond.notify_all()
+
+
+def _esperar_folga(maximo: float = 30.0) -> None:
+    import time
+    fim = time.time() + maximo
+    with _cond:
+        while _ativos > 0 and time.time() < fim:
+            _cond.wait(0.2)
+
+
+def _trabalhar() -> None:
+    from ipe.central import web as WEB
+    while True:
+        with _cond:
+            if not _fila:
+                global _trabalhador
+                _trabalhador = None
+                return
+            chave, caminhos = _fila.pop(0)
         try:
             for c in caminhos:
+                _esperar_folga()
                 try:
                     WEB.quadros_para_web(c, None)
                 except Exception:  # noqa: BLE001
@@ -166,4 +196,20 @@ def preparar_serie(caminhos: list[str]) -> None:
         finally:
             with _lock:
                 _ocupadas.discard(chave)
-    threading.Thread(target=trabalho, name="ipe-envio", daemon=True).start()
+
+
+def preparar_serie(caminhos: list[str]) -> None:
+    """Em segundo plano: faz as cópias de envio da série toda (na fila, quando a rede estiver folgada)."""
+    global _trabalhador
+    if not codec() or _pasta is None or not caminhos:
+        return
+    chave = hashlib.sha1("|".join(sorted(caminhos)).encode()).hexdigest()
+    with _lock:
+        if chave in _ocupadas:
+            return
+        _ocupadas.add(chave)
+    with _cond:
+        _fila.append((chave, list(caminhos)))
+        if _trabalhador is None:
+            _trabalhador = threading.Thread(target=_trabalhar, name="ipe-envio", daemon=True)
+            _trabalhador.start()

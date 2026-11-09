@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.99 — web viewer: the next series start right away
+- The browser requests the metadata of all series together (three at a time) instead of one after the other;
+  frames are queued in strip order as soon as each series arrives.
+- The server reads headers in parallel, keeps the response (reopening is instant; it changes if the file changes)
+  and reads the whole exam as soon as the first series is requested.
+- The series' transfer copies (HTJ2K) are made by a single worker, queued, and wait while frames are being
+  requested — before, each opened series competed for the CPU with the images the browser was waiting for.
+- In a test exam with 6 series of 120 slices, the last series started downloading at 12.7 s; now at 3.3 s.
+
 ## 0.99.98 — web viewer: mammography with one and two screens, breast dynamic study and report
 - **Mammography** in the Ipê protocol: steps (4 views, CC, MLO, current × prior…), the image of each viewport and
   the prior exam by the same rules, breasts back to back (mirrored when needed), the breast framed without the air,

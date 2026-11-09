@@ -972,9 +972,19 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     const nosQuadros = new Set(g.quadros.map((q) => q.serie?.series).filter(Boolean) as string[]);
     const ordem = series.map((x) => API.texto(x, "0020000E"));
     ordem.sort((a, b) => Number(nosQuadros.has(b)) - Number(nosQuadros.has(a)));
+    // 0.99.99: os metadados de todas as séries vêm juntos (três de cada vez), sem esperar uma acabar para pedir a
+    // próxima; os quadros entram na fila na ordem da tira assim que a série chega
+    let proxima = 0;
+    const pedirMais = () => {
+      while (proxima < ordem.length && proxima < feitas + 3) void pegar(ordem[proxima++]).catch(() => null);
+    };
+    let feitas = 0;
+    pedirMais();
     for (const uid of ordem) {
       if (disp !== d) return;
-      const s = await pegar(uid);
+      const s = await pegar(uid).catch(() => null);
+      feitas++;
+      pedirMais();
       if (s && disp === d) d.preCarregar(s.imageIds);
     }
   })();

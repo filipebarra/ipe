@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.99 — visualizador web: las series siguientes empiezan enseguida
+- El navegador pide los metadatos de todas las series juntos (tres a la vez), en lugar de uno tras otro; los
+  cuadros entran en la cola en el orden de la tira apenas llega cada serie.
+- El servidor lee los encabezados en paralelo, guarda la respuesta (reabrir es inmediato; cambia si cambia el
+  archivo) y lee el examen entero apenas se pide la primera serie.
+- Las copias de envío (HTJ2K) de la serie las hace un solo trabajador, en cola, y esperan mientras se piden
+  cuadros — antes, cada serie abierta competía por el procesador con las imágenes que el navegador esperaba.
+- En un examen de prueba con 6 series de 120 cortes, la última serie empezaba a bajar a los 12,7 s; ahora, a los 3,3 s.
+
 ## 0.99.98 — visualizador web: mamografía con una y dos pantallas, dinámica de mama e informe
 - **Mamografía** en el protocolo del Ipê: etapas (4 incidencias, CC, MLO, actual × anterior…), la imagen de cada
   cuadro y el examen anterior por las mismas reglas, mamas espalda con espalda (volteadas cuando hace falta), la
