@@ -116,6 +116,12 @@ class CentralDialog(QDialog):
         self.cache = QDoubleSpinBox(minimum=1, maximum=10000, value=float(settings.get("central.cache_gb", 20)),
                                     suffix=" GB", decimals=0)
         fc.addRow("Cache local (máx.):", self.cache)
+        # 0.100.0: os pixels em HTJ2K sem perda na rede (o acervo do servidor não muda)
+        self.htj2k = QCheckBox("Receber as imagens comprimidas sem perda (HTJ2K)")
+        self.htj2k.setChecked(bool(settings.get("central.rede_htj2k", True)))
+        self.htj2k.setToolTip("O servidor manda uma cópia comprimida sem perda (conferida pixel a pixel): 2 a 4 vezes "
+                              "menos dados na rede. O arquivo guardado no servidor não muda.")
+        fc.addRow(self.htj2k)
         row = QHBoxLayout()
         b = QPushButton("Testar conexão")
         b.clicked.connect(self.test)
@@ -263,6 +269,7 @@ class CentralDialog(QDialog):
         s.set("central.verify_tls", self.verify.isChecked())
         s.set("central.ca_pem", self.ca_pem)
         s.set("central.cache_gb", self.cache.value())
+        s.set("central.rede_htj2k", self.htj2k.isChecked())
         s.save()
         if (mode == "client") != (self._mode0 == "client"):
             QMessageBox.information(self, "Servidor central", "Feche e abra o programa de novo para "

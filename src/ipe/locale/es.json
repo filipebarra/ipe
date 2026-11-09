@@ -8418,5 +8418,20 @@
  "o módulo de mamografia está desligado": "el módulo de mamografía está desactivado",
  "sem imagens com o lado reconhecido": "sin imágenes con el lado reconocido",
  "Fase {} (Se {})": "Fase {} (Se {})",
- "Se {}": "Se {}"
+ "Se {}": "Se {}",
+ " (HTJ2K na rede)": " (HTJ2K en la red)",
+ "O servidor manda uma cópia comprimida sem perda (conferida pixel a pixel): 2 a 4 vezes menos dados na rede. O arquivo guardado no servidor não muda.": "El servidor envía una copia comprimida sin pérdida (verificada píxel a píxel): de 2 a 4 veces menos datos en la red. El archivo guardado en el servidor no cambia.",
+ "Receber as imagens comprimidas sem perda (HTJ2K)": "Recibir las imágenes comprimidas sin pérdida (HTJ2K)",
+ "Série baixada do servidor central.": "Serie descargada del servidor central.",
+ "andamento do download na aba": "progreso de la descarga en la pestaña",
+ "cópias de envio dos exames recentes": "copias de envío de los exámenes recientes",
+ "cópias de envio: exames recentes": "copias de envío: exámenes recientes",
+ "importar no cache": "importar en la caché",
+ "priorizar a série": "priorizar la serie",
+ "Baixando do servidor central: {} de {} imagem(ns) ({}%)…": "Descargando del servidor central: {} de {} imagen(es) ({}%)…",
+ "Baixando do servidor central: {} de {} imagens.": "Descargando del servidor central: {} de {} imágenes.",
+ "Na fila para baixar ({}ª). Ponha num quadro para baixar primeiro.": "En la cola de descarga ({}ª). Póngala en un cuadro para descargarla primero.",
+ "{} de {} imagens no computador.": "{} de {} imágenes en el equipo.",
+ "{} {}\n{}\n{}/{} im{}": "{} {}\n{}\n{}/{} im{}",
+ "⬇ {}/{}": "⬇ {}/{}"
 }

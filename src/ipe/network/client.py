@@ -250,7 +250,14 @@ class DicomClient:
                 if cancel is not None and cancel.is_set():
                     raise DicomError("Cancelado")
                 try:
-                    st = assoc.send_c_store(pydicom.dcmread(p))
+                    ds = pydicom.dcmread(p)
+                    try:
+                        st = assoc.send_c_store(ds)
+                    except ValueError:
+                        # 0.100.0: o destino não aceitou a sintaxe do arquivo (HTJ2K do cache do cliente, JPEG-LS):
+                        # vai descomprimido, que todo nó aceita
+                        ds.decompress()
+                        st = assoc.send_c_store(ds)
                     if st and st.Status in (0x0000, 0xB000, 0xB007, 0xB006):
                         sent += 1
                     else:

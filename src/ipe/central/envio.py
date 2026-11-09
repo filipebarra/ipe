@@ -190,7 +190,9 @@ def _trabalhar() -> None:
             for c in caminhos:
                 _esperar_folga()
                 try:
-                    WEB.quadros_para_web(c, None)
+                    # 0.100.0: o arquivo inteiro (para o cliente) já faz os quadros (para o navegador)
+                    if arquivo_para_rede(c) == c:
+                        WEB.quadros_para_web(c, None)
                 except Exception:  # noqa: BLE001
                     pass
         finally:
@@ -213,3 +215,91 @@ def preparar_serie(caminhos: list[str]) -> None:
         if _trabalhador is None:
             _trabalhador = threading.Thread(target=_trabalhar, name="ipe-envio", daemon=True)
             _trabalhador.start()
+
+
+def varrer_recentes(repo, dias: int) -> int:
+    """0.100.0: põe na fila (de fundo, que espera a rede folgar) as cópias de envio dos exames dos últimos
+    `dias` — quando o médico abrir no cliente ou no navegador, elas já estão prontas. Devolve quantos exames."""
+    if dias <= 0 or not codec() or _pasta is None:
+        return 0
+    from datetime import date, timedelta
+    desde = (date.today() - timedelta(days=int(dias))).strftime("%Y%m%d")
+    try:
+        # numa linha à parte não há usuário na sessão: a busca não filtra por banco
+        estudos = repo.search_studies(date_from=desde, limit=500, banco="todos")
+    except Exception:  # noqa: BLE001
+        log.exception("cópias de envio: exames recentes")
+        return 0
+    for r in estudos:
+        try:
+            preparar_serie([f for f in repo.files_for_study(r.study_uid) if f])
+        except Exception:  # noqa: BLE001
+            log.debug("cópias de envio de %s", r.study_uid, exc_info=True)
+    return len(estudos)
+
+
+# ------------------------------------------------------------------ o arquivo inteiro em HTJ2K (0.100.0)
+def pronto_para_rede(caminho: str) -> bool:
+    """A cópia do arquivo para o cliente já existe (ou já se sabe que não há o que ganhar)?"""
+    if codec() != "htj2k" or _pasta is None:
+        return True
+    try:
+        chave = _chave(caminho, "arquivo")
+    except OSError:
+        return True
+    alvo = _pasta / chave[:2] / (chave + ".dcm")
+    return alvo.exists() or alvo.with_suffix(".naoarq").exists()
+
+
+def arquivo_para_rede(caminho: str) -> str:
+    """O arquivo DICOM com os pixels em HTJ2K sem perda, para o programa ligado ao servidor (o cliente).
+
+    O acervo continua como veio; isto é outra cópia de envio (a mesma conferência pixel a pixel, quadro a
+    quadro), guardada no cache. Devolve o caminho da cópia, ou o próprio arquivo quando não há o que ganhar
+    (já comprimido de outro jeito, cor, sem HTJ2K, ou algum quadro não passou na conferência)."""
+    if codec() != "htj2k" or _pasta is None:
+        return caminho
+    try:
+        chave = _chave(caminho, "arquivo")
+    except OSError:
+        return caminho
+    alvo = _pasta / chave[:2] / (chave + ".dcm")
+    nao = alvo.with_suffix(".naoarq")
+    if alvo.exists():
+        return str(alvo)
+    if nao.exists():
+        return caminho
+    import pydicom
+    from pydicom.encaps import encapsulate
+
+    from ipe.central import web as WEB
+    try:
+        ds = pydicom.dcmread(caminho, force=True)
+        ts = str(getattr(getattr(ds, "file_meta", None), "TransferSyntaxUID", "") or "")
+        if ts not in CONVERTE or not _monocromatico(ds) or "PixelData" not in ds:
+            raise _SemGanho
+        partes = WEB.quadros_para_web(caminho, None)
+        if not partes or any(t != HTJ2K_RPCL for _, t in partes):
+            raise _SemGanho
+        ds.PixelData = encapsulate([d for d, _ in partes], has_bot=len(partes) > 1)
+        ds["PixelData"].VR = "OB"
+        ds.file_meta.TransferSyntaxUID = HTJ2K_RPCL
+        alvo.parent.mkdir(parents=True, exist_ok=True)
+        tmp = alvo.with_suffix(f".{threading.get_ident()}.tmp")
+        ds.save_as(tmp, implicit_vr=False, little_endian=True, enforce_file_format=True)
+        os.replace(tmp, alvo)
+        return str(alvo)
+    except _SemGanho:
+        pass
+    except Exception:  # noqa: BLE001
+        log.exception("cópia de envio do arquivo: %s", caminho)
+    try:
+        nao.parent.mkdir(parents=True, exist_ok=True)
+        nao.write_bytes(b"")
+    except OSError:
+        pass
+    return caminho
+
+
+class _SemGanho(Exception):
+    pass

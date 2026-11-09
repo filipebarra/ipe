@@ -70,10 +70,10 @@ def test_abre_antes_de_terminar_e_vai_crescendo(central, tmp_path, monkeypatch):
     solta = threading.Event()
     retrieve = cr.client.retrieve
 
-    def devagar(study_uid, dest, series_uid=None, progress=None, sop_uid=None):
+    def devagar(study_uid, dest, series_uid=None, progress=None, sop_uid=None, **kw):
         if not sop_uid:
             solta.wait(20)
-        return retrieve(study_uid, dest, series_uid, progress=progress, sop_uid=sop_uid)
+        return retrieve(study_uid, dest, series_uid, progress=progress, sop_uid=sop_uid, **kw)
     monkeypatch.setattr(cr.client, "retrieve", devagar)
     msgs = []
     cr.on_download_status = msgs.append
@@ -89,6 +89,21 @@ def test_abre_antes_de_terminar_e_vai_crescendo(central, tmp_path, monkeypatch):
     assert set(parcial) == set(remotas)                     # todas as séries já na tira
     assert sum(parcial.values()) < sum(remotas.values())    # mas ainda não todas as imagens
     w._vigiar_series()                                      # a vigia (de 3 em 3 s) vê o exame pela metade
+    # 0.100.0: a tira diz quanto de cada série chegou (1 de N, com a barra), e o quadro também
+    tab._vigia_download.tick()
+    textos = [tab.strip.item(i).text() for i in range(tab.strip.count())]
+    for su, n in remotas.items():
+        if su in {x.series_uid for x in tab.series} and n > 1:
+            assert any(f"1/{n} im" in x for x in textos), textos
+    vp0 = next(v for v in tab.viewports if v.series_uid in remotas and remotas[v.series_uid] > 1)
+    assert vp0.baixando_txt == f"⬇ 1/{remotas[vp0.series_uid]}"
+    and_ = cr.andamento(uid)
+    assert set(and_["series"]) == set(remotas) and len(and_["baixando"]) <= cr.CONEXOES
+    # pôr a última série da fila num quadro passa ela para a frente
+    if and_["fila"]:
+        ultima = and_["fila"][-1]
+        tab.load_series_into(tab.viewports[0], ultima)
+        assert cr.andamento(uid)["fila"][0] == ultima
     solta.set()
     assert _esperar(lambda: not cr.baixando(uid), app)
     w._vigiar_series()                                      # e depois completo: a aba acrescenta
@@ -97,4 +112,7 @@ def test_abre_antes_de_terminar_e_vai_crescendo(central, tmp_path, monkeypatch):
     vp = next(v for v in tab.viewports if v.series_uid in remotas)
     assert len(vp.frames) == remotas[vp.series_uid]          # o quadro aberto cresceu
     assert any("Exame baixado" in m for m in msgs)
+    # terminado: a tira volta ao normal e o quadro sem o aviso
+    assert _esperar(lambda: (tab._vigia_download.tick() or True) and vp.baixando_txt == "", app)
+    assert not any("⬇" in tab.strip.item(i).text() for i in range(tab.strip.count()))
     w.close()

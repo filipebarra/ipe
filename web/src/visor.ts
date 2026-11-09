@@ -488,7 +488,10 @@ export class Grade {
       const pilha = vp as Types.IStackViewport;
       const meio = Math.floor(s.imageIds.length / 2);
       await pilha.setStack(s.imageIds, s.imageIds.length > 2 ? meio : 0);
-      // a grade pode ter sido refeita enquanto a imagem carregava: a câmera é ajustada ao tamanho de agora
+      // 0.100.0: a grade pode ter sido refeita (outro layout, outra etapa) enquanto a imagem carregava — o quadro
+      // de antes já não existe; mexer na câmera dele derrubava o site ("getViewUp" de null)
+      if (!this.vivo(q)) return;
+      // a câmera é ajustada ao tamanho de agora
       pilha.resetCamera();
       pilha.render();
       void carregarMedidas(s.study, s.series, s.imageIds, q.el); // as medidas do banco (feitas aqui ou no Ipê)
@@ -499,7 +502,9 @@ export class Grade {
         if (this.volumeOk(q.sobre)) vols.push({ volumeId: await volumeDa(q.sobre) });
         else q.sobre = null;
       }
+      if (!this.vivo(q)) return;
       await setVolumesForViewports(motor!, vols, [q.id]);
+      if (!this.vivo(q)) return;
       this.aplicarProjecao(q);
       const v = vp as Types.IVolumeViewport;
       if (q.sobre) {
@@ -520,6 +525,17 @@ export class Grade {
       this.reporSeg();
     }
     this.escreverTextos(q);
+  }
+
+  /** O quadro ainda está na grade (e o viewport dele no motor)? */
+  private vivo(q: Quadro): boolean {
+    if (!this.quadros.includes(q) || !motor) return false;
+    try {
+      const vp = motor.getViewport(q.id) as unknown as { getRenderer?: () => unknown } | undefined;
+      return !!vp && (!vp.getRenderer || !!vp.getRenderer());
+    } catch {
+      return false;
+    }
   }
 
   private specDe(q: Quadro): Spec {

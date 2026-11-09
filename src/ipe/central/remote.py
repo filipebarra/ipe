@@ -173,14 +173,18 @@ class RemoteClient:
         return self._retry(call)
 
     def retrieve(self, study_uid: str, dest: Path, series_uid: str | None = None, progress=None,
-                 sop_uid: str | None = None) -> list[Path]:
-        """WADO-RS: baixa o estudo (ou uma série, ou uma imagem) para `dest`, arquivo por arquivo."""
+                 sop_uid: str | None = None, htj2k: bool = False) -> list[Path]:
+        """WADO-RS: baixa o estudo (ou uma série, ou uma imagem) para `dest`, arquivo por arquivo.
+        `htj2k`: pede os pixels em HTJ2K sem perda (0.100.0); o servidor manda o original se não ganha nada."""
         path = f"/dicomweb/studies/{study_uid}" + (f"/series/{series_uid}" if series_uid else "")
         if series_uid and sop_uid:
             path += f"/instances/{sop_uid}"
+        aceita = 'multipart/related; type="application/dicom"'
+        if htj2k:
+            aceita += "; transfer-syntax=1.2.840.10008.1.2.4.202"
 
         def call():
-            r = self._open(path, headers={"Accept": 'multipart/related; type="application/dicom"'},
+            r = self._open(path, headers={"Accept": aceita},
                            timeout=max(self.timeout, 120))
             try:
                 boundary = DW.boundary_of(r.headers.get("Content-Type", ""))

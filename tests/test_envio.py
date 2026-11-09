@@ -122,3 +122,33 @@ def test_fundo_espera_os_quadros_pedidos(tmp_path, cache):
     while time.time() < fim and len(list(cache.rglob("*.jph"))) < 4:
         time.sleep(0.1)
     assert len(list(cache.rglob("*.jph"))) == 4               # as duas séries, em fila, depois do pedido
+
+
+def test_arquivo_inteiro_em_htj2k_para_o_cliente(tmp_path, cache):
+    """0.100.0: o arquivo vai ao cliente com os pixels em HTJ2K sem perda; o programa lê a mesma imagem
+    (pelo caminho rápido do imagecodecs), com o sinal certo, e o acervo não muda."""
+    import pydicom
+
+    from ipe.imaging.series import Frame, read_frame
+    for sinal in (True, False):
+        arr = (np.random.default_rng(1).normal(0 if sinal else 1500, 300, (64, 48))).astype(np.int16 if sinal else np.uint16)
+        p = _arquivo(tmp_path, arr, sinal, nome=f"arq{sinal}.dcm")
+        antes = Path(p).read_bytes()
+        q = envio.arquivo_para_rede(p)
+        assert q != p and Path(p).read_bytes() == antes
+        ds = pydicom.dcmread(q)
+        assert str(ds.file_meta.TransferSyntaxUID) == envio.HTJ2K_RPCL
+        assert ds.SOPInstanceUID == pydicom.dcmread(p).SOPInstanceUID
+        assert np.array_equal(ds.pixel_array, arr)
+        a = read_frame(Frame(path=q, frame_index=0, sop_uid=ds.SOPInstanceUID, instance_number=1, position=None,
+                             orientation=None))
+        b = read_frame(Frame(path=p, frame_index=0, sop_uid=ds.SOPInstanceUID, instance_number=1, position=None,
+                             orientation=None))
+        assert np.array_equal(a.pixels, b.pixels)
+        assert envio.arquivo_para_rede(p) == q                 # a segunda vez: do cache
+
+
+def test_arquivo_ja_comprimido_vai_como_esta(tmp_path, cache):
+    arr = (np.arange(16 * 16).reshape(16, 16) % 200).astype(np.uint8)
+    p = _arquivo(tmp_path, arr, False, rgb=True, nome="cor.dcm")
+    assert envio.arquivo_para_rede(p) == p

@@ -3,6 +3,22 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.0 — cliente do servidor central: quanto de cada série chegou, e menos dados na rede
+- A tira mostra, em cada série, quantas imagens já chegaram (*34/120 im*) com uma barra, e ⬇ na que está
+  chegando; o quadro mostra **⬇ 34/120** até a série terminar; a barra de status ganha a porcentagem.
+- Pôr uma série num quadro passa ela para a frente do download.
+- Duas séries baixam ao mesmo tempo, e a entrada no banco corre numa linha à parte (a rede não para mais
+  enquanto o lote entra no banco).
+- **HTJ2K sem perda na rede**: o servidor manda ao cliente uma cópia de envio (conferida pixel a pixel; o acervo
+  não muda), 2 a 4× menos dados. As cópias dos exames dos últimos 14 dias ficam prontas em segundo plano; a imagem
+  sem cópia pronta vai como está. O cliente decodifica pelo OpenJPH (imagecodecs, ~1 ms por corte de TC).
+  Configurações ▸ Rede ▸ Servidor central liga e desliga.
+- Mandar a um nó DICOM que não aceita a sintaxe do arquivo (HTJ2K, JPEG-LS) agora vai descomprimido.
+- Visualizador web: trocar de layout ou de etapa enquanto a imagem carregava às vezes derrubava a página; e o pacote
+  do site deixou de depender da ordem dos módulos (um erro na carga que aparecia ao mudar o código).
+- Medido num exame de 720 imagens com as cópias prontas: numa rede de ~100 Mbit/s, 4,9 s com HTJ2K contra 16,8 s
+  sem; em rede de 1 Gbit/s, 2,6 s contra 2,9 s.
+
 ## 0.99.99 — visualizador web: as séries seguintes começam logo
 - O navegador pede os metadados de todas as séries juntos (três de cada vez), em vez de um depois do outro; os
   quadros entram na fila na ordem da tira assim que cada série chega.

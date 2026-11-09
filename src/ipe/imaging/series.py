@@ -161,6 +161,8 @@ def read_frame(frame: Frame) -> FrameImage:
     if arr is None:
         ds = pydicom.dcmread(frame.path, force=True)
         _ensure_transfer_syntax(ds)
+        arr = _htj2k_rapido(ds)
+    if arr is None:
         plug = decodificador_preferido(_ts_de(ds))
         if plug:
             try:
@@ -325,6 +327,30 @@ _DISPONIVEL: dict[str, str | None] = {}
 def _ts_de(ds) -> str:
     meta = getattr(ds, "file_meta", None)
     return str(getattr(meta, "TransferSyntaxUID", "") or "") if meta is not None else ""
+
+
+#: 0.100.0: HTJ2K (a cópia que o servidor central manda ao cliente) — o OpenJPH do imagecodecs decodifica um corte
+#: de TC em ~1 ms, contra ~3,5 ms do OpenJPEG pelo pydicom
+HTJ2K = {"1.2.840.10008.1.2.4.201", "1.2.840.10008.1.2.4.202", "1.2.840.10008.1.2.4.203"}
+
+
+def _htj2k_rapido(ds):
+    """O quadro único em HTJ2K, monocromático, pelo imagecodecs; None para o caminho de sempre."""
+    if _ts_de(ds) not in HTJ2K or int(ds.get("NumberOfFrames", 1) or 1) != 1 \
+            or int(ds.get("SamplesPerPixel", 1) or 1) != 1 or "PixelData" not in ds:
+        return None
+    try:
+        import imagecodecs
+        from pydicom.encaps import generate_frames
+        dados = next(generate_frames(ds.PixelData, number_of_frames=1))
+        arr = np.asarray(imagecodecs.htj2k_decode(dados))
+        if arr.shape != (int(ds.Rows), int(ds.Columns)):
+            return None
+        if int(ds.get("PixelRepresentation", 0) or 0) == 1 and arr.dtype.kind == "u":
+            arr = arr.view(arr.dtype.str.replace("u", "i"))
+        return arr
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def decodificador_preferido(ts: str) -> str | None:

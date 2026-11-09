@@ -43,6 +43,7 @@ class ClientRepository:
         self._banco_pendente: dict[str, tuple[str, str]] = {}   # 0.99.28: banco de exame que ainda vai subir
         self._baixando: dict = {}            # 0.99.85: study_uid -> (thread, primeiro_lote, parar)
         self._baixar_lock = threading.Lock()
+        self._andamentos: dict[str, dict] = {}  # 0.100.0: study_uid -> andamento do download, série a série
         self.on_download_status = None       # callback(texto), andamento do download
         self.progressivo = True              # abre o exame antes de terminar de baixar
 
@@ -121,13 +122,48 @@ class ClientRepository:
     #: abrir com as primeiras e ir crescendo enquanto o resto baixa
     LOTE_IMAGENS = 24
     LOTE_SEGUNDOS = 1.5
+    #: 0.100.0: quantas séries baixam ao mesmo tempo (cada uma numa conexão)
+    CONEXOES = 2
+
+    def rede_htj2k(self) -> bool:
+        """0.100.0: pedir os pixels em HTJ2K sem perda (2 a 4× menos bytes na rede). O acervo do servidor não muda."""
+        return bool(self.settings.get("central.rede_htj2k", True)) if self.settings is not None else True
+
+    def andamento(self, study_uid: str) -> dict:
+        """0.100.0: o download do exame, série a série: {"series": {uid: (já no computador, total)},
+        "baixando": [uids chegando agora], "fila": [uids que faltam, na ordem]}. Vazio se não está baixando."""
+        a = self._andamentos.get(study_uid)
+        if not a:
+            return {}
+        with self._baixar_lock:
+            return {"series": {u: tuple(v) for u, v in a["series"].items()}, "baixando": list(a["baixando"]),
+                    "fila": [s.series_uid for s in a["fila"]]}
+
+    def priorizar(self, study_uid: str, series_uid: str) -> bool:
+        """0.100.0: a série que ele pôs no quadro passa para a frente da fila do download."""
+        a = self._andamentos.get(study_uid)
+        if not a:
+            return False
+        with self._baixar_lock:
+            fila = a["fila"]
+            i = next((k for k, s in enumerate(fila) if s.series_uid == series_uid), -1)
+            if i <= 0:
+                return i == 0
+            fila.insert(0, fila.pop(i))
+        log.info("servidor central: série %s passou para a frente", series_uid)
+        return True
 
     def download(self, study_uid: str, progress=None, cancel=None, primeiro_lote=None) -> int:
         """Baixa (WADO-RS) o que falta do estudo e importa no cache. Devolve arquivos baixados.
 
         0.99.85: série por série (na ordem do número da série), e o que chega entra no cache em
         lotes pequenos, não só no fim. `primeiro_lote` (threading.Event) é sinalizado assim que há
-        imagens do exame no cache — é o que deixa o exame abrir antes de o download terminar."""
+        imagens do exame no cache — é o que deixa o exame abrir antes de o download terminar.
+
+        0.100.0: duas séries de cada vez (`CONEXOES`), os pixels em HTJ2K sem perda (`rede_htj2k`), e a
+        importação numa linha à parte (antes, a rede parava enquanto o lote entrava no banco). O andamento de
+        cada série fica em `andamento`, e `priorizar` passa uma série para a frente."""
+        import queue
         import time
 
         from ipe.importer.scanner import Importer
@@ -143,28 +179,87 @@ class ClientRepository:
                 primeiro_lote.set()
             return 0
         total = sum(int(s.num_images or 0) for s in faltam)
-        log.info("servidor central: baixando %s — %d imagem(ns) em %d série(s)", study_uid, total, len(faltam))
+        htj2k = self.rede_htj2k()
+        log.info("servidor central: baixando %s — %d imagem(ns) em %d série(s)%s", study_uid, total, len(faltam),
+                 " (HTJ2K na rede)" if htj2k else "")
+        estado = {"series": {s.series_uid: [int(local.get(s.series_uid, 0)), int(s.num_images or 0)] for s in remotas},
+                  "baixando": [], "fila": list(faltam)}
+        self._andamentos[study_uid] = estado
         tmp = Path(tempfile.mkdtemp(prefix="dv_cache_"))
-        imp = Importer(self.local.db, self.storage)
-        count = 0
+        recebidos = {"n": 0}
+        trava = threading.Lock()
+        fila_imp: queue.Queue = queue.Queue()
+        erro_imp: list = []
 
-        def importar(arquivos: list) -> None:
-            if not arquivos:
-                return
-            r = imp.import_paths(arquivos)
-            for f in arquivos:
+        def importador():
+            imp = Importer(self.local.db, self.storage)
+            while True:
+                arquivos = fila_imp.get()
+                if arquivos is None:
+                    return
                 try:
-                    Path(f).unlink()
-                except OSError:
-                    pass
-            if r.new_series:
+                    r = imp.import_paths(arquivos)
+                    if r.new_series:
+                        try:
+                            generate_thumbnails(self.local, r.new_series)
+                        except Exception:  # noqa: BLE001
+                            log.exception("miniaturas do cache")
+                except Exception as e:  # noqa: BLE001
+                    log.exception("importar no cache")
+                    erro_imp.append(e)
+                finally:
+                    for f in arquivos:
+                        try:
+                            Path(f).unlink()
+                        except OSError:
+                            pass
+                if primeiro_lote is not None and self.is_cached(study_uid):
+                    primeiro_lote.set()
+
+        th_imp = threading.Thread(target=importador, name="ipe-importar-cache", daemon=True)
+        th_imp.start()
+
+        def baixar_serie(se) -> int:
+            pasta = tmp / se.series_uid
+            ja = {"feitos": 0, "quando": time.monotonic()}
+            base = int(local.get(se.series_uid, 0))
+
+            def chegou(n):
+                with trava:
+                    recebidos["n"] += 1
+                    feito = recebidos["n"]
+                with self._baixar_lock:
+                    c = estado["series"][se.series_uid]
+                    c[0] = max(c[0], min(base + n, c[1]))
+                if progress:
+                    progress(feito, total)
+                if n - ja["feitos"] >= self.LOTE_IMAGENS or time.monotonic() - ja["quando"] >= self.LOTE_SEGUNDOS:
+                    lote = [pasta / f"{i:06d}.dcm" for i in range(ja["feitos"], n)]
+                    ja["feitos"], ja["quando"] = n, time.monotonic()
+                    fila_imp.put(lote)
+
+            files = self.client.retrieve(study_uid, pasta, se.series_uid, progress=chegou, htj2k=htj2k)
+            fila_imp.put([pasta / f"{i:06d}.dcm" for i in range(ja["feitos"], len(files))])
+            return len(files)
+
+        def trabalhador():
+            n = 0
+            while not (cancel and cancel()):
+                with self._baixar_lock:
+                    if not estado["fila"]:
+                        return n
+                    se = estado["fila"].pop(0)
+                    estado["baixando"].append(se.series_uid)
                 try:
-                    generate_thumbnails(self.local, r.new_series)
+                    n += baixar_serie(se)
                 except Exception:  # noqa: BLE001
-                    log.exception("miniaturas do cache")
-            if primeiro_lote is not None and self.is_cached(study_uid):
-                primeiro_lote.set()
+                    log.exception("servidor central: série %s", se.series_uid)
+                finally:
+                    with self._baixar_lock:
+                        estado["baixando"].remove(se.series_uid)
+            return n
 
+        count = 0
         try:
             if primeiro_lote is not None:
                 # 0.99.85: antes de tudo, uma imagem do meio de cada série que falta — o exame abre com
@@ -182,30 +277,23 @@ class ClientRepository:
                             continue
                         meio = inst[len(inst) // 2]["sop_uid"]
                         amostras += self.client.retrieve(study_uid, tmp / "amostras" / se.series_uid,
-                                                         se.series_uid, sop_uid=meio)
+                                                         se.series_uid, sop_uid=meio, htj2k=htj2k)
+                        with self._baixar_lock:
+                            c = estado["series"][se.series_uid]
+                            c[0] = max(c[0], 1)
                     except Exception:  # noqa: BLE001
                         log.debug("amostra da série %s", se.series_uid, exc_info=True)
-                importar(amostras)
-            for se in faltam:
-                if cancel and cancel():
-                    break
-                pasta = tmp / se.series_uid
-                estado = {"feitos": 0, "quando": time.monotonic()}
-
-                def chegou(n, pasta=pasta, estado=estado, base=count):
-                    if progress:
-                        progress(base + n, total)
-                    if n - estado["feitos"] >= self.LOTE_IMAGENS or \
-                            time.monotonic() - estado["quando"] >= self.LOTE_SEGUNDOS:
-                        lote = [pasta / f"{i:06d}.dcm" for i in range(estado["feitos"], n)]
-                        estado["feitos"], estado["quando"] = n, time.monotonic()
-                        importar(lote)
-
-                files = self.client.retrieve(study_uid, pasta, se.series_uid, progress=chegou)
-                importar([pasta / f"{i:06d}.dcm" for i in range(estado["feitos"], len(files))])
-                count += len(files)
+                if amostras:
+                    fila_imp.put(amostras)
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=max(1, self.CONEXOES), thread_name_prefix="ipe-baixar-serie") as ex:
+                for f in [ex.submit(trabalhador) for _ in range(max(1, self.CONEXOES))]:
+                    count += f.result()
         finally:
+            fila_imp.put(None)
+            th_imp.join()
             shutil.rmtree(tmp, ignore_errors=True)
+            self._andamentos.pop(study_uid, None)
             if primeiro_lote is not None:
                 primeiro_lote.set()              # terminou (ou falhou): quem espera não fica preso
         self._touch(study_uid)
@@ -232,7 +320,8 @@ class ClientRepository:
                 import time
                 if time.monotonic() - ultimo["t"] >= 0.5 or n >= total:
                     ultimo["t"] = time.monotonic()
-                    avisar(f"Baixando do servidor central: {n} de {total} imagem(ns)…")
+                    pct = int(100 * n / total) if total else 100
+                    avisar(f"Baixando do servidor central: {n} de {total} imagem(ns) ({pct}%)…")
 
             def trabalho():
                 try:

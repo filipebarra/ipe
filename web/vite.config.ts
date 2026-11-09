@@ -12,6 +12,10 @@ export default defineConfig({
     sourcemap: false,
     minify: process.env.IPE_SEM_MINIFY ? false : "terser",
     chunkSizeWarningLimit: 8000,
+    // 0.100.0: o xmlbuilder2 (CommonJS, com dependências circulares) às vezes quebrava na carga do pacote minificado
+    // ("Object.defineProperty called on non-object") conforme a ordem dos módulos mudava; com strictRequires cada
+    // require roda na hora certa, como no Node
+    commonjsOptions: { strictRequires: true },
   },
   worker: { format: "es" },
   optimizeDeps: {

@@ -231,6 +231,11 @@ class ViewerTab(OncoMixin, QWidget):
         CR.marca("regras")
         self._fill_strip()
         CR.marca("tira")
+        # 0.100.0: no programa ligado ao servidor central, quanto de cada série já chegou (tira e quadros)
+        self._vigia_download = None
+        if getattr(repo, "andamento", None) is not None:
+            from ipe.ui.viewer.baixando import VigiaDownload
+            self._vigia_download = VigiaDownload(self)
         self.strip.itemClicked.connect(self._strip_clicked)
         self.strip.itemDoubleClicked.connect(self._strip_double_clicked)
         self.strip.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -1794,6 +1799,9 @@ class ViewerTab(OncoMixin, QWidget):
                 if self.strip.item(i).data(Qt.UserRole) == current:
                     self.strip.setCurrentRow(i)
                     break
+        vigia = getattr(self, "_vigia_download", None)
+        if vigia is not None:
+            vigia.aplicar()
 
     # ------------------------------------------------------------ exames do paciente na tira
     def _encher_filtro_de_exames(self) -> None:
@@ -2595,6 +2603,14 @@ class ViewerTab(OncoMixin, QWidget):
                          start_index: int | None = None, como_serie: bool = False) -> None:
         """Põe a série no quadro. Série que é fase de uma dinâmica abre **como a dinâmica**, já
         na fase dela (`como_serie=True` força a série sozinha)."""
+        priorizar = getattr(self.repo, "priorizar", None)
+        if priorizar is not None and series_uid and ":" not in series_uid:
+            # 0.100.0: a série posta no quadro passa para a frente do download do servidor central
+            st = next((s.study_uid for s in self.series if s.series_uid == series_uid), self.study_uid)
+            try:
+                priorizar(st, series_uid)
+            except Exception:  # noqa: BLE001
+                log.debug("priorizar a série", exc_info=True)
         if not como_serie and series_uid and ":" not in series_uid:
             grupo = self.grupo_dinamico_de(series_uid)
             if grupo is not None:

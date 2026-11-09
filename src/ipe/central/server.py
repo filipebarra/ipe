@@ -72,6 +72,23 @@ class CentralServer:
             return
         from ipe.central import envio
         envio.configurar(self.storage)                       # 0.99.96: cópias de envio do visualizador web
+        # 0.100.0: as cópias dos exames recentes ficam prontas em segundo plano (de 30 em 30 min)
+        dias = int(self.settings.get("central.htj2k_previo_dias", 14) if self.settings is not None else 14)
+        if dias > 0:
+            def varrer(repo=self.repo):
+                import time as _t
+                espera = 20
+                while True:
+                    for _ in range(espera):
+                        _t.sleep(1)
+                        if self._httpd is None:
+                            return
+                    try:
+                        envio.varrer_recentes(repo, dias)
+                    except Exception:  # noqa: BLE001
+                        log.exception("cópias de envio dos exames recentes")
+                    espera = 1800
+            threading.Thread(target=varrer, name="ipe-envio-recentes", daemon=True).start()
         server = self
 
         class Handler(_Handler):
@@ -699,9 +716,44 @@ class _Handler(BaseHTTPRequestHandler):
         if not files:
             return self._error(404, "nada encontrado")
         boundary = DW.new_boundary()
+        ctype = f'multipart/related; type="application/dicom"; boundary={boundary}'
+        # 0.100.0: o programa ligado ao servidor pode pedir os pixels em HTJ2K sem perda (2 a 4× menos bytes na
+        # rede); o acervo não muda — vai a cópia de envio, conferida, feita aqui (4 de cada vez, à frente) e guardada
+        from ipe.central import envio
+        if envio.HTJ2K_RPCL in (self.headers.get("Accept") or "") and envio.codec() == "htj2k":
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Transfer-Encoding", "chunked")
+            self.end_headers()
+            from concurrent.futures import ThreadPoolExecutor
+
+            def mandar(b: bytes) -> None:
+                if b:
+                    self.wfile.write(f"{len(b):X}\r\n".encode("ascii") + b + b"\r\n")
+            # quem estiver pronto vai comprimido; o que ainda não ficou pronto quando chega a vez vai como está
+            # (numa rede rápida, esperar a compressão seria mais lento que mandar) — e fica pronto para a próxima
+            ex = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ipe-wado")
+            try:
+                with envio.atendendo():
+                    futuros = [ex.submit(envio.arquivo_para_rede, f) if not envio.pronto_para_rede(f) else None
+                               for f in files]
+                    for f, fut in zip(files, futuros):
+                        if fut is None:
+                            caminho = envio.arquivo_para_rede(f)
+                        elif fut.done():
+                            caminho = fut.result()
+                        else:
+                            caminho = f
+                        for chunk in DW.multipart_iter([caminho], boundary, final=False):
+                            mandar(chunk)
+            finally:
+                ex.shutdown(wait=False, cancel_futures=True)
+            mandar(f"--{boundary}--\r\n".encode("ascii"))
+            self.wfile.write(b"0\r\n\r\n")
+            return
         total = _multipart_length(files, boundary)
         self.send_response(200)
-        self.send_header("Content-Type", f'multipart/related; type="application/dicom"; boundary={boundary}')
+        self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(total))
         self.end_headers()
         for chunk in DW.multipart_iter(files, boundary):

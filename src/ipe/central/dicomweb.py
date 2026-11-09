@@ -50,8 +50,9 @@ def new_boundary() -> str:
     return "dv" + secrets.token_hex(12)
 
 
-def multipart_iter(paths: list[str | Path], boundary: str, chunk: int = 1 << 20):
-    """Gera o corpo multipart/related (application/dicom) lendo os arquivos em pedaços."""
+def multipart_iter(paths: list[str | Path], boundary: str, chunk: int = 1 << 20, final: bool = True):
+    """Gera o corpo multipart/related (application/dicom) lendo os arquivos em pedaços. `final=False` não fecha
+    o corpo (quem chama manda o fim depois)."""
     for p in paths:
         yield (f"--{boundary}\r\nContent-Type: application/dicom\r\n"
                f"Content-Length: {Path(p).stat().st_size}\r\n\r\n").encode("ascii")
@@ -62,7 +63,8 @@ def multipart_iter(paths: list[str | Path], boundary: str, chunk: int = 1 << 20)
                     break
                 yield b
         yield b"\r\n"
-    yield f"--{boundary}--\r\n".encode("ascii")
+    if final:
+        yield f"--{boundary}--\r\n".encode("ascii")
 
 
 def boundary_of(content_type: str) -> str:

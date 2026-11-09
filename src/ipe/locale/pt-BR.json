@@ -6272,7 +6272,16 @@
   "o exame não é de mamografia",
   "o módulo RM/TC avançado está desligado",
   "o módulo de mamografia está desligado",
-  "sem imagens com o lado reconhecido"
+  "sem imagens com o lado reconhecido",
+  " (HTJ2K na rede)",
+  "O servidor manda uma cópia comprimida sem perda (conferida pixel a pixel): 2 a 4 vezes menos dados na rede. O arquivo guardado no servidor não muda.",
+  "Receber as imagens comprimidas sem perda (HTJ2K)",
+  "Série baixada do servidor central.",
+  "andamento do download na aba",
+  "cópias de envio dos exames recentes",
+  "cópias de envio: exames recentes",
+  "importar no cache",
+  "priorizar a série"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7924,6 +7933,12 @@
   "quadro {} fora de 1..{}",
   "tipo de medida desconhecido: {}",
   "Fase {} (Se {})",
-  "Se {}"
+  "Se {}",
+  "Baixando do servidor central: {} de {} imagem(ns) ({}%)…",
+  "Baixando do servidor central: {} de {} imagens.",
+  "Na fila para baixar ({}ª). Ponha num quadro para baixar primeiro.",
+  "{} de {} imagens no computador.",
+  "{} {}\n{}\n{}/{} im{}",
+  "⬇ {}/{}"
  ]
 }

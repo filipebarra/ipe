@@ -3,6 +3,22 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.0 — central server client: how much of each series arrived, and less data on the network
+- The strip shows, for each series, how many images have arrived (*34/120 im*) with a bar, and ⬇ on the one
+  arriving; the viewport shows **⬇ 34/120** until its series finishes; the status bar gains the percentage.
+- Putting a series in a viewport moves it to the front of the download.
+- Two series download at once, and importing into the database runs on a separate thread (the network no longer
+  stops while a batch enters the database).
+- **Lossless HTJ2K on the network**: the server sends the client a transfer copy (checked pixel by pixel; the
+  archive does not change), 2 to 4× less data. Copies for exams from the last 14 days are prepared in the
+  background; an image without a ready copy goes as is. The client decodes with OpenJPH (imagecodecs, ~1 ms per CT
+  slice). Settings ▸ Network ▸ Central server turns it on and off.
+- Sending to a DICOM node that does not accept the file's syntax (HTJ2K, JPEG-LS) now goes uncompressed.
+- Web viewer: changing the layout or step while an image was loading sometimes broke the page; and the site bundle
+  no longer depends on module order (a load error that showed up when the code changed).
+- Measured on a 720-image exam with copies ready: on a ~100 Mbit/s network, 4.9 s with HTJ2K vs 16.8 s without;
+  on 1 Gbit/s, 2.6 s vs 2.9 s.
+
 ## 0.99.99 — web viewer: the next series start right away
 - The browser requests the metadata of all series together (three at a time) instead of one after the other;
   frames are queued in strip order as soon as each series arrives.

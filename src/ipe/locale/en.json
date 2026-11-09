@@ -8418,5 +8418,20 @@
  "o módulo de mamografia está desligado": "the mammography module is turned off",
  "sem imagens com o lado reconhecido": "no images with a recognized side",
  "Fase {} (Se {})": "Phase {} (Se {})",
- "Se {}": "Se {}"
+ "Se {}": "Se {}",
+ " (HTJ2K na rede)": " (HTJ2K on the network)",
+ "O servidor manda uma cópia comprimida sem perda (conferida pixel a pixel): 2 a 4 vezes menos dados na rede. O arquivo guardado no servidor não muda.": "The server sends a lossless compressed copy (checked pixel by pixel): 2 to 4 times less data on the network. The file stored on the server does not change.",
+ "Receber as imagens comprimidas sem perda (HTJ2K)": "Receive images losslessly compressed (HTJ2K)",
+ "Série baixada do servidor central.": "Series downloaded from the central server.",
+ "andamento do download na aba": "download progress in the tab",
+ "cópias de envio dos exames recentes": "transfer copies of recent exams",
+ "cópias de envio: exames recentes": "transfer copies: recent exams",
+ "importar no cache": "import into the cache",
+ "priorizar a série": "prioritize the series",
+ "Baixando do servidor central: {} de {} imagem(ns) ({}%)…": "Downloading from the central server: {} of {} image(s) ({}%)…",
+ "Baixando do servidor central: {} de {} imagens.": "Downloading from the central server: {} of {} images.",
+ "Na fila para baixar ({}ª). Ponha num quadro para baixar primeiro.": "Queued for download (#{}). Put it in a viewport to download it first.",
+ "{} de {} imagens no computador.": "{} of {} images on this computer.",
+ "{} {}\n{}\n{}/{} im{}": "{} {}\n{}\n{}/{} im{}",
+ "⬇ {}/{}": "⬇ {}/{}"
 }

@@ -159,6 +159,7 @@ class Viewport(AnnotationMixin, QWidget):
         self._gsdf_key = None
         self._gsdf_lut = None
         self.series_label: str = ""
+        self.baixando_txt: str = ""        # 0.100.0: "⬇ 34/120" enquanto a série chega do servidor central
         self.study_info: dict = {}
         self.index = 0
         self.state = ViewState()
@@ -1879,6 +1880,8 @@ class Viewport(AnnotationMixin, QWidget):
                 and self.phase_labels[self.phase] not in (self.series_label or "") else []),
               (date_fmt if not self.anonymize or perfil in ("tela", "ensino") else "", None, "data")]
         bl = [(f"Im {self.index + 1}/{n}", "scroll", "imagem")]
+        if self.baixando_txt:
+            bl.append((self.baixando_txt, None, "imagem"))
         trng = getattr(self, "tomo_range", None)
         if trng is not None:
             if trng[0] <= self.index < trng[1]:
