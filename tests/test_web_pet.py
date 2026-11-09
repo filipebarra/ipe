@@ -275,6 +275,71 @@ def test_fusao_suv_maximo_e_seg(servidor):
     assert not erros, erros
 
 
+def test_janela_do_pet_e_arranjo(servidor):
+    """0.100.2: a janela do PET no arrasto (topo e piso, em todos os quadros do mesmo PET; Shift na fusão mexe na
+    TC) e o arranjo do PET/CT escolhido no painel (grade, conteúdo e plano de cada quadro), lembrado."""
+    repo, srv, ids = servidor
+    pw = pytest.importorskip("playwright.sync_api")
+    erros = []
+    pt_id = f"cornerstoneStreamingImageVolume:{ids['pt']}"
+    ct_id = f"cornerstoneStreamingImageVolume:{ids['ct']}"
+    with pw.sync_playwright() as p:
+        b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
+        pg = b.new_page(viewport={"width": 1500, "height": 900})
+        pg.on("pageerror", lambda e: erros.append(str(e)))
+        _abrir(pg, srv)
+        icone(pg, 'PET/CT')
+        assert _esperar(lambda: pg.locator(".quadro").count() == 3)
+        assert _esperar(lambda: _carregado(pg, ids["pt"]) and _carregado(pg, ids["ct"]))
+        voi = lambda i, vid="": pg.evaluate(f"() => window.__ipeGrade.viewport({i}).getProperties({json.dumps(vid) if vid else ''}).voiRange")  # noqa: E731
+        assert _esperar(lambda: voi(1)["upper"] == pytest.approx(6))
+        # arrastar para baixo no PET sobe o topo (6 → 9 em 60 px); para a direita, o piso
+        bb = pg.locator(".quadro .tela").nth(1).bounding_box()
+        x, y = bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2
+        pg.mouse.move(x, y)
+        pg.mouse.down()
+        pg.mouse.move(x + 20, y + 30)
+        pg.mouse.move(x + 40, y + 60)
+        pg.mouse.up()
+        assert _esperar(lambda: voi(1)["upper"] == pytest.approx(9, abs=0.02)), voi(1)
+        assert voi(1)["lower"] == pytest.approx(1.0, abs=0.02)
+        assert voi(0, pt_id)["upper"] == pytest.approx(9, abs=0.02)                 # a fusão acompanha
+        assert voi(2)["upper"] == pytest.approx(9, abs=0.02)                        # e o MIP
+        assert "SUV 1–9" in pg.locator(".canto.id").nth(1).inner_text()
+        assert pg.input_value("select[title='Topo da janela de SUV']") == "9"
+        # na fusão, com Shift, a janela é da TC
+        ct0 = voi(0, ct_id)
+        bb = pg.locator(".quadro .tela").nth(0).bounding_box()
+        x, y = bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2
+        pg.keyboard.down("Shift")
+        pg.mouse.move(x, y)
+        pg.mouse.down()
+        pg.mouse.move(x + 30, y + 30)
+        pg.mouse.move(x + 60, y + 60)
+        pg.mouse.up()
+        pg.keyboard.up("Shift")
+        assert _esperar(lambda: voi(0, ct_id) != ct0)
+        assert voi(0, pt_id)["upper"] == pytest.approx(9, abs=0.02)
+        # o arranjo: 2 × 2, o quarto quadro só a TC, o primeiro no coronal
+        pg.select_option("select[aria-label='Grade do PET/CT']", "2x2")
+        assert _esperar(lambda: pg.locator(".quadro").count() == 4)
+        pg.select_option("select[aria-label='Quadro 4']", "tc")
+        assert _esperar(lambda: pg.evaluate("() => window.__ipeGrade.arranjoPet()[3].v") == "tc")
+        pg.select_option("select[aria-label='Plano do quadro 1']", "CORONAL")
+        arr = lambda: pg.evaluate("() => window.__ipeGrade.arranjoPet()")  # noqa: E731
+        assert _esperar(lambda: arr()[0] == {"v": "fusao", "plano": "CORONAL"}), arr()
+        assert [q["v"] for q in arr()] == ["fusao", "pet", "mip", "tc"]
+        # a janela de SUV continua a escolhida
+        assert _esperar(lambda: voi(1)["upper"] == pytest.approx(9, abs=0.02))
+        # lembrado para o próximo PET/CT
+        icone(pg, 'PET/CT')
+        assert _esperar(lambda: pg.locator(".quadro").count() == 4 and [q["v"] for q in arr()] == ["fusao", "pet", "mip", "tc"])
+        pg.click("button:has-text('Arranjo padrão')")
+        assert _esperar(lambda: pg.locator(".quadro").count() == 3)
+        b.close()
+    assert not erros, erros
+
+
 def test_medidas_no_pet_em_suv(servidor):
     """A ROI e o valor do pixel no PET (cortes originais) trazem o SUV como no Ipê."""
     from ipe.imaging.measure import Annotation, labels

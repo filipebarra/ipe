@@ -491,6 +491,110 @@ def seg_mapa(repo, s, q: dict, pode_ver) -> dict:
             "segmentos": [{"n": num[n], "nome": n, "cor": list(cores[n])} for n in nomes], "fatias": fatias}
 
 
+# ------------------------------------------------------------------ overlays / CAD (0.100.2)
+_OVERLAYS: dict = {}
+
+
+def _graficos(gs) -> list:
+    out = []
+    for g in gs or []:
+        d = {"tipo": g.kind, "pontos": [[round(float(x), 3), round(float(y), 3)] for x, y in (g.points or [])]}
+        if g.text:
+            d["texto"] = str(g.text)
+        if g.color:
+            d["cor"] = [int(c) for c in g.color[:3]]
+        out.append(d)
+    return out
+
+
+def _objeto_web(obj) -> dict:
+    import base64
+
+    import numpy as np
+    por_sop: dict[str, list] = {}
+    for (sop, quadro), gs in (obj.by_frame or {}).items():
+        for g in _graficos(gs):
+            g["quadro"] = int(quadro)                       # 0 = o primeiro; -1 = todos
+            por_sop.setdefault(str(sop), []).append(g)
+    planos = []
+    for g in obj.planar or []:
+        if g.points3d is None:
+            continue
+        d = {"tipo": g.kind, "pontos3d": np.round(np.asarray(g.points3d, float), 2).tolist()}
+        if g.text:
+            d["texto"] = str(g.text)
+        if g.color:
+            d["cor"] = [int(c) for c in g.color[:3]]
+        planos.append(d)
+    mascaras = []
+    for m in obj.masks or []:
+        if m.ref is None or m.mask is None or not m.mask.any():
+            continue
+        a = np.asarray(m.mask, bool)
+        rs, cs = np.flatnonzero(a.any(axis=1)), np.flatnonzero(a.any(axis=0))
+        r0, r1, c0, c1 = int(rs[0]), int(rs[-1]) + 1, int(cs[0]), int(cs[-1]) + 1
+        rec = np.ascontiguousarray(a[r0:r1, c0:c1])
+        d = {"sop": str(m.ref[0]), "quadro": int(m.ref[1]), "r0": r0, "c0": c0, "h": r1 - r0, "w": c1 - c0,
+             "bits": base64.b64encode(np.packbits(rec, axis=None).tobytes()).decode(),
+             "cor": [int(c) for c in (m.color or obj.color)[:3]], "rotulo": m.label or ""}
+        if m.alvo:
+            d["escala"] = [float(m.alvo[0]) / a.shape[0], float(m.alvo[1]) / a.shape[1]]
+        mascaras.append(d)
+    return {"chave": obj.key, "fonte": obj.source, "rotulo": obj.label, "cor": [int(c) for c in obj.color[:3]],
+            "achados": [str(f) for f in (obj.findings or [])][:50], "por_sop": por_sop,
+            "todos": _graficos(obj.all_frames), "planos": planos, "mascaras": mascaras,
+            "so_serie": obj.so_series or "", "serie_ref": obj.series_ref or ""}
+
+
+def overlays(repo, s, q: dict, pode_ver, settings) -> dict:
+    """Os objetos de overlay do exame (CAD/IA em SR, anotações GSPS de outro sistema, contornos RTSTRUCT),
+    lidos com o mesmo leitor do Ipê (imaging/overlays.py), em coordenadas de pixel
+    da imagem (o canto do pixel 0,0 em 0,0) — o navegador só desenha. As medidas que o Ipê guarda como SR/GSPS
+    nossos ficam de fora: elas já vêm do banco. Também o que o médico deixou oculto no Ipê."""
+    from ipe import MARCAS_NOSSAS
+    from ipe.imaging import overlays as O
+    if not s.can("view"):
+        raise PermissionError("sem permissão")
+    study = (q.get("study") or [""])[0]
+    if not study or not pode_ver(s, study):
+        raise PermissionError("exame não visível")
+    objetos, assinatura = [], []
+    pulos = ("Níveis da coluna (conferência) · TotalSegmentator", "Níveis da coluna · TotalSegmentator")
+    escolhidos = []
+    for r in repo.series_for_study(study, ocultas=True):
+        # as SEG vão pelo menu de segmentação (seg_mapa: um mapa de rótulos compacto, também nas pilhas)
+        if (r.modality or "").upper() not in O.OVERLAY_MODALITIES - {"SEG"} or (r.description or "") in pulos:
+            continue
+        if (r.modality or "").upper() in ("SR", "PR") and any(m in (r.description or "") for m in MARCAS_NOSSAS):
+            continue
+        for sop, cam in list(CAMINHOS.da_serie(repo, r.series_uid).items())[:50]:
+            try:
+                st = Path(cam).stat()
+            except OSError:
+                continue
+            escolhidos.append((r, sop, cam))
+            assinatura.append((cam, st.st_mtime_ns, st.st_size))
+    chave = (study, tuple(assinatura))
+    hit = _OVERLAYS.get(study)
+    if hit is not None and hit[0] == chave:
+        objetos = hit[1]
+    else:
+        for r, _sop, cam in escolhidos:
+            obj = O.load_object(cam)
+            if obj is None:
+                continue
+            obj.study_uid = obj.study_uid or study
+            d = _objeto_web(obj)
+            if d["por_sop"] or d["todos"] or d["planos"] or d["mascaras"]:
+                d["serie"] = r.series_uid
+                d["descricao"] = r.description or ""
+                objetos.append(d)
+        _OVERLAYS[study] = (chave, objetos)
+        while len(_OVERLAYS) > 8:
+            _OVERLAYS.pop(next(iter(_OVERLAYS)))
+    return {"tipos": O.TIPOS, "ocultos": sorted(O.tipos_ocultos(settings)), "objetos": objetos}
+
+
 def tabelas_de_cores() -> dict:
     """As tabelas de cores do Ipê (imaging/colormaps.py) para o site, como pontos (0–1, r, g, b em 0–1)."""
     from ipe.imaging import colormaps as CM
@@ -655,6 +759,18 @@ def mamografia(repo, s, q: dict, pode_ver, settings, prefs: dict | None = None) 
                     alt = M.pick_image(lista, cell.with_tomo(not cell.tomo))
                     if alt is not None and alt.tomo != im.tomo:
                         c["alt"] = registrar(alt)
+                    # 0.100.2: a pilha do quadro, como no Ipê (mammo_view.cell_frames): as 2D da mesma mama e
+                    # incidência e, em seguida, os cortes da tomossíntese — a roda passa por todas
+                    base = cell.with_tomo(False)
+                    membros = [x for x in M.same_view(lista, base) if not x.tomo] + \
+                        [x for x in M.same_view(lista, base.with_tomo(True)) if x.tomo]
+                    if len(membros) > 1 and any(x.sop_uid == im.sop_uid for x in membros):
+                        c["pilha"] = [{"study": x.study_uid, "series": x.series_uid, "sop": x.sop_uid,
+                                       "tomo": bool(x.tomo), "quadros": int(x.frames or 1)} for x in membros]
+                        if c.get("alt") is None:
+                            alt2 = next((x for x in membros if x.tomo != im.tomo), None)
+                            if alt2 is not None:
+                                c["alt"] = registrar(alt2)
                     if cols >= 2:
                         col, quantas = k % cols, cols
                         linha = celulas[(k // cols) * cols:(k // cols + 1) * cols]

@@ -42,6 +42,10 @@ header .quem { margin-left: auto; color: var(--suave); }
 table.lista { width: 100%; border-collapse: collapse; }
 table.lista th { text-align: left; color: var(--suave); font-weight: 500; border-bottom: 1px solid var(--borda); padding: 6px; }
 table.lista td { padding: 6px; border-bottom: 1px solid #262a31; }
+table.lista th button.ordenar { background: none; border: 0; color: inherit; font: inherit; padding: 0; cursor: pointer; }
+table.lista th button.ordenar:hover { color: var(--texto, #e8eaed); }
+table.lista th[aria-sort="ascending"], table.lista th[aria-sort="descending"] { color: var(--acento); }
+table.lista th.num { text-align: right; }
 table.lista td.num { text-align: right; font-variant-numeric: tabular-nums; }
 table.lista tbody tr { cursor: pointer; }
 table.lista tbody tr:hover, table.lista tbody tr:focus { background: #262a31; }
@@ -254,6 +258,13 @@ header:has(.barra) .quem { display: none; }
 .barra-din input[type=range] { width: 90px; }
 .barra-din .nota-din { color: var(--suave); }
 .barra-din button { margin-left: auto; }
+.rotulo-din { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; gap: 2px;
+  background: rgba(10, 12, 16, 0.72); border-radius: 6px; padding: 1px 2px; max-width: 90%; }
+.rotulo-din button { background: none; border: 0; color: #e8eaed; font: inherit; font-size: 12px; padding: 2px 6px; cursor: pointer;
+  border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rotulo-din button:hover { background: rgba(255, 255, 255, 0.12); }
+.camada-ov { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.sem-textos .textos { display: none; }
 .camada-din { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .painel-din { flex: none; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto 1fr auto; gap: 4px 12px;
   padding: 6px 10px; background: var(--lateral); border-top: 1px solid var(--borda); max-height: 240px; overflow: auto; }
@@ -291,3 +302,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .linha-laudo label { min-width: 0; }
 .linha-laudo button { flex: none; white-space: nowrap; }
 aside.laudo select, aside.laudo input { min-width: 0; width: 100%; }
+
+/* 0.100.2: o arranjo do PET/CT no painel */
+.linha-arranjo { display: grid; grid-template-columns: 18px 1fr 1fr; gap: 4px; align-items: center; margin: 2px 0; }
+.linha-arranjo span { color: var(--suave); font-size: 12px; text-align: right; }

@@ -126,6 +126,8 @@ def test_protocolo_resolvido_no_servidor(servidor_mg):
     # a 2D da CC direita tem a tomossíntese como alternativa
     assert r["imagens"][cel[0]["alt"]]["tomo"] and r["imagens"][cel[0]["alt"]]["quadros"] == 9
     assert r["imagens"][cel[0]["alt"]]["inicio"] == 4
+    # 0.100.2: a pilha do quadro — a 2D e depois a tomo da mesma incidência
+    assert [(m["sop"], m["tomo"]) for m in cel[0]["pilha"]] == [(cel[0]["sop"], False), (cel[0]["alt"], True)]
     # a etapa "CC atual × anterior" puxa o exame anterior
     cc_ant = next(p for p in r["passos"] if p["nome"] == "CC atual × anterior")["telas"]["1"][0]["celulas"]
     assert [r["imagens"][c["sop"]]["study"] for c in cc_ant] == [atual, atual, anterior, anterior]
@@ -209,10 +211,14 @@ def test_mamografia_uma_tela(servidor_mg):
             pg.click(".barra-mg button[aria-label='Etapa anterior']")
         assert _esperar(lambda: _celulas(pg)["passo"] == 0)
         assert _prontas(pg, 4)
+        # 0.100.2: a 2D e os 9 cortes da tomo da mesma incidência estão numa pilha só (como no Ipê): a roda passa por tudo
+        assert _celulas(pg)["quadros"][0]["cortes"] == 10 and _celulas(pg)["quadros"][0]["corte"] == 0
         pg.locator(".quadro").nth(0).click()
         pg.click(".barra-mg button[aria-label='Tomossíntese do quadro']")
-        assert _esperar(lambda: _celulas(pg)["quadros"][0]["cortes"] == 9 and _celulas(pg)["quadros"][0]["pronto"])
-        assert _celulas(pg)["quadros"][0]["corte"] == 4
+        assert _esperar(lambda: _celulas(pg)["quadros"][0]["corte"] == 5 and _celulas(pg)["quadros"][0]["pronto"])
+        assert _celulas(pg)["quadros"][0]["cortes"] == 10
+        pg.click(".barra-mg button[aria-label='Tomossíntese do quadro']")             # de volta à 2D
+        assert _esperar(lambda: _celulas(pg)["quadros"][0]["corte"] == 0)
         # duplo clique amplia o quadro; outro duplo clique volta
         pg.locator(".quadro").nth(1).dblclick()
         assert _esperar(lambda: pg.locator(".quadro:visible").count() == 1)

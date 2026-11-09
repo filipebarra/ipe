@@ -547,6 +547,19 @@ function anotacoes(): Anot[] {
   return (csTools.annotation.state.getAllAnnotations() as Anot[]).filter((a) => TIPO[a.metadata?.toolName]);
 }
 
+/** 0.100.2: mostra ou esconde as medidas (o botão do overlay), sem apagá-las. */
+let medidasVisiveis = true;
+export function mostrarMedidas(on: boolean): void {
+  medidasVisiveis = on;
+  for (const a of anotacoes()) {
+    try { csTools.annotation.visibility.setAnnotationVisibility(a.annotationUID!, on); } catch { /* nada */ }
+  }
+  renderizarTudo();
+}
+export function medidasMostradas(): boolean {
+  return medidasVisiveis;
+}
+
 /** As medidas dos quadros de corte, com o texto do Ipê. */
 export function listarMedidas(): ResumoMedida[] {
   const out: ResumoMedida[] = [];
@@ -637,7 +650,7 @@ export function roisDaTela(): { uid: string; kind: string; imageId: string; pts:
   const out: { uid: string; kind: string; imageId: string; pts: P2[] }[] = [];
   for (const a of anotacoes()) {
     const kind = TIPO[a.metadata.toolName];
-    if (kind !== "ellipse" && kind !== "rect" && kind !== "polygon") continue;
+    if (kind !== "ellipse" && kind !== "rect" && kind !== "polygon" && kind !== "probe") continue;
     const md = a.metadata as { referencedImageId?: string; volumeId?: string };
     if (!md.referencedImageId || md.volumeId) continue;
     try {

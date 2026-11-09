@@ -3,6 +3,23 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.2 — visor web: overlay, líneas de referencia, PET ajustable, dinámica y mamografía como en Ipê
+- **Overlay**: el ícono nuevo enciende y apaga de una vez el CAD/IA (SR), las anotaciones de otro sistema (GSPS),
+  los contornos RTSTRUCT, los textos de las esquinas, las medidas y las líneas de referencia; la flecha elige ítem
+  por ítem, y el tipo oculto sigue oculto en los próximos estudios. La SEG elegida aparece también en los cuadros
+  de cortes.
+- **Líneas de referencia en los cortes**: el plano del cuadro activo aparece como línea en los otros (el axial en el
+  scout…); con la herramienta Líneas de referencia, hacer clic en un cuadro lleva los otros al corte del punto.
+- **PET**: la ventana de SUV al arrastrar el mouse (tope y piso, en todos los cuadros del mismo PET; Shift en la
+  fusión ajusta la TC) y la **disposición** elegida en la pestaña PET — la cuadrícula y lo que muestra cada cuadro
+  (TC + PET, TC, PET, MIP del PET) con el plano —, recordada para el próximo PET/CT.
+- **Dinámica de mama**: la **curva bajo el cursor** (3×3, como en Ipê) y la curva del punto (valor del píxel); en la
+  etiqueta de cada cuadro, ◂ ▸ cambian de fase y el menú elige la fase, la **sustracción** de cualquier fase, el
+  **paisaje** (anatomía de vuelta) y el **color**; la barra elige el color del mapa sobre la fase.
+- **Mamografía**: cada cuadro es la pila de la incidencia, como en Ipê — la rueda pasa por las imágenes 2D de la
+  misma mama e incidencia y por los cortes de la tomosíntesis.
+- **Lista de estudios**: hacer clic en el título de la columna ordena (▲/▼), y la elección queda recordada.
+
 ## 0.100.1 — cliente del servidor central: la descarga ya no se detiene al abrir el examen
 - **La descarga se detenía justo después de abrir el examen**: cuando las primeras imágenes tardaban más de 0,4 s
   (una red real), cerrar el aviso "Descargando las primeras imágenes…" se leía como "Cancelar" — solo terminaban

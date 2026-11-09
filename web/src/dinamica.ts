@@ -11,6 +11,7 @@ import { Enums, type Types, cache, imageLoader, metaData, utilities } from "@cor
 import * as API from "./api";
 import { tr } from "./i18n";
 import { estatRoi, roisDaTela } from "./medidas";
+import { type ItemMenu, abrirMenu } from "./menu";
 import { type Grade, type SerieCarregada, type Spec, carregarSerie } from "./visor";
 
 type P2 = [number, number];
@@ -204,9 +205,10 @@ function registrarCarregador(): void {
   registrado = true;
   imageLoader.registerImageLoader("ipedin", (imageId: string) => ({
     promise: (async () => {
-      const m = /^ipedin:([a-z]+):(\d+)$/.exec(imageId);
+      const m = /^ipedin:([a-z0-9]+):(\d+)$/.exec(imageId);
       if (!m || !atual) throw new Error("dinâmica fechada");
-      const dados = (await atual.mapasDoCorte(Number(m[2])))[m[1] as Chave];
+      const k = Number(m[2]);
+      const dados = /^fs\d+p\d+$/.test(m[1]) ? await atual.subtracaoDaFase(m[1], k) : (await atual.mapasDoCorte(k))[m[1] as Chave];
       return atual.imagemDoMapa(imageId, dados);
     })(),
   }) as never);
@@ -222,6 +224,11 @@ function pixelsDa(img: Types.IImage): Float32Array {
   return out;
 }
 
+/** 0.100.2: o que cada quadro mostra — um mapa ou uma fase (com subtração e paisagem, como no Ipê), e a cor. */
+export interface QuadroDin { v: Chave | "fase"; fase: number; sub: boolean; pais: number; cor: string }
+
+const PAISAGENS = [0, 0.1, 0.2, 0.3, 0.5];
+
 export interface OpcoesDin {
   study: string;
   aviso: (m: string) => void;
@@ -235,7 +242,11 @@ export class ModoDinamica {
   private par!: Parametros;
   private corteCache = new Map<number, Promise<Record<Chave, Float32Array>>>();
   private janelas = new Map<string, [number, number]>();
-  private quadros: (Chave | "fase")[] = ["fase", "cin", "ser", "sub"];
+  private quadros: QuadroDin[] = [];
+  private registradas = new Set<string>();
+  private hover: { k: number; x: number; y: number; valores: number[] } | null = null;
+  private curvaCursor = true;
+  private corSobre = "";
   private sobre: { tipo: "mapa"; chave: Chave } | { tipo: "salvo"; series: string; chave: string } | null = null;
   private opacidade = 0.5;
   private salvos = new Map<string, SerieCarregada>();
@@ -291,7 +302,9 @@ export class ModoDinamica {
     this.par.referencia = ref || 1;
     this.par.ruido = ref * Number(pa.noise_pct ?? 5) / 100;
     await this.prepararJanelas();
-    this.registrarMetadados();
+    for (const ch of CALCULADOS) this.registrarChave(ch);
+    const q = (v: Chave | "fase"): QuadroDin => ({ v, fase: this.par.inicial, sub: false, pais: 0, cor: "" });
+    this.quadros = [q("fase"), q("cin"), q("ser"), q("sub")];
     this.montarBarra();
     atual = this;
     await this.montar();
@@ -334,23 +347,52 @@ export class ModoDinamica {
     return p;
   }
 
-  private registrarMetadados(): void {
+  private registrarChave(ch: string): void {
+    if (this.registradas.has(ch)) return;
+    this.registradas.add(ch);
     const prov = utilities.genericMetadataProvider;
-    const base = this.fases[0];
-    for (const ch of CALCULADOS) {
-      base.forEach((id0, k) => {
-        const id = `ipedin:${ch}:${k}`;
-        const plano = metaData.get("imagePlaneModule", id0);
-        const px = metaData.get("imagePixelModule", id0) || {};
-        prov.add(id, { type: "imagePlaneModule", metadata: plano });
-        prov.add(id, { type: "imagePixelModule", metadata: { ...px, samplesPerPixel: 1, photometricInterpretation: "MONOCHROME2",
-          bitsAllocated: 32, bitsStored: 32, highBit: 31, pixelRepresentation: 1 } });
-        prov.add(id, { type: "generalSeriesModule", metadata: { ...(metaData.get("generalSeriesModule", id0) || {}), modality: "MR" } });
-        const j = this.janelas.get(ch) || janelaFixa(ch)!;
-        prov.add(id, { type: "voiLutModule", metadata: { windowCenter: [(j[0] + j[1]) / 2], windowWidth: [j[1] - j[0]] } });
-        prov.add(id, { type: "modalityLutModule", metadata: { rescaleSlope: 1, rescaleIntercept: 0 } });
-      });
+    this.fases[0].forEach((id0, k) => {
+      const id = `ipedin:${ch}:${k}`;
+      const plano = metaData.get("imagePlaneModule", id0);
+      const px = metaData.get("imagePixelModule", id0) || {};
+      prov.add(id, { type: "imagePlaneModule", metadata: plano });
+      prov.add(id, { type: "imagePixelModule", metadata: { ...px, samplesPerPixel: 1, photometricInterpretation: "MONOCHROME2",
+        bitsAllocated: 32, bitsStored: 32, highBit: 31, pixelRepresentation: 1 } });
+      prov.add(id, { type: "generalSeriesModule", metadata: { ...(metaData.get("generalSeriesModule", id0) || {}), modality: "MR" } });
+      const j = this.janelas.get(ch) || janelaFixa(ch) || [0, 1];
+      prov.add(id, { type: "voiLutModule", metadata: { windowCenter: [(j[0] + j[1]) / 2], windowWidth: [j[1] - j[0]] } });
+      prov.add(id, { type: "modalityLutModule", metadata: { rescaleSlope: 1, rescaleIntercept: 0 } });
+    });
+  }
+
+  /** 0.100.2: a fase `f` menos a pré-contraste, com `pais` da anatomia de volta (a "paisagem" do Ipê). */
+  async subtracaoDaFase(ch: string, k: number): Promise<Float32Array> {
+    const m = /^fs(\d+)p(\d+)$/.exec(ch)!;
+    const f = Number(m[1]), pais = Number(m[2]) / 100;
+    const st = await this.pilhaDoCorte(k);
+    const a = st[Math.min(f, st.length - 1)], pre = st[this.par.pre];
+    const out = new Float32Array(a.length);
+    for (let i = 0; i < a.length; i++) out[i] = a[i] - pre[i] + pais * pre[i];
+    return out;
+  }
+
+  /** A chave das imagens da fase com subtração (registrada, com a janela pronta). */
+  private async chaveDaSubtracao(q: QuadroDin): Promise<string> {
+    const ch = `fs${q.fase}p${Math.round(q.pais * 100)}`;
+    if (!this.janelas.has(ch)) {
+      const n = this.fases[0].length;
+      const ks = [...new Set([Math.floor(n / 3), Math.floor(n / 2), Math.floor((2 * n) / 3)])];
+      let lo = Infinity, hi = 0;
+      for (const k of ks) {
+        const v = await this.subtracaoDaFase(ch, k);
+        hi = Math.max(hi, percentil(v, 99.8));
+        lo = Math.min(lo, q.pais > 0 ? percentil(v, 1) : 0);
+      }
+      const w = Math.max(hi, 1);
+      this.janelas.set(ch, q.pais > 0 ? [lo, hi] : [w / 3 - w / 2, w / 3 + w / 2]);
     }
+    this.registrarChave(ch);
+    return ch;
   }
 
   /** Uma imagem do Cornerstone3D com os valores do mapa (como `createAndCacheLocalImage`, sem o cache). */
@@ -361,7 +403,7 @@ export class ModoDinamica {
     let mn = Infinity, mx = -Infinity;
     for (const v of dados) { if (v < mn) mn = v; if (v > mx) mx = v; }
     const ch = imageId.split(":")[1];
-    const j = this.janelas.get(ch) || janelaFixa(ch)!;
+    const j = this.janelas.get(ch) || janelaFixa(ch) || [mn, mx];
     return {
       imageId, intercept: 0, slope: 1, windowCenter: (j[0] + j[1]) / 2, windowWidth: j[1] - j[0], color: false,
       numberOfComponents: 1, dataType: "Float32Array", minPixelValue: mn, maxPixelValue: mx, rows: plano.rows,
@@ -385,31 +427,153 @@ export class ModoDinamica {
       numero: "", semVolume: "fase", bytes: 0, suv: null, suvMotivo: "" };
   }
 
+  private async serieDoQuadro(q: QuadroDin): Promise<SerieCarregada> {
+    if (q.v !== "fase") return this.serieDoMapa(q.v);
+    if (!q.sub) return this.serieDaFase(q.fase);
+    const ch = await this.chaveDaSubtracao(q);
+    const n = this.fases[0].length;
+    return { study: this.op.study, series: `ipedin-${ch}`, imageIds: Array.from({ length: n }, (_, k) => `ipedin:${ch}:${k}`),
+      modalidade: "MR", descricao: this.rotuloDoQuadro(q), numero: "", semVolume: "fase", bytes: 0, suv: null, suvMotivo: "" };
+  }
+
+  /** "Fase 3/5 · 180 s · subtração + 20% anatomia", ou o nome do mapa. */
+  rotuloDoQuadro(q: QuadroDin): string {
+    if (q.v !== "fase") return tr(this.dados.mapas[q.v]?.nome || q.v);
+    const f = this.dados.fases[q.fase];
+    let s = `${tr("Fase")} ${q.fase + 1}/${this.dados.fases.length} · ${Math.round(f.tempo - this.par.tempos[this.par.pre])} s`;
+    if (q.sub) s += ` · ${tr("subtração")}` + (q.pais > 0 ? ` + ${Math.round(q.pais * 100)}% ${tr("anatomia")}` : "");
+    return s;
+  }
+
+  private corDoQuadro(q: QuadroDin): string {
+    if (q.cor) return q.cor === "gray" ? "" : q.cor;
+    return q.v === "fase" ? "" : this.dados.mapas[q.v]?.cores || "";
+  }
+
+  /** O menu do quadro (botão direito no rótulo): o que mostrar, a fase, a subtração, a paisagem e a cor. */
+  private menuDoQuadro(i: number, ancora: HTMLElement): void {
+    const q = this.quadros[i];
+    const mudar = (novo: Partial<QuadroDin>) => void this.trocarQuadro(i, { ...q, ...novo });
+    const cores: ItemMenu[] = [{ rotulo: tr("Padrão"), marcado: !q.cor, acao: () => mudar({ cor: "" }) },
+      { rotulo: tr("Cinza"), marcado: q.cor === "gray", acao: () => mudar({ cor: "gray" }) },
+      ...Object.entries(tabelasIpe).map(([k, tb]) => ({ rotulo: tr((tb as { nome?: string }).nome || k), marcado: q.cor === k,
+        acao: () => mudar({ cor: k }) }))];
+    const itens: ItemMenu[] = [
+      { rotulo: tr("Mostrar"), sub: [
+        ...this.dados.fases.map((f, k) => ({ rotulo: `${tr("Fase")} ${k + 1}: ${f.rotulo} (${Math.round(f.tempo)} s)`,
+          marcado: q.v === "fase" && q.fase === k, acao: () => mudar({ v: "fase", fase: k }) })),
+        { separador: true },
+        ...CALCULADOS.map((c) => ({ rotulo: tr(this.dados.mapas[c]?.nome || c), marcado: q.v === c, acao: () => mudar({ v: c }) })),
+      ] },
+    ];
+    if (q.v === "fase") {
+      itens.push({ rotulo: tr("Subtração (fase − pré-contraste)"), marcado: q.sub, acao: () => mudar({ sub: !q.sub }) });
+      itens.push({ rotulo: tr("Paisagem (anatomia na subtração)"), desligado: !q.sub, sub: PAISAGENS.map((f) => ({
+        rotulo: f === 0 ? tr("Sem anatomia (subtração pura)") : `${Math.round(f * 100)}% ${tr("da anatomia")}`,
+        marcado: Math.abs(f - q.pais) < 1e-6, acao: () => mudar({ pais: f }) })) });
+    }
+    itens.push({ rotulo: tr("Cor"), sub: cores });
+    abrirMenu(itens, 0, 0, tr("Quadro"), ancora);
+  }
+
   private async montar(): Promise<void> {
+    const n = this.fases[0].length;
+    const corte = this.g.quadros.length && this.g.raiz.classList.contains("din") ? this.corte() : Math.floor(n / 2);
+    const series = await Promise.all(this.quadros.map((q) => this.serieDoQuadro(q)));
     const vazios: Spec[] = this.quadros.map(() => ({ serie: null, tipo: "pilha", plano: "AXIAL", projecao: "fino", espessura: 0 }));
-    this.g.montar(2, 2, vazios);
+    const linhas = this.quadros.length > 2 ? 2 : 1;
+    this.g.montar(linhas, Math.ceil(this.quadros.length / linhas), vazios);
     this.g.raiz.classList.add("din");
-    const meio = Math.floor(this.fases[0].length / 2);
     await Promise.all(this.quadros.map(async (q, i) => {
-      await this.g.mostrar(i, q === "fase" ? this.serieDaFase(this.par.inicial) : this.serieDoMapa(q));
+      await this.g.mostrar(i, series[i]);
       const vp = this.g.viewport(i) as Types.IStackViewport;
-      await vp.setImageIdIndex(meio);
-      if (q !== "fase") {
-        const j = this.janelas.get(q) || janelaFixa(q)!;
-        const cor = this.dados.mapas[q]?.cores;
-        vp.setProperties({ voiRange: { lower: j[0], upper: j[1] }, ...(cor ? { colormap: { name: `ipe-${cor}` } } : {}) });
-      }
+      if (!vp) return;
+      await vp.setImageIdIndex(Math.min(corte, n - 1));
+      const cor = this.corDoQuadro(q);
+      const chave = q.v !== "fase" ? q.v : q.sub ? `fs${q.fase}p${Math.round(q.pais * 100)}` : "";
+      const j = chave ? this.janelas.get(chave) || janelaFixa(chave) : null;
+      vp.setProperties({ ...(j ? { voiRange: { lower: j[0], upper: j[1] } } : {}), ...(cor ? { colormap: { name: `ipe-${cor}` } } : {}) });
       vp.render();
+      this.rotuloNoQuadro(i);
     }));
     // os quadros andam juntos pelos cortes
-    for (const q of this.g.quadros) {
-      const ouvir = () => this.sincronizar(q.id);
-      q.el.addEventListener(Enums.Events.STACK_NEW_IMAGE, ouvir);
-      const desenhar = () => this.desenharSobre();
-      q.el.addEventListener(Enums.Events.IMAGE_RENDERED, desenhar);
+    for (const [i, q] of this.g.quadros.entries()) {
+      q.el.addEventListener(Enums.Events.STACK_NEW_IMAGE, () => this.sincronizar(q.id));
+      q.el.addEventListener(Enums.Events.IMAGE_RENDERED, () => this.desenharSobre());
+      // a curva sob o cursor (3×3 pixels, como no Ipê)
+      q.el.addEventListener("mousemove", (e) => this.aoMover(i, e as MouseEvent));
     }
     this.criarCamada();
     this.atualizarCurvas();
+  }
+
+  /** O rótulo do quadro, como no Ipê: ◂ ▸ passam de fase; clicar no texto (ou o botão direito) abre o menu do quadro
+   * — o que mostrar, a fase, a subtração, a paisagem e a cor. */
+  private rotuloNoQuadro(i: number): void {
+    const cel = this.g.quadros[i]?.el.parentElement;
+    if (!cel) return;
+    cel.querySelector(".rotulo-din")?.remove();
+    const q = this.quadros[i];
+    const caixa = document.createElement("div");
+    caixa.className = "rotulo-din";
+    caixa.addEventListener("mousedown", (e) => e.stopPropagation());
+    caixa.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); this.menuDoQuadro(i, texto); });
+    const passo = (d: number, sim: string, dica: string) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = sim;
+      b.title = tr(dica);
+      b.setAttribute("aria-label", `${tr(dica)} (${tr("Quadro")} ${i + 1})`);
+      b.onclick = (e) => {
+        e.stopPropagation();
+        const n = this.dados.fases.length;
+        void this.trocarQuadro(i, { ...q, fase: (q.fase + d + n) % n });
+      };
+      return b;
+    };
+    const texto = document.createElement("button");
+    texto.type = "button";
+    texto.className = "texto-rotulo";
+    texto.textContent = this.rotuloDoQuadro(q);
+    texto.title = tr("Fase, subtração, paisagem e cor (também no botão direito)");
+    texto.setAttribute("aria-label", `${tr("Quadro")} ${i + 1}: ${texto.textContent}`);
+    texto.onclick = (e) => { e.stopPropagation(); this.menuDoQuadro(i, texto); };
+    if (q.v === "fase") caixa.append(passo(-1, "◂", "Fase anterior"), texto, passo(1, "▸", "Próxima fase"));
+    else caixa.append(texto);
+    cel.append(caixa);
+  }
+
+  private moverPendente: { i: number; x: number; y: number } | null = null;
+
+  private aoMover(i: number, e: MouseEvent): void {
+    if (!this.curvaCursor) return;
+    const vp = this.g.viewport(i) as Types.IStackViewport | null;
+    if (!vp) return;
+    const r = vp.canvas.getBoundingClientRect();
+    const pendente = !this.moverPendente;
+    this.moverPendente = { i, x: e.clientX - r.left, y: e.clientY - r.top };
+    if (pendente) requestAnimationFrame(() => void this.curvaNoCursor());
+  }
+
+  /** A curva do ponto sob o cursor (média 3×3), em todas as fases. */
+  async curvaNoCursor(ponto?: { i: number; x: number; y: number }): Promise<void> {
+    const m = ponto ?? this.moverPendente;
+    this.moverPendente = null;
+    if (!m) return;
+    const vp = this.g.viewport(m.i) as Types.IStackViewport | null;
+    const id = vp?.getCurrentImageId();
+    if (!vp || !id) return;
+    const k = vp.getCurrentImageIdIndex();
+    const mundo = vp.canvasToWorld([m.x, m.y] as Types.Point2);
+    const ij = utilities.worldToImageCoords(this.fases[0][k], mundo as Types.Point3) as unknown as number[] | undefined;
+    if (!ij) return;
+    const plano = metaData.get("imagePlaneModule", this.fases[0][k]) as { rows: number; columns: number };
+    const x = Math.floor(ij[0]), y = Math.floor(ij[1]);
+    if (x < 0 || y < 0 || x >= plano.columns || y >= plano.rows) return;
+    const st = await this.pilhaDoCorte(k);
+    const valores = st.map((f) => media3x3(f, plano.columns, plano.rows, x, y));
+    this.hover = { k, x, y, valores };
+    this.desenharCurvas();
   }
 
   private sincronizar(origem: string): void {
@@ -456,9 +620,10 @@ export class ModoDinamica {
     const sTar = escolha(fases, this.par.tardia, (i) => void this.mudarFases(this.par.pre, this.par.inicial, i), "Fase tardia");
     // o que vai em cada quadro
     const opcoesQuadro: (Chave | "fase")[] = ["fase", ...CALCULADOS];
-    const nomeQ = (q: Chave | "fase") => (q === "fase" ? tr("Fase inicial") : tr(this.dados.mapas[q]?.nome || q));
-    const quadros = this.quadros.map((q, i) => escolha(opcoesQuadro.map(nomeQ), opcoesQuadro.indexOf(q),
-      (j) => void this.trocarQuadro(i, opcoesQuadro[j]), `Quadro ${i + 1}`));
+    const nomeQ = (q: Chave | "fase") => (q === "fase" ? tr("Fase") : tr(this.dados.mapas[q]?.nome || q));
+    const quadros = this.quadros.map((q, i) => escolha(opcoesQuadro.map(nomeQ), opcoesQuadro.indexOf(q.v),
+      (j) => void this.trocarQuadro(i, { ...this.quadros[i], v: opcoesQuadro[j] }), `Quadro ${i + 1}`));
+    this.selectsQuadro = quadros;
     // a fusão sobre a fase
     const opcoesSobre: { rotulo: string; valor: ModoDinamica["sobre"] }[] = [
       { rotulo: tr("Nada"), valor: null },
@@ -466,6 +631,14 @@ export class ModoDinamica {
       ...this.dados.mapas_salvos.map((s) => ({ rotulo: `${tr("Salvo")}: ${s.descricao}`, valor: { tipo: "salvo" as const, series: s.series, chave: s.chave } })),
     ];
     const sSobre = escolha(opcoesSobre.map((o) => o.rotulo), 0, (j) => void this.mudarSobre(opcoesSobre[j].valor), "Sobre a fase");
+    const chavesCor = ["", ...Object.keys(tabelasIpe)];
+    const sCorSobre = escolha(chavesCor.map((k) => (k ? tr((tabelasIpe[k] as { nome?: string }).nome || k) : tr("Padrão"))), 0,
+      (j) => { this.corSobre = chavesCor[j]; this.desenharSobre(); }, "Cor da fusão");
+    const cCurva = document.createElement("input");
+    cCurva.type = "checkbox";
+    cCurva.checked = this.curvaCursor;
+    cCurva.setAttribute("aria-label", tr("Curva sob o cursor"));
+    cCurva.onchange = () => { this.curvaCursor = cCurva.checked; if (!cCurva.checked) { this.hover = null; this.desenharCurvas(); } };
     const op = document.createElement("input");
     op.type = "range";
     op.min = "0";
@@ -481,7 +654,8 @@ export class ModoDinamica {
     aviso.className = "nota-din";
     aviso.textContent = this.dados.com_horario ? "" : tr("Sem o horário das fases: uma fase por minuto.");
     this.barra.append(titulo, rotulo("Pré", sPre), rotulo("Inicial", sIni), rotulo("Tardia", sTar),
-      ...quadros.map((q, i) => rotulo(`Q${i + 1}`, q)), rotulo("Sobre a fase", sSobre), rotulo("Opacidade", op), aviso, sair);
+      ...quadros.map((q, i) => rotulo(`Q${i + 1}`, q)), rotulo("Sobre a fase", sSobre), rotulo("Cor", sCorSobre),
+      rotulo("Opacidade", op), rotulo("Curva sob o cursor", cCurva), aviso, sair);
   }
 
   async mudarFases(pre: number, inicial: number, tardia: number): Promise<void> {
@@ -492,23 +666,30 @@ export class ModoDinamica {
     this.par = { ...this.par, pre, inicial, tardia };
     this.corteCache.clear();
     // as imagens dos mapas de antes saem do cache (as das fases ficam)
-    for (const ch of CALCULADOS) {
+    for (const ch of this.registradas) {
       this.fases[0].forEach((_id, k) => { try { cache.removeImageLoadObject(`ipedin:${ch}:${k}`); } catch { /* não estava */ } });
     }
+    for (const ch of [...this.janelas.keys()]) if (ch.startsWith("fs")) this.janelas.delete(ch);
+    this.registradas.clear();
     await this.prepararJanelas();
-    this.registrarMetadados();
+    for (const ch of CALCULADOS) this.registrarChave(ch);
     await this.montar();
   }
 
-  async trocarQuadro(i: number, q: Chave | "fase"): Promise<void> {
-    this.quadros[i] = q;
+  async trocarQuadro(i: number, q: QuadroDin | Chave | "fase"): Promise<void> {
+    const novo = typeof q === "string" ? { ...this.quadros[i], v: q } : q;
+    this.quadros[i] = novo;
+    const s = this.selectsQuadro?.[i];
+    if (s) s.value = String(["fase", ...CALCULADOS].indexOf(novo.v));
     await this.montar();
   }
+
+  private selectsQuadro: HTMLSelectElement[] = [];
 
   // ---------------------------------------------------------------- o mapa por cima da fase (fusão)
   private criarCamada(): void {
     this.camada?.remove();
-    const i = this.quadros.indexOf("fase");
+    const i = this.quadros.findIndex((q) => q.v === "fase");
     if (i < 0) { this.camada = null; return; }
     const c = document.createElement("canvas");
     c.className = "camada-din";
@@ -550,7 +731,7 @@ export class ModoDinamica {
     const c = this.camada;
     if (!c) return;
     const n = ++this.desenhando;
-    const i = this.quadros.indexOf("fase");
+    const i = this.quadros.findIndex((q) => q.v === "fase");
     const vp = this.g.viewport(i) as Types.IStackViewport | null;
     const id = vp?.getCurrentImageId();
     const ctx = c.getContext("2d")!;
@@ -569,7 +750,7 @@ export class ModoDinamica {
       const plano = metaData.get("imagePlaneModule", id) as { rows: number; columns: number };
       const W = plano.columns, H = plano.rows;
       if (r.v.length !== W * H) return;
-      const lut = tabelaDeCores(r.cor);
+      const lut = tabelaDeCores(this.corSobre || r.cor);
       const img = new ImageData(W, H);
       const [lo, hi] = r.j;
       for (let p = 0; p < r.v.length; p++) {
@@ -609,6 +790,11 @@ export class ModoDinamica {
       const valores: number[] = [];
       let n = 0;
       for (const f of st) {
+        if (r.kind === "probe") {
+          valores.push(media3x3(f, plano.columns, plano.rows, Math.floor(r.pts[0][0]), Math.floor(r.pts[0][1])));
+          n = 9;
+          continue;
+        }
         const e = estatRoi(f, plano.columns, plano.rows, r.kind, r.pts, null as never);
         valores.push(e.media ?? NaN);
         n = e.n;
@@ -621,7 +807,7 @@ export class ModoDinamica {
 
   /** O corte da imagem (de uma fase ou de um mapa desta dinâmica), ou null. */
   private corteDaImagem(id: string): number | null {
-    const m = /^ipedin:[a-z]+:(\d+)$/.exec(id);
+    const m = /^ipedin:[a-z0-9]+:(\d+)$/.exec(id);
     if (m) return Number(m[1]);
     for (const f of this.fases) {
       const k = f.indexOf(id);
@@ -630,11 +816,22 @@ export class ModoDinamica {
     return null;
   }
 
+  /** A curva sob o cursor (ou null). */
+  resumoDoCursor(): Record<string, unknown> | null {
+    if (!this.hover) return null;
+    return { ...this.resumo([{ uid: "cursor", valores: this.hover.valores, n: 9 }])[0], cursor: true,
+      ponto: [this.hover.x, this.hover.y], corte: this.hover.k };
+  }
+
   /** Os números de cada curva (para o painel e para os testes). */
   resumoDasCurvas(): Record<string, unknown>[] {
+    return this.resumo(this.curvas);
+  }
+
+  private resumo(curvas: { uid: string; valores: number[]; n: number }[]): Record<string, unknown>[] {
     const p = this.par;
     const tMin = p.tempos.slice(p.pre).map((t) => (t - p.tempos[p.pre]) / 60);
-    return this.curvas.map((c, i) => {
+    return curvas.map((c, i) => {
       const s0 = c.valores[p.pre];
       const e = c.valores.slice(p.pre).map((v) => (v - s0) / (Math.abs(s0) > 1e-6 ? s0 : 1e-6) * 100);
       const eDesc = [0, ...e.slice(1)];
@@ -651,7 +848,8 @@ export class ModoDinamica {
   }
 
   private desenharCurvas(): void {
-    const r = this.resumoDasCurvas();
+    const cursor = this.resumoDoCursor();
+    const r = [...(cursor ? [cursor] : []), ...this.resumoDasCurvas()];
     const p = this.par;
     this.painel.replaceChildren();
     const titulo = document.createElement("div");
@@ -661,7 +859,7 @@ export class ModoDinamica {
     if (!r.length) {
       const d = document.createElement("div");
       d.className = "dica";
-      d.textContent = tr("Desenhe uma ROI (elipse, retângulo ou polígono) num dos quadros para ver a curva.");
+      d.textContent = tr("Passe o mouse sobre a imagem para ver a curva do ponto, ou marque um ponto (valor do pixel) ou uma ROI para guardar a curva.");
       this.painel.append(d);
       return;
     }
@@ -700,9 +898,11 @@ export class ModoDinamica {
     texto(m.e - 4, Y(yMax / 1.1) + 4, `${Math.round(yMax / 1.1)}%`, "end");
     texto(m.e - 4, Y(0) + 4, "0", "end");
     for (const t of tMin) texto(X(t), H - m.b + 12, t.toFixed(1));
+    const corDe = (c: Record<string, unknown>, i: number) => (c.cursor ? "#ffffff" : CORES_CURVAS[(cursor ? i - 1 : i) % CORES_CURVAS.length]);
     r.forEach((c, i) => {
-      const cor = CORES_CURVAS[i % CORES_CURVAS.length];
+      const cor = corDe(c, i);
       const pl = document.createElementNS(ns, "polyline");
+      if (c.cursor) pl.setAttribute("stroke-dasharray", "4 3");
       pl.setAttribute("points", (c.realce as number[]).map((v, j) => `${X(tMin[j]).toFixed(1)},${Y(v).toFixed(1)}`).join(" "));
       pl.setAttribute("stroke", cor);
       pl.setAttribute("class", "curva");
@@ -721,7 +921,7 @@ export class ModoDinamica {
     r.forEach((c, i) => {
       const linhaT = document.createElement("tr");
       const cel = (t: string, cor?: string) => { const td = document.createElement("td"); td.textContent = t; if (cor) td.style.color = cor; linhaT.append(td); };
-      cel(`● ${i + 1}`, CORES_CURVAS[i % CORES_CURVAS.length]);
+      cel(c.cursor ? `◌ ${tr("cursor")}` : `● ${cursor ? i : i + 1}`, corDe(c, i));
       cel(tr(String(c.classe)));
       cel(f1(c.inicial, "%"));
       cel(typeof c.ser === "number" ? (c.ser as number).toFixed(2) : "—");
@@ -744,8 +944,9 @@ export class ModoDinamica {
 
   /** Para os testes: os parâmetros e o corte de agora. */
   estado(): Record<string, unknown> {
-    return { par: this.par, corte: this.corte(), quadros: this.quadros, sobre: this.sobre,
-      desenhado: this.camada?.dataset.desenhado ?? null };
+    return { par: this.par, corte: this.corte(), quadros: this.quadros.map((q) => q.v), detalhe: this.quadros,
+      sobre: this.sobre, corSobre: this.corSobre, desenhado: this.camada?.dataset.desenhado ?? null,
+      rotulos: this.g.quadros.map((q) => q.el.parentElement?.querySelector(".rotulo-din .texto-rotulo")?.textContent || "") };
   }
 
   sair(): void {
@@ -769,11 +970,25 @@ export class ModoDinamica {
   }
 }
 
+/** Média 3×3 em volta do pixel (x, y) (só os que caem na imagem). */
+export function media3x3(f: Float32Array, w: number, h: number, x: number, y: number): number {
+  let s = 0, n = 0;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const xx = x + dx, yy = y + dy;
+      if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+      s += f[yy * w + xx];
+      n++;
+    }
+  }
+  return n ? s / n : NaN;
+}
+
 // ------------------------------------------------------------------ tabela de cores em 256 tons
 const LUTS = new Map<string, Uint8Array>();
-let tabelasIpe: Record<string, { pontos: number[][] }> = {};
+let tabelasIpe: Record<string, { pontos: number[][]; nome?: string }> = {};
 
-export function guardarTabelas(t: Record<string, { pontos: number[][] }> | undefined): void {
+export function guardarTabelas(t: Record<string, { pontos: number[][]; nome?: string }> | undefined): void {
   tabelasIpe = t || {};
   LUTS.clear();
 }

@@ -9,6 +9,7 @@ import {
   aoMudarMedidas, apagarMedida, apagarMedidasDaImagem, copiarValor, editarTexto, listarMedidas, medidaNoPonto,
   medidaPorUid, type ResumoMedida,
 } from "./medidas";
+import { Overlay } from "./overlay";
 import { abrirMenu, abrirPainel, fecharMenus, icone, type ItemMenu } from "./menu";
 import { META, partesDoImageId } from "./meta";
 import { COR_PADRAO, SUV_PADRAO, registrarCores } from "./pet";
@@ -19,6 +20,7 @@ import { ModoDinamica, dinamicaDoExame, guardarTabelas } from "./dinamica";
 import { PainelLaudo } from "./laudo";
 import {
   Grade, TIPO_ARRASTO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
+  ARRANJO_PET_PADRAO, type ConteudoPet, type VistaPet,
 } from "./visor";
 
 const app = document.getElementById("app")!;
@@ -141,23 +143,45 @@ async function telaLista(): Promise<void> {
   const corpo = el("tbody");
   const estado = el("div", { class: "estado" });
   const form = el("form", { class: "filtros" }, busca, de, ate, mod, el("button", { type: "submit" }, tr("Buscar")));
-  const tabela = el("table", { class: "lista" },
-    el("thead", {}, el("tr", {}, ...["Data", "Paciente", "ID", "Descrição", "Modalidade", "Imagens"].map(
-      (c) => el("th", {}, tr(c))))), corpo);
+  // 0.100.2: cada coluna ordena a lista (clicar no título: crescente; de novo: decrescente), e a escolha fica lembrada
+  const COLUNAS: { nome: string; valor: (r: API.DicomJson) => string | number; num?: boolean }[] = [
+    { nome: "Data", valor: (r) => `${API.texto(r, "00080020")}${API.texto(r, "00080030")}` },
+    { nome: "Paciente", valor: (r) => API.texto(r, "00100010").toLocaleLowerCase() },
+    { nome: "ID", valor: (r) => API.texto(r, "00100020") },
+    { nome: "Descrição", valor: (r) => API.texto(r, "00081030").toLocaleLowerCase() },
+    { nome: "Modalidade", valor: (r) => ((r["00080061"]?.Value as string[]) || []).join(", ") },
+    { nome: "Imagens", valor: (r) => Number(API.texto(r, "00201208")) || 0, num: true },
+  ];
+  let ordem = lerPreferencia<{ col: string; desc: boolean }>("ordemLista", { col: "Data", desc: true });
+  if (!COLUNAS.some((c) => c.nome === ordem.col)) ordem = { col: "Data", desc: true };
+  let linhas: API.DicomJson[] = [];
+  const titulos = COLUNAS.map((c) => {
+    const b = el("button", { type: "button", class: "ordenar", "data-coluna": c.nome,
+      title: tr("Ordenar (clique de novo para inverter)") }, tr(c.nome), el("span", { class: "seta-ordem", "aria-hidden": "true" }));
+    b.onclick = () => {
+      ordem = { col: c.nome, desc: ordem.col === c.nome ? !ordem.desc : c.nome === "Data" || !!c.num };
+      gravarPreferencia("ordemLista", ordem);
+      desenhar();
+    };
+    return el("th", { class: c.num ? "num" : "" }, b);
+  });
+  const tabela = el("table", { class: "lista" }, el("thead", {}, el("tr", {}, ...titulos)), corpo);
   app.replaceChildren(cabecalho(), el("main", { class: "telalista" }, form, estado, tabela), tarja());
-  const procurar = async () => {
-    estado.textContent = tr("Carregando…");
+  const desenhar = () => {
+    const col = COLUNAS.find((c) => c.nome === ordem.col)!;
+    titulos.forEach((th, i) => {
+      const sel = COLUNAS[i].nome === ordem.col;
+      th.setAttribute("aria-sort", sel ? (ordem.desc ? "descending" : "ascending") : "none");
+      th.querySelector(".seta-ordem")!.textContent = sel ? (ordem.desc ? " ▼" : " ▲") : "";
+    });
+    const k = (r: API.DicomJson) => col.valor(r);
+    const ordenadas = linhas.map((r, i) => ({ r, i, v: k(r) })).sort((a, b) => {
+      const c = typeof a.v === "number" && typeof b.v === "number" ? a.v - b.v
+        : String(a.v).localeCompare(String(b.v), undefined, { numeric: true, sensitivity: "base" });
+      return (ordem.desc ? -c : c) || a.i - b.i;
+    });
     corpo.replaceChildren();
-    const q = new URLSearchParams();
-    const t = busca.value.trim();
-    if (t) q.set("PatientName", `*${t}*`);
-    const d1 = de.value.replace(/-/g, ""), d2 = ate.value.replace(/-/g, "");
-    if (d1 || d2) q.set("StudyDate", `${d1}-${d2}`);
-    if (mod.value) q.set("ModalitiesInStudy", mod.value);
-    q.set("limit", "300");
-    const rows = await API.qido(`/studies?${q}`);
-    estado.textContent = rows.length ? "" : tr("Nenhum exame encontrado.");
-    for (const r of rows) {
+    for (const { r } of ordenadas) {
       const uid = API.texto(r, "0020000D");
       const tr_ = el("tr", { tabindex: 0 },
         el("td", {}, dataBr(API.texto(r, "00080020"))), el("td", {}, API.texto(r, "00100010")),
@@ -168,6 +192,20 @@ async function telaLista(): Promise<void> {
       tr_.onkeydown = (e) => { if ((e as KeyboardEvent).key === "Enter") location.hash = `#/exame/${uid}`; };
       corpo.append(tr_);
     }
+  };
+  const procurar = async () => {
+    estado.textContent = tr("Carregando…");
+    corpo.replaceChildren();
+    const q = new URLSearchParams();
+    const t = busca.value.trim();
+    if (t) q.set("PatientName", `*${t}*`);
+    const d1 = de.value.replace(/-/g, ""), d2 = ate.value.replace(/-/g, "");
+    if (d1 || d2) q.set("StudyDate", `${d1}-${d2}`);
+    if (mod.value) q.set("ModalitiesInStudy", mod.value);
+    q.set("limit", "300");
+    linhas = await API.qido(`/studies?${q}`);
+    estado.textContent = linhas.length ? "" : tr("Nenhum exame encontrado.");
+    desenhar();
   };
   form.onsubmit = (e) => { e.preventDefault(); void procurar(); };
   busca.focus();
@@ -188,6 +226,7 @@ const NOMES_FERRAMENTAS: Record<Ferramenta, string> = {
 
 /** Ícones (24×24, traço). */
 const IC: Record<string, string> = {
+  overlay: "M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5",
   voltar: "M10 6l-6 6 6 6M4 12h16",
   janela: "M12 3a9 9 0 1 0 0.01 0M12 3v18M12 8h5M12 13h7",
   mover: "M12 2v20M2 12h20M9 5l3-3 3 3M9 19l3 3 3-3M5 9l-3 3 3 3M19 9l3 3-3 3",
@@ -399,6 +438,9 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   const bCineMenu = el("button", { type: "button", class: "ic estreito", "aria-label": tr("Velocidade do cine"),
     title: tr("Velocidade do cine") }, seta());
   const bLaudo = botaoIcone("Laudo", IC.laudo, { "aria-pressed": "false" });
+  const bOverlay = botaoIcone("Overlay (CAD/IA, textos, medidas)", IC.overlay, { "aria-pressed": "true" });
+  const bOverlayMenu = el("button", { type: "button", class: "ic estreito", "aria-label": tr("Opções do overlay"),
+    title: tr("Opções do overlay") }, seta()) as HTMLButtonElement;
   const bInverter = botaoIcone("Inverter", IC.inverter);
   const bRestaurar = botaoIcone("Restaurar", IC.restaurar);
   const bCarga = el("button", { type: "button", class: "link", "aria-pressed": "false",
@@ -411,7 +453,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     el("div", { class: "grupo" }, voltar), ferramentas, medicao,
     el("div", { class: "grupo" }, bLayout, bMpr, bEspessura, bObliquo, bGirar),
     el("div", { class: "grupo" }, bPet, bDin, bSeg, bCine, bCineMenu),
-    el("div", { class: "grupo" }, bInverter, bRestaurar),
+    el("div", { class: "grupo" }, bInverter, bRestaurar, bOverlay, bOverlayMenu),
     el("div", { class: "grupo" }, bLaudo));
 
   // ---------------------------------------------------------------- painéis
@@ -466,6 +508,15 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   grade.aviso = (m: string) => { aviso.textContent = m; };
   (window as unknown as Record<string, unknown>).__ipeGrade = grade; // para os testes de ponta a ponta
   const g = grade;
+  // 0.100.2: o overlay (CAD/IA, GSPS, RTSTRUCT, SEG nas pilhas, textos, medidas, linhas de referência)
+  const ov = new Overlay(g, study, () => {
+    bOverlay.setAttribute("aria-pressed", String(ov.ligado));
+    bOverlay.classList.toggle("ligado", ov.ligado && ov.tem());
+  });
+  (window as unknown as Record<string, unknown>).__ipeOverlay = ov;
+  bOverlay.onclick = () => ov.alternar();
+  bOverlayMenu.onclick = () => ov.menu(bOverlayMenu);
+  void ov.carregar();
   const d = new Disponiveis();
   disp = d;
   const cron = new Cronometro();
@@ -644,6 +695,11 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   let cor = COR_PADRAO;
   let opac = 0.5;
   let topo = SUV_PADRAO;
+  g.aoMudarSuv = () => {
+    const q = g.quadros.find((x) => x.sobre) ?? g.quadros.find((x) => x.serie?.modalidade === "PT");
+    if (q) topo = q.suvMax;
+    if (abaAtual === "PET") atualizarAba();
+  };
   let segEscolhida = "";
   // 0.99.98 (W6): o laudo no navegador, ao lado das imagens
   bLaudo.onclick = async () => {
@@ -719,7 +775,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     aviso.textContent = "";
     if (!tc || !pet) return;
     if (!pet.suv) aviso.textContent = `${tr("Sem SUV:")} ${pet.suvMotivo || "?"}.`;
-    if (g.abrirPETCT(tc, pet)) {
+    if (g.abrirPETCT(tc, pet, lerPreferencia("arranjoPet", ARRANJO_PET_PADRAO))) {
       g.fusao({ cor, opacidade: opac, suvMax: topo });
       if (lateral.hidden) ajustarPaineis(!tira.hidden, true);
       mostrarAba("PET");
@@ -727,6 +783,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   };
   const escolherSeg = async (uid: string) => {
     segEscolhida = uid;
+    void ov.usarSeg(uid);
     aviso.textContent = uid ? tr("Carregando…") : "";
     const r = await g.mostrarSegDaSerie(study, uid || null, pegar);
     if (r) aviso.textContent = `${r.descricao}: ${r.segmentos.map((x) => x.nome).join(", ")}`;
@@ -839,15 +896,56 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
       const op = el("select", { title: tr("Opacidade da fusão") },
         ...[20, 35, 50, 65, 80, 100].map((n) => el("option", { value: n / 100, selected: Math.round(opac * 100) === n }, `${n}%`))) as HTMLSelectElement;
       op.onchange = () => { opac = Number(op.value); g.fusao({ opacidade: opac }); };
+      const topos = [...new Set([3, 5, 6, 8, 10, 15, 20, topo])].sort((a, b) => a - b);
       const tp = el("select", { title: tr("Topo da janela de SUV") },
-        ...[3, 5, 6, 8, 10, 15, 20].map((n) => el("option", { value: n, selected: n === topo }, `SUV ${n}`))) as HTMLSelectElement;
+        ...topos.map((n) => el("option", { value: n, selected: n === topo }, `SUV ${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`))) as HTMLSelectElement;
       tp.onchange = () => { topo = Number(tp.value); g.fusao({ suvMax: topo }); };
       const sg = el("select", { title: tr("Segmentação (SEG)") }, el("option", { value: "" }, tr("Sem segmentação")),
         ...segs.map((x) => el("option", { value: API.texto(x, "0020000E"), selected: segEscolhida === API.texto(x, "0020000E") }, nomeSeg(x)))) as HTMLSelectElement;
       if (!segs.length) sg.disabled = true;
       sg.onchange = () => void escolherSeg(sg.value);
       const abrir = el("button", { type: "button", class: "primario", onclick: () => bPet.click() }, tr("Abrir PET/CT"));
+      // 0.100.2: o arranjo da leitura — a grade e o que cada quadro mostra, lembrado para o próximo PET/CT
+      const arranjo: Node[] = [];
+      if (g.petct && pets.length) {
+        const atual = g.arranjoPet();
+        const salvar = (l: number, c: number, qs: ConteudoPet[]) => {
+          gravarPreferencia("arranjoPet", { l, c, quadros: qs });
+          g.montarPetct(l, c, qs);
+          atualizarAba();
+        };
+        const grades: [number, number][] = [[1, 1], [1, 2], [1, 3], [2, 2], [2, 3], [1, 4]];
+        const sl = el("select", { "aria-label": tr("Grade do PET/CT") },
+          ...grades.map(([l, c]) => el("option", { value: `${l}x${c}`, selected: g.linhas === l && g.colunas === c }, `${l} × ${c}`))) as HTMLSelectElement;
+        sl.onchange = () => {
+          const [l, c] = sl.value.split("x").map(Number);
+          const qs = Array.from({ length: l * c }, (_, i) => atual[i] ?? ARRANJO_PET_PADRAO.quadros[i % 3]);
+          salvar(l, c, qs);
+        };
+        const VISTAS: [VistaPet, string][] = [["fusao", "TC + PET"], ["tc", "TC"], ["pet", "PET"], ["mip", "MIP do PET (3D)"]];
+        const PLANOS: [string, string][] = [["AXIAL", "Axial"], ["CORONAL", "Coronal"], ["SAGITTAL", "Sagital"]];
+        const linhasQ = atual.map((cp, i) => {
+          const sv = el("select", { "aria-label": `${tr("Quadro")} ${i + 1}` },
+            ...VISTAS.map(([v, n]) => el("option", { value: v, selected: v === cp.v }, tr(n)))) as HTMLSelectElement;
+          const sp = el("select", { "aria-label": `${tr("Plano do quadro")} ${i + 1}` },
+            ...PLANOS.map(([v, n]) => el("option", { value: v, selected: v === cp.plano }, tr(n)))) as HTMLSelectElement;
+          sp.disabled = cp.v === "mip";
+          const mudar = () => {
+            const qs = atual.slice();
+            qs[i] = { v: sv.value as VistaPet, plano: sp.value as ConteudoPet["plano"] };
+            salvar(g.linhas, g.colunas, qs);
+          };
+          sv.onchange = mudar;
+          sp.onchange = mudar;
+          return el("div", { class: "linha-arranjo" }, el("span", {}, `${i + 1}`), sv, sp);
+        });
+        const padrao = el("button", { type: "button", onclick: () => salvar(ARRANJO_PET_PADRAO.l, ARRANJO_PET_PADRAO.c, ARRANJO_PET_PADRAO.quadros) },
+          tr("Arranjo padrão"));
+        arranjo.push(secao("Arranjo do PET/CT"), sl, ...linhasQ, padrao,
+          el("div", { class: "dica" }, tr("Janela do PET: arraste no quadro (para cima e para baixo, o topo; para os lados, o piso). Na fusão, Shift + arrasto ajusta a TC.")));
+      }
       return [
+        ...arranjo,
         secaoPronta("SUV"), el("div", { class: "dica" }, pet ? (pet.suv ? `${tr("Pelo peso")} · ${tr("fator")} ${pet.suv.toExponential(3)}` : `${tr("Sem SUV:")} ${pet.suvMotivo || "?"}`) : tr("Nenhum PET nos quadros.")),
         abrir,
         secao("Cor da fusão"), cores, secao("Opacidade"), op, secao("Topo da janela de SUV"), tp,

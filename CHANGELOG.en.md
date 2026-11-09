@@ -3,6 +3,22 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.2 — web viewer: overlay, reference lines, adjustable PET, breast dynamics and mammography as in Ipê
+- **Overlay**: the new icon turns on and off at once the CAD/AI (SR), annotations from another system (GSPS),
+  RTSTRUCT contours, corner texts, measurements and reference lines; its arrow picks item by item, and a hidden type
+  stays hidden in the next studies. The chosen SEG also shows on slice viewports.
+- **Reference lines on slices**: the plane of the active viewport shows as a line on the others (the axial on the
+  scout…); with the Reference lines tool, clicking a viewport takes the others to the slice of that point.
+- **PET**: SUV window by mouse drag (top and floor, on every viewport of the same PET; Shift on the fusion adjusts
+  the CT) and the **arrangement** chosen in the PET tab — the grid and what each viewport shows (CT + PET, CT, PET,
+  PET MIP) with its plane —, remembered for the next PET/CT.
+- **Breast dynamics**: the **curve under the cursor** (3×3, as in Ipê) and the curve of a point (pixel value); on each
+  viewport label, ◂ ▸ change the phase and the menu picks the phase, the **subtraction** of any phase, the
+  **landscape** (anatomy added back) and the **color**; the bar picks the color of the map over the phase.
+- **Mammography**: each viewport is the stack of its view, as in Ipê — the wheel goes through the 2D images of the
+  same breast and view and then through the tomosynthesis slices.
+- **Study list**: clicking a column title sorts it (▲/▼), and the choice is remembered.
+
 ## 0.100.1 — central server client: the download no longer stops when the exam opens
 - **The download stopped right after the exam opened**: when the first images took more than 0.4 s (a real
   network), closing the "Downloading the first images…" notice was read as "Cancel" — only the series already

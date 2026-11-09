@@ -12,7 +12,7 @@ import pytest
 from pydicom.uid import MRImageStorage, generate_uid
 
 sys.path.insert(0, str(Path(__file__).parent))
-from _web_ui import ferramenta, icone  # noqa: E402
+from _web_ui import ferramenta, icone, menu  # noqa: E402
 from test_web_mpr import _esperar  # noqa: E402
 
 from ipe.central import web as WEB  # noqa: E402
@@ -184,7 +184,57 @@ def test_mapas_curvas_e_fusao(servidor_din, tmp_path):
         for chave in ("bat", "wash", "iauc", "mrt"):
             assert c[chave] == pytest.approx(float(ref[chave]), rel=1e-3, abs=1e-3), chave
         assert "rápido/washout" in pg.inner_text(".painel-din")
-        assert pg.locator(".painel-din svg polyline").count() == 1
+        assert pg.locator(".painel-din svg polyline:not([stroke-dasharray])").count() == 1
+        # 0.100.2: a curva sob o cursor (3×3, como no Ipê) — tracejada, sem marcar nada
+        def tela(i, x, y):
+            return pg.evaluate(f"""() => {{ const vp = window.__ipeGrade.viewport({i}); const id = vp.getCurrentImageId();
+                const r = vp.canvas.getBoundingClientRect();
+                const c = vp.worldToCanvas(window.__ipeCs.imageToWorldCoords(id, [{x}, {y}]));
+                return [r.left + c[0], r.top + c[1]]; }}""")
+        ferramenta(pg, "janela")
+        pg.mouse.move(*tela(1, 28.5, 12.5))                                   # a lesão persistente, no quadro do mapa
+        assert _esperar(lambda: (pg.evaluate("() => window.__ipeDin.resumoDoCursor()") or {}).get("ponto") == [28, 12])
+        cur = pg.evaluate("() => window.__ipeDin.resumoDoCursor()")
+        assert cur["valores"] == pytest.approx(LESOES["persistente"][1], abs=1e-3) and cur["classe"] == ipe.classe_cinetica(np.asarray(LESOES["persistente"][1], float))
+        assert pg.locator(".painel-din svg polyline[stroke-dasharray]").count() == 1
+        # desligar a curva do cursor
+        pg.uncheck(".barra-din input[aria-label='Curva sob o cursor']")
+        assert _esperar(lambda: pg.evaluate("() => window.__ipeDin.resumoDoCursor()") is None)
+        # um ponto (valor do pixel) também guarda a curva
+        ferramenta(pg, "pixel")
+        pg.mouse.click(*tela(0, 20.5, 28.5))                                  # o platô
+        assert _esperar(lambda: len(pg.evaluate("() => window.__ipeDin.resumoDasCurvas()")) == 2, 20)
+        pt = pg.evaluate("() => window.__ipeDin.resumoDasCurvas()")[1]
+        assert pt["valores"] == pytest.approx(LESOES["plato"][1], abs=1e-3)
+        # o quadro da fase: ▸ passa à próxima, o menu liga a subtração e a paisagem, e escolhe a cor
+        ini = pg.evaluate("() => window.__ipeDin.estado().par.inicial")
+        pg.click(".quadro >> nth=0 >> .rotulo-din button[aria-label^='Próxima fase']")
+        assert _esperar(lambda: pg.evaluate("() => window.__ipeDin.estado().detalhe[0].fase") == ini + 1)
+        assert f"Fase {ini + 2}/5" in pg.evaluate("() => window.__ipeDin.estado().rotulos[0]")
+        pg.click(".quadro >> nth=0 >> .rotulo-din .texto-rotulo")
+        menu(pg, "Subtração (fase − pré-contraste)")
+        assert _esperar(lambda: pg.evaluate("() => window.__ipeDin.estado().detalhe[0].sub") is True)
+        f = ini + 1
+        def valor_no_quadro0(x, y):
+            return pg.evaluate(f"""() => {{ const vp = window.__ipeGrade.viewport(0); const im = vp.getImageData();
+                return [vp.getCurrentImageId(), im.scalarData[{y} * im.dimensions[0] + {x}]]; }}""")
+        assert _esperar(lambda: valor_no_quadro0(12, 12)[0].startswith(f"ipedin:fs{f}p0:"))
+        sinais = LESOES["washout"][1]
+        assert valor_no_quadro0(12, 12)[1] == pytest.approx(sinais[f] - sinais[0], abs=1e-3)
+        pg.click(".quadro >> nth=0 >> .rotulo-din .texto-rotulo")
+        menu(pg, "Paisagem")
+        menu(pg, "20% da anatomia")
+        assert _esperar(lambda: valor_no_quadro0(12, 12)[0].startswith(f"ipedin:fs{f}p20:"))
+        assert valor_no_quadro0(12, 12)[1] == pytest.approx(sinais[f] - 0.8 * sinais[0], abs=1e-2)
+        assert "subtração + 20% anatomia" in pg.evaluate("() => window.__ipeDin.estado().rotulos[0]")
+        pg.click(".quadro >> nth=2 >> .rotulo-din .texto-rotulo")
+        menu(pg, "Cor")
+        menu(pg, "Hot")
+        assert _esperar(lambda: pg.evaluate("() => window.__ipeDin.estado().detalhe[2].cor") == "hot")
+        assert pg.evaluate("() => window.__ipeGrade.viewport(2).getProperties().colormap?.name") == "ipe-hot"
+        # a cor da fusão
+        pg.select_option(".barra-din select[aria-label='Cor da fusão']", label="Gold (ouro)")
+        assert _esperar(lambda: pg.evaluate("() => window.__ipeDin.estado().corSobre") == "gold")
         # trocar a fase tardia refaz os mapas e a curva
         pg.select_option(".barra-din select[aria-label='Fase tardia']", index=2)
         assert _esperar(lambda: pg.evaluate("() => window.__ipeDin.estado().par.tardia") == 2)

@@ -138,6 +138,24 @@ export interface MapaSeg {
   fatias: { sop: string; r0: number; c0: number; h: number; w: number; dados: string }[];
 }
 
+/** 0.100.2: um objeto de overlay do Ipê (CAD/IA, GSPS, RTSTRUCT), em pixels da imagem. */
+export interface GraficoOv { tipo: string; pontos: number[][]; texto?: string; cor?: number[]; quadro?: number }
+export interface ObjetoOv {
+  chave: string; fonte: string; rotulo: string; cor: number[]; achados: string[]; serie: string; descricao: string;
+  por_sop: Record<string, GraficoOv[]>; todos: GraficoOv[];
+  planos: { tipo: string; pontos3d: number[][]; texto?: string; cor?: number[] }[];
+  mascaras: { sop: string; quadro: number; r0: number; c0: number; h: number; w: number; bits: string; cor: number[];
+    rotulo: string; escala?: number[] }[];
+  so_serie: string; serie_ref: string;
+}
+export interface Overlays { tipos: Record<string, string>; ocultos: string[]; objetos: ObjetoOv[] }
+
+export async function overlays(study: string): Promise<Overlays | null> {
+  const r = await pedir(`${location.origin}/api/web/overlays?study=${encodeURIComponent(study)}`);
+  if (!r.ok) return null;
+  return (await r.json()) as Overlays;
+}
+
 /** A SEG como mapa de rótulos sobre a série de origem (o servidor lê a SEG como o Ipê). */
 export async function mapaSeg(study: string, series: string): Promise<MapaSeg | null> {
   const r = await pedir(`${location.origin}/api/web/seg?study=${encodeURIComponent(study)}&series=${encodeURIComponent(series)}`);
@@ -167,7 +185,11 @@ export interface ImagemMg {
 export interface CelulaMg {
   codigo: string; rotulo?: string; anterior?: number; data?: string; nota?: string;
   sop?: string; alt?: string; quer?: "left" | "right" | null;
+  /** 0.100.2: a pilha do quadro, como no Ipê — as 2D da mesma mama e incidência e, depois, os cortes da tomo */
+  pilha?: MembroMg[];
 }
+
+export interface MembroMg { study: string; series: string; sop: string; tomo: boolean; quadros: number }
 
 export interface TelaMg { rows: number; cols: number; celulas: CelulaMg[] }
 

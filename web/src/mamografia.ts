@@ -31,6 +31,8 @@ interface Celula {
   dado: API.CelulaMg;
   sop: string;
   pronto: boolean;
+  /** 0.100.2: onde cada imagem começa na pilha do quadro (índice inicial e quantos quadros) */
+  posicoes?: Map<string, [number, number]>;
 }
 
 function dataCurta(d: string): string {
@@ -59,6 +61,34 @@ async function pilhaDa(im: API.ImagemMg, rotulo: string): Promise<SerieCarregada
   const ids = s.imageIds.filter((id) => id.includes(`/instances/${im.sop}/frames/`));
   if (!ids.length) return null;
   return { ...s, imageIds: ids, descricao: rotulo, semVolume: "mg", bytes: 0 };
+}
+
+/** 0.100.2: a pilha do quadro com todas as imagens da mesma incidência (2D e cortes da tomo), como no Ipê. */
+async function pilhaAgrupada(membros: API.MembroMg[], rotulo: string):
+    Promise<{ s: SerieCarregada; posicoes: Map<string, [number, number]> } | null> {
+  const partes = await Promise.all(membros.map(async (m) => {
+    const s = await serieDe(m.study, m.series);
+    return s ? { s, ids: s.imageIds.filter((id) => id.includes(`/instances/${m.sop}/frames/`)) } : null;
+  }));
+  const ids: string[] = [];
+  const posicoes = new Map<string, [number, number]>();
+  let base: SerieCarregada | null = null;
+  partes.forEach((p, k) => {
+    if (!p || !p.ids.length) return;
+    base = base ?? p.s;
+    posicoes.set(membros[k].sop, [ids.length, p.ids.length]);
+    ids.push(...p.ids);
+  });
+  if (!base || !ids.length) return null;
+  return { s: { ...(base as SerieCarregada), series: `mg-${membros[0].sop}`, imageIds: ids, descricao: rotulo, semVolume: "mg", bytes: 0 },
+    posicoes };
+}
+
+/** O corte em que a imagem começa: o meio da tomo, a própria 2D. */
+function inicioNaPilha(posicoes: Map<string, [number, number]>, sop: string, tomo: boolean): number | undefined {
+  const p = posicoes.get(sop);
+  if (!p) return undefined;
+  return p[0] + (tomo ? Math.floor(p[1] / 2) : 0);
 }
 
 function soma(a: Types.Point3, d: V3): Types.Point3 {
@@ -286,6 +316,15 @@ export class ModoMamografia {
   private async carregar(i: number, c: Celula, versao: number): Promise<void> {
     if (!c.sop) return;
     const im = this.dados.imagens[c.sop];
+    if (im && c.dado.pilha && c.dado.pilha.length > 1) {
+      const ag = await pilhaAgrupada(c.dado.pilha, rotuloDa(c.dado));
+      if (versao !== this.versao) return;
+      if (ag && ag.posicoes.has(c.sop)) {
+        c.posicoes = ag.posicoes;
+        await this.g.mostrar(i, ag.s, inicioNaPilha(ag.posicoes, c.sop, im.tomo));
+        return;
+      }
+    }
     const s = im ? await pilhaDa(im, rotuloDa(c.dado)) : null;
     if (versao !== this.versao) return;
     if (!s) {
@@ -412,7 +451,11 @@ export class ModoMamografia {
     if (!c?.dado.alt) return;
     c.sop = c.sop === c.dado.sop ? c.dado.alt : c.dado.sop!;
     c.pronto = false;
-    await this.carregar(i, c, this.versao);
+    // na pilha agrupada, a 2D e a tomo já estão no mesmo quadro: só pula para lá
+    const vp = this.vp(i);
+    const ini = c.posicoes ? inicioNaPilha(c.posicoes, c.sop, !!this.dados.imagens[c.sop]?.tomo) : undefined;
+    if (vp && ini !== undefined) await vp.setImageIdIndex(ini);
+    else await this.carregar(i, c, this.versao);
     this.enquadrar();
     this.atualizarTomo();
   }

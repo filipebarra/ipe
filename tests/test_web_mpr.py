@@ -59,7 +59,7 @@ def servidor(env, tmp_path):
     # e uma série de imagem única (sem volume)
     s2 = {"uid": generate_uid(), "number": 3, "description": "SCOUT"}
     ds = _base("1.2.840.10008.5.1.4.1.1.2", pat, study, s2, "CT")
-    ds.ImagePositionPatient, ds.ImageOrientationPatient, ds.PixelSpacing = [0, 0, 0], [1, 0, 0, 0, 0, -1], [1, 1]
+    ds.ImagePositionPatient, ds.ImageOrientationPatient, ds.PixelSpacing = [0, 0, (NZ - 1) * DZ], [1, 0, 0, 0, 0, -1], [1, 1]
     _mono(ds, vol[20], signed=True)
     _save(ds, tmp_path / "mpr")
     Importer(db, paths.storage).import_paths([tmp_path / "mpr"])

@@ -3,6 +3,22 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.2 — visualizador web: overlay, linhas de referência, PET ajustável, dinâmica e mamografia como no Ipê
+- **Overlay**: o ícone novo liga e desliga de uma vez o CAD/IA (SR), as anotações de outro sistema (GSPS), os
+  contornos RTSTRUCT, os textos dos cantos, as medidas e as linhas de referência; a seta escolhe item por item, e o
+  tipo escondido fica escondido nos próximos exames. A SEG escolhida aparece também nos quadros de cortes.
+- **Linhas de referência nos cortes**: o plano do quadro ativo aparece como linha nos outros (o axial no scout…);
+  com a ferramenta Linhas de referência, clicar num quadro leva os outros ao corte do ponto.
+- **PET**: a janela de SUV no arrasto do mouse (topo e piso, em todos os quadros do mesmo PET; Shift na fusão
+  ajusta a TC) e o **arranjo** escolhido na aba PET — a grade e o que cada quadro mostra (TC + PET, TC, PET, MIP do
+  PET) com o plano —, lembrado para o próximo PET/CT.
+- **Dinâmica da mama**: a **curva sob o cursor** (3×3, como no Ipê) e a curva do ponto (valor do pixel); no rótulo
+  de cada quadro, ◂ ▸ passam de fase e o menu escolhe a fase, a **subtração** de qualquer fase, a **paisagem**
+  (anatomia de volta) e a **cor**; a barra escolhe a cor do mapa por cima da fase.
+- **Mamografia**: cada quadro é a pilha da incidência, como no Ipê — a roda passa pelas imagens 2D da mesma mama e
+  incidência e pelos cortes da tomossíntese.
+- **Lista de exames**: clicar no título da coluna ordena (▲/▼), e a escolha fica lembrada.
+
 ## 0.100.1 — cliente do servidor central: o download não para mais ao abrir o exame
 - **O download parava logo depois de o exame abrir**: quando as primeiras imagens demoravam mais de 0,4 s (rede de
   verdade), fechar o aviso "Baixando as primeiras imagens…" era lido como "Cancelar" — só as séries que já estavam

@@ -44,8 +44,8 @@ export function tabelasDeCores(): { chave: string; nome: string }[] {
 }
 
 /** Cor e transparência da fusão como no Ipê: some o que está abaixo de 8% do topo da janela. */
-export function propriedadesDaFusao(cor: string, opacidade: number, suvMax: number): Types.ViewportProperties {
-  const lo = 0.08 * suvMax;
+export function propriedadesDaFusao(cor: string, opacidade: number, suvMax: number, suvMin = 0): Types.ViewportProperties {
+  const lo = suvMin + 0.08 * (suvMax - suvMin);
   return {
     colormap: {
       name: `ipe-${cor}`,
@@ -55,7 +55,7 @@ export function propriedadesDaFusao(cor: string, opacidade: number, suvMax: numb
       opacityMapping: [{ value: 0, opacity: 0 }, { value: lo * 0.98, opacity: 0 }, { value: lo, opacity: 1 },
         { value: suvMax, opacity: 1 }],
     },
-    voiRange: { lower: 0, upper: suvMax },
+    voiRange: { lower: suvMin, upper: suvMax },
   } as Types.ViewportProperties;
 }
 
