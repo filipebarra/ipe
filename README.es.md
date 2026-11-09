@@ -66,7 +66,7 @@ y existe gracias a bibliotecas abiertas de DICOM, cálculo e IA.
   números del Ipê grabadas en la base del servidor, ecografía calibrada, PET/TC con SUV, fusión,
   SUV máximo cerca del cursor y SEG como máscaras; arrastrar series a los cuadros; carga rápida en
   HTJ2K sin pérdida, progresiva y con caché del navegador, con el porcentaje disponible y el botón
-  **Carga**. Próximas fases: mamografía en dos monitores, dinámica de mama e informe.
+  **Carga**. En la 0.99.98: **mamografía** en el protocolo del Ipê en una o **dos pantallas**, **dinámica de mama** (mapas calculados en el navegador, curvas tiempo-intensidad, mapas guardados como fusión) e **informe** en el navegador (plantillas, hallazgos de IA revisados, bloqueo de quién informa, firmar y rectificar).
 - **Placas, impresión e informe:** compositor de placas, impresoras del sistema y DICOM, el programa
   como impresora DICOM, informes con BI-RADS (PDF, DICOM PDF, SR), exportación a DICOM, JPG/PNG y
   un visor HTML completo.

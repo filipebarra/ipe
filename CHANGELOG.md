@@ -3,6 +3,19 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.99.98 — visualizador web: mamografia com uma e duas telas, dinâmica da mama e laudo
+- **Mamografia** no protocolo do Ipê: etapas (4 incidências, CC, MLO, atual × anterior…), a imagem de cada quadro e
+  o exame anterior pelas mesmas regras, mamas costas com costas (espelha quando precisa), a mama enquadrada sem o
+  ar, parede encostada na borda, mesmo zoom e mamilos na mesma altura; duplo clique amplia; tomossíntese do quadro.
+- **Duas telas**: uma segunda janela (no outro monitor, quando o navegador deixa) com a outra metade da etapa, sem
+  pedir a senha; as duas mudam de etapa juntas.
+- **Dinâmica da mama**: as fases achadas como no Ipê; mapa cinético, SER, MSI, PEI, realce inicial, subtração, TTP
+  e MIP/média temporais **calculados no navegador** com as contas do Ipê; um mapa (calculado ou já gravado pelo
+  Ipê) por cima da fase; **curvas tempo-intensidade** das ROIs com a classe, o SER e os descritores.
+- **Laudo no navegador**, no mesmo registro do Ipê: modelo sugerido com os campos automáticos, achados de IA
+  revisados no cursor, rascunho (com gravação automática), assinar e liberar, retificar, e a trava de quem está
+  laudando (só ler ou assumir; o servidor recusa gravar por quem não tem a trava).
+
 ## 0.99.97 — visualizador web: interface nova (estilo Weasis)
 - **Barra de ícones** e **cada botão do mouse com a sua função, como no Ipê**: clicar no ícone com o botão
   esquerdo, o do meio ou o direito dá a função àquele botão; a marca embaixo do ícone (à esquerda, no meio, à

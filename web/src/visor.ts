@@ -309,7 +309,7 @@ export interface Quadro {
   achado: string;
 }
 
-interface Spec {
+export interface Spec {
   serie: SerieCarregada | null; tipo: Tipo; plano: Plano; projecao: Projecao; espessura: number;
   sobre?: SerieCarregada | null; cor?: string; opacidade?: number; suvMax?: number;
 }

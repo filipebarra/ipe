@@ -141,7 +141,7 @@ usuário do Ipê. Por enquanto, para a rede interna.
   muda), chegam de forma progressiva e ficam no cache do navegador; cada miniatura mostra a
   porcentagem já disponível, e o botão **Carga** mostra a velocidade da rede e o tempo de
   decodificação.
-- Próximas fases: protocolo de mamografia em dois monitores, dinâmica de mama e laudo.
+- **Mamografia** no protocolo do Ipê em uma ou **duas telas** (segunda janela sincronizada), **dinâmica da mama** (mapa cinético, SER e outros mapas calculados no navegador, curvas tempo-intensidade, mapas salvos como fusão) e o **laudo** no navegador (modelos, achados de IA revisados, trava de quem está laudando, assinar e retificar) — 0.99.98.
 
 ### Filmes, impressão e laudo
 - Compositor de filmes; impressão em impressora comum, PDF e impressora DICOM.

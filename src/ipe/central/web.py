@@ -408,3 +408,313 @@ def tabelas_de_cores() -> dict:
             continue
         out[chave] = {"nome": nome, "pontos": [[float(x), *(float(v) / 255 for v in rgb)] for x, rgb in pontos]}
     return out
+
+
+# ------------------------------------------------------------------ mamografia (0.99.98, W4)
+class _Preferencias:
+    """As configurações do servidor com as preferências do usuário por cima (o protocolo dele vale)."""
+
+    def __init__(self, settings, prefs: dict | None):
+        self.settings, self.prefs = settings, prefs or {}
+
+    def get(self, chave, padrao=None):
+        if chave in self.prefs and self.prefs[chave] not in (None, "", []):
+            return self.prefs[chave]
+        return self.settings.get(chave, padrao) if self.settings is not None else padrao
+
+
+_ANALISE: dict[tuple, dict] = {}
+_ANALISE_TRAVA = threading.Lock()
+
+
+def analise_da_mama(caminho: str, quadro: int = 0) -> dict:
+    """Largura, altura, caixa da mama, lado da parede torácica e mamilo da imagem (as contas do Ipê em
+    imaging/mammo.py). Guardado por arquivo e data: a mesma imagem não é lida duas vezes."""
+    import numpy as np
+    import pydicom
+
+    from ipe.imaging import mammo as M
+    try:
+        chave = (caminho, Path(caminho).stat().st_mtime, quadro)
+    except OSError:
+        return {}
+    with _ANALISE_TRAVA:
+        if chave in _ANALISE:
+            return _ANALISE[chave]
+    out: dict = {}
+    try:
+        ds = pydicom.dcmread(caminho, force=True)
+        mono1 = str(ds.get("PhotometricInterpretation", "")).upper() == "MONOCHROME1"
+        n = int(ds.get("NumberOfFrames", 1) or 1)
+        if n > 1:
+            from pydicom.pixels import pixel_array
+            px = pixel_array(ds, index=min(max(0, quadro), n - 1))
+        else:
+            px = ds.pixel_array
+        px = np.asarray(px)
+        if px.ndim == 2:
+            h, w = px.shape
+            caixa = M.breast_bbox(px, mono1)
+            lado = M.chest_wall_side(-px if mono1 else px)
+            mam = M.mamilo(px, mono1, lado) if lado else None
+            out = {"largura": int(w), "altura": int(h), "caixa": list(caixa) if caixa else None,
+                   "parede": lado, "mamilo": [float(mam[0]), float(mam[1])] if mam else None}
+    except Exception as e:  # noqa: BLE001
+        log.debug("mamografia web: não li %s: %s", caminho, e)
+    with _ANALISE_TRAVA:
+        if len(_ANALISE) > 2000:
+            _ANALISE.clear()
+        _ANALISE[chave] = out
+    return out
+
+
+def _imagem_mg(im, analisar: bool = True) -> dict:
+    meio = im.frames // 2 if im.tomo else 0
+    d = {"study": im.study_uid, "series": im.series_uid, "sop": im.sop_uid, "quadros": int(im.frames or 1),
+         "tomo": bool(im.tomo), "inicio": meio, "serie": im.serie, "rotulo": im.rotulo}
+    if analisar:
+        d.update(analise_da_mama(im.path, meio))
+    return d
+
+
+def mamografia(repo, s, q: dict, pode_ver, settings, prefs: dict | None = None) -> dict:
+    """O protocolo de mamografia do exame resolvido para o navegador, com as mesmas regras do Ipê
+    (imaging/mammo.py): por etapa e por número de telas (1 e 2), o que cada tela mostra — a imagem de cada
+    quadro (do exame ou do anterior), para que lado vai a parede torácica, se espelha, a caixa da mama para o
+    enquadramento e o mamilo para o alinhamento. As contas de imagem ficam no servidor; o navegador só põe a
+    câmera."""
+    from ipe.imaging import mammo as M
+    if not s.can("view"):
+        raise PermissionError("sem permissão")
+    study = (q.get("study") or [""])[0]
+    if not study or not pode_ver(s, study):
+        raise PermissionError("exame não visível")
+    info = repo.study_info(study) or {}
+    cfg = _Preferencias(settings, prefs)
+    from ipe import modules as MOD
+    if not MOD.ligado(cfg, "mamografia"):
+        return {"protocolo": None, "motivo": "o módulo de mamografia está desligado"}
+    protos = [p for p in M.mg_protocols(cfg) if p.get("enabled", True)]
+    if "MG" not in (info.get("modalities") or "").upper():
+        return {"protocolo": None, "motivo": "o exame não é de mamografia"}
+    escolhido = (q.get("protocolo") or [""])[0]
+    proto = None
+    if escolhido.isdigit() and int(escolhido) < len(protos):
+        proto = protos[int(escolhido)]
+    if proto is None:
+        proto = M.find_mg_protocol(cfg, info.get("description", ""))
+    if proto is None:
+        return {"protocolo": None, "motivo": "nenhum protocolo de mamografia combina com o exame"}
+    imagens = {0: M.read_images(repo, study)}
+    if not any(im.side for im in imagens[0]):
+        return {"protocolo": None, "motivo": "sem imagens com o lado reconhecido"}
+    data = info.get("study_date", "") or ""
+    outros = [r for r in repo.other_studies_same_patient(study)
+              if "MG" in (r.modalities or "").upper() and r.study_date and r.study_date < data
+              and pode_ver(s, r.study_uid)]
+    outros.sort(key=lambda r: r.study_date, reverse=True)
+    anteriores = {n + 1: r for n, r in enumerate(outros[:3])}
+
+    def imgs(n: int):
+        if n not in imagens:
+            r = anteriores.get(n)
+            imagens[n] = M.read_images(repo, r.study_uid) if r else []
+        return imagens[n]
+
+    catalogo: dict[str, dict] = {}
+
+    def registrar(im) -> str:
+        if im.sop_uid not in catalogo:
+            catalogo[im.sop_uid] = _imagem_mg(im)
+        return im.sop_uid
+
+    passos = []
+    for st in M.passos_do_protocolo(proto):
+        por_telas = {}
+        for quantos in (1, 2):
+            quadros = [M.quadro_da_etapa(st, quantos, j) for j in range(quantos)]
+            telas = []
+            for indice, meu in enumerate(quadros):
+                deslocamento = sum(x["cols"] for x in quadros[:indice])
+                rows, cols = max(1, int(meu["rows"])), max(1, int(meu["cols"]))
+                celulas = list(meu["cells"])
+                usados: dict[int, set] = {}
+                saida = []
+                for k in range(rows * cols):
+                    code = celulas[k] if k < len(celulas) else ""
+                    cell = M.parse_code(code) if code else None
+                    if cell is None:
+                        saida.append({"codigo": code, "nota": "(quadro vazio no protocolo)" if not code
+                                      else f"{code}: código inválido"})
+                        continue
+                    lista = imgs(cell.prior)
+                    im = M.pick_image(lista, cell, usados.setdefault(cell.prior, set()))
+                    c: dict = {"codigo": cell.code, "rotulo": cell.label, "anterior": cell.prior}
+                    if cell.prior and cell.prior in anteriores:
+                        c["data"] = anteriores[cell.prior].study_date
+                    if im is None:
+                        c["nota"] = f"{cell.label}\nnão encontrada" + (
+                            "" if not cell.prior or cell.prior in anteriores else " (sem exame anterior)")
+                        saida.append(c)
+                        continue
+                    usados[cell.prior].add(im.sop_uid)
+                    c["sop"] = registrar(im)
+                    # a outra forma da mesma incidência: a tomossíntese de uma 2D, ou a 2D de uma tomo
+                    alt = M.pick_image(lista, cell.with_tomo(not cell.tomo))
+                    if alt is not None and alt.tomo != im.tomo:
+                        c["alt"] = registrar(alt)
+                    if cols >= 2:
+                        col, quantas = k % cols, cols
+                        linha = celulas[(k // cols) * cols:(k // cols + 1) * cols]
+                    else:
+                        col, quantas = deslocamento % 2, 2
+                        linha = list(st.get("cells") or [])
+                    c["quer"] = M.parede_desejada(cell.side, col, quantas, M.lados_das_celulas(linha))
+                    saida.append(c)
+                telas.append({"rows": rows, "cols": cols, "celulas": saida})
+            por_telas[str(quantos)] = telas
+        passos.append({"nome": M.step_title(st), "enquadre": M.enquadre_da_etapa(st), "telas": por_telas})
+    return {
+        "protocolo": proto.get("name", ""), "protocolos": [p.get("name", "") for p in protos],
+        "indice": protos.index(proto) if proto in protos else 0,
+        "espelhar": bool(proto.get("chest_to_center", True)), "encostar": bool(proto.get("align_chest", True)),
+        "zoom_junto": bool(proto.get("sync_zoom", True)), "alinhar": M.alinhamento_do_protocolo(proto),
+        "margem": M.MARGEM_MAMA, "passos": passos, "imagens": catalogo,
+        "anteriores": [{"n": n, "study": r.study_uid, "data": r.study_date} for n, r in anteriores.items()],
+    }
+
+
+# ------------------------------------------------------------------ dinâmica da mama (0.99.98, W5)
+def dinamica(repo, s, q: dict, pode_ver, settings, prefs: dict | None = None) -> dict:
+    """As fases da dinâmica do exame (a mesma detecção da janela do Ipê), com os tempos, as fases pré/inicial/
+    tardia de fábrica e os parâmetros dele; e os mapas que o Ipê já gravou como séries ("SER (dinâmica)"…).
+    Os mapas e as curvas são calculados no navegador, com as fórmulas de imaging/dynamic.py."""
+    from ipe.imaging import phases as PH
+    from ipe.imaging.dynamic import CLASSES, MAPS, DynamicSet, split_single_series
+    from ipe.imaging.series import build_frames
+    from ipe.ui.viewer import dinamica_config as DC
+    if not s.can("view"):
+        raise PermissionError("sem permissão")
+    study = (q.get("study") or [""])[0]
+    if not study or not pode_ver(s, study):
+        raise PermissionError("exame não visível")
+    from ipe import modules as MOD
+    if not MOD.ligado(_Preferencias(settings, prefs), "rm_tc"):
+        return {"fases": [], "mapas_salvos": [], "classes": CLASSES, "mapas": {},
+                "motivo": "o módulo RM/TC avançado está desligado"}
+    series = repo.series_for_study(study)
+    nomes = {v[0]: k for k, v in MAPS.items()}
+    salvos = []
+    for r in series:
+        d = (r.description or "").strip()
+        if d.endswith(" (dinâmica)") and d[: -len(" (dinâmica)")] in nomes:
+            chave = nomes[d[: -len(" (dinâmica)")]]
+            salvos.append({"series": r.series_uid, "descricao": d, "chave": chave, "cores": MAPS[chave][4]})
+    quadros = {}
+    cands = []
+    for r in series:
+        if r.modality != "MR" or (r.description or "").strip().endswith(" (dinâmica)"):
+            continue
+        fr = build_frames(repo.instances_for_series(r.series_uid), r.series_uid)
+        quadros[r.series_uid] = fr
+        cands.append((r.series_uid, fr, r.series_number or 0, r.modality, r.description or ""))
+    grupos = PH.detect(cands)
+    escolha = max(grupos, key=len) if grupos else []
+    fases, rotulos = [], []
+    numero = {r.series_uid: r.series_number for r in series}
+    if len(escolha) >= 2:
+        for uid in escolha:
+            fases.append(quadros[uid])
+            rotulos.append(f"Se {numero.get(uid, '')}")
+    else:
+        for uid, fr, *_ in cands:
+            ph = split_single_series(fr)
+            if ph and len(ph) > len(fases):
+                fases = ph
+                rotulos = [f"Fase {i + 1} (Se {numero.get(uid, '')})" for i in range(len(ph))]
+    base = {"fases": [], "mapas_salvos": salvos, "classes": CLASSES,
+            "mapas": {k: {"nome": v[0], "descricao": v[1], "unidade": v[2], "cores": v[4]} for k, v in MAPS.items()}}
+    if len(fases) < 3:
+        return {**base, "motivo": "não achei as fases da dinâmica (são precisas a pré e duas pós-contraste)"}
+    dset = DynamicSet(fases, rotulos)
+    motivo = dset.check()
+    if motivo:
+        return {**base, "motivo": motivo}
+    par = DC.parametros_iniciais(_Preferencias(settings, prefs))
+    pre = int(par.get("pre", 0) or 0)
+    pre = pre if 0 <= pre < len(dset.phases) - 2 else 0
+    return {**base, "motivo": "",
+            "fases": [{"rotulo": lab, "tempo": float(t),
+                       "quadros": [{"series": f.series_uid, "sop": f.sop_uid, "quadro": f.frame_index + 1} for f in ph]}
+                      for ph, lab, t in zip(dset.phases, dset.labels, dset.times)],
+            "com_horario": bool(dset.timed), "pre": pre, "inicial": dset.default_early(pre),
+            "tardia": len(dset.phases) - 1,
+            "parametros": {k: par.get(k) for k in ("threshold_pct", "threshold_all", "noise_pct", "rapido_pct",
+                                                  "tardio_pct", "sinal_min_pct", "relative")}}
+
+
+# ------------------------------------------------------------------ laudo no navegador (0.99.98, W6)
+def texto_dos_achados(repo, study: str) -> str:
+    """Os achados de IA **revisados** (confirmados ou corrigidos) do exame, com a frase de cada ferramenta — o
+    mesmo texto do botão "Mandar ao laudo" do painel de achados do Ipê. O sugerido não vai."""
+    from ipe.ai import achados as AC
+    from ipe.ai import ferramentas as FE
+    por: dict[str, list] = {}
+    for a in repo.achados(study):
+        por.setdefault(a.get("ferramenta", ""), []).append(a)
+    partes = []
+    for ferr, lista in por.items():
+        try:
+            mod = FE.modulo(ferr)
+        except Exception:  # noqa: BLE001
+            mod = None
+        fr = getattr(mod, "frase", None)
+        proprio = getattr(mod, "laudo", None)
+        try:
+            txt = proprio(lista) if callable(proprio) else AC.texto_do_laudo(lista, fr)
+        except Exception:  # noqa: BLE001
+            txt = AC.texto_do_laudo(lista)
+        if txt:
+            partes.append(txt)
+    return "\n".join(partes)
+
+
+def laudo(repo, s, q: dict, pode_ver, leituras) -> dict:
+    """O que a janela do laudo do navegador precisa: os laudos do exame (versões), os modelos que ele vê, o
+    sugerido para o exame, os campos automáticos ({paciente}, {comparacao}, {medidas}…), o texto dos achados de
+    IA revisados e quem está laudando. Gravar, assinar e a trava vão pelo /api/rpc, com as regras de sempre."""
+    from ipe.auth.visibilidade import com_visao
+    from ipe.reporting import fill as F
+    from ipe.reporting.templates import PLACEHOLDERS, best_template
+    if not s.can("view"):
+        raise PermissionError("sem permissão")
+    study = (q.get("study") or [""])[0]
+    if not study or not pode_ver(s, study):
+        raise PermissionError("exame não visível")
+    info = repo.study_info(study) or {}
+    with com_visao(s):
+        modelos = repo.report_templates()
+    sug = best_template(modelos, info.get("modalities", ""), info.get("description", ""))
+    try:
+        ctx = F.build_context(repo, study)
+    except Exception as e:  # noqa: BLE001
+        log.warning("laudo web: campos automáticos: %s", e)
+        ctx = {}
+    try:
+        ia = texto_dos_achados(repo, study)
+    except Exception as e:  # noqa: BLE001
+        log.warning("laudo web: achados: %s", e)
+        ia = ""
+    trava = leituras.quem(study) if leituras is not None else None
+    return {
+        "laudos": repo.reports(study),
+        "modelos": [{k: m.get(k) for k in ("id", "name", "modalities", "keywords", "text")} for m in modelos],
+        "sugerido": sug.get("id") if sug else "",
+        "contexto": {k: str(v) for k, v in ctx.items()},
+        "campos": PLACEHOLDERS,
+        "ia": ia,
+        "trava": None if not trava else {"usuario": trava["usuario"], "nome": trava["nome"],
+                                         "desde": time.strftime("%H:%M", time.localtime(trava["desde"]))},
+        "pode": {"escrever": s.can("report"), "assinar": s.can("sign_report")},
+        "eu": {"usuario": s.username, "nome": s.full_name or s.username},
+    }

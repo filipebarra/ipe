@@ -1045,7 +1045,32 @@ Nesta primeira fase:
 - **SUV máximo perto do cursor**: escolha o ícone (com o botão do mouse que vai usar) e clique perto da lesão num quadro de volume do PET (a fusão, A, C ou S): o programa acha o voxel mais quente numa esfera de 3 cm e leva os cortes até ele; o valor aparece no canto.
 - **Segmentação (SEG)**: as segmentações gravadas no exame (a carga tumoral, os órgãos e as lesões da IA do Ipê) aparecem como máscaras coloridas nos quadros de volume, com as cores do Ipê.
 
-As próximas fases trazem a mamografia com o protocolo e dois monitores, a dinâmica da mama e o laudo. Por enquanto é só na rede da clínica; de fora, entre pela VPN.
+**Mamografia com uma e duas telas (0.99.98).**
+
+- O exame de mamografia **abre no protocolo do Ipê** (o seu, de Configurações ▸ Mamografia, ou o de fábrica): a barra **Mamografia** em cima das imagens diz o protocolo e a etapa (**4 incidências**, CC, MLO, atual × anterior…). As setas passam de etapa; clicar no nome da etapa abre a lista. O protocolo também se troca ali.
+- **As mesmas regras do Ipê**: a imagem de cada quadro (a de apresentação, a mais recente), o **exame anterior** do paciente nos quadros "ant" (com a data no canto), as mamas **costas com costas** (espelha quando a parede torácica veio do outro lado), a **mama enquadrada** (o ar fica de fora), a parede encostada na borda, o mesmo zoom nas duas e os **mamilos na mesma altura**.
+- **Duplo clique** amplia o quadro; outro duplo clique volta. **Tomossíntese do quadro** (barra) troca a 2D pela tomossíntese da mesma incidência, com os cortes na roda do mouse.
+- **Duas telas**: abre uma segunda janela do navegador com a outra metade da etapa — as CC numa tela, as MLO na outra, por exemplo, como o Ipê reparte. A segunda janela entra sem pedir a senha (recebe a sessão da primeira), e as duas mudam de etapa juntas. No Chrome e no Edge com a permissão de "gerenciamento de janelas", ela já abre no outro monitor; sem a permissão, arraste-a até lá. Fechar a segunda volta a uma tela. Se o navegador bloquear a janela, permita janelas do endereço do servidor.
+- **Sair do modo mamografia** (barra) volta ao visualizador comum. A leitura no navegador depende do monitor: para laudar, use o monitor calibrado (DICOM GSDF).
+
+**Dinâmica da mama (0.99.98).**
+
+- **Dinâmica da mama** (barra, nos exames de RM): o servidor acha as fases como o Ipê (as séries da dinâmica, ou uma série com todas as fases) e o navegador monta quatro quadros — a **fase inicial**, o **mapa cinético**, o **SER** e a **subtração** — que andam juntos pelos cortes. Cada quadro pode mostrar outro mapa: MSI, PEI, realce inicial, tempo até o pico, MIP e média temporais.
+- **Os mapas são calculados no navegador, corte a corte, com as contas do Ipê** (os mesmos limiares, o mesmo ruído e a mesma máscara de tecido; conferidos pixel a pixel nos testes). As fases pré, inicial e tardia se trocam na barra.
+- **Sobre a fase**: um mapa calculado ou um mapa que o Ipê **já gravou como série** ("SER (dinâmica)", "Cinética (dinâmica)"…) vai por cima da fase inicial, com a tabela de cores do Ipê e a opacidade da barra; o que não tem valor fica transparente.
+- **Curvas tempo-intensidade**: desenhe uma ROI (elipse, retângulo ou polígono) em qualquer quadro; embaixo aparece a curva e a tabela com a **classe** (médio/rápido × persistente/platô/washout), o realce inicial, o SER, o pico, o TTP, o BAT, a lavagem, o iAUC90 e o MRT — os números do Ipê.
+- Ficam só no Ipê, por enquanto: correção de movimento, fases fora da conta e a linha de base pela média das fases pré.
+
+**Laudo no navegador (0.99.98).**
+
+- **Laudo** (barra) abre o laudo ao lado das imagens, no mesmo registro de laudo do Ipê: o que se escreve num aparece no outro.
+- Sem laudo, ele começa pelo **modelo sugerido** para o exame, com os **campos automáticos** preenchidos como no Ipê (paciente, idade, data, comparação, medidas, lesões…). **Aplicar modelo** troca o texto pelo de outro modelo.
+- **Inserir achados de IA** põe no cursor os achados da IA **confirmados ou corrigidos** (o sugerido não entra), com a frase de cada ferramenta.
+- **Salvar rascunho** (e ele também salva sozinho alguns segundos depois de parar de digitar). **Assinar e liberar** pede a confirmação na própria janela; assinado, o laudo não muda mais — **Retificar** cria um rascunho novo com o texto, e o anterior fica guardado.
+- **Quem está laudando**: abrir o laudo trava o exame para você. Se outro médico abrir, vê o aviso e escolhe **Só ler** ou **Assumir o laudo** (fica no registro de acesso); o servidor recusa gravar ou assinar por quem não tem a trava. Fechar o laudo (ou sair do exame) solta a trava. Quem não tem permissão de escrever laudos só lê.
+- No navegador ainda não há o formulário BI-RADS, o PDF/SR gravado no exame nem a busca ativa: esses ficam no Ipê.
+
+Por enquanto é só na rede da clínica; de fora, entre pela VPN.
 
 ### HTTPS na rede interna (certificado do Ipê)
 

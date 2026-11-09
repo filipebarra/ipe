@@ -151,3 +151,65 @@ export async function descomprimir(b64: string): Promise<Uint8Array> {
   const fluxo = new Blob([bin]).stream().pipeThrough(new DecompressionStream("deflate"));
   return new Uint8Array(await new Response(fluxo).arrayBuffer());
 }
+
+// ------------------------------------------------------------------ mamografia (0.99.98, W4)
+/** A segunda tela da mamografia recebe o token da primeira (a janela que a abriu), sem pedir a senha. */
+export function usarToken(t: string): void {
+  token = t;
+}
+
+export interface ImagemMg {
+  study: string; series: string; sop: string; quadros: number; tomo: boolean; inicio: number;
+  serie: string; rotulo: string;
+  largura?: number; altura?: number; caixa?: number[] | null; parede?: string; mamilo?: number[] | null;
+}
+
+export interface CelulaMg {
+  codigo: string; rotulo?: string; anterior?: number; data?: string; nota?: string;
+  sop?: string; alt?: string; quer?: "left" | "right" | null;
+}
+
+export interface TelaMg { rows: number; cols: number; celulas: CelulaMg[] }
+
+export interface Mamografia {
+  protocolo: string | null; motivo?: string; protocolos: string[]; indice: number;
+  espelhar: boolean; encostar: boolean; zoom_junto: boolean; alinhar: string; margem: number;
+  passos: { nome: string; enquadre: string; telas: Record<string, TelaMg[]> }[];
+  imagens: Record<string, ImagemMg>;
+  anteriores: { n: number; study: string; data: string }[];
+}
+
+/** O protocolo de mamografia do exame, resolvido no servidor com as regras do Ipê; `null` quando não se aplica. */
+export async function mamografia(study: string, protocolo?: number): Promise<Mamografia | null> {
+  const extra = protocolo === undefined ? "" : `&protocolo=${protocolo}`;
+  const r = await pedir(`${location.origin}/api/web/mamografia?study=${encodeURIComponent(study)}${extra}`);
+  if (!r.ok) return null;
+  const d = (await r.json()) as Mamografia;
+  return d.protocolo ? d : null;
+}
+
+// ------------------------------------------------------------------ RPC do servidor central (0.99.98, W6: laudo)
+function decodificar(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(decodificar);
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    if ("__dt__" in o) return o.__dt__;
+    if ("__d__" in o) return o.__d__;
+    if ("__t__" in o) return decodificar(o.__t__);
+    if ("__s__" in o) return decodificar(o.__s__);
+    if ("__dc__" in o) return decodificar(o.f);
+    return Object.fromEntries(Object.entries(o).map(([k, x]) => [k, decodificar(x)]));
+  }
+  return v;
+}
+
+/** Chama um método do banco no servidor, com as mesmas regras (permissão, banco pessoal, trava do laudo) do
+ * programa do consultório ligado ao servidor. O erro vem com o texto do servidor. */
+export async function rpc<T = unknown>(method: string, args: unknown[] = [], kwargs: Record<string, unknown> = {}): Promise<T> {
+  const r = await pedir(`${location.origin}/api/rpc`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ method, args, kwargs }),
+  });
+  const d = (await r.json().catch(() => ({}))) as { result?: unknown; error?: string };
+  if (!r.ok) throw new Error(d.error || String(r.status));
+  return decodificar(d.result) as T;
+}

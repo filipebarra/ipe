@@ -144,7 +144,7 @@ with the Ipê user. It is meant for the internal network for now.
   archive is not changed), load progressively and are kept in the browser cache; each thumbnail
   shows the percentage already available, and the **Loading** button shows network speed and
   decoding time.
-- Coming next: mammography hanging protocol across two monitors, breast dynamics and reporting.
+- **Mammography** in the Ipê hanging protocol on one or **two screens** (second window synced), **breast dynamic study** (kinetic map, SER and other maps computed in the browser, time-intensity curves, saved maps as fusion) and the **report** in the browser (templates, reviewed AI findings, "who is reporting" lock, sign and amend) — 0.99.98.
 
 ### Films, printing and reporting
 - Film composer; printing to an ordinary printer, PDF and DICOM printer.

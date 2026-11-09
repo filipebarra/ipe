@@ -8410,5 +8410,13 @@
  "série sem arquivos": "serie sin archivos",
  "Vary": "Vary",
  "cache de envio": "caché de envío",
- "private, no-cache": "private, no-cache"
+ "private, no-cache": "private, no-cache",
+ "nenhum protocolo de mamografia combina com o exame": "ningún protocolo de mamografía coincide con el examen",
+ "não achei as fases da dinâmica (são precisas a pré e duas pós-contraste)": "no encontré las fases de la dinámica (se necesitan la precontraste y dos poscontraste)",
+ "o exame não é de mamografia": "el examen no es una mamografía",
+ "o módulo RM/TC avançado está desligado": "el módulo RM/TC avanzado está desactivado",
+ "o módulo de mamografia está desligado": "el módulo de mamografía está desactivado",
+ "sem imagens com o lado reconhecido": "sin imágenes con el lado reconocido",
+ "Fase {} (Se {})": "Fase {} (Se {})",
+ "Se {}": "Se {}"
 }

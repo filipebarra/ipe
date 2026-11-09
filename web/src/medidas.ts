@@ -630,3 +630,20 @@ export function aoMudarMedidas(fn: () => void): () => void {
 
 (window as unknown as Record<string, unknown>).__ipeMed = { estatRoi, compMm, anguloGraus, cobbGraus, espacamentoUS, regioesUS, linhas, DB,
   selecionadas: () => csTools.annotation.selection.getAnnotationsSelected() };
+
+/** W5 (0.99.98): as ROIs desenhadas (elipse, retângulo, polígono), com os pontos no espaço da imagem — também nas
+ * imagens que não são do banco (os mapas da dinâmica). Para as curvas tempo-intensidade. */
+export function roisDaTela(): { uid: string; kind: string; imageId: string; pts: P2[] }[] {
+  const out: { uid: string; kind: string; imageId: string; pts: P2[] }[] = [];
+  for (const a of anotacoes()) {
+    const kind = TIPO[a.metadata.toolName];
+    if (kind !== "ellipse" && kind !== "rect" && kind !== "polygon") continue;
+    const md = a.metadata as { referencedImageId?: string; volumeId?: string };
+    if (!md.referencedImageId || md.volumeId) continue;
+    try {
+      out.push({ uid: a.annotationUID!, kind, imageId: md.referencedImageId,
+        pts: pontosIpe(kind, paraImagem(md.referencedImageId, pontosDaAnotacao(a, kind))) });
+    } catch { /* a imagem ainda não chegou */ }
+  }
+  return out;
+}

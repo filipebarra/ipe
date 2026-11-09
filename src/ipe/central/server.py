@@ -512,6 +512,26 @@ class _Handler(BaseHTTPRequestHandler):
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, r, raw=True)
+        if path in ("/api/web/mamografia", "/api/web/dinamica") and method == "GET":   # 0.99.98 (W4, W5)
+            from ipe.central import web as WEB
+            prefs = c.repo.user_prefs(s.user_id) if s.user_id else {}
+            fn = WEB.mamografia if path.endswith("mamografia") else WEB.dinamica
+            try:
+                r = fn(c.repo, s, parse_qs(parts.query), c.pode_ver, c.settings, prefs)
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            return self._json(200, r, raw=True)
+        if path == "/api/web/laudo" and method == "GET":                  # 0.99.98 (W6): laudo no navegador
+            from ipe.central import web as WEB
+            try:
+                r = WEB.laudo(c.repo, s, parse_qs(parts.query), c.pode_ver, c.leituras)
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            return self._json(200, r, raw=True)
         if path == "/api/web/abriu" and method == "POST":
             data = json.loads(self._body() or b"{}")
             uid = str(data.get("study_uid", ""))

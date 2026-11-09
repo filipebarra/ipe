@@ -150,6 +150,10 @@ def test_login_lista_exame_e_quadros(servidor):
         pg.click("button:has-text('Buscar')")
         assert _esperar(lambda: pg.locator("table.lista tbody tr").count() == 1)
         pg.locator("table.lista tbody tr").first.dblclick()
+        # 0.99.98: a mamografia abre no protocolo; sair dele volta ao visualizador comum (a série no quadro 1)
+        pg.wait_for_selector(".barra-mg")
+        pg.click(".barra-mg button[aria-label='Sair do modo mamografia']")
+        assert _esperar(lambda: pg.locator(".barra-mg").count() == 0)
         assert _esperar(lambda: "J " in pg.locator(".quadro .canto.id").first.inner_text())
         info = json.loads(pg.evaluate("""() => { const im = window.__ipeGrade.viewport(0).getCornerstoneImage();
             return JSON.stringify({voi: im.voiLUTFunction, ts: im.transferSyntaxUID, max: im.maxPixelValue}); }"""))

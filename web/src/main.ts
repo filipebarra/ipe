@@ -14,6 +14,9 @@ import { META, partesDoImageId } from "./meta";
 import { COR_PADRAO, SUV_PADRAO, registrarCores } from "./pet";
 import { Cronometro } from "./carga";
 import { Disponiveis } from "./disponiveis";
+import { ModoMamografia, pedirToken } from "./mamografia";
+import { ModoDinamica, dinamicaDoExame, guardarTabelas } from "./dinamica";
+import { PainelLaudo } from "./laudo";
 import {
   Grade, TIPO_ARRASTO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
 } from "./visor";
@@ -24,6 +27,9 @@ let grade: Grade | null = null;
 let disp: Disponiveis | null = null;
 
 let cronometro: Cronometro | null = null;
+let mg: ModoMamografia | null = null;
+let din: ModoDinamica | null = null;
+let painelLaudo: PainelLaudo | null = null;
 
 function pararDisponiveis(): void {
   disp?.parar();
@@ -52,6 +58,12 @@ function tarja(): HTMLElement {
 // ------------------------------------------------------------------ login
 function telaLogin(msg = ""): void {
   pararDisponiveis();
+  mg?.encerrar();
+  mg = null;
+  din?.encerrar();
+  din = null;
+  void painelLaudo?.fechar();
+  painelLaudo = null;
   grade?.encerrar();
   grade = null;
   const u = el("input", { id: "usuario", autocomplete: "username", required: true }) as HTMLInputElement;
@@ -84,6 +96,19 @@ function telaLogin(msg = ""): void {
 
 API.quandoEncerrar(() => telaLogin(tr("Sessão encerrada: entre de novo.")));
 
+/** A segunda tela da mamografia recebeu o token: lê a configuração e abre o exame. */
+async function entrouNaSegunda(): Promise<void> {
+  try {
+    config = await API.configuracao();
+    setLang(config.lang);
+    await iniciar();
+    registrarCores(config);
+    rota();
+  } catch {
+    telaLogin();
+  }
+}
+
 function cabecalho(...extra: Node[]): HTMLElement {
   const quem = config?.usuario.full_name || config?.usuario.username || "";
   const b = el("button", { class: "sair", title: quem, onclick: async () => { await API.sair(); config = null; telaLogin(); } },
@@ -100,6 +125,12 @@ function dataBr(d: string): string {
 
 async function telaLista(): Promise<void> {
   pararDisponiveis();
+  mg?.encerrar();
+  mg = null;
+  din?.encerrar();
+  din = null;
+  void painelLaudo?.fechar();
+  painelLaudo = null;
   grade?.encerrar();
   grade = null;
   const busca = el("input", { placeholder: tr("Nome, ID ou acesso"), id: "busca" }) as HTMLInputElement;
@@ -178,6 +209,8 @@ const IC: Record<string, string> = {
   espessura: "M4 6h16M4 10h16M4 14h16M4 18h16",
   obliquo: "M4 20L20 4M8 4h12v12",
   girar: "M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5",
+  dinamica: "M3 20h18M4 17l4-8 3 4 4-9 5 13",
+  laudo: "M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7",
   petct: "M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0",
   seg: "M4 4h7v7H4zM13 13h7v7h-7zM11 7.5h5.5V13",
   cine: "M7 4l13 8-13 8z",
@@ -247,8 +280,14 @@ function seta(): SVGSVGElement {
   return s;
 }
 
-async function telaExame(study: string): Promise<void> {
+async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   pararDisponiveis();
+  mg?.encerrar();
+  mg = null;
+  din?.encerrar();
+  din = null;
+  void painelLaudo?.fechar();
+  painelLaudo = null;
   grade?.encerrar();
   fecharMenus();
   const todas = await API.qido(`/studies/${study}/series`);
@@ -351,12 +390,15 @@ async function telaExame(study: string): Promise<void> {
   const bObliquo = botaoIcone("Oblíquo", IC.obliquo);
   const bGirar = botaoIcone("Girar MIP", IC.girar, { "aria-pressed": "false" });
   const bPet = botaoIcone("PET/CT", IC.petct);
+  const bDin = botaoIcone("Dinâmica da mama", IC.dinamica, { "aria-pressed": "false" });
+  if (!todas.some((s) => API.texto(s, "00080060") === "MR")) bDin.disabled = true;
   const bSeg = botaoIcone("Segmentação (SEG)", IC.seg);
   bSeg.append(seta());
   if (!segs.length) bSeg.disabled = true;
   const bCine = botaoIcone("Cine", IC.cine, { "aria-pressed": "false" });
   const bCineMenu = el("button", { type: "button", class: "ic estreito", "aria-label": tr("Velocidade do cine"),
     title: tr("Velocidade do cine") }, seta());
+  const bLaudo = botaoIcone("Laudo", IC.laudo, { "aria-pressed": "false" });
   const bInverter = botaoIcone("Inverter", IC.inverter);
   const bRestaurar = botaoIcone("Restaurar", IC.restaurar);
   const bCarga = el("button", { type: "button", class: "link", "aria-pressed": "false",
@@ -368,8 +410,9 @@ async function telaExame(study: string): Promise<void> {
   const nav = el("nav", { class: "barra", "aria-label": tr("Ferramentas") },
     el("div", { class: "grupo" }, voltar), ferramentas, medicao,
     el("div", { class: "grupo" }, bLayout, bMpr, bEspessura, bObliquo, bGirar),
-    el("div", { class: "grupo" }, bPet, bSeg, bCine, bCineMenu),
-    el("div", { class: "grupo" }, bInverter, bRestaurar));
+    el("div", { class: "grupo" }, bPet, bDin, bSeg, bCine, bCineMenu),
+    el("div", { class: "grupo" }, bInverter, bRestaurar),
+    el("div", { class: "grupo" }, bLaudo));
 
   // ---------------------------------------------------------------- painéis
   const tira = el("aside", { class: "tira", "aria-label": tr("Séries") },
@@ -602,6 +645,65 @@ async function telaExame(study: string): Promise<void> {
   let opac = 0.5;
   let topo = SUV_PADRAO;
   let segEscolhida = "";
+  // 0.99.98 (W6): o laudo no navegador, ao lado das imagens
+  bLaudo.onclick = async () => {
+    if (painelLaudo) {
+      await painelLaudo.fechar();
+      return;
+    }
+    const p = new PainelLaudo(study, () => {
+      if (painelLaudo === p) painelLaudo = null;
+      bLaudo.setAttribute("aria-pressed", "false");
+      bLaudo.classList.remove("ligado");
+      requestAnimationFrame(() => grade?.redimensionar());
+    });
+    painelLaudo = p;
+    // o laudo ocupa o lugar do painel de ferramentas (que volta pelo trilho, se ele quiser)
+    if (!lateral.hidden) ajustarPaineis(!tira.hidden, false);
+    lateral.after(p.raiz);
+    bLaudo.setAttribute("aria-pressed", "true");
+    bLaudo.classList.add("ligado");
+    requestAnimationFrame(() => grade?.redimensionar());
+    await p.abrir();
+  };
+  // 0.99.98 (W5): dinâmica da mama — mapas calculados no navegador e curvas das ROIs
+  const fecharDin = () => {
+    din?.encerrar();
+    din = null;
+    bDin.setAttribute("aria-pressed", "false");
+    bDin.classList.remove("ligado");
+  };
+  bDin.onclick = async () => {
+    if (din) {
+      fecharDin();
+      montar(...inicial);
+      return;
+    }
+    mg?.encerrar();
+    mg = null;
+    aviso.textContent = tr("Procurando as fases da dinâmica…");
+    const dd = await dinamicaDoExame(study).catch(() => null);
+    if (!dd || dd.motivo) {
+      aviso.textContent = dd?.motivo ? `${tr("Dinâmica:")} ${tr(dd.motivo)}` : tr("Não foi possível falar com o servidor.");
+      return;
+    }
+    guardarTabelas(config?.tabelas_cores);
+    const modo = new ModoDinamica(g, dd, { study, aviso: (m) => { aviso.textContent = m; },
+      aoSair: () => { fecharDin(); montar(...inicial); } });
+    din = modo;
+    aviso.textContent = tr("Calculando os mapas…");
+    area.prepend(modo.barra);
+    area.append(modo.painel);
+    if (!(await modo.abrir())) {
+      fecharDin();
+      aviso.textContent = tr("Não consegui ler as fases da dinâmica.");
+      return;
+    }
+    aviso.textContent = "";
+    modo.ouvir(aoMudarMedidas(() => void modo.atualizarCurvas()));
+    bDin.setAttribute("aria-pressed", "true");
+    bDin.classList.add("ligado");
+  };
   bPet.onclick = async () => {
     const maior = (mod: string) => series.filter((x) => API.texto(x, "00080060") === mod)
       .sort((a, b) => Number(API.texto(b, "00201209") || 0) - Number(API.texto(a, "00201209") || 0))[0];
@@ -771,7 +873,7 @@ async function telaExame(study: string): Promise<void> {
     if (dentro) (corpoAba.querySelector("input, select") as HTMLElement | null)?.focus();
   }
   const pararMedidas = aoMudarMedidas(() => { if (abaAtual === "Medidas") atualizarAba(); });
-  g.aoMudar = () => { if (abaAtual !== "Medidas") atualizarAba(); };
+  g.aoMudar = () => { if (abaAtual !== "Medidas") atualizarAba(); mg?.quadroAtivo(); };
   const antesDeSair = grade.encerrar.bind(grade);
   grade.encerrar = () => { pararMedidas(); antesDeSair(); };
   const quandoRolar = () => { if (abaAtual === "DICOM") atualizarAba(); };
@@ -850,7 +952,19 @@ async function telaExame(study: string): Promise<void> {
     dir: validos(salvos.dir) ? salvos.dir : "zoom" });
   atualizarMarcas();
   const inicial: [number, number] = series.length >= 2 ? [1, 2] : [1, 1];
-  montar(...inicial);
+  // 0.99.98 (W4): exame de mamografia abre no protocolo do Ipê (uma ou duas telas)
+  const dadosMg = await API.mamografia(study).catch(() => null);
+  if (grade !== g) return;
+  if (dadosMg) {
+    const modo = new ModoMamografia(g, dadosMg, { study, tela, aviso: (m) => { aviso.textContent = m; },
+      aoSair: () => { mg = null; montar(...inicial); } });
+    mg = modo;
+    area.prepend(modo.barra);
+    void modo.aplicar();
+    if (tela === 2) modo.anunciar();
+  } else {
+    montar(...inicial);
+  }
   mostrarAba(abaAtual);
   // pré-carga: primeiro as séries que estão nos quadros, depois as outras, na ordem da tira
   void (async () => {
@@ -869,12 +983,20 @@ async function telaExame(study: string): Promise<void> {
 // ------------------------------------------------------------------ rotas
 function rota(): void {
   if (!API.tokenAtual()) {
+    // a segunda tela da mamografia: o token vem da janela que a abriu
+    if (/^#\/mg\/[0-9.]+\/2$/.test(location.hash) && window.opener) {
+      app.replaceChildren(el("div", { class: "estado" }, tr("Abrindo a segunda tela…")));
+      void pedirToken().then((ok) => { if (ok) void entrouNaSegunda(); else telaLogin(); });
+      return;
+    }
     telaLogin();
     return;
   }
   const h = location.hash || "#/lista";
   const m = h.match(/^#\/exame\/([0-9.]+)$/);
+  const m2 = h.match(/^#\/mg\/([0-9.]+)\/2$/);
   if (m) void telaExame(m[1]);
+  else if (m2) void telaExame(m2[1], 2);
   else void telaLista();
 }
 

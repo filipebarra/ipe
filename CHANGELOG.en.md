@@ -3,6 +3,20 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.98 — web viewer: mammography with one and two screens, breast dynamic study and report
+- **Mammography** in the Ipê protocol: steps (4 views, CC, MLO, current × prior…), the image of each viewport and
+  the prior exam by the same rules, breasts back to back (mirrored when needed), the breast framed without the air,
+  chest wall against the edge, same zoom and nipples at the same height; double-click enlarges; tomosynthesis per
+  viewport.
+- **Two screens**: a second window (on the other monitor when the browser allows) with the other half of the step,
+  without asking for the password; both change step together.
+- **Breast dynamic study**: phases found as in Ipê; kinetic map, SER, MSI, PEI, initial enhancement, subtraction,
+  TTP and temporal MIP/mean **computed in the browser** with Ipê's formulas; a map (computed or already saved by
+  Ipê) over the phase; **time-intensity curves** of the ROIs with the class, SER and descriptors.
+- **Report in the browser**, in the same record as Ipê: suggested template with automatic fields, reviewed AI
+  findings at the cursor, draft (with autosave), sign and release, amend, and the "who is reporting" lock (read only
+  or take over; the server refuses saving by whoever does not hold the lock).
+
 ## 0.99.97 — web viewer: new interface (Weasis style)
 - **Icon toolbar** and **each mouse button with its own function, as in Ipê**: clicking an icon with the left,
   middle or right button gives the function to that button; the mark under the icon (left, middle, right) shows
