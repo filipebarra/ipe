@@ -8433,5 +8433,22 @@
  "Na fila para baixar ({}ª). Ponha num quadro para baixar primeiro.": "En la cola de descarga ({}ª). Póngala en un cuadro para descargarla primero.",
  "{} de {} imagens no computador.": "{} de {} imágenes en el equipo.",
  "{} {}\n{}\n{}/{} im{}": "{} {}\n{}\n{}/{} im{}",
- "⬇ {}/{}": "⬇ {}/{}"
+ "⬇ {}/{}": "⬇ {}/{}",
+ " · erros: ": " · errores: ",
+ "relato do download": "informe de la descarga",
+ "Ipê {} {} · {} imagem(ns) em {} s · HTJ2K {} · faltam {}": "Ipê {} {} · {} imagen(es) en {} s · HTJ2K {} · faltan {}",
+ "Ipê {} · {} {} · Python {}": "Ipê {} · {} {} · Python {}",
+ "O exame não baixou inteiro do servidor central: faltam {} imagem(ns). {}": "El examen no se descargó completo del servidor central: faltan {} imagen(es). {}",
+ "Se {}: {}/{}": "Se {}: {}/{}",
+ "conferir: {}: {}": "verificar: {}: {}",
+ "importar: {}: {}": "importar: {}: {}",
+ "série {}: {}: {}": "serie {}: {}: {}",
+ "sem conexão": "sin conexión",
+ "ótima": "excelente",
+ "ruim": "mala",
+ "regular": "regular",
+ "medindo…": "midiendo…",
+ "rede…": "red…",
+ " · {} Mbit/s": " · {} Mbit/s",
+ "Rede até o servidor central: {}\n{}\nIda e volta (ms): quanto o servidor leva para responder. Vazão (Mbit/s): quanto chega por segundo.\nClique para medir de novo.": "Red hasta el servidor central: {}\n{}\nIda y vuelta (ms): cuánto tarda el servidor en responder. Caudal (Mbit/s): cuánto llega por segundo.\nHaga clic para medir de nuevo."
 }

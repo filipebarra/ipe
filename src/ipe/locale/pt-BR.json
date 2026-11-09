@@ -6281,7 +6281,15 @@
   "cópias de envio dos exames recentes",
   "cópias de envio: exames recentes",
   "importar no cache",
-  "priorizar a série"
+  "priorizar a série",
+  " · erros: ",
+  "relato do download",
+  "sem conexão",
+  "ótima",
+  "ruim",
+  "regular",
+  "medindo…",
+  "rede…"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7939,6 +7947,15 @@
   "Na fila para baixar ({}ª). Ponha num quadro para baixar primeiro.",
   "{} de {} imagens no computador.",
   "{} {}\n{}\n{}/{} im{}",
-  "⬇ {}/{}"
+  "⬇ {}/{}",
+  "Ipê {} {} · {} imagem(ns) em {} s · HTJ2K {} · faltam {}",
+  "Ipê {} · {} {} · Python {}",
+  "O exame não baixou inteiro do servidor central: faltam {} imagem(ns). {}",
+  "Se {}: {}/{}",
+  "conferir: {}: {}",
+  "importar: {}: {}",
+  "série {}: {}: {}",
+  " · {} Mbit/s",
+  "Rede até o servidor central: {}\n{}\nIda e volta (ms): quanto o servidor leva para responder. Vazão (Mbit/s): quanto chega por segundo.\nClique para medir de novo."
  ]
 }

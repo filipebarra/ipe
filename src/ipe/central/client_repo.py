@@ -46,6 +46,9 @@ class ClientRepository:
         self._andamentos: dict[str, dict] = {}  # 0.100.0: study_uid -> andamento do download, série a série
         self.on_download_status = None       # callback(texto), andamento do download
         self.progressivo = True              # abre o exame antes de terminar de baixar
+        self.ultimo_download: dict = {}
+        self.on_abrir_exame = None           # 0.100.1: callback() — o sinal da rede mede a cada exame aberto
+        self.on_vazao = None                 # callback(Mbit/s) — a vazão medida no próprio download
 
     # ------------------------------------------------------------------ roteamento
     def __getattr__(self, name: str):
@@ -183,7 +186,8 @@ class ClientRepository:
         log.info("servidor central: baixando %s — %d imagem(ns) em %d série(s)%s", study_uid, total, len(faltam),
                  " (HTJ2K na rede)" if htj2k else "")
         estado = {"series": {s.series_uid: [int(local.get(s.series_uid, 0)), int(s.num_images or 0)] for s in remotas},
-                  "baixando": [], "fila": list(faltam)}
+                  "baixando": [], "fila": list(faltam), "erros": []}
+        self.ultimo_download = estado           # 0.100.1: o relato do download (o que falhou e por quê)
         self._andamentos[study_uid] = estado
         tmp = Path(tempfile.mkdtemp(prefix="dv_cache_"))
         recebidos = {"n": 0}
@@ -207,6 +211,7 @@ class ClientRepository:
                 except Exception as e:  # noqa: BLE001
                     log.exception("importar no cache")
                     erro_imp.append(e)
+                    estado["erros"].append(f"importar: {type(e).__name__}: {e}")
                 finally:
                     for f in arquivos:
                         try:
@@ -235,10 +240,23 @@ class ClientRepository:
                     progress(feito, total)
                 if n - ja["feitos"] >= self.LOTE_IMAGENS or time.monotonic() - ja["quando"] >= self.LOTE_SEGUNDOS:
                     lote = [pasta / f"{i:06d}.dcm" for i in range(ja["feitos"], n)]
+                    try:
+                        ja["bytes"] = ja.get("bytes", 0) + sum(f.stat().st_size for f in lote)
+                    except OSError:
+                        pass
                     ja["feitos"], ja["quando"] = n, time.monotonic()
                     fila_imp.put(lote)
 
+            t_ini = time.monotonic()
             files = self.client.retrieve(study_uid, pasta, se.series_uid, progress=chegou, htj2k=htj2k)
+            dt = time.monotonic() - t_ini
+            if self.on_vazao is not None and dt >= 0.5:
+                try:
+                    nbytes = sum(f.stat().st_size for f in files[ja["feitos"]:]) + ja.get("bytes", 0)
+                    if nbytes >= 4 << 20:                       # só séries grandes dão uma medida que presta
+                        self.on_vazao(nbytes * 8 / dt / 1e6 * max(1, len(estado["baixando"])))
+                except Exception:  # noqa: BLE001
+                    pass
             fila_imp.put([pasta / f"{i:06d}.dcm" for i in range(ja["feitos"], len(files))])
             return len(files)
 
@@ -252,8 +270,9 @@ class ClientRepository:
                     estado["baixando"].append(se.series_uid)
                 try:
                     n += baixar_serie(se)
-                except Exception:  # noqa: BLE001
+                except Exception as e:  # noqa: BLE001
                     log.exception("servidor central: série %s", se.series_uid)
+                    estado["erros"].append(f"série {getattr(se, 'series_number', '?')}: {type(e).__name__}: {e}")
                 finally:
                     with self._baixar_lock:
                         estado["baixando"].remove(se.series_uid)
@@ -300,6 +319,34 @@ class ClientRepository:
         self.evict(keep={study_uid})
         return count
 
+    def relato_do_download(self, study_uid: str, n: int, segundos: float, falha: str = "") -> dict:
+        """0.100.1: quantas imagens faltam no computador depois do download, e os erros de cada série."""
+        from ipe import __version__
+        est = getattr(self, "ultimo_download", None) or {}
+        erros = list(est.get("erros") or [])
+        if falha:
+            erros.insert(0, falha)
+        faltam, linhas = 0, []
+        try:
+            remotas = {s.series_uid: (getattr(s, "series_number", ""), int(s.num_images or 0))
+                       for s in self.client.rpc("series_for_study", study_uid) or []}
+            locais = {s.series_uid: int(s.num_images or 0) for s in self.local.series_for_study(study_uid)} \
+                if self.is_cached(study_uid) else {}
+            for u, (num, total) in remotas.items():
+                tem = locais.get(u, 0)
+                if tem < total:
+                    faltam += total - tem
+                    linhas.append(f"Se {num}: {tem}/{total}")
+        except Exception as e:  # noqa: BLE001
+            erros.append(f"conferir: {type(e).__name__}: {e}")
+        motivo = erros[0] if erros else ""
+        import platform
+        texto = (f"Ipê {__version__} {platform.system()} · {n} imagem(ns) em {segundos:.1f} s · "
+                 f"HTJ2K {'sim' if self.rede_htj2k() else 'não'} · faltam {faltam}"
+                 + (" (" + "; ".join(linhas[:8]) + ")" if linhas else "")
+                 + (" · erros: " + " | ".join(erros[:4]) if erros else ""))
+        return {"faltam": faltam, "motivo": motivo, "texto": texto, "erros": erros}
+
     def baixando(self, study_uid: str) -> bool:
         """0.99.85: o exame ainda está chegando do servidor em segundo plano?"""
         b = self._baixando.get(study_uid)
@@ -324,14 +371,29 @@ class ClientRepository:
                     avisar(f"Baixando do servidor central: {n} de {total} imagem(ns) ({pct}%)…")
 
             def trabalho():
+                import time
+                t0 = time.monotonic()
+                falha = ""
+                n = 0
                 try:
                     n = self.download(study_uid, progress=andamento, cancel=parar.is_set, primeiro_lote=primeiro)
-                    avisar(f"Exame baixado do servidor central ({n} imagem(ns)).")
                 except Exception as e:  # noqa: BLE001
                     log.exception("download do servidor central")
-                    avisar(f"Falha ao baixar do servidor central: {e}")
+                    falha = f"{type(e).__name__}: {e}"
                 finally:
                     primeiro.set()
+                # 0.100.1: o que ficou faltando é dito na tela e vai ao registro de acesso do servidor — de lá dá
+                # para ver, sem ir ao computador do cliente, o que cada download fez
+                relato = self.relato_do_download(study_uid, n, time.monotonic() - t0, falha)
+                if relato["faltam"] or falha:
+                    avisar(f"O exame não baixou inteiro do servidor central: faltam {relato['faltam']} imagem(ns). "
+                           f"{relato['motivo']}")
+                else:
+                    avisar(f"Exame baixado do servidor central ({n} imagem(ns)).")
+                try:
+                    self.client.rpc("audit", "cliente_download", relato["texto"][:900], study_uid=study_uid)
+                except Exception:  # noqa: BLE001
+                    log.debug("relato do download", exc_info=True)
 
             th = threading.Thread(target=trabalho, name="ipe-baixar", daemon=True)
             self._baixando[study_uid] = (th, primeiro, parar)
@@ -391,6 +453,11 @@ class ClientRepository:
             # sem janela (linha de comando, testes): baixa tudo antes de voltar, como sempre
             self.download(study_uid)
             return self.is_cached(study_uid)
+        if self.on_abrir_exame is not None:
+            try:
+                self.on_abrir_exame()
+            except Exception:  # noqa: BLE001
+                pass
         # 0.99.85: abre com as primeiras imagens e o resto continua chegando em segundo plano
         # (a aba acrescenta o que chega pela vigia de séries da janela principal)
         th, primeiro, parar = self.baixar_em_segundo_plano(study_uid)
@@ -405,6 +472,13 @@ class ClientRepository:
             while not primeiro.is_set() and not parar.is_set():
                 QApplication.processEvents()
                 primeiro.wait(0.03)
+            # 0.100.1: fechar o diálogo também dispara "canceled" (o Qt avisa no closeEvent) — e isso parava o
+            # download logo depois de o exame abrir: só as séries que já estavam chegando terminavam, em silêncio.
+            # Só o botão Cancelar para o download.
+            try:
+                dlg.canceled.disconnect(parar.set)
+            except (RuntimeError, TypeError):
+                pass
             dlg.close()
             QApplication.processEvents()
         if not self.is_cached(study_uid) and not parar.is_set():

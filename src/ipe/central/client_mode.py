@@ -50,4 +50,21 @@ def open_client_window(paths, settings, login=True):
     repo.on_upload_done = lambda msg: win.upload_message.emit(msg)
     repo.on_download_status = lambda msg: win.download_message.emit(msg)
     win.start_session(s)
+    # 0.100.1: o sinal da rede na barra de status — mede agora e a cada exame aberto
+    from ipe.ui.rede_sinal import SinalRede
+    sinal = SinalRede(client, win)
+    win.sinal_rede = sinal
+    win.statusBar().insertPermanentWidget(0, sinal)
+    repo.on_abrir_exame = lambda: sinal.medir(False)
+    repo.on_vazao = sinal.vazao_do_download
+    sinal.medir(True)
+    try:
+        # 0.100.1: a versão do cliente fica no registro de acesso do servidor
+        import platform
+
+        from ipe import __version__
+        client.rpc("audit", "cliente_entrou", f"Ipê {__version__} · {platform.system()} {platform.release()} · "
+                   f"Python {platform.python_version()}")
+    except Exception:  # noqa: BLE001
+        pass
     return win

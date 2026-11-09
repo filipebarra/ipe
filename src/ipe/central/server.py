@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import logging
 import secrets
 import shutil
@@ -381,6 +382,9 @@ class CentralServer:
             shutil.rmtree(tmp, ignore_errors=True)
 
 
+_RUIDO: bytes | None = None
+
+
 class _Handler(BaseHTTPRequestHandler):
     central: CentralServer = None          # definido na subclasse
     protocol_version = "HTTP/1.1"
@@ -457,6 +461,27 @@ class _Handler(BaseHTTPRequestHandler):
         c = self.central
         if path == "/api/ping":
             return self._json(200, {"ok": True, "app": APP_NAME, "version": __version__, "name": c.name}, raw=True)
+        if path == "/api/velocidade" and method == "GET":  # 0.100.1: o teste de rede do cliente (dados que não comprimem)
+            if self.central.session_for(self.headers, self.client_address[0]) is None:
+                return self._error(401, "login necessário")
+            try:
+                mb = max(0.1, min(8.0, float((parse_qs(parts.query).get("mb") or ["2"])[0])))
+            except ValueError:
+                mb = 2.0
+            global _RUIDO
+            if _RUIDO is None:
+                _RUIDO = os.urandom(1 << 20)
+            n = int(mb * (1 << 20))
+            self.send_response(200)
+            self.send_header("Content-Type", "application/octet-stream")
+            self.send_header("Content-Length", str(n))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            while n > 0:
+                b = _RUIDO[:min(n, len(_RUIDO))]
+                self.wfile.write(b)
+                n -= len(b)
+            return
         if path == "/api/ac" and method == "GET":         # 0.99.74: a AC interna, para o cliente confiar (público)
             from ipe.core.certificados import ac_ao_lado
             pem = ac_ao_lado(c.certfile)

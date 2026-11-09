@@ -34,6 +34,10 @@ def encode(obj):
         return [encode(v) for v in obj]
     if hasattr(obj, "item") and callable(obj.item):          # números numpy
         return obj.item()
+    tabela = getattr(obj, "__table__", None)
+    if tabela is not None:
+        # 0.100.1: registro do banco (os comentários do exame): vai como objeto simples, com as colunas
+        return {"__o__": {c.name: encode(getattr(obj, c.name, None)) for c in tabela.columns}}
     return obj
 
 
@@ -62,6 +66,9 @@ def decode(obj):
         return {decode(v) for v in obj["__s__"]}
     if "__m__" in obj:
         return {decode(k): decode(v) for k, v in obj["__m__"]}
+    if "__o__" in obj:
+        from types import SimpleNamespace
+        return SimpleNamespace(**{k: decode(v) for k, v in obj["__o__"].items()})
     return {k: decode(v) for k, v in obj.items()}
 
 

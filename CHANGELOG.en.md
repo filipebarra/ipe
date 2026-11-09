@@ -3,6 +3,18 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.1 — central server client: the download no longer stops when the exam opens
+- **The download stopped right after the exam opened**: when the first images took more than 0.4 s (a real
+  network), closing the "Downloading the first images…" notice was read as "Cancel" — only the series already
+  arriving finished, and the others stayed with one image. Now only the Cancel button stops the download.
+- **Network signal** in the client's status bar: bars (like a phone's), round trip in ms and throughput in Mbit/s
+  to the server. Measured when the program opens and on every exam opened (then only the round trip; throughput
+  comes from the download itself); click to measure again.
+- A failing series is no longer silent: the status bar says how many images are missing and why.
+- The client sends to the server's access log its version at login and, at the end of each download, how many
+  images arrived, how long it took, what is missing (per series) and the errors — it can be checked from the server.
+- Exam comments show again in the client (the server was answering with an error).
+
 ## 0.100.0 — central server client: how much of each series arrived, and less data on the network
 - The strip shows, for each series, how many images have arrived (*34/120 im*) with a bar, and ⬇ on the one
   arriving; the viewport shows **⬇ 34/120** until its series finishes; the status bar gains the percentage.

@@ -3,6 +3,18 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.1 — cliente do servidor central: o download não para mais ao abrir o exame
+- **O download parava logo depois de o exame abrir**: quando as primeiras imagens demoravam mais de 0,4 s (rede de
+  verdade), fechar o aviso "Baixando as primeiras imagens…" era lido como "Cancelar" — só as séries que já estavam
+  chegando terminavam, e as outras ficavam com uma imagem. Agora só o botão Cancelar para o download.
+- **Sinal da rede** na barra de status do cliente: barras (como as do celular), a ida e volta em ms e a vazão em
+  Mbit/s até o servidor. Mede ao abrir o programa e a cada exame aberto (aí só a ida e volta; a vazão passa a ser
+  a do próprio download); clique para medir de novo.
+- Série que falha não é mais silenciosa: a barra de status diz quantas imagens faltaram e por quê.
+- O cliente manda ao registro de acesso do servidor a versão dele ao entrar e, no fim de cada download, quantas
+  imagens vieram, em quanto tempo, o que faltou (por série) e os erros — dá para conferir pelo servidor.
+- Os comentários do exame voltaram a aparecer no cliente (o servidor respondia com erro).
+
 ## 0.100.0 — cliente do servidor central: quanto de cada série chegou, e menos dados na rede
 - A tira mostra, em cada série, quantas imagens já chegaram (*34/120 im*) com uma barra, e ⬇ na que está
   chegando; o quadro mostra **⬇ 34/120** até a série terminar; a barra de status ganha a porcentagem.

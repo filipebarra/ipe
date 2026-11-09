@@ -97,6 +97,40 @@ class RemoteClient:
         with self._open("/api/ping", timeout=5) as r:
             return json.loads(r.read())
 
+    def medir_rede(self, completo: bool = True) -> dict:
+        """0.100.1: o teste de rede do cliente. {"ping_ms": mediana de 3 idas e voltas, "mbps": vazão baixando
+        2 MB que não comprimem (só no teste completo; None se o servidor é antigo), "ok": bool}."""
+        import time
+        tempos = []
+        try:
+            for _ in range(3):
+                t = time.perf_counter()
+                with self._open("/api/ping", timeout=5) as r:
+                    r.read()
+                tempos.append((time.perf_counter() - t) * 1000)
+        except Exception:  # noqa: BLE001
+            return {"ok": False, "ping_ms": None, "mbps": None}
+        out = {"ok": True, "ping_ms": sorted(tempos)[len(tempos) // 2], "mbps": None}
+        if completo:
+            try:
+                t = time.perf_counter()
+                n = 0
+                with self._open("/api/velocidade?mb=2", timeout=20) as r:
+                    primeiro = None
+                    while True:
+                        b = r.read(1 << 16)
+                        if not b:
+                            break
+                        if primeiro is None:
+                            primeiro = time.perf_counter()     # a conta começa no primeiro byte (sem a ida)
+                        n += len(b)
+                dt = time.perf_counter() - (primeiro or t)
+                if n and dt > 0:
+                    out["mbps"] = n * 8 / dt / 1e6
+            except Exception:  # noqa: BLE001
+                pass
+        return out
+
     def login(self, username: str, password: str) -> dict:
         body = json.dumps({"username": username, "password": password}).encode("utf-8")
         self.token = ""

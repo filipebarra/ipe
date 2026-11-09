@@ -99,3 +99,32 @@ def test_enviar_htj2k_a_no_que_so_aceita_sem_compressao(tmp_path, sample_dir):
         assert np.array_equal(recebidos[0].pixel_array, pydicom.dcmread(fonte).pixel_array)
     finally:
         envio._pasta = None
+
+
+def test_relato_do_download_vai_ao_servidor_e_comentarios(central, tmp_path, monkeypatch):  # noqa: F811
+    """0.100.1: o que cada download fez (versão do cliente, quanto faltou e por quê) fica no registro de acesso
+    do servidor; e os comentários do exame passam pelo RPC (antes: "Comment is not JSON serializable")."""
+    import time
+    paths, db, repo, srv = central
+    uid = repo.find_study_uids(accession="ACC1001")[0]
+    cr, *_ = _cliente(srv, paths, tmp_path)
+    repo.add_comment("study", uid, "conferir com o anterior")
+    assert [c.text for c in cr.comments(uid)] == ["conferir com o anterior"]
+    # uma série falha no meio: o resto baixa, e o relato diz o que faltou
+    original = cr.client.retrieve
+
+    def falha(study_uid, dest, series_uid=None, progress=None, sop_uid=None, **kw):
+        if not sop_uid:
+            raise OSError("rede caiu")
+        return original(study_uid, dest, series_uid, progress=progress, sop_uid=sop_uid, **kw)
+    monkeypatch.setattr(cr.client, "retrieve", falha)
+    msgs = []
+    cr.on_download_status = msgs.append
+    th, primeiro, _parar = cr.baixar_em_segundo_plano(uid)
+    th.join(30)
+    assert any("não baixou inteiro" in m and "rede caiu" in m for m in msgs), msgs
+    fim = time.time() + 10
+    while time.time() < fim and not repo.access_log(limit=20, action="cliente_download", study_uid=uid):
+        time.sleep(0.1)
+    reg = repo.access_log(limit=20, action="cliente_download", study_uid=uid)[0]
+    assert "Ipê " in reg["detail"] and "faltam" in reg["detail"] and "rede caiu" in reg["detail"]

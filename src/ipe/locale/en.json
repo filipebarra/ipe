@@ -8433,5 +8433,22 @@
  "Na fila para baixar ({}ª). Ponha num quadro para baixar primeiro.": "Queued for download (#{}). Put it in a viewport to download it first.",
  "{} de {} imagens no computador.": "{} of {} images on this computer.",
  "{} {}\n{}\n{}/{} im{}": "{} {}\n{}\n{}/{} im{}",
- "⬇ {}/{}": "⬇ {}/{}"
+ "⬇ {}/{}": "⬇ {}/{}",
+ " · erros: ": " · errors: ",
+ "relato do download": "download report",
+ "Ipê {} {} · {} imagem(ns) em {} s · HTJ2K {} · faltam {}": "Ipê {} {} · {} image(s) in {} s · HTJ2K {} · missing {}",
+ "Ipê {} · {} {} · Python {}": "Ipê {} · {} {} · Python {}",
+ "O exame não baixou inteiro do servidor central: faltam {} imagem(ns). {}": "The exam was not fully downloaded from the central server: {} image(s) missing. {}",
+ "Se {}: {}/{}": "Se {}: {}/{}",
+ "conferir: {}: {}": "check: {}: {}",
+ "importar: {}: {}": "import: {}: {}",
+ "série {}: {}: {}": "series {}: {}: {}",
+ "sem conexão": "no connection",
+ "ótima": "excellent",
+ "ruim": "poor",
+ "regular": "fair",
+ "medindo…": "measuring…",
+ "rede…": "network…",
+ " · {} Mbit/s": " · {} Mbit/s",
+ "Rede até o servidor central: {}\n{}\nIda e volta (ms): quanto o servidor leva para responder. Vazão (Mbit/s): quanto chega por segundo.\nClique para medir de novo.": "Network to the central server: {}\n{}\nRound trip (ms): how long the server takes to answer. Throughput (Mbit/s): how much arrives per second.\nClick to measure again."
 }

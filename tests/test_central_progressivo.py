@@ -116,3 +116,31 @@ def test_abre_antes_de_terminar_e_vai_crescendo(central, tmp_path, monkeypatch):
     assert _esperar(lambda: (tab._vigia_download.tick() or True) and vp.baixando_txt == "", app)
     assert not any("⬇" in tab.strip.item(i).text() for i in range(tab.strip.count()))
     w.close()
+
+
+def test_fechar_o_dialogo_nao_cancela_o_download(central, tmp_path, monkeypatch):  # noqa: F811
+    """0.100.1: quando as primeiras imagens demoram (rede de verdade), aparece o diálogo "Baixando as primeiras
+    imagens…"; fechá-lo ao abrir o exame disparava o "cancelar" do Qt e o download parava em silêncio."""
+    from PySide6.QtWidgets import QWidget
+    paths, db, repo, srv = central
+    app = QApplication.instance() or QApplication([])
+    cr, *_ = _cliente(srv, paths, tmp_path)
+    uid = repo.find_study_uids(accession="ACC1001")[0]
+    total = sum(x.num_images for x in repo.series_for_study(uid))
+    retrieve = cr.client.retrieve
+
+    def devagar(study_uid, dest, series_uid=None, progress=None, sop_uid=None, **kw):
+        if sop_uid:
+            time.sleep(1.2)                                # a amostra demora: o diálogo aparece
+        else:
+            time.sleep(0.3)
+        return retrieve(study_uid, dest, series_uid, progress=progress, sop_uid=sop_uid, **kw)
+    monkeypatch.setattr(cr.client, "retrieve", devagar)
+    janela = QWidget()
+    janela.show()
+    assert cr.ensure_local(uid, janela)
+    th, _primeiro, parar = cr._baixando[uid]
+    assert not parar.is_set()                              # abrir o exame não cancelou nada
+    assert _esperar(lambda: not th.is_alive(), app, 30)
+    assert sum(x.num_images for x in cr.local.series_for_study(uid)) == total
+    janela.close()
