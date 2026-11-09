@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.3 — visualizador web: os botões do mouse voltam a obedecer
+- **Corrigido**: depois de trocar a função de um botão (por exemplo, a janela no direito, que antes era zoom), o
+  mouse continuava fazendo a função antiga — o Cornerstone3D somava o botão novo aos antigos e, ao tirar uma função,
+  só soltava o botão esquerdo. Agora cada troca deixa em cada botão exatamente a função escolhida.
+- **Corrigido**: uma medida começada com um clique só (a régua desenha também em "clique, move, clique") deixava
+  todas as ferramentas paradas até terminar a linha. Agora clicar noutro quadro, trocar de ferramenta ou apertar Esc
+  desfaz a linha pela metade, e ela não vai para o banco.
+
 ## 0.100.2 — visualizador web: overlay, linhas de referência, PET ajustável, dinâmica e mamografia como no Ipê
 - **Overlay**: o ícone novo liga e desliga de uma vez o CAD/IA (SR), as anotações de outro sistema (GSPS), os
   contornos RTSTRUCT, os textos dos cantos, as medidas e as linhas de referência; a seta escolhe item por item, e o

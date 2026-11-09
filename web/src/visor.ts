@@ -34,6 +34,52 @@ const {
   ReferenceLinesTool, Enums: TE,
 } = csTools;
 
+/** 0.100.3: o desenho que ficou pela metade. As medidas do Cornerstone3D também desenham em "clique, move, clique":
+ * um clique só começa a linha e, enquanto ela não termina, a biblioteca acha que ainda está desenhando e ignora todas
+ * as outras ferramentas em todos os botões. Se o médico clica noutro quadro, troca de ferramenta ou aperta Esc, o
+ * desenho pela metade é desfeito e o mouse volta a funcionar. */
+let elDoDesenho: HTMLDivElement | null = null;
+
+export function desenhando(): boolean {
+  return !!csTools.state.isInteractingWithTool;
+}
+
+export function cancelarDesenho(): boolean {
+  if (!csTools.state.isInteractingWithTool) return false;
+  // desfaz a medida pela metade (o "cancel" do Cornerstone3D a daria por terminada e ela iria para o banco)
+  for (const id of [TG_2D, TG_VOL, TG_MIP]) {
+    const tg = ToolGroupManager.getToolGroup(id);
+    if (!tg) continue;
+    for (const nome of Object.keys(tg.toolOptions)) {
+      const f = tg.getToolInstance(nome) as unknown as {
+        isDrawing?: boolean; editData?: { annotation?: { annotationUID?: string }; newAnnotation?: boolean } | null;
+        _deactivateDraw?: (el: HTMLElement) => void; _deactivateModify?: (el: HTMLElement) => void } | undefined;
+      if (!f?.isDrawing) continue;
+      const uid = f.editData?.annotation?.annotationUID, nova = !!f.editData?.newAnnotation;
+      if (elDoDesenho) {
+        try { f._deactivateDraw?.(elDoDesenho); f._deactivateModify?.(elDoDesenho); } catch { /* nada */ }
+        try { csTools.cursors.elementCursor.resetElementCursor(elDoDesenho); } catch { /* nada */ }
+      }
+      f.isDrawing = false;
+      f.editData = null;
+      if (nova && uid) {
+        try { csTools.annotation.state.removeAnnotation(uid); } catch { /* já saiu */ }
+      }
+    }
+  }
+  csTools.state.isInteractingWithTool = false;
+  elDoDesenho = null;
+  for (const vp of motor?.getViewports() ?? []) vp.render();
+  return true;
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && cancelarDesenho()) e.stopPropagation();
+  }, true);
+  (window as unknown as Record<string, unknown>).__ipeDesenhando = desenhando;
+}
+
 /** 0.100.2: as linhas de referência entre os quadros de corte (o plano do quadro ativo cortando os outros), como no Ipê. */
 let linhasRef = true;
 export function linhasDeReferencia(): boolean {
@@ -136,6 +182,7 @@ export function botoes(): Botoes {
 
 /** Uma ferramenta (vai para o botão esquerdo) ou as dos três botões. */
 export function aplicarBotoes(f: Ferramenta | Partial<Botoes>): void {
+  cancelarDesenho();                   // 0.100.3: trocar de ferramenta desfaz a medida que ficou pela metade
   botoesAtuais = typeof f === "string" ? { ...botoesAtuais, esq: f } : { ...botoesAtuais, ...f };
   for (const id of [TG_2D, TG_VOL, TG_MIP]) {
     const tg = ToolGroupManager.getToolGroup(id);
@@ -164,9 +211,12 @@ export function aplicarBotoes(f: Ferramenta | Partial<Botoes>): void {
         (fixos[NOME[t]] ??= []).push(mb);
       }
     }
+    // 0.100.3: o Cornerstone3D soma os botões novos aos antigos no setToolActive e, no setToolPassive, só tira o
+    // esquerdo — a função que saía do meio ou do direito continuava lá, na frente da nova ("o botão muda, mas o mouse
+    // não faz"). Por isso cada ferramenta perde todos os botões antes de receber exatamente os seus.
+    for (const nome of Object.keys(fixos)) tg.setToolPassive(nome, { removeAllBindings: true });
     for (const [nome, bs] of Object.entries(fixos)) {
       if (bs.length) tg.setToolActive(nome, { bindings: bs.map((b) => ({ mouseButton: b })) });
-      else tg.setToolPassive(nome);
     }
   }
 }
@@ -413,6 +463,10 @@ export class Grade {
         projecao: sp?.projecao ?? "fino", espessura: sp?.espessura ?? 0, girando: null,
         sobre: tipo === "plano" ? sp?.sobre ?? null : null, cor: sp?.cor ?? COR_PADRAO, opacidade: sp?.opacidade ?? 0.5,
         suvMax: sp?.suvMax ?? SUV_PADRAO, suvMin: sp?.suvMin ?? 0, achado: "" };
+      el.addEventListener("mousedown", () => {
+        if (csTools.state.isInteractingWithTool && elDoDesenho && elDoDesenho !== el) cancelarDesenho();
+        if (!csTools.state.isInteractingWithTool) elDoDesenho = el;
+      }, true);
       el.addEventListener("mousedown", (e) => this.cliqueSuvMax(e, q), true);
       el.addEventListener("mousedown", (e) => this.cliqueLinhas(e, q), true);
       el.addEventListener("mousedown", (e) => this.arrastoSuv(e, q), true);

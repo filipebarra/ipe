@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.3 — visor web: los botones del mouse vuelven a obedecer
+- **Corregido**: después de cambiar la función de un botón (por ejemplo, la ventana en el derecho, que antes era
+  zoom), el mouse seguía haciendo la función anterior — Cornerstone3D sumaba el botón nuevo a los anteriores y, al
+  quitar una función, solo soltaba el botón izquierdo. Ahora cada cambio deja en cada botón exactamente la función
+  elegida.
+- **Corregido**: una medida empezada con un solo clic (la regla también dibuja en "clic, mover, clic") dejaba todas
+  las herramientas paradas hasta terminar la línea. Ahora hacer clic en otro cuadro, cambiar de herramienta o pulsar
+  Esc deshace la línea a medias, y no se guarda.
+
 ## 0.100.2 — visor web: overlay, líneas de referencia, PET ajustable, dinámica y mamografía como en Ipê
 - **Overlay**: el ícono nuevo enciende y apaga de una vez el CAD/IA (SR), las anotaciones de otro sistema (GSPS),
   los contornos RTSTRUCT, los textos de las esquinas, las medidas y las líneas de referencia; la flecha elige ítem

@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.3 — web viewer: the mouse buttons obey again
+- **Fixed**: after changing a button's function (for example, window/level on the right button, which used to be
+  zoom), the mouse kept doing the old function — Cornerstone3D added the new button to the old ones and, when a
+  function was removed, only released the left button. Now every change leaves exactly the chosen function on each
+  button.
+- **Fixed**: a measurement started with a single click (the ruler also draws as "click, move, click") left every
+  tool frozen until the line was finished. Now clicking another viewport, changing tools or pressing Esc discards the
+  half-drawn line, and it is not saved.
+
 ## 0.100.2 — web viewer: overlay, reference lines, adjustable PET, breast dynamics and mammography as in Ipê
 - **Overlay**: the new icon turns on and off at once the CAD/AI (SR), annotations from another system (GSPS),
   RTSTRUCT contours, corner texts, measurements and reference lines; its arrow picks item by item, and a hidden type

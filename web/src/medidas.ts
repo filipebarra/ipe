@@ -642,7 +642,8 @@ export function aoMudarMedidas(fn: () => void): () => void {
 }
 
 (window as unknown as Record<string, unknown>).__ipeMed = { estatRoi, compMm, anguloGraus, cobbGraus, espacamentoUS, regioesUS, linhas, DB,
-  selecionadas: () => csTools.annotation.selection.getAnnotationsSelected() };
+  selecionadas: () => csTools.annotation.selection.getAnnotationsSelected(),
+  todas: () => csTools.annotation.state.getAllAnnotations().map((a) => a.metadata?.toolName ?? "") };
 
 /** W5 (0.99.98): as ROIs desenhadas (elipse, retângulo, polígono), com os pontos no espaço da imagem — também nas
  * imagens que não são do banco (os mapas da dinâmica). Para as curvas tempo-intensidade. */
