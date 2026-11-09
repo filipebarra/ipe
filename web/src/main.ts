@@ -4,11 +4,19 @@
 import "./estilo.css";
 import * as API from "./api";
 import { setLang, tr } from "./i18n";
-import { apagarSelecionadas } from "./medidas";
+import * as csTools from "@cornerstonejs/tools";
+import {
+  aoMudarMedidas, apagarMedida, apagarMedidasDaImagem, copiarValor, editarTexto, listarMedidas, medidaNoPonto,
+  medidaPorUid, type ResumoMedida,
+} from "./medidas";
+import { abrirMenu, abrirPainel, fecharMenus, icone, type ItemMenu } from "./menu";
+import { META, partesDoImageId } from "./meta";
 import { COR_PADRAO, SUV_PADRAO, registrarCores } from "./pet";
 import { Cronometro } from "./carga";
 import { Disponiveis } from "./disponiveis";
-import { Grade, TIPO_ARRASTO, aplicarBotoes, carregarSerie, iniciar, type Ferramenta, type Projecao } from "./visor";
+import {
+  Grade, TIPO_ARRASTO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
+} from "./visor";
 
 const app = document.getElementById("app")!;
 let config: API.Config | null = null;
@@ -44,7 +52,7 @@ function tarja(): HTMLElement {
 // ------------------------------------------------------------------ login
 function telaLogin(msg = ""): void {
   pararDisponiveis();
-  grade?.desmontar();
+  grade?.encerrar();
   grade = null;
   const u = el("input", { id: "usuario", autocomplete: "username", required: true }) as HTMLInputElement;
   const s = el("input", { id: "senha", type: "password", autocomplete: "current-password", required: true }) as HTMLInputElement;
@@ -78,7 +86,7 @@ API.quandoEncerrar(() => telaLogin(tr("Sessão encerrada: entre de novo.")));
 
 function cabecalho(...extra: Node[]): HTMLElement {
   const quem = config?.usuario.full_name || config?.usuario.username || "";
-  const b = el("button", { class: "sair", onclick: async () => { await API.sair(); config = null; telaLogin(); } },
+  const b = el("button", { class: "sair", title: quem, onclick: async () => { await API.sair(); config = null; telaLogin(); } },
     tr("Sair"));
   return el("header", {}, el("strong", {}, tr("Ipê Web")), ...extra, el("span", { class: "quem" }, quem), b);
 }
@@ -92,7 +100,7 @@ function dataBr(d: string): string {
 
 async function telaLista(): Promise<void> {
   pararDisponiveis();
-  grade?.desmontar();
+  grade?.encerrar();
   grade = null;
   const busca = el("input", { placeholder: tr("Nome, ID ou acesso"), id: "busca" }) as HTMLInputElement;
   const de = el("input", { type: "date", title: tr("De") }) as HTMLInputElement;
@@ -136,14 +144,77 @@ async function telaLista(): Promise<void> {
 }
 
 // ------------------------------------------------------------------ exame
+// 0.99.97: interface no estilo do Weasis — uma barra de ícones; cada botão do mouse com a sua função (clicar no
+// ícone com o botão que deve fazê-la, como no Ipê; a marca embaixo do ícone diz qual); painéis laterais
+// recolhíveis (séries à esquerda; Imagem, Medidas, DICOM e PET à direita); menu do botão direito na imagem.
+
 const NOMES_FERRAMENTAS: Record<Ferramenta, string> = {
-  janela: "Janela", mover: "Mover", zoom: "Zoom", rolar: "Rolar", linhas: "Linhas de referência",
+  janela: "Janela/nível", mover: "Mover", zoom: "Zoom", rolar: "Rolar cortes", linhas: "Linhas de referência",
   regua: "Régua", angulo: "Ângulo", cobb: "Ângulo de Cobb", elipse: "ROI elíptica", retangulo: "ROI retangular",
   poligono: "ROI livre", pixel: "Valor do pixel", seta: "Seta", calibracao: "Calibração",
   suvmax: "SUV máximo perto do cursor",
 };
 
-const LAYOUTS: [number, number][] = [[1, 1], [1, 2], [2, 1], [1, 3], [2, 2], [2, 3]];
+/** Ícones (24×24, traço). */
+const IC: Record<string, string> = {
+  voltar: "M10 6l-6 6 6 6M4 12h16",
+  janela: "M12 3a9 9 0 1 0 0.01 0M12 3v18M12 8h5M12 13h7",
+  mover: "M12 2v20M2 12h20M9 5l3-3 3 3M9 19l3 3 3-3M5 9l-3 3 3 3M19 9l3 3-3 3",
+  zoom: "M11 4a7 7 0 1 0 0.01 0M20 20l-4.2-4.2M11 8v6M8 11h6",
+  rolar: "M4 7l8-4 8 4-8 4zM4 12l8 4 8-4M4 17l8 4 8-4",
+  linhas: "M12 2v7M12 15v7M2 12h7M15 12h7M12 9a3 3 0 1 0 0.01 0",
+  regua: "M3 17L17 3l4 4L7 21zM7 13l2 2M10 10l2 2M13 7l2 2",
+  angulo: "M4 20h16M4 20L16 6M9.5 20a6 6 0 0 0-1.6-4.4",
+  cobb: "M3 6l18 3M3 18l18-3M8 7v10",
+  elipse: "M12 6c5 0 9 2.7 9 6s-4 6-9 6-9-2.7-9-6 4-6 9-6z",
+  retangulo: "M4 6h16v12H4z",
+  poligono: "M5 8l6-4 8 4-2 10-9 2z",
+  pixel: "M12 3v6M12 15v6M3 12h6M15 12h6",
+  seta: "M5 19L19 5M19 5h-8M19 5v8",
+  calibracao: "M3 12h18M3 8v8M21 8v8M8 10v4M13 10v4",
+  suvmax: "M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 1 0 0.01 0",
+  layout: "M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z",
+  mpr: "M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5",
+  espessura: "M4 6h16M4 10h16M4 14h16M4 18h16",
+  obliquo: "M4 20L20 4M8 4h12v12",
+  girar: "M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5",
+  petct: "M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0",
+  seg: "M4 4h7v7H4zM13 13h7v7h-7zM11 7.5h5.5V13",
+  cine: "M7 4l13 8-13 8z",
+  parar: "M6 5h4v14H6zM14 5h4v14h-4z",
+  inverter: "M12 3a9 9 0 1 0 0.01 0M12 3v18M7 8l3 4-3 4",
+  restaurar: "M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5",
+  carga: "M4 20V10M10 20V4M16 20v-7M2 20h20",
+  painel: "M3 4h18v16H3zM9 4v16",
+  copiar: "M8 8h12v12H8zM4 16V4h12",
+  lixo: "M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13",
+  texto: "M4 20h4L19 9l-4-4L4 16zM14 6l4 4",
+  girar90: "M4 12a8 8 0 0 1 14-5.3M18 3v4h-4",
+  espelhar: "M12 3v18M8 7l-5 5 5 5M16 7l5 5-5 5",
+  serie: "M4 7l8-4 8 4-8 4zM4 12l8 4 8-4",
+  botoes: "M7 3h10a4 4 0 0 1 4 4v10a8 8 0 0 1-16 0V7a4 4 0 0 1 2-3.5M12 3v7",
+};
+
+/** Algumas tags DICOM com nome, para a aba DICOM (as outras aparecem só pelo número). */
+const NOMES_TAGS: Record<string, string> = {
+  "00080008": "ImageType", "00080016": "SOPClassUID", "00080018": "SOPInstanceUID", "00080020": "StudyDate",
+  "00080021": "SeriesDate", "00080030": "StudyTime", "00080031": "SeriesTime", "00080050": "AccessionNumber",
+  "00080060": "Modality", "00080070": "Manufacturer", "00080080": "InstitutionName", "00081030": "StudyDescription",
+  "0008103E": "SeriesDescription", "00081090": "ManufacturerModelName", "00100010": "PatientName",
+  "00100020": "PatientID", "00100030": "PatientBirthDate", "00100040": "PatientSex", "00101010": "PatientAge",
+  "00101030": "PatientWeight", "00180050": "SliceThickness", "00180060": "KVP", "00180088": "SpacingBetweenSlices",
+  "00181150": "ExposureTime", "00181151": "XRayTubeCurrent", "00181164": "ImagerPixelSpacing",
+  "00185101": "ViewPosition", "0020000D": "StudyInstanceUID", "0020000E": "SeriesInstanceUID",
+  "00200011": "SeriesNumber", "00200013": "InstanceNumber", "00200032": "ImagePositionPatient",
+  "00200037": "ImageOrientationPatient", "00200052": "FrameOfReferenceUID", "00201041": "SliceLocation",
+  "00280002": "SamplesPerPixel", "00280004": "PhotometricInterpretation", "00280008": "NumberOfFrames",
+  "00280010": "Rows", "00280011": "Columns", "00280030": "PixelSpacing", "00280100": "BitsAllocated",
+  "00280101": "BitsStored", "00280103": "PixelRepresentation", "00281050": "WindowCenter",
+  "00281051": "WindowWidth", "00281052": "RescaleIntercept", "00281053": "RescaleSlope", "00281056": "VOILUTFunction",
+  "00020010": "TransferSyntaxUID", "00540016": "RadiopharmaceuticalInformationSequence", "00541001": "Units",
+};
+
+const LAYOUTS_PRONTOS: [number, number][] = [[1, 1], [1, 2], [2, 1], [1, 3], [2, 2], [2, 3]];
 
 function janelasProntas(modalidade: string): [string, number, number][] {
   const porMod = config?.["viewer.wl_presets_mod"]?.[modalidade.toUpperCase()];
@@ -151,9 +222,35 @@ function janelasProntas(modalidade: string): [string, number, number][] {
   return Object.keys(d).sort().map((k) => d[k]).filter((x) => Array.isArray(x) && x.length >= 3);
 }
 
+function lerPreferencia<T>(chave: string, padrao: T): T {
+  try {
+    const v = localStorage.getItem(`ipe.web.${chave}`);
+    return v === null ? padrao : (JSON.parse(v) as T);
+  } catch {
+    return padrao;
+  }
+}
+
+function gravarPreferencia(chave: string, valor_: unknown): void {
+  try { localStorage.setItem(`ipe.web.${chave}`, JSON.stringify(valor_)); } catch { /* sem armazenamento */ }
+}
+
+function botaoIcone(rotulo: string, d: string, extra: Record<string, unknown> = {}): HTMLButtonElement {
+  const b = el("button", { type: "button", class: "ic", "aria-label": tr(rotulo), title: tr(rotulo), ...extra }) as HTMLButtonElement;
+  b.append(icone(d, 20));
+  return b;
+}
+
+function seta(): SVGSVGElement {
+  const s = icone("M6 9l6 6 6-6", 10);
+  s.classList.add("caret");
+  return s;
+}
+
 async function telaExame(study: string): Promise<void> {
   pararDisponiveis();
-  grade?.desmontar();
+  grade?.encerrar();
+  fecharMenus();
   const todas = await API.qido(`/studies/${study}/series`);
   const segs = todas.filter((s) => API.texto(s, "00080060") === "SEG");
   const series = todas
@@ -165,77 +262,161 @@ async function telaExame(study: string): Promise<void> {
     return;
   }
   void API.avisarAbertura(study);
-  const paciente = `${API.texto(estudo, "00100010")}  ${API.texto(estudo, "00100020")}\n${dataBr(API.texto(estudo, "00080020"))}  ${API.texto(estudo, "00081030")}`;
+  const nomePac = API.texto(estudo, "00100010");
+  const idPac = API.texto(estudo, "00100020");
+  const paciente = `${nomePac}  ${idPac}\n${dataBr(API.texto(estudo, "00080020"))}  ${API.texto(estudo, "00081030")}`;
 
-  // barra
-  const voltar = el("button", { onclick: () => { location.hash = "#/lista"; } }, `← ${tr("Voltar à lista")}`);
-  const layout = el("select", { title: tr("Layout") },
-    ...LAYOUTS.map(([l, c]) => el("option", { value: `${l}x${c}` }, `${l}×${c}`))) as HTMLSelectElement;
-  const ferr = el("select", { title: tr("Botão esquerdo:") },
-    ...(Object.entries(NOMES_FERRAMENTAS) as [Ferramenta, string][]).map(([f, n]) =>
-      el("option", { value: f }, tr(n)))) as HTMLSelectElement;
-  const presets = el("select", { title: tr("Janelas prontas") }) as HTMLSelectElement;
-  const fps = el("select", { title: tr("quadros/s") },
-    ...[5, 10, 15, 20, 30].map((n) => el("option", { value: n, selected: n === 10 }, `${n} ${tr("quadros/s")}`))) as HTMLSelectElement;
-  let tocando = false;
-  const cine = el("button", {}, tr("Cine"));
-  const inverter = el("button", {}, tr("Inverter"));
-  const restaurar = el("button", {}, tr("Restaurar"));
-  // W1: volume
-  const mpr = el("button", { title: tr("Axial, coronal, sagital e o MIP girando da série do quadro ativo, com as linhas de referência") }, tr("MPR"));
-  const espessura = el("select", { title: tr("Espessura (quadros A, C, S)") },
-    ...[0, 3, 5, 10, 20].map((n) => el("option", { value: n }, n ? `${n} mm` : tr("Corte fino")))) as HTMLSelectElement;
-  const projecao = el("select", { title: tr("Projeção da espessura") },
-    el("option", { value: "mip" }, "MIP"), el("option", { value: "minip" }, "MinIP"),
-    el("option", { value: "media" }, tr("Média"))) as HTMLSelectElement;
-  const obliquo = el("button", { title: tr("Dois cliques no quadro ativo definem a reta; o oblíquo vai para o outro quadro de volume") }, tr("Oblíquo"));
-  let girando = false;
-  const girar = el("button", { title: tr("Gira o MIP (a roda do mouse também gira)") }, tr("Girar MIP"));
-  // 0.99.96: cronômetro da carga (rede × decodificação)
-  const painelCarga = el("pre", { class: "painel-carga", hidden: true });
-  const carga = el("button", { title: tr("Quanto veio pela rede, em quanto tempo, e quanto levou para decodificar") },
-    tr("Carga"));
-  let relogio = 0;
-  carga.onclick = () => {
-    painelCarga.hidden = !painelCarga.hidden;
-    carga.classList.toggle("ligado", !painelCarga.hidden);
-    window.clearInterval(relogio);
-    if (!painelCarga.hidden) {
-      const mostrar = () => {
-        if (cronometro !== cron) return window.clearInterval(relogio);
-        painelCarga.textContent = cron.texto(tr);
-      };
-      mostrar();
-      relogio = window.setInterval(mostrar, 1000);
+  // ---------------------------------------------------------------- barra de ícones
+  const aviso = el("div", { class: "estado", role: "status" });
+  const voltar = botaoIcone("Voltar à lista", IC.voltar, { onclick: () => { location.hash = "#/lista"; } });
+  const chip = el("div", { class: "paciente" }, el("strong", {}, nomePac),
+    el("span", {}, `${idPac} · ${API.texto(estudo, "00081030")} · ${dataBr(API.texto(estudo, "00080020"))}`));
+
+  // ferramentas que vão para um botão do mouse (com famílias: o ícone mostra a escolhida; a setinha troca)
+  type Grupo = { nome: string; membros: Ferramenta[] };
+  const GRUPOS: Grupo[][] = [
+    [{ nome: "Janela/nível", membros: ["janela"] }, { nome: "Mover", membros: ["mover"] },
+      { nome: "Zoom", membros: ["zoom"] }, { nome: "Rolar cortes", membros: ["rolar"] },
+      { nome: "Linhas de referência", membros: ["linhas"] }],
+    [{ nome: "Régua", membros: ["regua"] }, { nome: "Ângulos", membros: ["angulo", "cobb"] },
+      { nome: "ROIs", membros: ["elipse", "retangulo", "poligono"] }, { nome: "Valor do pixel", membros: ["pixel"] },
+      { nome: "Seta", membros: ["seta"] }, { nome: "Calibração", membros: ["calibracao"] },
+      { nome: "SUV máximo perto do cursor", membros: ["suvmax"] }],
+  ];
+  const BOTAO_DO_EVENTO: Record<number, keyof Botoes> = { 0: "esq", 1: "meio", 2: "dir" };
+  const NOME_BOTAO: Record<keyof Botoes, string> = { esq: "botão esquerdo", meio: "botão do meio", dir: "botão direito" };
+  const escolhida = new Map<Grupo, Ferramenta>();
+  const iconesFerr: { g: Grupo; b: HTMLButtonElement; marcas: HTMLElement[] }[] = [];
+  const rodapeBotoes = el("span", { class: "botoes-mouse" });
+  const atualizarMarcas = () => {
+    const bs = botoes();
+    for (const { g, b, marcas } of iconesFerr) {
+      const f = escolhida.get(g) ?? g.membros[0];
+      const quais = (["esq", "meio", "dir"] as (keyof Botoes)[]).filter((k) => g.membros.includes(bs[k]));
+      (["esq", "meio", "dir"] as (keyof Botoes)[]).forEach((k, n) => marcas[n].classList.toggle("on", g.membros.includes(bs[k])));
+      b.classList.toggle("ativo", quais.length > 0);
+      b.dataset.ferramenta = f;
+      b.replaceChildren(icone(IC[f], 20), ...(g.membros.length > 1 ? [seta()] : []), b.querySelector(".marcas") || el("span"));
+      const nome = tr(NOMES_FERRAMENTAS[f]);
+      const titulo = `${nome}${quais.length ? ` — ${quais.map((k) => tr(NOME_BOTAO[k])).join(", ")}` : ""}. ` +
+        tr("Clique com o botão do mouse que deve fazer esta função.");
+      b.title = titulo;
+      b.setAttribute("aria-label", titulo);
     }
+    rodapeBotoes.textContent = `${tr("Esquerdo")}: ${tr(NOMES_FERRAMENTAS[bs.esq])} · ${tr("Meio")}: ${tr(NOMES_FERRAMENTAS[bs.meio])} · ` +
+      `${tr("Direito")}: ${tr(NOMES_FERRAMENTAS[bs.dir])} (${tr("segurar")}) / ${tr("menu")} (${tr("clicar")}) · ${tr("Roda")}: ${tr("cortes")}`;
   };
-  // W3: PET/CT
-  const petct = el("button", { title: tr("Fusão, PET e o MIP do PET, com os axiais andando juntos") }, tr("PET/CT"));
-  const cores = el("select", { title: tr("Cor da fusão") },
-    ...(config?.tabelas_cores ? Object.entries(config.tabelas_cores) : []).map(([k, t]) =>
-      el("option", { value: k, selected: k === COR_PADRAO }, tr(t.nome)))) as HTMLSelectElement;
-  const opacidade = el("select", { title: tr("Opacidade da fusão") },
-    ...[20, 35, 50, 65, 80, 100].map((n) => el("option", { value: n / 100, selected: n === 50 }, `${n}%`))) as HTMLSelectElement;
-  const topoSuv = el("select", { title: tr("Topo da janela de SUV") },
-    ...[3, 5, 6, 8, 10, 15, 20].map((n) => el("option", { value: n, selected: n === SUV_PADRAO }, `SUV ${n}`))) as HTMLSelectElement;
-  const seg = el("select", { title: tr("Segmentação (SEG)") }, el("option", { value: "" }, tr("Sem segmentação")),
-    ...segs.map((x) => el("option", { value: API.texto(x, "0020000E") },
-      `${API.texto(x, "00200011")} · ${API.texto(x, "0008103E") || "SEG"}`))) as HTMLSelectElement;
-  if (!segs.length) seg.disabled = true;
-  const apagarMedida = el("button", { title: tr("Apaga a medida selecionada (clique nela antes)") }, tr("Apagar medida"));
-  const barra = el("nav", { class: "barra" }, voltar, layout,
-    el("label", {}, tr("Botão esquerdo:"), ferr), apagarMedida, presets, inverter, cine, fps, restaurar,
-    el("span", { class: "sep" }), mpr, espessura, projecao, obliquo, girar,
-    el("span", { class: "sep" }), petct, cores, opacidade, topoSuv, seg, el("span", { class: "sep" }), carga);
+  const escolher = (f: Ferramenta, botao: keyof Botoes = "esq") => {
+    for (const linha of GRUPOS) for (const g of linha) if (g.membros.includes(f)) escolhida.set(g, f);
+    aplicarBotoes({ [botao]: f });
+    gravarPreferencia("botoes", botoes());
+    atualizarMarcas();
+  };
+  (window as unknown as Record<string, unknown>).__ipeEscolher = escolher; // testes
+  (window as unknown as Record<string, unknown>).__ipeBotoes = botoes; // testes
+  const ferramentas = el("div", { class: "grupo" });
+  const medicao = el("div", { class: "grupo" });
+  GRUPOS.forEach((linha, n) => {
+    for (const g of linha) {
+      const b = el("button", { type: "button", class: "ic ferr" }) as HTMLButtonElement;
+      const marcas = [el("span"), el("span"), el("span")];
+      const caixa = el("span", { class: "marcas", "aria-hidden": "true" }, ...marcas);
+      b.append(caixa);
+      b.oncontextmenu = (e) => e.preventDefault();
+      b.onmousedown = (e) => {
+        const botao = BOTAO_DO_EVENTO[e.button];
+        if (!botao) return;
+        e.preventDefault();
+        const f = escolhida.get(g) ?? g.membros[0];
+        // famílias: clicar na setinha (o canto direito do ícone) abre a escolha
+        const r = b.getBoundingClientRect();
+        if (g.membros.length > 1 && e.button === 0 && e.clientX > r.right - 12) {
+          abrirMenu(g.membros.map((m) => ({ rotulo: tr(NOMES_FERRAMENTAS[m]), icone: IC[m], marcado: m === f,
+            acao: () => escolher(m, "esq") })), 0, 0, tr(g.nome), b);
+          return;
+        }
+        escolher(f, botao);
+      };
+      b.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); escolher(escolhida.get(g) ?? g.membros[0], "esq"); } };
+      iconesFerr.push({ g, b, marcas });
+      (n === 0 ? ferramentas : medicao).append(b);
+    }
+  });
 
-  // tira
-  const tira = el("aside", { class: "tira" }, el("div", { class: "dica" }, tr("Clique numa série para mostrar no quadro ativo, ou arraste-a até um quadro.")));
+  const bLayout = botaoIcone("Layout dos quadros", IC.layout);
+  bLayout.append(seta());
+  const bMpr = botaoIcone("MPR", IC.mpr);
+  const bEspessura = botaoIcone("Espessura e projeção", IC.espessura);
+  bEspessura.append(seta());
+  const bObliquo = botaoIcone("Oblíquo", IC.obliquo);
+  const bGirar = botaoIcone("Girar MIP", IC.girar, { "aria-pressed": "false" });
+  const bPet = botaoIcone("PET/CT", IC.petct);
+  const bSeg = botaoIcone("Segmentação (SEG)", IC.seg);
+  bSeg.append(seta());
+  if (!segs.length) bSeg.disabled = true;
+  const bCine = botaoIcone("Cine", IC.cine, { "aria-pressed": "false" });
+  const bCineMenu = el("button", { type: "button", class: "ic estreito", "aria-label": tr("Velocidade do cine"),
+    title: tr("Velocidade do cine") }, seta());
+  const bInverter = botaoIcone("Inverter", IC.inverter);
+  const bRestaurar = botaoIcone("Restaurar", IC.restaurar);
+  const bCarga = el("button", { type: "button", class: "link", "aria-pressed": "false",
+    title: tr("Quanto veio pela rede, em quanto tempo, e quanto levou para decodificar") }, tr("Carga")) as HTMLButtonElement;
+  const bPainelEsq = botaoIcone("Recolher o painel de séries", "M15 6l-6 6 6 6", { class: "ic recolher" });
+  const bPainelDir = botaoIcone("Recolher o painel de ferramentas", "M9 6l6 6-6 6", { class: "ic recolher" });
+  const trilhoEsq = el("div", { class: "trilho" }, botaoIcone("Abrir o painel de séries", "M9 6l6 6-6 6"));
+  const trilhoDir = el("div", { class: "trilho" }, botaoIcone("Abrir o painel de ferramentas", "M15 6l-6 6 6 6"));
+  const nav = el("nav", { class: "barra", "aria-label": tr("Ferramentas") },
+    el("div", { class: "grupo" }, voltar), ferramentas, medicao,
+    el("div", { class: "grupo" }, bLayout, bMpr, bEspessura, bObliquo, bGirar),
+    el("div", { class: "grupo" }, bPet, bSeg, bCine, bCineMenu),
+    el("div", { class: "grupo" }, bInverter, bRestaurar));
+
+  // ---------------------------------------------------------------- painéis
+  const tira = el("aside", { class: "tira", "aria-label": tr("Séries") },
+    el("div", { class: "titulo-painel com-botao" }, el("span", {}, tr("Séries")), bPainelEsq),
+    el("div", { class: "dica" }, tr("Clique numa série para mostrar no quadro ativo, ou arraste-a até um quadro.")));
+  const listaSeries = el("div", { class: "series" });
+  const anteriores = el("div", { class: "anteriores" });
+  tira.append(listaSeries, el("div", { class: "titulo-painel" }, tr("Exames anteriores")), anteriores);
   const telas = el("section", { class: "grade" });
-  const aviso = el("div", { class: "estado" });
-  // imagens disponíveis no navegador: o total do exame no cabeçalho, o de cada série na tira
+  const painelCarga = el("pre", { class: "painel-carga", hidden: true });
+
+  const ABAS = ["Imagem", "Medidas", "DICOM", "PET"] as const;
+  type Aba = typeof ABAS[number];
+  const corpoAba = el("div", { class: "corpo-aba", role: "tabpanel" });
+  const botoesAba = new Map<Aba, HTMLButtonElement>();
+  const abas = el("div", { class: "abas", role: "tablist", "aria-label": tr("Painéis") });
+  for (const a of ABAS) {
+    const b = el("button", { type: "button", role: "tab", "aria-selected": "false", "data-aba": a }, tr(a)) as HTMLButtonElement;
+    b.onclick = () => mostrarAba(a);
+    botoesAba.set(a, b);
+    abas.append(b);
+  }
+  abas.append(bPainelDir);
+  const lateral = el("aside", { class: "lateral", "aria-label": tr("Painel de ferramentas") }, abas, corpoAba);
   const geral = el("span", { class: "disponiveis", title: tr("Imagens já baixadas e prontas no navegador") });
-  barra.append(geral);
-  app.replaceChildren(cabecalho(barra), el("main", { class: "telaexame" }, tira, el("div", { class: "area" }, telas, aviso, painelCarga)), tarja());
+  const cargaCurta = el("span", { class: "carga-curta" });
+  const rodape = el("footer", { class: "rodape" }, geral, cargaCurta, bCarga, rodapeBotoes,
+    el("span", { class: "tarja-rodape" }, tr("Não destinado a uso diagnóstico")));
+  const area = el("div", { class: "area" }, telas, aviso, painelCarga);
+  app.replaceChildren(cabecalho(chip, nav), el("main", { class: "telaexame" }, trilhoEsq, tira, area, lateral, trilhoDir), rodape);
+
+  const esqAberto = lerPreferencia("painelEsq", true);
+  const dirAberto = lerPreferencia("painelDir", true);
+  const ajustarPaineis = (esq: boolean, dir: boolean) => {
+    tira.hidden = !esq;
+    lateral.hidden = !dir;
+    trilhoEsq.hidden = esq;
+    trilhoDir.hidden = dir;
+    gravarPreferencia("painelEsq", esq);
+    gravarPreferencia("painelDir", dir);
+    requestAnimationFrame(() => grade?.redimensionar());
+  };
+  ajustarPaineis(esqAberto, dirAberto);
+  bPainelEsq.onclick = () => ajustarPaineis(false, !lateral.hidden);
+  bPainelDir.onclick = () => { ajustarPaineis(!tira.hidden, false); };
+  trilhoEsq.querySelector("button")!.onclick = () => ajustarPaineis(true, !lateral.hidden);
+  trilhoDir.querySelector("button")!.onclick = () => { ajustarPaineis(!tira.hidden, true); atualizarAba(); };
 
   grade = new Grade(telas);
   grade.paciente = paciente;
@@ -259,6 +440,8 @@ async function telaExame(study: string): Promise<void> {
     const g0 = d.geral();
     geral.textContent = g0.porcentagem >= 100 ? ""
       : `${tr("Imagens disponíveis:")} ${g0.porcentagem}%${d.cheio ? ` (${tr("memória do navegador cheia; o resto vem ao mostrar")})` : ""}`;
+    const r = cron.resumo();
+    cargaCurta.textContent = r.pedidos ? `${tr("Rede")} ${r.mbPorSegundo.toFixed(1)} MB/s · ${tr("decodificação")} ${r.decodificacaoMediaMs.toFixed(1)} ms` : "";
   };
   (window as unknown as Record<string, unknown>).__ipeDisp = d; // testes
   const carregadas = new Map<string, Promise<Awaited<ReturnType<typeof carregarSerie>>>>();
@@ -271,22 +454,6 @@ async function telaExame(study: string): Promise<void> {
     }
     return carregadas.get(uid)!;
   };
-  const encherPresets = () => {
-    const s = g.quadros[g.ativo]?.serie;
-    const lista = janelasProntas(s?.modalidade || "");
-    presets.replaceChildren(el("option", { value: "" }, tr("Janelas prontas")),
-      el("option", { value: "arquivo" }, `0 · ${tr("Do arquivo")}`),
-      ...lista.map(([n, w, l], i) => el("option", { value: String(i) }, `${n} (${w}/${l})`)));
-    presets.onchange = () => {
-      if (presets.value === "arquivo") g.janelaDoArquivo();
-      else if (presets.value !== "") {
-        const [, w, l] = lista[Number(presets.value)];
-        g.janela(Number(w), Number(l));
-      }
-      presets.value = "";
-    };
-  };
-  g.aoMudar = encherPresets;
   const mostrarNoAtivo = async (uid: string, i = g.ativo) => {
     aviso.textContent = tr("Carregando…");
     const s = await pegar(uid);
@@ -296,7 +463,7 @@ async function telaExame(study: string): Promise<void> {
     }
     aviso.textContent = "";
     await g.mostrar(i, s);
-    encherPresets();
+    atualizarAba();
   };
   for (const s of series) {
     const uid = API.texto(s, "0020000E");
@@ -315,32 +482,127 @@ async function telaExame(study: string): Promise<void> {
     };
     barras.set(uid, { item, barra, texto });
     d.estimar(uid, Number(API.texto(s, "00201209") || 0));
-    tira.append(item);
+    listaSeries.append(item);
   }
+  // exames anteriores do mesmo paciente (abrir troca de exame)
+  void (async () => {
+    if (!idPac) return;
+    const outros = (await API.qido(`/studies?PatientID=${encodeURIComponent(idPac)}&limit=50`).catch(() => []))
+      .filter((x) => API.texto(x, "00100020") === idPac && API.texto(x, "0020000D") !== study)
+      .sort((a, b) => API.texto(b, "00080020").localeCompare(API.texto(a, "00080020")));
+    if (!outros.length) anteriores.append(el("div", { class: "dica" }, tr("Nenhum.")));
+    for (const o of outros) {
+      const b = el("button", { type: "button", class: "anterior" }, el("span", {}, API.texto(o, "00081030") || "—"),
+        el("small", {}, dataBr(API.texto(o, "00080020"))));
+      b.onclick = () => { location.hash = `#/exame/${API.texto(o, "0020000D")}`; };
+      anteriores.append(b);
+    }
+  })();
   g.aoSoltar = (uid, i) => void mostrarNoAtivo(uid, i);
   const montar = (l: number, c: number) => {
     g.montar(l, c);
-    // quadros vazios ganham as primeiras séries, na ordem
     const livres = g.quadros.map((q, i) => (q.serie ? -1 : i)).filter((i) => i >= 0);
     const usadas = new Set(g.quadros.map((q) => q.serie?.series).filter(Boolean));
     const resto = series.map((s) => API.texto(s, "0020000E")).filter((u) => !usadas.has(u));
     livres.forEach((i, k) => { if (resto[k]) void mostrarNoAtivo(resto[k], i); });
   };
-  layout.onchange = () => {
-    const [l, c] = layout.value.split("x").map(Number);
-    montar(l, c);
+
+  // ---------------------------------------------------------------- comandos
+  let tocando = false;
+  let fps = 10;
+  let girando = false;
+  const cine = (ligar: boolean) => {
+    tocando = ligar;
+    g.cine(tocando ? fps : null);
+    bCine.replaceChildren(icone(tocando ? IC.parar : IC.cine, 20));
+    bCine.setAttribute("aria-pressed", String(tocando));
+    bCine.classList.toggle("ligado", tocando);
   };
-  ferr.onchange = () => aplicarBotoes(ferr.value as Ferramenta);
-  mpr.onclick = () => {
+  bCine.onclick = () => cine(!tocando);
+  bCineMenu.onclick = () => abrirMenu([5, 10, 15, 20, 30].map((n) => ({ rotulo: `${n} ${tr("quadros/s")}`, marcado: n === fps,
+    acao: () => { fps = n; if (tocando) g.cine(fps); } })), 0, 0, tr("Velocidade do cine"), bCineMenu);
+  const layoutPainel = () => {
+    const grade4 = el("div", { class: "grade-layout" });
+    const rotulo = el("div", { class: "rotulo-layout" }, `${g.linhas} × ${g.colunas}`);
+    const cel: HTMLButtonElement[] = [];
+    const marcar = (l: number, c: number) => {
+      for (const x of cel) {
+        const [xl, xc] = x.dataset.layout!.split("x").map(Number);
+        x.classList.toggle("on", xl <= l && xc <= c);
+      }
+      rotulo.textContent = `${l} × ${c}`;
+    };
+    for (let l = 1; l <= 4; l++) {
+      for (let c = 1; c <= 4; c++) {
+        const b = el("button", { type: "button", "aria-label": `${l} × ${c}`, "data-layout": `${l}x${c}` }) as HTMLButtonElement;
+        b.onmouseenter = () => marcar(l, c);
+        b.onfocus = () => marcar(l, c);
+        b.onclick = () => { fecharMenus(); montar(l, c); };
+        cel.push(b);
+        grade4.append(b);
+      }
+    }
+    const prot = (nome: string, dica: string, fn: () => void) => {
+      const b = el("button", { type: "button", class: "protocolo" }, el("span", {}, tr(nome)), el("small", {}, dica));
+      b.onclick = () => { fecharMenus(); fn(); };
+      return b;
+    };
+    const conteudo = el("div", { class: "conteudo-layout" },
+      el("div", { class: "menu-titulo" }, tr("Grade")), grade4, rotulo,
+      el("div", { class: "menu-sep" }), el("div", { class: "menu-titulo" }, tr("Protocolos")),
+      prot("MPR", "2 × 2", () => bMpr.click()), prot("PET/CT", tr("fusão · PET · MIP"), () => bPet.click()));
+    grade4.onmouseleave = () => marcar(g.linhas, g.colunas);
+    marcar(g.linhas, g.colunas);
+    abrirPainel(conteudo, bLayout, tr("Layout dos quadros"));
+  };
+  bLayout.onclick = layoutPainel;
+  bMpr.onclick = () => {
     if (g.abrirMPR()) {
-      layout.value = "2x2";
-      ferr.value = "linhas";
-      aplicarBotoes("linhas");
+      escolher("linhas", "esq");
       aviso.textContent = "";
     }
   };
-  petct.onclick = async () => {
-    // o PET: o do quadro ativo, ou o maior PET do exame; a TC: a maior do exame
+  let espessuraMm = 0;
+  let projecao: Projecao = "mip";
+  bEspessura.onclick = () => abrirMenu([
+    { titulo: tr("Espessura (quadros A, C, S)") },
+    ...[0, 3, 5, 10, 20].map((n) => ({ rotulo: n ? `${n} mm` : tr("Corte fino"), marcado: n === espessuraMm,
+      acao: () => { espessuraMm = n; g.espessura(espessuraMm, projecao); } })),
+    { separador: true }, { titulo: tr("Projeção da espessura") },
+    ...([["mip", "MIP"], ["minip", "MinIP"], ["media", tr("Média")]] as [Projecao, string][]).map(([v, n]) => ({
+      rotulo: n, marcado: v === projecao, acao: () => { projecao = v; g.espessura(espessuraMm, projecao); } })),
+  ], 0, 0, tr("Espessura e projeção"), bEspessura);
+  bObliquo.onclick = () => g.obliquoPorDoisPontos();
+  bGirar.onclick = () => {
+    girando = !girando;
+    g.girar(girando);
+    bGirar.setAttribute("aria-pressed", String(girando));
+    bGirar.classList.toggle("ligado", girando);
+  };
+  bInverter.onclick = () => g.inverter();
+  bRestaurar.onclick = () => g.restaurar();
+  let relogio = 0;
+  bCarga.onclick = () => {
+    painelCarga.hidden = !painelCarga.hidden;
+    bCarga.setAttribute("aria-pressed", String(!painelCarga.hidden));
+    bCarga.classList.toggle("ligado", !painelCarga.hidden);
+    window.clearInterval(relogio);
+    if (!painelCarga.hidden) {
+      const mostrar = () => {
+        if (cronometro !== cron) return window.clearInterval(relogio);
+        painelCarga.textContent = cron.texto(tr);
+      };
+      mostrar();
+      relogio = window.setInterval(mostrar, 1000);
+    }
+  };
+
+  // PET/CT
+  let cor = COR_PADRAO;
+  let opac = 0.5;
+  let topo = SUV_PADRAO;
+  let segEscolhida = "";
+  bPet.onclick = async () => {
     const maior = (mod: string) => series.filter((x) => API.texto(x, "00080060") === mod)
       .sort((a, b) => Number(API.texto(b, "00201209") || 0) - Number(API.texto(a, "00201209") || 0))[0];
     const ativa = g.quadros[g.ativo]?.serie;
@@ -356,43 +618,240 @@ async function telaExame(study: string): Promise<void> {
     if (!tc || !pet) return;
     if (!pet.suv) aviso.textContent = `${tr("Sem SUV:")} ${pet.suvMotivo || "?"}.`;
     if (g.abrirPETCT(tc, pet)) {
-      layout.value = "1x3";
-      g.fusao({ cor: cores.value, opacidade: Number(opacidade.value), suvMax: Number(topoSuv.value) });
+      g.fusao({ cor, opacidade: opac, suvMax: topo });
+      if (lateral.hidden) ajustarPaineis(!tira.hidden, true);
+      mostrarAba("PET");
     }
   };
-  cores.onchange = () => g.fusao({ cor: cores.value });
-  opacidade.onchange = () => g.fusao({ opacidade: Number(opacidade.value) });
-  topoSuv.onchange = () => g.fusao({ suvMax: Number(topoSuv.value) });
-  seg.onchange = async () => {
-    aviso.textContent = seg.value ? tr("Carregando…") : "";
-    const r = await g.mostrarSegDaSerie(study, seg.value || null, pegar);
+  const escolherSeg = async (uid: string) => {
+    segEscolhida = uid;
+    aviso.textContent = uid ? tr("Carregando…") : "";
+    const r = await g.mostrarSegDaSerie(study, uid || null, pegar);
     if (r) aviso.textContent = `${r.descricao}: ${r.segmentos.map((x) => x.nome).join(", ")}`;
-    else if (seg.value) seg.value = "";
+    else if (uid) segEscolhida = "";
+    if (abaAtual === "PET") atualizarAba();
   };
-  const aplicarEspessura = () => g.espessura(Number(espessura.value), projecao.value as Projecao);
-  espessura.onchange = aplicarEspessura;
-  projecao.onchange = aplicarEspessura;
-  obliquo.onclick = () => g.obliquoPorDoisPontos();
-  girar.onclick = () => {
-    girando = !girando;
-    g.girar(girando);
-    girar.textContent = girando ? tr("Parar o giro") : tr("Girar MIP");
+  const nomeSeg = (x: API.DicomJson) => `${API.texto(x, "00200011")} · ${API.texto(x, "0008103E") || "SEG"}`;
+  bSeg.onclick = () => abrirMenu([
+    { rotulo: tr("Sem segmentação"), marcado: !segEscolhida, acao: () => void escolherSeg("") },
+    ...segs.map((x) => ({ rotulo: nomeSeg(x), marcado: segEscolhida === API.texto(x, "0020000E"),
+      acao: () => void escolherSeg(API.texto(x, "0020000E")) })),
+  ], 0, 0, tr("Segmentação (SEG)"), bSeg);
+
+  // ---------------------------------------------------------------- abas da direita
+  let abaAtual: Aba = lerPreferencia<Aba>("aba", "Medidas");
+  if (!ABAS.includes(abaAtual)) abaAtual = "Medidas";
+  const secao = (t: string) => el("div", { class: "titulo-painel" }, tr(t));
+  const secaoPronta = (t: string) => el("div", { class: "titulo-painel" }, t); // já traduzida
+  const imagemAtual = (): string => {
+    const vp = g.viewport() as unknown as { getCurrentImageId?: () => string } | null;
+    try { return vp?.getCurrentImageId?.() || ""; } catch { return ""; }
   };
-  apagarMedida.onclick = () => {
-    if (!apagarSelecionadas()) aviso.textContent = tr("Clique numa medida para selecioná-la antes de apagar.");
+  const irParaMedida = async (m: ResumoMedida) => {
+    const p = partesDoImageId(m.imageId);
+    if (!p) return;
+    let i = g.quadros.findIndex((q) => q.tipo === "pilha" && q.serie?.series === p.series);
+    if (i < 0) {
+      i = g.ativo;
+      await mostrarNoAtivo(p.series, i);
+    }
+    g.ativar(i);
+    const q = g.quadros[i];
+    const k = q?.serie?.imageIds.indexOf(m.imageId) ?? -1;
+    const vp = g.viewport(i) as unknown as { setImageIdIndex?: (n: number) => Promise<unknown> } | null;
+    if (k >= 0) await vp?.setImageIdIndex?.(k);
+    csTools.annotation.selection.setAnnotationSelected(m.uid, true, false);
   };
-  inverter.onclick = () => g.inverter();
-  restaurar.onclick = () => g.restaurar();
-  cine.onclick = () => {
-    tocando = !tocando;
-    g.cine(tocando ? Number(fps.value) : null);
-    cine.textContent = tocando ? tr("Parar") : tr("Cine");
+  const conteudoAba: Record<Aba, () => Node[]> = {
+    Imagem: () => {
+      const s = g.quadros[g.ativo]?.serie;
+      const lista = janelasProntas(s?.modalidade || "");
+      const jan = el("div", { class: "lista-botoes" },
+        ...lista.map(([n, w, l]) => el("button", { type: "button", class: "linha", onclick: () => g.janela(Number(w), Number(l)) },
+          el("span", {}, String(n)), el("small", {}, `${w} / ${l}`))),
+        el("button", { type: "button", class: "linha", onclick: () => g.janelaDoArquivo() }, el("span", {}, tr("Do arquivo")), el("small", {}, "")));
+      const acoes = (itens: [string, string, () => void][]) => el("div", { class: "acoes" },
+        ...itens.map(([r, ic, fn]) => { const b = botaoIcone(r, ic); b.onclick = fn; return b; }));
+      return [
+        secaoPronta(`${tr("Janelas prontas")}${s ? ` · ${s.modalidade}` : ""}`), jan,
+        secao("Imagem"), acoes([["Inverter", IC.inverter, () => g.inverter()], ["Restaurar", IC.restaurar, () => g.restaurar()],
+          ["Girar 90° à direita", IC.girar90, () => g.rodar(90)], ["Girar 90° à esquerda", "M20 12a8 8 0 0 0-14-5.3M6 3v4h4", () => g.rodar(-90)],
+          ["Espelhar na horizontal", IC.espelhar, () => g.espelhar("h")], ["Espelhar na vertical", "M3 12h18M7 8l5-5 5 5M7 16l5 5 5-5", () => g.espelhar("v")]]),
+        secao("Zoom"), el("div", { class: "acoes texto" },
+          el("button", { type: "button", onclick: () => g.zoom("ajustar") }, tr("Ajustar")),
+          el("button", { type: "button", onclick: () => g.zoom("1:1") }, "1:1"),
+          el("button", { type: "button", onclick: () => g.zoom("2x") }, "2×")),
+      ];
+    },
+    Medidas: () => {
+      const ms = listarMedidas();
+      const sel = new Set(csTools.annotation.selection.getAnnotationsSelected());
+      const itens = ms.map((m) => {
+        const p = partesDoImageId(m.imageId);
+        const q = g.quadros.find((x) => x.serie?.series === p?.series)?.serie;
+        const n = q ? q.imageIds.indexOf(m.imageId) + 1 : 0;
+        const linha = el("div", { class: `medida${sel.has(m.uid) ? " sel" : ""}` });
+        const ir = el("button", { type: "button", class: "ir", title: tr("Mostrar na imagem") },
+          el("span", { class: "nome" }, m.nome, el("small", {}, n ? `Im ${n}` : "")),
+          el("span", { class: "valor" }, m.linhas.join("\n") || "—"),
+          ...(m.autor ? [el("small", {}, m.autor)] : []));
+        ir.onclick = () => void irParaMedida(m);
+        const cp = botaoIcone("Copiar valor", IC.copiar);
+        cp.onclick = async () => { aviso.textContent = (await copiarValor(m.uid)) ? tr("Valor copiado.") : tr("Não deu para copiar."); };
+        const ap = botaoIcone("Apagar esta medida", IC.lixo, { class: "ic perigo" });
+        ap.onclick = () => apagarMedida(m.uid);
+        linha.append(ir, el("div", { class: "acoes-medida" }, cp, ap));
+        return linha;
+      });
+      return [secaoPronta(`${ms.length} ${ms.length === 1 ? tr("medida") : tr("medidas")}`),
+        ...(itens.length ? itens : [el("div", { class: "dica" }, tr("Nenhuma medida ainda. Escolha uma ferramenta de medida e desenhe na imagem."))])];
+    },
+    DICOM: () => {
+      const id = imagemAtual();
+      const m = META.get(id);
+      if (!m) return [el("div", { class: "dica" }, tr("Nenhuma imagem no quadro ativo."))];
+      const filtro = el("input", { type: "search", placeholder: tr("Filtrar"), "aria-label": tr("Filtrar tags") }) as HTMLInputElement;
+      const corpo = el("tbody");
+      const linhas = Object.keys(m).sort().map((tag) => {
+        const v = m[tag];
+        const val = v.Value !== undefined ? (v.Value as unknown[]).map((x) => (typeof x === "object" ? (x && "Alphabetic" in (x as object) ? (x as { Alphabetic: string }).Alphabetic : "…") : String(x))).join("\\") : (v.BulkDataURI ? tr("(dados)") : "");
+        const nome = NOMES_TAGS[tag] || "";
+        const tr_ = el("tr", {}, el("td", { class: "tag" }, `${tag.slice(0, 4)},${tag.slice(4)}`), el("td", {}, nome),
+          el("td", { class: "vr" }, String(v.vr || "")), el("td", { class: "val" }, val.length > 120 ? `${val.slice(0, 120)}…` : val));
+        corpo.append(tr_);
+        return { tr_, texto: `${tag} ${nome} ${val}`.toLowerCase() };
+      });
+      filtro.oninput = () => {
+        const t = filtro.value.toLowerCase();
+        for (const l of linhas) l.tr_.hidden = !!t && !l.texto.includes(t);
+      };
+      return [filtro, el("table", { class: "tags" }, corpo)];
+    },
+    PET: () => {
+      const pets = g.quadros.map((q) => q.sobre ?? (q.serie?.modalidade === "PT" ? q.serie : null)).filter(Boolean);
+      const pet = pets[0];
+      const cores = el("select", { title: tr("Cor da fusão") },
+        ...(config?.tabelas_cores ? Object.entries(config.tabelas_cores) : []).map(([k, t]) =>
+          el("option", { value: k, selected: k === cor }, tr(t.nome)))) as HTMLSelectElement;
+      cores.onchange = () => { cor = cores.value; g.fusao({ cor }); };
+      const op = el("select", { title: tr("Opacidade da fusão") },
+        ...[20, 35, 50, 65, 80, 100].map((n) => el("option", { value: n / 100, selected: Math.round(opac * 100) === n }, `${n}%`))) as HTMLSelectElement;
+      op.onchange = () => { opac = Number(op.value); g.fusao({ opacidade: opac }); };
+      const tp = el("select", { title: tr("Topo da janela de SUV") },
+        ...[3, 5, 6, 8, 10, 15, 20].map((n) => el("option", { value: n, selected: n === topo }, `SUV ${n}`))) as HTMLSelectElement;
+      tp.onchange = () => { topo = Number(tp.value); g.fusao({ suvMax: topo }); };
+      const sg = el("select", { title: tr("Segmentação (SEG)") }, el("option", { value: "" }, tr("Sem segmentação")),
+        ...segs.map((x) => el("option", { value: API.texto(x, "0020000E"), selected: segEscolhida === API.texto(x, "0020000E") }, nomeSeg(x)))) as HTMLSelectElement;
+      if (!segs.length) sg.disabled = true;
+      sg.onchange = () => void escolherSeg(sg.value);
+      const abrir = el("button", { type: "button", class: "primario", onclick: () => bPet.click() }, tr("Abrir PET/CT"));
+      return [
+        secaoPronta("SUV"), el("div", { class: "dica" }, pet ? (pet.suv ? `${tr("Pelo peso")} · ${tr("fator")} ${pet.suv.toExponential(3)}` : `${tr("Sem SUV:")} ${pet.suvMotivo || "?"}`) : tr("Nenhum PET nos quadros.")),
+        abrir,
+        secao("Cor da fusão"), cores, secao("Opacidade"), op, secao("Topo da janela de SUV"), tp,
+        secao("Segmentações do exame"), sg,
+        el("div", { class: "dica" }, `${tr("SUV máximo perto do cursor")}: ${tr("escolha a ferramenta e clique perto da lesão.")}`),
+      ];
+    },
   };
-  fps.onchange = () => { if (tocando) g.cine(Number(fps.value)); };
+  function mostrarAba(a: Aba): void {
+    abaAtual = a;
+    gravarPreferencia("aba", a);
+    for (const [k, b] of botoesAba) {
+      b.setAttribute("aria-selected", String(k === a));
+      b.classList.toggle("sel", k === a);
+    }
+    atualizarAba();
+  }
+  function atualizarAba(): void {
+    if (lateral.hidden) return;
+    const foco = document.activeElement;
+    const dentro = corpoAba.contains(foco);
+    corpoAba.replaceChildren(...conteudoAba[abaAtual]());
+    if (dentro) (corpoAba.querySelector("input, select") as HTMLElement | null)?.focus();
+  }
+  const pararMedidas = aoMudarMedidas(() => { if (abaAtual === "Medidas") atualizarAba(); });
+  g.aoMudar = () => { if (abaAtual !== "Medidas") atualizarAba(); };
+  const antesDeSair = grade.encerrar.bind(grade);
+  grade.encerrar = () => { pararMedidas(); antesDeSair(); };
+  const quandoRolar = () => { if (abaAtual === "DICOM") atualizarAba(); };
+  let rolarT = 0;
+  telas.addEventListener("wheel", () => { window.clearTimeout(rolarT); rolarT = window.setTimeout(quandoRolar, 250); }, { passive: true });
+
+  // ---------------------------------------------------------------- menu do botão direito
+  g.aoMenu = (i, x, y, elTela) => {
+    g.ativar(i);
+    const q = g.quadros[i];
+    const uid = medidaNoPonto(elTela, x, y);
+    const m = uid ? medidaPorUid(uid) : null;
+    const imageId = imagemAtual();
+    const bs = botoes();
+    const itens: ItemMenu[] = [];
+    if (m) {
+      itens.push({ titulo: `${m.nome}${m.linhas[0] ? ` · ${m.linhas[0]}` : ""}` });
+      if (m.kind === "arrow") itens.push({ rotulo: tr("Editar texto da seta"), icone: IC.texto, acao: () => editarTexto(m.uid) });
+      itens.push({ rotulo: tr("Copiar valor"), icone: IC.copiar, acao: async () => { aviso.textContent = (await copiarValor(m.uid)) ? tr("Valor copiado.") : tr("Não deu para copiar."); } });
+      itens.push({ rotulo: tr("Apagar esta medida"), icone: IC.lixo, perigo: true, acao: () => apagarMedida(m.uid) });
+      itens.push({ separador: true });
+    }
+    const lista = janelasProntas(q?.serie?.modalidade || "");
+    itens.push({ rotulo: tr("Janela"), icone: IC.janela, sub: [
+      ...lista.map(([n, w, l]) => ({ rotulo: String(n), dica: `${w} / ${l}`, acao: () => g.janela(Number(w), Number(l)) })),
+      { separador: true },
+      { rotulo: tr("Do arquivo"), acao: () => g.janelaDoArquivo() },
+      { rotulo: tr("Inverter"), acao: () => g.inverter() },
+    ] });
+    itens.push({ rotulo: tr("Zoom"), icone: IC.zoom, sub: [
+      { rotulo: tr("Ajustar à tela"), acao: () => g.zoom("ajustar") },
+      { rotulo: "1:1", acao: () => g.zoom("1:1") }, { rotulo: "2×", acao: () => g.zoom("2x") },
+    ] });
+    itens.push({ rotulo: tr("Girar e espelhar"), icone: IC.girar90, sub: [
+      { rotulo: tr("Girar 90° à direita"), acao: () => g.rodar(90) },
+      { rotulo: tr("Girar 90° à esquerda"), acao: () => g.rodar(-90) },
+      { rotulo: tr("Espelhar na horizontal"), acao: () => g.espelhar("h") },
+      { rotulo: tr("Espelhar na vertical"), acao: () => g.espelhar("v") },
+    ] });
+    if (q?.serie && !q.serie.semVolume) {
+      itens.push({ rotulo: tr("Plano"), icone: IC.mpr, dica: q.tipo === "pilha" ? tr("Original") : q.tipo === "mip" ? "MIP" : "", sub: [
+        { rotulo: tr("Original"), marcado: q.tipo === "pilha", acao: () => g.mudarPlano(i, null) },
+        { rotulo: tr("Axial"), marcado: q.tipo === "plano" && q.plano === "AXIAL", acao: () => g.mudarPlano(i, "AXIAL") },
+        { rotulo: tr("Coronal"), marcado: q.tipo === "plano" && q.plano === "CORONAL", acao: () => g.mudarPlano(i, "CORONAL") },
+        { rotulo: tr("Sagital"), marcado: q.tipo === "plano" && q.plano === "SAGITTAL", acao: () => g.mudarPlano(i, "SAGITTAL") },
+        { rotulo: "MIP", marcado: q.tipo === "mip", acao: () => g.mudarParaMip(i) },
+      ] });
+    }
+    const subBotao = (k: keyof Botoes): ItemMenu => ({ rotulo: tr(k === "esq" ? "Botão esquerdo" : k === "meio" ? "Botão do meio" : "Botão direito"),
+      dica: tr(NOMES_FERRAMENTAS[bs[k]]), sub: (Object.keys(NOMES_FERRAMENTAS) as Ferramenta[]).map((f) => ({
+        rotulo: tr(NOMES_FERRAMENTAS[f]), icone: IC[f], marcado: bs[k] === f, acao: () => escolher(f, k) })) });
+    itens.push({ rotulo: tr("Funções dos botões"), icone: IC.botoes, sub: [subBotao("esq"), subBotao("meio"), subBotao("dir")] });
+    itens.push({ rotulo: tr("Série"), icone: IC.serie, dica: q?.serie ? `Se ${q.serie.numero}` : "", sub: series.map((s) => {
+      const u = API.texto(s, "0020000E");
+      return { rotulo: `${API.texto(s, "00200011")} · ${API.texto(s, "0008103E") || API.texto(s, "00080060")}`,
+        marcado: q?.serie?.series === u, acao: () => void mostrarNoAtivo(u, i) };
+    }) });
+    itens.push({ rotulo: tr("Quadros e cine"), icone: IC.layout, sub: [
+      ...LAYOUTS_PRONTOS.map(([l, c]) => ({ rotulo: `${l} × ${c}`, marcado: g.linhas === l && g.colunas === c, acao: () => montar(l, c) })),
+      { separador: true },
+      { rotulo: tocando ? tr("Parar o cine") : tr("Cine"), acao: () => cine(!tocando) },
+    ] });
+    itens.push({ separador: true });
+    itens.push({ rotulo: tr("Apagar medidas da imagem"), icone: IC.lixo, desligado: !imageId, acao: () => {
+      const n = apagarMedidasDaImagem(imageId);
+      aviso.textContent = n ? `${n} ${tr("medidas apagadas.")}` : tr("Nenhuma medida nesta imagem.");
+    } });
+    itens.push({ rotulo: tr("Restaurar"), icone: IC.restaurar, acao: () => g.restaurar() });
+    abrirMenu(itens, x, y, tr("Menu da imagem"));
+  };
+
+  // ---------------------------------------------------------------- começo
+  const salvos = lerPreferencia<Partial<Botoes>>("botoes", {});
+  const validos = (f: unknown): f is Ferramenta => typeof f === "string" && f in NOMES_FERRAMENTAS && f !== "suvmax" && f !== "linhas";
+  aplicarBotoes({ esq: validos(salvos.esq) ? salvos.esq : "janela", meio: validos(salvos.meio) ? salvos.meio : "mover",
+    dir: validos(salvos.dir) ? salvos.dir : "zoom" });
+  atualizarMarcas();
   const inicial: [number, number] = series.length >= 2 ? [1, 2] : [1, 1];
-  layout.value = `${inicial[0]}x${inicial[1]}`;
   montar(...inicial);
-  encherPresets();
+  mostrarAba(abaAtual);
   // pré-carga: primeiro as séries que estão nos quadros, depois as outras, na ordem da tira
   void (async () => {
     await new Promise((r) => setTimeout(r, 300));
@@ -420,5 +879,6 @@ function rota(): void {
 }
 
 window.addEventListener("hashchange", rota);
+(window as unknown as Record<string, unknown>).__ipeIdioma = (l: string) => { setLang(l); rota(); }; // testes
 window.addEventListener("resize", () => grade?.redimensionar());
 rota();

@@ -1,3 +1,5 @@
+from pathlib import Path
+import sys
 """0.99.91 (W0): o visualizador web de ponta a ponta — o Chromium do Playwright abre o site num servidor central de
 teste, entra, busca, abre um exame e mexe nos quadros. Pula se o site não foi construído (web_dist) ou se não há
 Playwright."""
@@ -7,7 +9,10 @@ import time
 import numpy as np
 import pytest
 
-from ipe.central import web as WEB
+from ipe.central import web as WEB  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).parent))
+from _web_ui import aba, botoes, espessura, ferramenta, icone, layout, menu, quadros  # noqa: E402,F401
 
 pytestmark = pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_dist) não foi construído")
 
@@ -121,23 +126,25 @@ def test_login_lista_exame_e_quadros(servidor):
             pg.mouse.wheel(0, 120)
         assert _esperar(lambda: pg.locator(".quadro .canto.ie").first.inner_text() != antes)
         # janela pronta (do servidor) e inverter
-        opcoes = pg.locator("select[title='Janelas prontas'] option").all_inner_texts()
+        aba(pg, "Imagem")
+        opcoes = pg.locator(".corpo-aba button.linha").all_inner_texts()
         assert any("Pulmão" in o for o in opcoes)
-        pg.select_option("select[title='Janelas prontas']", label=next(o for o in opcoes if "Pulmão" in o))
+        pg.locator(".corpo-aba button.linha", has_text="Pulmão").first.click()
         assert _esperar(lambda: "1500 / -600" in pg.locator(".quadro .canto.id").first.inner_text())
-        pg.click("button:has-text('Inverter')")
+        icone(pg, 'Inverter')
         assert _esperar(lambda: "Inverter" in pg.locator(".quadro .canto.id").first.inner_text())
         # layout 2×2
-        pg.select_option("select[title=Layout]", "2x2")
+        layout(pg, "2x2")
         assert _esperar(lambda: pg.locator(".quadro").count() == 4)
         # cine liga e desliga
-        pg.click("nav.barra button:has-text('Cine')")
-        assert _esperar(lambda: pg.locator("nav.barra button:has-text('Parar')").count() == 1)
-        pg.click("nav.barra button:has-text('Parar')")
+        icone(pg, "Cine")
+        assert _esperar(lambda: pg.get_attribute("nav.barra button[aria-label='Cine']", "aria-pressed") == "true")
+        icone(pg, "Cine")
+        assert _esperar(lambda: pg.get_attribute("nav.barra button[aria-label='Cine']", "aria-pressed") == "false")
         # a abertura ficou na auditoria
         assert repo.access_log(user="admin", action="web_abriu")
         # voltar, abrir a mamografia em JPEG-LS (sigmoide): não pode ficar branca
-        pg.click("button:has-text('Voltar à lista')")
+        icone(pg, 'Voltar à lista')
         pg.wait_for_selector("table.lista tbody tr")
         pg.fill("#busca", "JLS")
         pg.click("button:has-text('Buscar')")

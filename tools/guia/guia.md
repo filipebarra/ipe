@@ -1010,9 +1010,17 @@ Nesta primeira fase:
   - **Cache do navegador**: reabrir um exame só confere com o servidor se a imagem mudou (a senha continua valendo); quase nada passa pela rede.
   - A decodificação usa todos os núcleos do computador menos um, e os metadados da série vão comprimidos.
   - **Carga** (barra): mostra quantas imagens e quantos MB vieram pela rede, em quanto tempo (MB/s), quanto o navegador levou para decodificar cada uma, em que formato vieram e quantas vieram do cache. Serve para saber se o que pesa é a rede ou o computador.
-- **Quadros** de 1×1 a 2×3. Botões do mouse como no Ipê: o esquerdo é a ferramenta escolhida (janela, mover, zoom ou rolar), o do meio move, o direito dá zoom e a roda rola os cortes. **Janelas prontas** (as suas, do Ipê, e a do arquivo), **Inverter**, **Cine** com a velocidade e **Restaurar**. Os textos dos cantos trazem o paciente, a série, o corte, o zoom e a janela.
+- **Quadros** de 1×1 até 4×4 (ícone de layout: passe o mouse na grade e clique) e protocolos prontos (MPR, PET/CT). **Janelas prontas** (as suas, por modalidade) na aba **Imagem** e no menu do botão direito.
 - **Formatos**: HTJ2K (a cópia de envio), JPEG-LS, JPEG 2000 e JPEG são decodificados no próprio navegador; o que está em outros formatos (cor, JPEG 2000 guardado) vai como está no banco. A mamografia usa a janela do aparelho (inclusive a sigmoide).
 - **Segurança**: nada do paciente fica gravado no navegador; recarregar a página pede o login de novo e a sessão parada se encerra sozinha. Cada exame aberto fica no registro de acesso ("abriu no navegador"). Na rede interna, use HTTPS com o certificado do Ipê.
+
+**A tela (0.99.97), no estilo do Weasis.**
+
+- **Uma barra de ícones** (passe o mouse para ver o nome). Os ícones com setinha abrem um menu: as ROIs (elíptica, retangular, livre) e os ângulos (ângulo, Cobb) mostram a ferramenta escolhida; clique na setinha para trocar.
+- **Cada botão do mouse com a sua função, como no Ipê**: clique no ícone da função **com o botão do mouse que deve fazê-la** — com o esquerdo, ela vai para o esquerdo; com o do meio, para o do meio; com o direito, para o direito. A marca amarela embaixo do ícone mostra qual: à esquerda, no meio ou à direita (uma função pode estar em dois botões). O rodapé resume as três, e a escolha fica gravada no navegador. A roda continua passando os cortes.
+- **Botão direito**: **clicar e segurar** (arrastando) faz a função dele — por padrão, o zoom; **clicar e soltar** abre o **menu da imagem**: Janela (as prontas, a do arquivo, inverter), Zoom (ajustar, 1:1, 2×), Girar e espelhar, Plano (Original, A, C, S, MIP), Funções dos botões, Série, Quadros e cine, Apagar medidas da imagem e Restaurar. Em cima de uma medida, o menu começa por ela: copiar o valor, editar o texto (seta) e apagar.
+- **Painel da esquerda**: as séries (com a porcentagem baixada) e os **exames anteriores** do paciente (clique para abrir). **Painel da direita**, em abas: **Imagem** (janelas prontas, inverter, girar, espelhar, zoom), **Medidas** (todas as do exame com o valor e quem mediu; clique para ir à imagem; copiar e apagar), **DICOM** (as tags da imagem do quadro ativo, com filtro) e **PET** (SUV, cor, opacidade, topo da janela e segmentações). Os dois painéis recolhem (a seta no alto) e abrem de novo pela tira fina que fica no lugar.
+- **Rodapé**: imagens disponíveis, velocidade da rede e decodificação, **Carga** (o painel completo) e a função de cada botão.
 
 **Volume: MPR, oblíquo e MIP (0.99.92).**
 
@@ -1023,10 +1031,10 @@ Nesta primeira fase:
 - **MIP girando**: **Girar MIP** liga o giro em volta do eixo do paciente; a roda do mouse sobre o MIP gira aos poucos. **Clicar num ponto do MIP** leva os outros quadros ao ponto mais claro daquela linha de visão. Na TC o MIP abre com janela larga; no PET, invertido.
 - Série que não dá volume (imagem única, cortes com orientações ou tamanhos diferentes, vários quadros num arquivo) fica em cortes, com o aviso do motivo. Volumes maiores que 1,5 GB não são montados no navegador.
 
-**Medidas (0.99.93).** No **Botão esquerdo**: régua, ângulo, Cobb, ROI elíptica, retangular e livre, pixel, seta e calibração.
+**Medidas (0.99.93).** Na barra: régua, ângulo, Cobb, ROI elíptica, retangular e livre, pixel, seta e calibração (em qualquer botão do mouse).
 
 - **O número é o do Ipê**: a mesma escala (calibração desta imagem, depois a da série, a região do ultrassom e o espaçamento do arquivo), a mesma regra da ROI (o pixel conta se o centro está dentro) e o mesmo texto — média ± DP, mínimo e máximo, área.
-- **Ficam no banco do servidor**, no formato do Ipê: o que se mede no navegador aparece no Ipê (e o que se mediu no Ipê aparece no navegador), com quem mediu. Mexer numa ponta atualiza a medida; para apagar, clique na medida (com qualquer ferramenta) e em **Apagar medida**. Só vale para os quadros de cortes ("Original"): no MPR as medidas ficam só na tela, como no Ipê.
+- **Ficam no banco do servidor**, no formato do Ipê: o que se mede no navegador aparece no Ipê (e o que se mediu no Ipê aparece no navegador), com quem mediu. Mexer numa ponta atualiza a medida; para apagar, clique na medida com o botão direito (menu ▸ Apagar esta medida) ou use a aba **Medidas**. Só vale para os quadros de cortes ("Original"): no MPR as medidas ficam só na tela, como no Ipê.
 - **Ultrassom**: a distância usa a região calibrada do próprio aparelho; uma régua que atravessa duas regiões (do 2D para o Doppler, por exemplo) fica em pixels. **Calibração**: trace uma distância conhecida e digite os milímetros — no ultrassom vale só para aquela imagem; nas outras modalidades, para a série.
 
 **PET/CT (0.99.94).**
@@ -1034,7 +1042,7 @@ Nesta primeira fase:
 - **PET/CT** (barra): a leitura de PET como no Ipê — a **fusão** (a TC em partes moles com o PET por cima), o **PET** em cinza invertido e o **MIP do PET**. Os dois axiais andam juntos (corte, zoom e posição); clicar no MIP leva os cortes ao ponto mais claro. O programa escolhe o PET do quadro ativo (ou o maior do exame) e a maior TC.
 - **SUV pela conta do Ipê**: o PET chega ao navegador já em SUV (pelo peso, com a dose e os horários do arquivo); sem peso ou sem dados do radiofármaco, o aviso diz o que falta e os valores ficam em Bq/ml. A ROI e o valor do pixel no PET trazem o SUVmáx e o SUVméd como no Ipê.
 - **Cor da fusão** (as tabelas do Ipê: Hot Iron, PET, arco-íris…), **opacidade** e **topo da janela de SUV** (o fundo é zero). O que fica abaixo de 8% do topo não pinta, como no Ipê.
-- **SUV máximo perto do cursor**: escolha no Botão esquerdo e clique perto da lesão num quadro de volume do PET (a fusão, A, C ou S): o programa acha o voxel mais quente numa esfera de 3 cm e leva os cortes até ele; o valor aparece no canto.
+- **SUV máximo perto do cursor**: escolha o ícone (com o botão do mouse que vai usar) e clique perto da lesão num quadro de volume do PET (a fusão, A, C ou S): o programa acha o voxel mais quente numa esfera de 3 cm e leva os cortes até ele; o valor aparece no canto.
 - **Segmentação (SEG)**: as segmentações gravadas no exame (a carga tumoral, os órgãos e as lesões da IA do Ipê) aparecem como máscaras coloridas nos quadros de volume, com as cores do Ipê.
 
 As próximas fases trazem a mamografia com o protocolo e dois monitores, a dinâmica da mama e o laudo. Por enquanto é só na rede da clínica; de fora, entre pela VPN.

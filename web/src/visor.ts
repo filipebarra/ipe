@@ -44,7 +44,6 @@ export const LIMITE_VOLUME = 1.5 * 1024 ** 3;
 /** o tipo do arrasto da tira de séries (o valor é o SeriesInstanceUID) */
 export const TIPO_ARRASTO = "application/x-ipe-serie";
 let iniciado = false;
-let ferramentaAtual: Ferramenta = "janela";
 let motor: RenderingEngine | null = null;
 
 export type Ferramenta = "janela" | "mover" | "zoom" | "rolar" | "linhas" | "regua" | "angulo" | "cobb" | "elipse"
@@ -118,31 +117,48 @@ export async function iniciar(): Promise<void> {
 
 /** O botão esquerdo vira a ferramenta `f` (nos quadros de volume, "linhas" = a cruz das linhas de referência);
  * meio = mover, direito = zoom e a roda = rolar continuam. No MIP, o esquerdo leva os cortes ao ponto mais claro. */
-export function aplicarBotoes(f: Ferramenta): void {
-  ferramentaAtual = f;
+/** A função de cada botão do mouse, como no Ipê (0.99.97): clicar no ícone da barra com o botão escolhe. */
+export interface Botoes { esq: Ferramenta; meio: Ferramenta; dir: Ferramenta }
+let botoesAtuais: Botoes = { esq: "janela", meio: "mover", dir: "zoom" };
+const MB_DO_BOTAO: Record<keyof Botoes, number> = { esq: MB.Primary, meio: MB.Auxiliary, dir: MB.Secondary };
+const BOTAO_DO_EVENTO: Record<number, keyof Botoes> = { 0: "esq", 1: "meio", 2: "dir" };
+
+export function botoes(): Botoes {
+  return { ...botoesAtuais };
+}
+
+/** Uma ferramenta (vai para o botão esquerdo) ou as dos três botões. */
+export function aplicarBotoes(f: Ferramenta | Partial<Botoes>): void {
+  botoesAtuais = typeof f === "string" ? { ...botoesAtuais, esq: f } : { ...botoesAtuais, ...f };
   for (const id of [TG_2D, TG_VOL, TG_MIP]) {
     const tg = ToolGroupManager.getToolGroup(id);
     if (!tg) continue;
     const fixos: Record<string, number[]> = {
-      [PanTool.toolName]: [MB.Auxiliary],
-      [ZoomTool.toolName]: [MB.Secondary],
+      [PanTool.toolName]: [],
+      [ZoomTool.toolName]: [],
       [StackScrollTool.toolName]: id === TG_MIP ? [] : [MB.Wheel],
       [WindowLevelTool.toolName]: [],
     };
     if (id === TG_VOL) fixos[CrosshairsTool.toolName] = [];
     if (id !== TG_MIP) for (const nome of Object.values(FERRAMENTA_DA_ESCOLHA)) fixos[nome] = [];
-    if (id === TG_MIP) {
-      fixos[MIPJumpToClickTool.toolName] = [MB.Primary];
-    } else if (f === "suvmax") {
-      // o clique é tratado pela grade (procura o SUV máximo perto do ponto); nenhuma ferramenta no esquerdo
-    } else if (f === "linhas") {
-      if (id === TG_VOL) fixos[CrosshairsTool.toolName].push(MB.Primary);
-      else fixos[WindowLevelTool.toolName].push(MB.Primary);
-    } else {
-      fixos[NOME[f]].push(MB.Primary);
+    if (id === TG_MIP) fixos[MIPJumpToClickTool.toolName] = [MB.Primary];
+    for (const [botao, mb] of Object.entries(MB_DO_BOTAO) as [keyof Botoes, number][]) {
+      const t = botoesAtuais[botao];
+      if (t === "suvmax") continue;                 // o clique é tratado pela grade (SUV máximo perto do ponto)
+      if (id === TG_MIP) {
+        // no MIP o esquerdo leva os cortes ao ponto clicado; os outros botões só movem, ampliam ou ajustam a janela
+        if (botao !== "esq" && (t === "janela" || t === "mover" || t === "zoom")) fixos[NOME[t]].push(mb);
+        continue;
+      }
+      if (t === "linhas") {
+        if (id === TG_VOL) fixos[CrosshairsTool.toolName].push(mb);
+        else fixos[WindowLevelTool.toolName].push(mb);
+      } else if (NOME[t]) {
+        (fixos[NOME[t]] ??= []).push(mb);
+      }
     }
-    for (const [nome, botoes] of Object.entries(fixos)) {
-      if (botoes.length) tg.setToolActive(nome, { bindings: botoes.map((b) => ({ mouseButton: b })) });
+    for (const [nome, bs] of Object.entries(fixos)) {
+      if (bs.length) tg.setToolActive(nome, { bindings: bs.map((b) => ({ mouseButton: b })) });
       else tg.setToolPassive(nome);
     }
   }
@@ -308,8 +324,23 @@ export class Grade {
   aviso: (msg: string) => void = () => {};
   /** soltaram uma série (arrastada da tira) no quadro i */
   aoSoltar: (series: string, i: number) => void = () => {};
+  /** clicou e soltou o botão direito sem arrastar no quadro i: o menu da imagem (x, y na página) */
+  aoMenu: (i: number, x: number, y: number, el: HTMLDivElement) => void = () => {};
+  private direito: { x: number; y: number; i: number; el: HTMLDivElement } | null = null;
 
-  constructor(public raiz: HTMLElement) {}
+  constructor(public raiz: HTMLElement) {
+    this.soltouDireito = (e: MouseEvent) => {
+      const d = this.direito;
+      this.direito = null;
+      if (e.button !== 2 || !d) return;
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) return;
+      if (botoesAtuais.dir === "suvmax") return;
+      this.aoMenu(d.i, e.clientX, e.clientY, d.el);
+    };
+    window.addEventListener("mouseup", this.soltouDireito, true);
+  }
+
+  private soltouDireito: (e: MouseEvent) => void;
 
   /** Monta os quadros. `specs` (opcional) diz o que vai em cada um; sem ele, ficam as séries de antes. */
   montar(linhas: number, colunas: number, specs?: Spec[]): void {
@@ -328,6 +359,10 @@ export class Grade {
       const el = document.createElement("div");
       el.className = "tela";
       el.oncontextmenu = (e) => e.preventDefault();
+      // botão direito: segurar e arrastar faz a função dele; clicar e soltar abre o menu
+      el.addEventListener("mousedown", (e) => {
+        if (e.button === 2) this.direito = { x: e.clientX, y: e.clientY, i, el };
+      }, true);
       selecionarAoClicar(el);
       const textos = document.createElement("div");
       textos.className = "textos";
@@ -636,7 +671,7 @@ export class Grade {
   /** "Ir ao SUV máximo perto do cursor (3 cm)": o clique procura o máximo numa esfera em volta do ponto e leva
    * os cortes de todos os quadros até ele. */
   private cliqueSuvMax(e: MouseEvent, q: Quadro): void {
-    if (ferramentaAtual !== "suvmax" || e.button !== 0) return;
+    if (botoesAtuais[BOTAO_DO_EVENTO[e.button]] !== "suvmax") return;
     e.stopPropagation();
     e.preventDefault();
     const vid = this.volumePetDe(q);
@@ -861,6 +896,42 @@ export class Grade {
       p.invert && !q.serie.suv ? tr("Inverter") : ""]);
   }
 
+  // -------------------------------------------------------------- comandos do menu (0.99.97)
+  /** "ajustar" à tela, "1:1" (um pixel da imagem por pixel da tela) ou "2x". */
+  zoom(modo: "ajustar" | "1:1" | "2x"): void {
+    const vp = this.viewport() as Types.IStackViewport | null;
+    if (!vp) return;
+    vp.resetCamera();
+    if (modo !== "ajustar") {
+      const cam = vp.getCamera();
+      const canvas = vp.canvas as HTMLCanvasElement;
+      const im = (vp as unknown as { getImageData?: () => { spacing: number[] } | null }).getImageData?.();
+      const esp = im?.spacing?.[1] || 1;
+      const escala = (canvas.clientHeight / 2) * esp * (modo === "2x" ? 0.5 : 1);
+      vp.setCamera({ ...cam, parallelScale: escala });
+    }
+    vp.render();
+    this.escreverTextos(this.quadros[this.ativo]);
+  }
+
+  /** Gira 90° (sentido horário com +90) ou espelha. */
+  rodar(graus: number): void {
+    const vp = this.viewport() as unknown as { getViewPresentation: () => { rotation?: number };
+      setViewPresentation: (p: { rotation: number }) => void; render: () => void } | null;
+    if (!vp) return;
+    const r = vp.getViewPresentation().rotation || 0;
+    vp.setViewPresentation({ rotation: (r + graus + 360) % 360 });
+    vp.render();
+  }
+
+  espelhar(eixo: "h" | "v"): void {
+    const vp = this.viewport() as Types.IStackViewport | null;
+    if (!vp) return;
+    const cam = vp.getCamera();
+    vp.setCamera(eixo === "h" ? { flipHorizontal: !cam.flipHorizontal } : { flipVertical: !cam.flipVertical });
+    vp.render();
+  }
+
   // -------------------------------------------------------------- comandos da barra
   janela(largura: number, nivel: number): void {
     const vp = this.viewport() as Types.IStackViewport | null;
@@ -909,6 +980,12 @@ export class Grade {
 
   redimensionar(): void {
     motor?.resize(true, true);
+  }
+
+  /** Sai do exame: tira também o ouvinte do botão direito. */
+  encerrar(): void {
+    window.removeEventListener("mouseup", this.soltouDireito, true);
+    this.desmontar(true);
   }
 
   desmontar(tudo = true): void {

@@ -3,6 +3,17 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.97 — web viewer: new interface (Weasis style)
+- **Icon toolbar** and **each mouse button with its own function, as in Ipê**: clicking an icon with the left,
+  middle or right button gives the function to that button; the mark under the icon (left, middle, right) shows
+  which. The choice is remembered.
+- **Right-click menu** on the image (click and release; click and hold does the button's function): window, zoom,
+  rotate and flip, plane, mouse button functions, series, viewports and cine, delete measurements, reset; on a
+  measurement, copy the value and delete it.
+- **Collapsible panels**: series and prior studies on the left; **Image**, **Measurements**, **DICOM** (tags with a
+  filter) and **PET** tabs on the right. Layout from 1×1 to 4×4 on a grid, and a footer with loading and button
+  functions.
+
 ## 0.99.96 — web viewer: faster loading
 - Images go to the browser as **lossless HTJ2K** (a transport copy checked pixel by pixel and cached; the archive does
   not change): 2 to 5 times fewer bytes on a CT, fast decoding and **progressive loading**.

@@ -10,6 +10,9 @@ from test_web_mpr import NZ, _esperar, servidor  # noqa: E402,F401  (fixture)
 
 from ipe.central import web as WEB  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).parent))
+from _web_ui import aba, botoes, espessura, ferramenta, icone, layout, menu, quadros  # noqa: E402,F401  # noqa: E402
+
 pytestmark = pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_dist) não foi construído")
 
 
@@ -40,11 +43,11 @@ def test_arrastar_serie_e_imagens_disponiveis(servidor):
         assert _esperar(lambda: pg.evaluate("() => window.__ipeDisp.geral()")["porcentagem"] == 100, 60), \
             pg.evaluate("() => window.__ipeDisp.geral()")
         # com tudo pronto, o cabeçalho e as barras da tira somem
-        assert _esperar(lambda: pg.inner_text(".barra .disponiveis") == "")
+        assert _esperar(lambda: pg.inner_text(".rodape .disponiveis") == "")
         assert pg.locator("aside.tira .serie.baixando").count() == 0
         assert pg.evaluate("() => window.__ipeDisp.porcentagem(document.querySelector('aside.tira .serie').dataset.serie)") == 100
         # arrastar: o scout para o primeiro quadro, a série de 40 para o segundo
-        pg.select_option("select[title=Layout]", "1x2")
+        layout(pg, "1x2")
         assert _esperar(lambda: pg.locator(".quadro").count() == 2)
         tira = pg.locator("aside.tira .serie")
         scout = tira.filter(has_text="SCOUT")
@@ -77,7 +80,7 @@ def test_porcentagem_enquanto_baixa(servidor):
         vistos = set()
 
         def parcial():
-            t = pg.inner_text(".barra .disponiveis")
+            t = pg.inner_text(".rodape .disponiveis")
             if t and "%" in t and not t.strip().endswith("100%"):
                 vistos.add("cab")
             if pg.locator("aside.tira .serie.baixando b").count():

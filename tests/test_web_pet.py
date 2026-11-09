@@ -1,3 +1,5 @@
+from pathlib import Path
+import sys
 """0.99.94 (W3): PET/CT no visualizador web — fusão com as cores do Ipê, o PET em SUV pela conta do Ipê, a leitura
 fusão + PET + MIP com os axiais juntos, o SUV máximo perto do cursor e a SEG do Ipê como máscara. Fantoma de TC e
 de PET no mesmo referencial, com uma lesão quente num lugar conhecido."""
@@ -9,7 +11,10 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from ipe.central import web as WEB
+from ipe.central import web as WEB  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).parent))
+from _web_ui import aba, botoes, espessura, ferramenta, icone, layout, menu, quadros  # noqa: E402,F401
 
 pytestmark = pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_dist) não foi construído")
 
@@ -192,13 +197,13 @@ def test_fusao_suv_maximo_e_seg(servidor):
     with pw.sync_playwright() as p:
         b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
         pg = b.new_page(viewport={"width": 1500, "height": 900})
-        pg.on("pageerror", lambda e: erros.append(str(e)))
+        pg.on("pageerror", lambda e: erros.append(str(e) + " " + str(getattr(e, "stack", ""))[:1500]))
         _abrir(pg, srv)
-        pg.click("nav.barra button:has-text('PET/CT')")
+        icone(pg, 'PET/CT')
         assert _esperar(lambda: pg.locator(".quadro").count() == 3)
         assert _esperar(lambda: [t.split("\n")[-1] for t in pg.locator(".canto.sd").all_inner_texts()]
                         == ["Fusão PT · Axial", "Axial", "MIP"]), pg.locator(".canto.sd").all_inner_texts()
-        assert pg.input_value("select[title=Layout]") == "1x3"
+        assert quadros(pg) == "1x3"
         assert _esperar(lambda: _carregado(pg, ids["pt"]) and _carregado(pg, ids["ct"]))
         pt_id = f"cornerstoneStreamingImageVolume:{ids['pt']}"
         # a fusão: dois volumes, o PET em cima com a tabela do Ipê e a janela em SUV
@@ -226,7 +231,7 @@ def test_fusao_suv_maximo_e_seg(servidor):
             c.position[2] - c.focalPoint[2] + 20] }); vp.render(); }""")
         assert _esperar(lambda: abs(pg.evaluate("() => window.__ipeGrade.viewport(1).getCamera().focalPoint[2]") - 20) < 0.01)
         # SUV máximo perto do cursor: um clique a 14 mm da lesão leva os cortes ao centro dela
-        pg.select_option("select[title='Botão esquerdo:']", "suvmax")
+        ferramenta(pg, "suvmax")
         alvo = [MM[0] + 14, MM[1], 20.0]
         c = pg.evaluate(f"() => window.__ipeGrade.viewport(0).worldToCanvas({alvo})")
         bb = pg.locator(".quadro .tela").first.bounding_box()
@@ -280,9 +285,9 @@ def test_medidas_no_pet_em_suv(servidor):
     with pw.sync_playwright() as p:
         b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
         pg = b.new_page(viewport={"width": 1400, "height": 900})
-        pg.on("pageerror", lambda e: erros.append(str(e)))
+        pg.on("pageerror", lambda e: erros.append(str(e) + " " + str(getattr(e, "stack", ""))[:1500]))
         _abrir(pg, srv)
-        pg.select_option("select[title=Layout]", "1x1")
+        layout(pg, "1x1")
         assert _esperar(lambda: pg.locator(".quadro").count() == 1)
         pg.locator("aside.tira button.serie", has_text="PT").click()
         assert _esperar(lambda: "PET AC" in pg.locator(".canto.sd").first.inner_text())
@@ -296,7 +301,7 @@ def test_medidas_no_pet_em_suv(servidor):
                 return vp.worldToCanvas(m); }}""")
             bb = pg.locator(".quadro .tela").first.bounding_box()
             return bb["x"] + c[0], bb["y"] + c[1]
-        pg.select_option("select[title='Botão esquerdo:']", "pixel")
+        ferramenta(pg, "pixel")
         pg.mouse.click(*tela(LESAO[0] + 0.5, LESAO[1] + 0.5))
         fatia = _pet()[LESAO[2]].astype(float)
         esperado = labels(Annotation("probe", ("x", 0), [(LESAO[0] + 0.5, LESAO[1] + 0.5)]), fatia, (PT_PX, PT_PX),
@@ -304,7 +309,7 @@ def test_medidas_no_pet_em_suv(servidor):
         assert esperado[0].startswith("SUV ")
         assert _esperar(lambda: all(t in _textos(pg) for t in esperado)), (esperado, _textos(pg))
         # ROI elíptica: SUVmáx/SUVméd e a média em Bq/ml, como o Ipê
-        pg.select_option("select[title='Botão esquerdo:']", "elipse")
+        ferramenta(pg, "elipse")
         a, z = tela(16, 8), tela(25, 17)
         pg.mouse.move(*a)
         pg.mouse.down()

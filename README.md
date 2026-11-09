@@ -127,7 +127,11 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
 The central server also serves a viewer in the browser, with nothing to install on the reading
 computer: open `http(s)://<server>:8043/web` (the address is shown in the server window) and log in
 with the Ipê user. It is meant for the internal network for now.
-- Study list, thumbnail strip (click or drag a series onto a viewport), 1×1 to 2×3 layouts, window
+- Weasis-style screen: one icon toolbar where each mouse button gets its own function, as in Ipê
+  (click the icon with the button that should do it; a mark under the icon shows which), a right-click
+  menu on the image (click and release; click and hold does the button's function), collapsible panels
+  with series and prior studies on the left and Image, Measurements, DICOM and PET tabs on the right.
+- Study list, thumbnail strip (click or drag a series onto a viewport), layouts from 1×1 to 4×4, window
   presets, cine.
 - MPR, oblique, thick slabs and MIP, with one-click plane change, as in Ipê.
 - Measurements with Ipê's numbers (ruler, angle, Cobb, ROIs, pixel, arrow, calibration), saved in

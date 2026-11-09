@@ -125,7 +125,11 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 O servidor central também serve um visualizador no navegador, sem instalar nada no computador de
 leitura: abra `http(s)://<servidor>:8043/web` (o endereço aparece na janela do servidor) e entre com o
 usuário do Ipê. Por enquanto, para a rede interna.
-- Lista de exames, tira de séries (clique ou arraste a série até o quadro), quadros de 1×1 a 2×3,
+- Tela no estilo do Weasis: uma barra de ícones em que cada botão do mouse ganha a sua função, como no
+  Ipê (clique no ícone com o botão que deve fazê-la; uma marca embaixo do ícone mostra qual), menu do
+  botão direito na imagem (clicar e soltar; clicar e segurar faz a função do botão), painéis recolhíveis
+  com as séries e os exames anteriores à esquerda e as abas Imagem, Medidas, DICOM e PET à direita.
+- Lista de exames, tira de séries (clique ou arraste a série até o quadro), quadros de 1×1 a 4×4,
   janelas prontas, cine.
 - MPR, oblíquo, espessura e MIP, com troca de plano em um clique, como no Ipê.
 - Medidas com o número do Ipê (régua, ângulo, Cobb, ROIs, pixel, seta, calibração), gravadas no banco

@@ -535,5 +535,98 @@ export function apagarSelecionadas(): number {
   return sel.length;
 }
 
+// ------------------------------------------------------------------ painel e menu de medidas (0.99.97)
+export const NOME_DO_TIPO: Record<string, string> = {
+  line: "Régua", angle: "Ângulo", cobb: "Ângulo de Cobb", ellipse: "ROI elíptica", rect: "ROI retangular",
+  polygon: "ROI livre", probe: "Valor do pixel", arrow: "Seta", calibration: "Calibração",
+};
+
+export interface ResumoMedida { uid: string; kind: string; nome: string; linhas: string[]; imageId: string; autor: string }
+
+function anotacoes(): Anot[] {
+  return (csTools.annotation.state.getAllAnnotations() as Anot[]).filter((a) => TIPO[a.metadata?.toolName]);
+}
+
+/** As medidas dos quadros de corte, com o texto do Ipê. */
+export function listarMedidas(): ResumoMedida[] {
+  const out: ResumoMedida[] = [];
+  for (const a of anotacoes()) {
+    const kind = TIPO[a.metadata.toolName];
+    const imageId = imagemDa(a);
+    if (!imageId) continue;
+    const ipe = (a.data as { ipe?: { texto?: string; meta?: Record<string, unknown> } }).ipe || {};
+    const texto = kind === "arrow" ? String((a.data as { text?: string }).text || "") : ipe.texto || "";
+    let ls: string[] = [];
+    try { ls = linhas(kind, pontosIpe(kind, paraImagem(imageId, pontosDaAnotacao(a, kind))), imageId, texto, ipe.meta || {}); }
+    catch { /* imagem ainda não chegou */ }
+    out.push({ uid: a.annotationUID!, kind, nome: tr(NOME_DO_TIPO[kind] || kind), linhas: ls, imageId,
+      autor: String(ipe.meta?.autor || "") });
+  }
+  return out;
+}
+
+export function medidaPorUid(uid: string): ResumoMedida | null {
+  return listarMedidas().find((m) => m.uid === uid) || null;
+}
+
+/** A medida debaixo do ponto (x, y na página) no quadro, ou null. */
+export function medidaNoPonto(el: HTMLDivElement, x: number, y: number): string | null {
+  const r = el.getBoundingClientRect();
+  try {
+    const a = csTools.utilities.getAnnotationNearPoint(el, [x - r.left, y - r.top] as Types.Point2, 8);
+    return a?.annotationUID && TIPO[(a as Anot).metadata?.toolName] ? a.annotationUID : null;
+  } catch {
+    return null;
+  }
+}
+
+export function apagarMedida(uid: string): void {
+  csTools.annotation.state.removeAnnotation(uid);
+  renderizarTudo();
+}
+
+/** Apaga as medidas da imagem (as dos quadros de corte); devolve quantas. */
+export function apagarMedidasDaImagem(imageId: string): number {
+  const uids = anotacoes().filter((a) => imagemDa(a) === imageId).map((a) => a.annotationUID!);
+  for (const u of uids) csTools.annotation.state.removeAnnotation(u);
+  renderizarTudo();
+  return uids.length;
+}
+
+export async function copiarValor(uid: string): Promise<boolean> {
+  const m = medidaPorUid(uid);
+  if (!m) return false;
+  try {
+    await navigator.clipboard.writeText([m.nome, ...m.linhas].join("\n"));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** O texto da seta (as outras medidas não têm texto livre no site). */
+export function editarTexto(uid: string): boolean {
+  const a = anotacoes().find((x) => x.annotationUID === uid);
+  if (!a || TIPO[a.metadata.toolName] !== "arrow") return false;
+  const atual = String((a.data as { text?: string }).text || "");
+  const novo = window.prompt(tr("Texto da seta:"), atual);
+  if (novo === null) return false;
+  (a.data as { text?: string }).text = novo;
+  csTools.utilities.triggerAnnotationRenderForViewportIds?.([]);
+  void gravar(a);
+  renderizarTudo();
+  return true;
+}
+
+/** Avisa quando as medidas mudam (para o painel), no máximo a cada 300 ms. */
+export function aoMudarMedidas(fn: () => void): () => void {
+  let t = 0;
+  const cb = () => { window.clearTimeout(t); t = window.setTimeout(fn, 300); };
+  const E = TE.Events;
+  const evs = [E.ANNOTATION_COMPLETED, E.ANNOTATION_MODIFIED, E.ANNOTATION_REMOVED, E.ANNOTATION_ADDED];
+  for (const e of evs) eventTarget.addEventListener(e, cb);
+  return () => { for (const e of evs) eventTarget.removeEventListener(e, cb); };
+}
+
 (window as unknown as Record<string, unknown>).__ipeMed = { estatRoi, compMm, anguloGraus, cobbGraus, espacamentoUS, regioesUS, linhas, DB,
   selecionadas: () => csTools.annotation.selection.getAnnotationsSelected() };

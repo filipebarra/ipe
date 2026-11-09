@@ -60,7 +60,9 @@ y existe gracias a bibliotecas abiertas de DICOM, cálculo e IA.
   automatización, verificación de envíos al PACS, llamadas externas por enlace `ipe://`, línea de
   comandos o API HTTP local.
 - **Visor web (servidor central):** en el navegador, sin instalar nada, en
-  `http(s)://<servidor>:8043/web` (por ahora en la red interna): MPR, oblicuo, MIP, medidas con los
+  `http(s)://<servidor>:8043/web` (por ahora en la red interna), con pantalla estilo Weasis (barra de
+  íconos con una función por botón del ratón, como en el Ipê, menú del botón derecho y paneles
+  plegables con pestañas Imagen, Medidas, DICOM y PET): MPR, oblicuo, MIP, medidas con los
   números del Ipê grabadas en la base del servidor, ecografía calibrada, PET/TC con SUV, fusión,
   SUV máximo cerca del cursor y SEG como máscaras; arrastrar series a los cuadros; carga rápida en
   HTJ2K sin pérdida, progresiva y con caché del navegador, con el porcentaje disponible y el botón

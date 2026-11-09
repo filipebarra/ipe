@@ -11,6 +11,9 @@ from test_web_tira import _abrir  # noqa: E402
 
 from ipe.central import web as WEB  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).parent))
+from _web_ui import aba, botoes, espessura, ferramenta, icone, layout, menu, quadros  # noqa: E402,F401  # noqa: E402
+
 pytestmark = pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_dist) não foi construído")
 
 
@@ -30,11 +33,11 @@ def test_htj2k_cronometro_e_cache_do_navegador(servidor):
         assert 0 < r["bytesRede"] < (NZ + 1) * NX * NY * 2, r
         assert r["decodificacaoMediaMs"] >= 0 and r["mbPorSegundo"] > 0
         # o painel mostra o resumo
-        pg.click("nav.barra button:has-text('Carga')")
+        pg.click(".rodape button:has-text('Carga')")
         assert _esperar(lambda: "HTJ2K" in pg.inner_text(".painel-carga") and "MB/s" in pg.inner_text(".painel-carga"))
         # reabrir o exame (na mesma aba, cache do Cornerstone esvaziado): o navegador revalida e recebe 304
         pg.evaluate("() => window.__ipeCs.cache.purgeCache()")
-        pg.click("button:has-text('Voltar à lista')")
+        icone(pg, 'Voltar à lista')
         pg.wait_for_selector("table.lista tbody tr")
         pg.locator("table.lista tbody tr").first.dblclick()
         pg.wait_for_selector(".quadro canvas")

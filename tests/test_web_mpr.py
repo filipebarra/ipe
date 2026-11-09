@@ -1,3 +1,5 @@
+from pathlib import Path
+import sys
 """0.99.92 (W1): MPR no visualizador web — os três planos com as linhas, mudar o plano com um clique, espessura,
 oblíquo por dois pontos e o MIP girando, cujo clique leva os cortes ao ponto mais claro. Fantoma de TC com uma
 esfera clara num lugar conhecido; o Chromium do Playwright abre o site num servidor central de teste."""
@@ -6,7 +8,10 @@ import time
 import numpy as np
 import pytest
 
-from ipe.central import web as WEB
+from ipe.central import web as WEB  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).parent))
+from _web_ui import aba, botoes, espessura, ferramenta, icone, layout, menu, quadros  # noqa: E402,F401
 
 pytestmark = pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_dist) não foi construído")
 
@@ -99,11 +104,11 @@ def test_mpr_planos_espessura_obliquo_e_mip(servidor):
         assert _esperar(lambda: "AX 2.5" in pg.locator(".quadro").first.inner_text())
         pg.locator(".quadro").first.click()
         # MPR: quatro quadros, os três planos e o MIP
-        pg.click("nav.barra button:has-text('MPR')")
+        icone(pg, 'MPR')
         assert _esperar(lambda: pg.locator(".quadro").count() == 4)
         assert _esperar(lambda: [t.split("\n")[-1] for t in pg.locator(".canto.sd").all_inner_texts()]
                         == ["Axial", "Coronal", "Sagital", "MIP"]), pg.locator(".canto.sd").all_inner_texts()
-        assert pg.input_value("select[title='Botão esquerdo:']") == "linhas"
+        assert botoes(pg)["esq"] == "linhas"
         assert _esperar(lambda: pg.evaluate(
             "() => window.__ipeGrade.viewport(0).getNumberOfSlices()") == NZ)
         # o clique no MIP leva os cortes à esfera (o ponto mais claro da linha de visão)
@@ -120,14 +125,14 @@ def test_mpr_planos_espessura_obliquo_e_mip(servidor):
         q0.locator(".planos button[title='Axial']").click()
         assert _esperar(lambda: pg.locator(".canto.sd").nth(0).inner_text().endswith("Axial"))
         # espessura: MIP de 10 mm no axial
-        pg.select_option("select[title='Espessura (quadros A, C, S)']", "10")
+        espessura(pg, 10)
         assert _esperar(lambda: "MIP 10 mm" in pg.locator(".canto.sd").nth(0).inner_text())
         assert pg.evaluate("() => window.__ipeGrade.viewport(0).getSlabThickness()") == pytest.approx(10)
-        pg.select_option("select[title='Projeção da espessura']", "minip")
+        espessura(pg, projecao="minip")
         assert _esperar(lambda: "MinIP 10 mm" in pg.locator(".canto.sd").nth(0).inner_text())
-        pg.select_option("select[title='Espessura (quadros A, C, S)']", "0")
+        espessura(pg, 0)
         # oblíquo por dois pontos: uma reta diagonal no axial; o coronal vira o plano que a contém
-        pg.click("nav.barra button:has-text('Oblíquo')")
+        icone(pg, 'Oblíquo')
         cx = pg.locator(".quadro .tela").nth(0).bounding_box()
         pg.mouse.click(cx["x"] + cx["width"] * 0.35, cx["y"] + cx["height"] * 0.35)
         pg.mouse.click(cx["x"] + cx["width"] * 0.65, cx["y"] + cx["height"] * 0.65)
@@ -141,19 +146,19 @@ def test_mpr_planos_espessura_obliquo_e_mip(servidor):
         assert min(abs(n1[0]), abs(n1[1])) > 0.2                      # e é oblíquo de verdade
         # o MIP gira (botão e roda)
         n_antes = np.array(_cam(pg, 3)["n"])
-        pg.click("nav.barra button:has-text('Girar MIP')")
+        icone(pg, 'Girar MIP')
         assert _esperar(lambda: abs(np.array(_cam(pg, 3)["n"]) @ n_antes) < 0.99)
-        pg.click("nav.barra button:has-text('Parar o giro')")
+        icone(pg, 'Girar MIP')
         n_antes = np.array(_cam(pg, 3)["n"])
         pg.locator(".quadro .tela").nth(3).hover()
         pg.mouse.wheel(0, 120)
         assert _esperar(lambda: abs(np.array(_cam(pg, 3)["n"]) @ n_antes) < 0.9999)
         assert abs(np.array(_cam(pg, 3)["n"])[2]) < 1e-6                    # gira em volta do eixo crânio-caudal
         # série sem volume: o aviso, e o quadro continua em pilha
-        pg.select_option("select[title=Layout]", "1x1")
+        layout(pg, "1x1")
         pg.locator(".tira .serie:has-text('SCOUT')").click()
         assert _esperar(lambda: "SCOUT" in pg.locator(".quadro").first.inner_text())
-        pg.click("nav.barra button:has-text('MPR')")
+        icone(pg, 'MPR')
         assert _esperar(lambda: "Sem volume" in pg.inner_text(".area > .estado"))
         b.close()
     assert not erros, erros

@@ -1,3 +1,5 @@
+from pathlib import Path
+import sys
 """0.99.93 (W2): medidas no visualizador web — o número do Ipê (escala, ROI, texto), gravadas no banco no formato
 do Ipê (aparecem no Ipê; as do Ipê aparecem no site), com quem fez; calibração do ultrassom pelas regiões e à mão."""
 import json
@@ -7,7 +9,10 @@ import time
 import numpy as np
 import pytest
 
-from ipe.central import web as WEB
+from ipe.central import web as WEB  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).parent))
+from _web_ui import aba, botoes, espessura, ferramenta, icone, layout, menu, quadros  # noqa: E402,F401
 
 pytestmark = pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_dist) não foi construído")
 
@@ -102,7 +107,7 @@ def _abrir(pg, srv, acesso):
     alvo = next(i for i in range(linhas.count()) if acesso in linhas.nth(i).inner_text())
     linhas.nth(alvo).dblclick()
     pg.wait_for_selector(".quadro canvas")
-    pg.select_option("select[title=Layout]", "1x1")
+    layout(pg, "1x1")
     assert _esperar(lambda: pg.locator(".quadro").count() == 1)
     # a imagem já desenhada (a carga é progressiva desde a 0.99.96)
     assert _esperar(lambda: pg.evaluate("""() => { const vp = window.__ipeGrade.viewport(0);
@@ -162,7 +167,7 @@ def test_medidas_na_tc_banco_e_numero_do_ipe(servidor):
         esperado = _labels_do_ipe("polygon", poli, _ct().astype(float), (PX, PX), "CT")
         assert _esperar(lambda: all(t in _textos(pg) for t in esperado)), (esperado, _textos(pg))
         # régua nova: 40 px × 0,7 = 28,0 mm, gravada no banco com quem fez
-        pg.select_option("select[title='Botão esquerdo:']", "regua")
+        ferramenta(pg, "regua")
         _arrastar(pg, (10, 10), (50, 10))
         # o mouse cai em pixels inteiros da tela: a régua sai com 28,0 mm ± um décimo
         assert _esperar(lambda: any(abs(v - 28.0) <= 0.15 for v in _mms(pg))), _textos(pg)
@@ -172,7 +177,7 @@ def test_medidas_na_tc_banco_e_numero_do_ipe(servidor):
         assert np.allclose(d["points"], [[10, 10], [50, 10]], atol=0.6) and nova["sop_uid"] == sop
         assert d["meta"]["autor"] == "admin" and nova["owner"] == "admin" and nova["frame_index"] == 0
         # ROI elíptica: o texto do site é o do Ipê (média, DP, mín/máx e área) para os mesmos pontos
-        pg.select_option("select[title='Botão esquerdo:']", "elipse")
+        ferramenta(pg, "elipse")
         _arrastar(pg, (55, 55), (75, 75))
         assert _esperar(lambda: any(r["kind"] == "ellipse" for r in repo.annotations_for_series([series])))
         assert _esperar(lambda: json.loads(next(r for r in repo.annotations_for_series([series])
@@ -182,7 +187,7 @@ def test_medidas_na_tc_banco_e_numero_do_ipe(servidor):
         esperado = _labels_do_ipe("ellipse", pts, _ct().astype(float), (PX, PX), "CT")
         assert _esperar(lambda: all(t in _textos(pg) for t in esperado)), (esperado, _textos(pg))
         # mexer na régua (arrastar a ponta) atualiza o banco
-        pg.select_option("select[title='Botão esquerdo:']", "regua")
+        ferramenta(pg, "regua")
         pg.mouse.move(*_tela(pg, 50, 10))
         pg.mouse.down()
         pg.mouse.move(*_tela(pg, 60, 10))
@@ -197,11 +202,11 @@ def test_medidas_na_tc_banco_e_numero_do_ipe(servidor):
         pg.reload()
         _abrir(pg, srv, "TC ABDOME")
         assert _esperar(lambda: editada in _textos(pg) and "14.0 mm" in _textos(pg)), _textos(pg)
-        # apagar: selecionar a régua de 42 mm e o botão
-        pg.select_option("select[title='Botão esquerdo:']", "janela")
-        pg.mouse.click(*_tela(pg, 40, 10))
-        assert _esperar(lambda: len(pg.evaluate("() => window.__ipeMed.selecionadas()")) == 1)
-        pg.click("nav.barra button:has-text('Apagar medida')")
+        # apagar (0.99.97): o botão direito sobre a régua abre o menu da imagem, que começa pela medida
+        ferramenta(pg, "janela")
+        pg.mouse.click(*_tela(pg, 40, 10), button="right")
+        assert _esperar(lambda: "Régua" in pg.inner_text(".menu .menu-titulo"))
+        menu(pg, "Apagar esta medida")
         assert _esperar(lambda: repo.annotation_by_id(nova["id"]) is None)
         assert _esperar(lambda: editada not in _textos(pg)), _textos(pg)
         b.close()
@@ -218,7 +223,7 @@ def test_ultrassom_regioes_e_calibracao_a_mao(servidor):
         pg = b.new_page(viewport={"width": 1400, "height": 900})
         pg.on("pageerror", lambda e: erros.append(str(e)))
         _abrir(pg, srv, "US ABDOME")
-        pg.select_option("select[title='Botão esquerdo:']", "regua")
+        ferramenta(pg, "regua")
         # dentro da região 2D: 100 px × 0,1 mm = 10,0 mm
         _arrastar(pg, (20, 50), (120, 50))
         assert _esperar(lambda: any(abs(v - 10.0) <= 0.15 for v in _mms(pg))), _textos(pg)
@@ -227,7 +232,7 @@ def test_ultrassom_regioes_e_calibracao_a_mao(servidor):
         assert _esperar(lambda: "100 px" in _textos(pg)), _textos(pg)
         # calibração à mão: 50 px = 20 mm nesta imagem; vale mais que a região
         pg.once("dialog", lambda d: d.accept("20"))
-        pg.select_option("select[title='Botão esquerdo:']", "calibracao")
+        ferramenta(pg, "calibracao")
         _arrastar(pg, (20, 100), (70, 100))
         assert _esperar(lambda: any("20 mm (só esta imagem)" in t for t in _textos(pg))), _textos(pg)
         # a régua de 100 px agora (40 mm, com o arredondamento do mouse na calibração)

@@ -1,6 +1,6 @@
 """Ipê — visualizador DICOM para pesquisa e ensino."""
 
-__version__ = "0.99.96"
+__version__ = "0.99.97"
 APP_NAME = "Ipê"
 #: o nome sem acento, para onde acento não cabe: arquivos, executáveis e campos DICOM
 APP_ASCII = "Ipe"

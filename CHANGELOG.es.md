@@ -3,6 +3,17 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.99.97 — visualizador web: interfaz nueva (estilo Weasis)
+- **Barra de íconos** y **cada botón del ratón con su función, como en el Ipê**: hacer clic en el ícono con el
+  botón izquierdo, el central o el derecho da la función a ese botón; la marca debajo del ícono (izquierda, centro,
+  derecha) muestra cuál. La elección queda guardada.
+- **Menú del botón derecho** en la imagen (clic y soltar; clic y mantener hace la función del botón): ventana,
+  zoom, girar y voltear, plano, funciones de los botones, serie, cuadros y cine, borrar medidas, restaurar; sobre
+  una medida, copiar el valor y borrarla.
+- **Paneles plegables**: series y estudios anteriores a la izquierda; pestañas **Imagen**, **Medidas**, **DICOM**
+  (tags con filtro) y **PET** a la derecha. Layout de 1×1 a 4×4 en una cuadrícula, y pie con carga y funciones de
+  los botones.
+
 ## 0.99.96 — visualizador web: carga más rápida
 - Las imágenes van al navegador en **HTJ2K sin pérdida** (copia de envío verificada píxel a píxel, en caché; el acervo
   no cambia): de 2 a 5 veces menos bytes en una TC, decodificación rápida y **carga progresiva**.
