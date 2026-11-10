@@ -64,6 +64,13 @@ Para desinstalar: **Configurações do Windows ▸ Aplicativos ▸ Aplicativos i
 
 ### Instalar no Linux
 
+**Pelos pacotes do release (0.100.6)** — no GitHub, a página de releases tem dois jeitos, os dois sem Python:
+
+- **Pacote `.deb`** (Debian, Ubuntu, Mint…): `sudo apt install ./Ipe-<versão>-linux-amd64.deb`. Instala em `/opt/ipe`, com o comando `ipe-viewer`, o ícone e o atalho **Ipê** no menu de aplicativos; o `apt` instala as bibliotecas da janela que faltarem. Atualizar é instalar o `.deb` novo; remover, `sudo apt remove ipe-viewer`.
+- **Portátil** (`Ipe-<versão>-linux-portable.tar.gz`, qualquer distribuição): extraia e rode `Ipe/install.sh`. Ele instala para o seu usuário, sem administrador (o programa em `~/.local/share/ipe/programa`, o comando `ipe-viewer` em `~/.local/bin`, o atalho no menu). `install.sh --system` instala para todos os usuários em `/opt/ipe` (pede a senha do `sudo`); `install.sh --uninstall` remove. Também dá para só rodar `Ipe/Ipe`, sem instalar.
+
+O comando se chama `ipe-viewer` porque `ipe` já é o nome de outro programa (um editor de desenhos) nas distribuições. Instalar, atualizar ou remover o programa não mexe nos exames, no banco nem nas configurações (`~/.local/share/DicomViewer` e `~/.config/DicomViewer`).
+
 Pelo código: na pasta do Ipê, `./instalar.sh` e depois `./executar.sh`. Precisa de um Linux com **glibc 2.34 ou mais nova** (Ubuntu 22.04, Debian 12, Fedora 35 ou depois), porque o Qt do Ipê não tem pacote para sistemas mais antigos — o script avisa e para. Ele procura sozinho um **Python 3.10 ou mais novo do sistema** (não o do Anaconda, que costuma vir antes no caminho e ser mais velho), refaz o ambiente `.venv` se ele foi criado com um Python antigo e instala as bibliotecas da janela que o Ubuntu não traz (`libxcb-cursor0` e companhia, com `sudo`). A versão portátil de Linux dispensa o Python, mas também precisa dessas bibliotecas.
 
 ## Ajuda

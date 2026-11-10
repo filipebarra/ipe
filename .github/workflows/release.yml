@@ -1,4 +1,5 @@
-# Releases do Ipê: Windows (installer + portable) e Linux (portable). Nomes em inglês desde a 0.99.81.
+# Releases do Ipê: Windows (installer + portable) e Linux (portable com install.sh + .deb, desde a 0.100.6).
+# Nomes em inglês desde a 0.99.81.
 #
 # Só roda quando alguém aperta "Run workflow" (ou `gh workflow run release.yml`): combinado com o
 # Filipe em 02/11/2026 — release só quando ele pedir, nunca a cada atualização.
@@ -75,12 +76,28 @@ jobs:
         run: python -m PyInstaller --noconfirm --clean --workpath build-pyi --distpath dist installer/ipe.spec
       - name: Conferir o pacote
         run: python installer/verifica.py
-      - name: Portátil
-        run: tar czf "dist/Ipe-${{ steps.v.outputs.versao }}-linux-portable.tar.gz" -C dist Ipe
+      - name: Portátil (com o install.sh e o ícone)
+        run: |
+          install -m 755 installer/linux/install.sh dist/Ipe/install.sh
+          install -m 644 installer/linux/ipe.png dist/Ipe/ipe.png
+          tar czf "dist/Ipe-${{ steps.v.outputs.versao }}-linux-portable.tar.gz" -C dist Ipe
+      - name: Pacote .deb
+        run: bash installer/linux/build_deb.sh dist/Ipe "${{ steps.v.outputs.versao }}" dist
+      - name: Conferir o .deb e o install.sh (instala de verdade no runner)
+        run: |
+          sudo apt-get install -y "./dist/Ipe-${{ steps.v.outputs.versao }}-linux-amd64.deb"
+          test -x /opt/ipe/Ipe && test -L /usr/bin/ipe-viewer && test -f /usr/share/applications/ipe-viewer.desktop
+          ipe-viewer --help | head -3
+          sudo apt-get remove -y ipe-viewer && test ! -e /opt/ipe/Ipe
+          H=$(mktemp -d); mkdir x && tar xzf "dist/Ipe-${{ steps.v.outputs.versao }}-linux-portable.tar.gz" -C x
+          HOME=$H bash x/Ipe/install.sh && HOME=$H "$H/.local/bin/ipe-viewer" --help | head -3
+          HOME=$H bash x/Ipe/install.sh --uninstall && test ! -e "$H/.local/share/ipe/programa"
       - uses: actions/upload-artifact@v4
         with:
           name: linux
-          path: dist/Ipe-*-linux-portable.tar.gz
+          path: |
+            dist/Ipe-*-linux-portable.tar.gz
+            dist/Ipe-*-linux-amd64.deb
 
   release:
     needs: [windows, linux]
@@ -110,8 +127,11 @@ jobs:
           print("\n---\n**Windows:** the installer puts the program in the user profile, without administrator "
                 "rights, and asks for the language (English by default; Portuguese and Spanish also available). "
                 "The executable is not signed yet: Windows may show the SmartScreen warning "
-                "(\"More info\" ▸ \"Run anyway\").\n\n**Linux:** extract and run `Ipe/Ipe`; on first launch it asks "
-                "for the language, with English selected.\n\n"
+                "(\"More info\" ▸ \"Run anyway\").\n\n**Linux:** on Debian/Ubuntu, install the `.deb` "
+                "(`sudo apt install ./Ipe-*-linux-amd64.deb`; the command is `ipe-viewer`). Or extract the portable "
+                "and run `Ipe/install.sh` (installs for your user, no administrator; `--system` for all users, "
+                "`--uninstall` to remove), or just run `Ipe/Ipe`. On first launch it asks for the language, with "
+                "English selected.\n\n"
                 "Organ segmentation (TotalSegmentator) is installed separately, with `instalar_segmentacao`.\n\n"
                 "*Notas em português: [CHANGELOG.md](https://github.com/filipebarra/ipe/blob/main/CHANGELOG.md) · "
                 "Notas en español: [CHANGELOG.es.md](https://github.com/filipebarra/ipe/blob/main/CHANGELOG.es.md)*")

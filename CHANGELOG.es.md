@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.6 — Linux: paquete .deb e install.sh en el portátil
+- **Paquete `.deb`** en el release (`Ipe-<versión>-linux-amd64.deb`, paquete `ipe-viewer`): `sudo apt install ./…deb`
+  instala en `/opt/ipe`, con el comando `ipe-viewer`, el ícono y el acceso **Ipê** en el menú; `apt` trae las
+  bibliotecas de ventana que falten. `sudo apt remove ipe-viewer` lo quita.
+- **`install.sh` en el portátil**: instala para su usuario, sin administrador (programa, comando `ipe-viewer`, acceso
+  e ícono en el menú); `--system` instala para todos en `/opt/ipe`; `--uninstall` lo quita. Ejecutar el de la versión
+  nueva actualiza.
+- Instalar, actualizar o quitar no toca los estudios, la base ni la configuración. El nombre es `ipe-viewer` porque
+  `ipe` ya es otro programa en las distribuciones.
+
 ## 0.100.5 — visor web: doble clic amplía; "Salir" vuelve a la lista
 - **Doble clic** en un cuadro lo amplía a 1×1; otro doble clic vuelve a la disposición anterior, cada cuadro como
   estaba (corte, zoom, ventana). Sobre una medida, el doble clic sigue siendo de la medida.

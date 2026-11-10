@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.6 — Linux: .deb package and install.sh in the portable
+- **`.deb` package** in the release (`Ipe-<version>-linux-amd64.deb`, package `ipe-viewer`): `sudo apt install ./…deb`
+  installs into `/opt/ipe`, with the `ipe-viewer` command, the icon and the **Ipê** entry in the applications menu;
+  `apt` pulls in any missing window libraries. `sudo apt remove ipe-viewer` removes it.
+- **`install.sh` in the portable**: installs for your user, without administrator rights (program, `ipe-viewer`
+  command, menu entry and icon); `--system` installs for all users into `/opt/ipe`; `--uninstall` removes it. Running
+  the new version's script updates.
+- Installing, updating or removing never touches the studies, the database or the settings. The name is
+  `ipe-viewer` because `ipe` is already another program in the distributions.
+
 ## 0.100.5 — web viewer: double-click maximizes; "Sign out" goes back to the list
 - **Double-click** a viewport to maximize it to 1×1; double-click again to go back to the previous layout, each
   viewport as it was (slice, zoom, window). On a measurement, the double-click still belongs to the measurement.

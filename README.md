@@ -178,6 +178,13 @@ English selected; then it asks for the program folder and the database folder. T
 3. Double-click `executar.bat`.
 
 ### Linux
+From the [releases](https://github.com/filipebarra/ipe/releases) (no Python needed):
+- **Debian/Ubuntu:** `sudo apt install ./Ipe-<version>-linux-amd64.deb` — the command is `ipe-viewer`, and **Ipê**
+  appears in the applications menu.
+- **Any distribution:** extract `Ipe-<version>-linux-portable.tar.gz` and run `Ipe/install.sh` (for your user, no
+  administrator; `--system` for all users, `--uninstall` to remove).
+
+From the source code:
 ```bash
 ./instalar.sh
 ./executar.sh

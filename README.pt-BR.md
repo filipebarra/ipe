@@ -174,6 +174,13 @@ usuário, sem pedir administrador. A primeira tela pergunta o idioma, com o ingl
 3. Dê dois cliques em `executar.bat`.
 
 ### Linux
+Pelos [releases](https://github.com/filipebarra/ipe/releases) (sem Python):
+- **Debian/Ubuntu:** `sudo apt install ./Ipe-<versão>-linux-amd64.deb` — o comando é `ipe-viewer`, e o **Ipê**
+  aparece no menu de aplicativos.
+- **Qualquer distribuição:** extraia `Ipe-<versão>-linux-portable.tar.gz` e rode `Ipe/install.sh` (para o seu
+  usuário, sem administrador; `--system` para todos, `--uninstall` para remover).
+
+Pelo código:
 ```bash
 ./instalar.sh
 ./executar.sh

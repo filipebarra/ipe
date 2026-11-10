@@ -85,7 +85,13 @@ administrador, y pregunta el idioma, la carpeta del programa y la de la base.
 `instalar.bat` una vez y luego en `executar.bat`. Para generar el instalador de Windows vea
 [installer/LEIAME.md](installer/LEIAME.md).
 
-**Linux:**
+**Linux:** desde los [releases](https://github.com/filipebarra/ipe/releases) (sin Python):
+- **Debian/Ubuntu:** `sudo apt install ./Ipe-<versión>-linux-amd64.deb` — el comando es `ipe-viewer`, e **Ipê**
+  aparece en el menú de aplicaciones.
+- **Cualquier distribución:** extraiga `Ipe-<versión>-linux-portable.tar.gz` y ejecute `Ipe/install.sh` (para su
+  usuario, sin administrador; `--system` para todos, `--uninstall` para quitar).
+
+Desde el código:
 ```bash
 ./instalar.sh
 ./executar.sh
