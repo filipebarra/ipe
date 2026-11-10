@@ -577,12 +577,47 @@ class _Handler(BaseHTTPRequestHandler):
         if path == "/api/web/laudo" and method == "GET":                  # 0.99.98 (W6): laudo no navegador
             from ipe.central import web as WEB
             try:
-                r = WEB.laudo(c.repo, s, parse_qs(parts.query), c.pode_ver, c.leituras)
+                r = WEB.laudo(c.repo, s, parse_qs(parts.query), c.pode_ver, c.leituras, getattr(c, "settings", None))
             except PermissionError as e:
                 return self._error(403, str(e))
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, r, raw=True)
+        if path in ("/api/web/birads_texto", "/api/web/laudo_pdf", "/api/web/laudo_assinado") and method == "POST":
+            from ipe.central import laudo_web as LW                         # 0.100.4: fim do laudo no navegador
+            data = json.loads(self._body() or b"{}")
+            if not s.can("view"):
+                return self._error(403, "sem permissão")
+            if path == "/api/web/birads_texto":
+                return self._json(200, LW.textos_birads(data.get("fields") or {}), raw=True)
+            rep = c.repo.report(int(data.get("id") or 0))
+            if not rep or not c.pode_ver(s, rep.get("study_uid", "")):
+                return self._error(404, "laudo não encontrado")
+            info = c.repo.study_info(rep["study_uid"]) or {}
+            op = {k: data[k] for k in ("cabecalho", "assinatura", "pdf", "sr") if k in data}
+            pref = {**LW.preferencias(getattr(c, "settings", None), s.username, info), **op}
+            if path == "/api/web/laudo_pdf":
+                try:
+                    pdf = LW.pdf_do_laudo(info, rep, pref["cabecalho"], pref["assinatura"])
+                except Exception as e:  # noqa: BLE001
+                    log.exception("laudo web: PDF")
+                    return self._error(500, f"PDF: {e}")
+                if s.can("report"):
+                    LW.guardar_preferencias(getattr(c, "settings", None), s.username, op)
+                c.repo.audit("laudo_pdf", rep.get("title") or "", s.username, rep["study_uid"], self.client_address[0])
+                return self._send(200, pdf, "application/pdf")
+            # depois de assinar: o PDF e o SR no exame e a busca ativa — uma vez por laudo
+            if not s.can("sign_report"):
+                return self._error(403, "sem permissão para assinar")
+            if rep.get("status") not in ("final", "amended"):
+                return self._error(409, "o laudo ainda não foi assinado")
+            feitos = c.__dict__.setdefault("_laudos_exportados", set())
+            if rep["id"] in feitos:
+                return self._json(200, {"mensagens": []}, raw=True)
+            feitos.add(rep["id"])
+            LW.guardar_preferencias(getattr(c, "settings", None), s.username, op)
+            msgs = LW.depois_de_assinar(c.repo, c.storage, rep, info, pref)
+            return self._json(200, {"mensagens": msgs}, raw=True)
         if path == "/api/web/abriu" and method == "POST":
             data = json.loads(self._body() or b"{}")
             uid = str(data.get("study_uid", ""))

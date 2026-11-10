@@ -6289,7 +6289,14 @@
   "ruim",
   "regular",
   "medindo…",
-  "rede…"
+  "rede…",
+  "laudo não encontrado",
+  "laudo web: DICOM no exame",
+  "laudo web: PDF",
+  "laudo web: busca ativa",
+  "o PDF precisa do Qt de interface (atualize o servidor)",
+  "o laudo ainda não foi assinado",
+  "sem permissão para assinar"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -7956,6 +7963,8 @@
   "importar: {}: {}",
   "série {}: {}: {}",
   " · {} Mbit/s",
-  "Rede até o servidor central: {}\n{}\nIda e volta (ms): quanto o servidor leva para responder. Vazão (Mbit/s): quanto chega por segundo.\nClique para medir de novo."
+  "Rede até o servidor central: {}\n{}\nIda e volta (ms): quanto o servidor leva para responder. Vazão (Mbit/s): quanto chega por segundo.\nClique para medir de novo.",
+  "PDF: {}",
+  "não foi possível gravar no exame: {}"
  ]
 }

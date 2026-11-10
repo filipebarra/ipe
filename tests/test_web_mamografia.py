@@ -49,6 +49,14 @@ def _serie(out, study, lado, view, numero, parede, tomo=False):
     ds.PresentationIntentType = "FOR PRESENTATION"
     img = _mama(lado, parede)
     if tomo:
+        # 0.100.4: como nos aparelhos, a tomo tem outro tamanho e outro espaçamento que a 2D (aqui o dobro dos
+        # pixels com metade do espaçamento: a mesma mama, em mm)
+        img = np.kron(img, np.ones((2, 2), img.dtype))
+        # e outro campo: uma faixa de ar em cima e do lado da pele (a parede continua na borda)
+        pele = ((0, 0), (0, 140)) if parede == "left" else ((0, 0), (140, 0))
+        img = np.pad(img, ((90, 0), pele[1]))
+        ds.PixelSpacing = [0.05, 0.05]
+        ds.ImagerPixelSpacing = [0.05, 0.05]
         cortes = np.stack([img * (0.8 + 0.02 * k) for k in range(9)])
         _mono(ds, cortes[0], signed=False)
         ds.NumberOfFrames = len(cortes)
@@ -219,6 +227,66 @@ def test_mamografia_uma_tela(servidor_mg):
         assert _celulas(pg)["quadros"][0]["cortes"] == 10
         pg.click(".barra-mg button[aria-label='Tomossíntese do quadro']")             # de volta à 2D
         assert _esperar(lambda: _celulas(pg)["quadros"][0]["corte"] == 0)
+        # 0.100.4: rolar da 2D para a tomo (outro tamanho, outro espaçamento) mantém a escala em mm e a parede
+        # torácica no mesmo lugar; com o zoom à mão também
+        assert _esperar(lambda: _celulas(pg)["quadros"][0]["pronto"])
+        q0 = _celulas(pg)["quadros"][0]
+        pg.evaluate("() => window.__ipeGrade.viewport(0).setImageIdIndex(1)")
+        assert _esperar(lambda: _celulas(pg)["quadros"][0]["corte"] == 1 and _celulas(pg)["quadros"][0]["tomo"])
+        q1 = _celulas(pg)["quadros"][0]
+        assert q1["escala"] == pytest.approx(q0["escala"] / 2, rel=0.02)          # metade do espaçamento: mesma escala em mm
+        assert q1["parede_x"] == pytest.approx(q0["parede_x"], abs=0.01)
+        assert q1["parede_y"] == pytest.approx(q0["parede_y"], abs=0.01)
+        assert pg.locator(".barra-mg button[aria-label='Tomossíntese do quadro']").get_attribute("class").count("ligado")
+        pg.evaluate("() => window.__ipeGrade.viewport(0).setImageIdIndex(5)")             # dentro da tomo: nada muda
+        assert _esperar(lambda: _celulas(pg)["quadros"][0]["corte"] == 5)
+        q5 = _celulas(pg)["quadros"][0]
+        assert q5["escala"] == pytest.approx(q1["escala"], rel=0.01) and q5["parede_x"] == pytest.approx(q1["parede_x"], abs=0.01)
+        pg.evaluate("() => window.__ipeGrade.viewport(0).setZoom(window.__ipeGrade.viewport(0).getZoom() * 1.5)")
+        qz = _celulas(pg)["quadros"][0]
+        pg.evaluate("() => window.__ipeGrade.viewport(0).setImageIdIndex(0)")             # de volta à 2D, com o zoom à mão
+        assert _esperar(lambda: _celulas(pg)["quadros"][0]["corte"] == 0)
+        q2 = _celulas(pg)["quadros"][0]
+        assert q2["escala"] == pytest.approx(qz["escala"] * 2, rel=0.02)
+        assert q2["parede_x"] == pytest.approx(qz["parede_x"], abs=0.01) and q2["parede_y"] == pytest.approx(qz["parede_y"], abs=0.01)
+        # 0.100.4: a lupa — no botão esquerdo pela barra; segurar mostra os pixels da imagem aumentados, a roda
+        # muda o aumento; soltar fecha; o botão de novo devolve a janela ao esquerdo
+        pg.click(".barra-mg button[aria-label='Lupa no botão esquerdo']")
+        assert pg.evaluate("() => window.__ipeBotoes().esq") == "lupa"
+        # o centro de um pixel dentro da mama (o meio da caixa)
+        x, y = pg.evaluate("""() => {
+            const vp = window.__ipeGrade.viewport(1); const id = vp.getCurrentImageId(); const r = vp.canvas.getBoundingClientRect();
+            const sop = /\/instances\/([^/]+)\/frames\//.exec(id)[1]; const c = window.__ipeMg.dados.imagens[sop].caixa;
+            const px = [Math.floor((c[0] + c[2]) / 2) + 0.5, Math.floor((c[1] + c[3]) / 2) + 0.5];
+            const p = vp.worldToCanvas(window.__ipeCs.imageToWorldCoords(id, px));
+            return [r.left + p[0], r.top + p[1]]; }""")
+        pg.mouse.move(x, y)
+        pg.mouse.down()
+        assert pg.locator("canvas.lupa").count() == 1
+        lu = pg.evaluate("() => window.__ipeGrade.lupa.estado()")
+        assert lu["origem"] == "imagem" and lu["aumento"] == 3
+        # o centro da lupa é o pixel sob o cursor, com a janela do quadro
+        conf = pg.evaluate(f"""() => {{
+            const vp = window.__ipeGrade.viewport(1); const r = vp.canvas.getBoundingClientRect();
+            const id = vp.getCurrentImageId();
+            const ij = window.__ipeCs.worldToImageCoords(id, vp.canvasToWorld([{x} - r.left, {y} - r.top]));
+            const im = vp.getImageData(); const w = im.dimensions[0];
+            const v = im.scalarData[Math.floor(ij[1]) * w + Math.floor(ij[0])];
+            const p = vp.getProperties(); let g = (v - p.voiRange.lower) / (p.voiRange.upper - p.voiRange.lower) * 255;
+            g = Math.max(0, Math.min(255, g)); if (p.invert) g = 255 - g;
+            const c = document.querySelector('canvas.lupa'); const n = c.width;
+            const px = c.getContext('2d').getImageData(Math.floor(n / 2), Math.floor(n / 2), 1, 1).data;
+            return {{ ij: [Math.floor(ij[0]), Math.floor(ij[1])], g: Math.round(g), px: px[0] }}; }}""")
+        assert all(abs(a - b) <= 1 for a, b in zip(conf["ij"], lu["centro"])) and conf["g"] > 40 and abs(conf["px"] - conf["g"]) <= 1, conf
+        pg.mouse.wheel(0, -100)
+        assert _esperar(lambda: pg.evaluate("() => window.__ipeGrade.lupa.estado().aumento") == 3.5)
+        pg.mouse.move(x + 30, y + 20, steps=3)
+        assert pg.evaluate("() => window.__ipeGrade.lupa.estado().centro") != lu["centro"]
+        pg.mouse.up()
+        assert pg.locator("canvas.lupa").count() == 0
+        assert pg.evaluate("() => localStorage.getItem('ipe.web.lupa')") == "3.5"
+        pg.click(".barra-mg button[aria-label='Lupa no botão esquerdo']")
+        assert pg.evaluate("() => window.__ipeBotoes().esq") == "janela"
         # duplo clique amplia o quadro; outro duplo clique volta
         pg.locator(".quadro").nth(1).dblclick()
         assert _esperar(lambda: pg.locator(".quadro:visible").count() == 1)

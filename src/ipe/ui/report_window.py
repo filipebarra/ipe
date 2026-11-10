@@ -25,11 +25,8 @@ from ipe.reporting.templates import PLACEHOLDERS, best_template, default_templat
 
 log = logging.getLogger(__name__)
 KIND_NAMES = {"": "(sem BI-RADS)", "mg": "Mamografia", "us": "Ultrassonografia", "mri": "Ressonância"}
-LOCATIONS = ["quadrante superolateral", "quadrante superomedial", "quadrante inferolateral",
-             "quadrante inferomedial", "união dos quadrantes superiores", "união dos quadrantes laterais",
-             "união dos quadrantes inferiores", "união dos quadrantes mediais", "região retroareolar",
-             "região central", "prolongamento axilar", "às 12 horas", "às 3 horas", "às 6 horas", "às 9 horas"]
-CHANGES = ["", "novo", "estável", "aumentou", "diminuiu"]
+LOCATIONS = B.LOCATIONS
+CHANGES = B.CHANGES
 
 
 # ======================================================================== BI-RADS

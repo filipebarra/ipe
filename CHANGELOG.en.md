@@ -3,6 +3,19 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.4 — web viewer: magnifier and aligned stack in mammography; report with BI-RADS, PDF/SR and active recall
+- **Mammography**: scrolling from the 2D image to the tomosynthesis of the same view keeps the same scale in mm and
+  the chest wall in the same place (the tomo has another size and spacing; before, the breast changed size and moved).
+  It also holds after a manual zoom.
+- **Magnifier**: holding the button shows the image's own pixels magnified around the cursor, with the viewport's
+  window; the wheel changes the magnification (1.5× to 8×). Button in the mammography bar and tool in "Zoom and
+  magnifier".
+- **Report in the browser**: Ipê's **BI-RADS®** form (composition, findings, category per breast, recommendation),
+  with the same sentences in the text; **Download PDF** (Ipê's PDF, with header and signature); on signing, the
+  **PDF** and the **SR** saved into the study and the **active recall** (BI-RADS 0 and 3), with the patient's open
+  requests at the top of the report.
+- The windowless server (`ipe server`) starts the Qt GUI offscreen, to generate the PDF.
+
 ## 0.100.3 — web viewer: the mouse buttons obey again
 - **Fixed**: after changing a button's function (for example, window/level on the right button, which used to be
   zoom), the mouse kept doing the old function — Cornerstone3D added the new button to the old ones and, when a

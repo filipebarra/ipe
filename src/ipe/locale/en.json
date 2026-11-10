@@ -8450,5 +8450,14 @@
  "medindo…": "measuring…",
  "rede…": "network…",
  " · {} Mbit/s": " · {} Mbit/s",
- "Rede até o servidor central: {}\n{}\nIda e volta (ms): quanto o servidor leva para responder. Vazão (Mbit/s): quanto chega por segundo.\nClique para medir de novo.": "Network to the central server: {}\n{}\nRound trip (ms): how long the server takes to answer. Throughput (Mbit/s): how much arrives per second.\nClick to measure again."
+ "Rede até o servidor central: {}\n{}\nIda e volta (ms): quanto o servidor leva para responder. Vazão (Mbit/s): quanto chega por segundo.\nClique para medir de novo.": "Network to the central server: {}\n{}\nRound trip (ms): how long the server takes to answer. Throughput (Mbit/s): how much arrives per second.\nClick to measure again.",
+ "laudo não encontrado": "report not found",
+ "laudo web: DICOM no exame": "web report: DICOM in the study",
+ "laudo web: PDF": "web report: PDF",
+ "laudo web: busca ativa": "web report: active recall",
+ "o PDF precisa do Qt de interface (atualize o servidor)": "the PDF needs the Qt GUI (update the server)",
+ "o laudo ainda não foi assinado": "the report has not been signed yet",
+ "sem permissão para assinar": "no permission to sign",
+ "PDF: {}": "PDF: {}",
+ "não foi possível gravar no exame: {}": "could not save into the study: {}"
 }

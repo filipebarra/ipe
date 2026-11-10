@@ -221,7 +221,7 @@ const NOMES_FERRAMENTAS: Record<Ferramenta, string> = {
   janela: "Janela/nível", mover: "Mover", zoom: "Zoom", rolar: "Rolar cortes", linhas: "Linhas de referência",
   regua: "Régua", angulo: "Ângulo", cobb: "Ângulo de Cobb", elipse: "ROI elíptica", retangulo: "ROI retangular",
   poligono: "ROI livre", pixel: "Valor do pixel", seta: "Seta", calibracao: "Calibração",
-  suvmax: "SUV máximo perto do cursor",
+  suvmax: "SUV máximo perto do cursor", lupa: "Lupa",
 };
 
 /** Ícones (24×24, traço). */
@@ -243,6 +243,7 @@ const IC: Record<string, string> = {
   seta: "M5 19L19 5M19 5h-8M19 5v8",
   calibracao: "M3 12h18M3 8v8M21 8v8M8 10v4M13 10v4",
   suvmax: "M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 1 0 0.01 0",
+  lupa: "M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13zM15.5 15.5L21 21M8 10.5h5M10.5 8v5",
   layout: "M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z",
   mpr: "M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5",
   espessura: "M4 6h16M4 10h16M4 14h16M4 18h16",
@@ -354,7 +355,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   type Grupo = { nome: string; membros: Ferramenta[] };
   const GRUPOS: Grupo[][] = [
     [{ nome: "Janela/nível", membros: ["janela"] }, { nome: "Mover", membros: ["mover"] },
-      { nome: "Zoom", membros: ["zoom"] }, { nome: "Rolar cortes", membros: ["rolar"] },
+      { nome: "Zoom e lupa", membros: ["zoom", "lupa"] }, { nome: "Rolar cortes", membros: ["rolar"] },
       { nome: "Linhas de referência", membros: ["linhas"] }],
     [{ nome: "Régua", membros: ["regua"] }, { nome: "Ângulos", membros: ["angulo", "cobb"] },
       { nome: "ROIs", membros: ["elipse", "retangulo", "poligono"] }, { nome: "Valor do pixel", membros: ["pixel"] },

@@ -22,6 +22,7 @@ import * as csTools from "@cornerstonejs/tools";
 
 import { DICOMWEB, cabecalhos, fatorSuv, metadados, valor, type DicomJson } from "./api";
 import { tr } from "./i18n";
+import { Lupa } from "./lupa";
 import { FERRAMENTA_DA_ESCOLHA, adicionarFerramentas, carregarMedidas, ouvirAnotacoes, selecionarAoClicar } from "./medidas";
 import { META } from "./meta";
 import {
@@ -99,7 +100,7 @@ let iniciado = false;
 let motor: RenderingEngine | null = null;
 
 export type Ferramenta = "janela" | "mover" | "zoom" | "rolar" | "linhas" | "regua" | "angulo" | "cobb" | "elipse"
-  | "retangulo" | "poligono" | "pixel" | "seta" | "calibracao" | "suvmax";
+  | "retangulo" | "poligono" | "pixel" | "seta" | "calibracao" | "suvmax" | "lupa";
 export type Plano = "AXIAL" | "CORONAL" | "SAGITTAL";
 export type Projecao = "fino" | "mip" | "minip" | "media";
 const NOME: Record<string, string> = {
@@ -163,7 +164,7 @@ export async function iniciar(): Promise<void> {
   aplicarBotoes("janela");
   motor = new RenderingEngine(RE_ID);
   (window as unknown as Record<string, unknown>).__ipeGeo = { planoPorDoisPontos, girarVetor }; // testes
-  (window as unknown as Record<string, unknown>).__ipeCs = { imageToWorldCoords: csUtils.imageToWorldCoords, cache,
+  (window as unknown as Record<string, unknown>).__ipeCs = { imageToWorldCoords: csUtils.imageToWorldCoords, worldToImageCoords: csUtils.worldToImageCoords, cache,
     segmentation: csTools.segmentation };
   iniciado = true;
 }
@@ -198,7 +199,7 @@ export function aplicarBotoes(f: Ferramenta | Partial<Botoes>): void {
     if (id === TG_MIP) fixos[MIPJumpToClickTool.toolName] = [MB.Primary];
     for (const [botao, mb] of Object.entries(MB_DO_BOTAO) as [keyof Botoes, number][]) {
       const t = botoesAtuais[botao];
-      if (t === "suvmax") continue;                 // o clique é tratado pela grade (SUV máximo perto do ponto)
+      if (t === "suvmax" || t === "lupa") continue;  // tratados pela grade (SUV máximo perto do ponto; a lupa)
       if (id === TG_MIP) {
         // no MIP o esquerdo leva os cortes ao ponto clicado; os outros botões só movem, ampliam ou ajustam a janela
         if (botao !== "esq" && (t === "janela" || t === "mover" || t === "zoom")) fixos[NOME[t]].push(mb);
@@ -405,7 +406,7 @@ export class Grade {
       this.direito = null;
       if (e.button !== 2 || !d) return;
       if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) return;
-      if (botoesAtuais.dir === "suvmax") return;
+      if (botoesAtuais.dir === "suvmax" || botoesAtuais.dir === "lupa") return;
       this.aoMenu(d.i, e.clientX, e.clientY, d.el);
     };
     window.addEventListener("mouseup", this.soltouDireito, true);
@@ -468,6 +469,7 @@ export class Grade {
         if (!csTools.state.isInteractingWithTool) elDoDesenho = el;
       }, true);
       el.addEventListener("mousedown", (e) => this.cliqueSuvMax(e, q), true);
+      el.addEventListener("mousedown", (e) => this.cliqueLupa(e, q), true);
       el.addEventListener("mousedown", (e) => this.cliqueLinhas(e, q), true);
       el.addEventListener("mousedown", (e) => this.arrastoSuv(e, q), true);
       this.quadros.push(q);
@@ -922,6 +924,35 @@ export class Grade {
     const sync = csTools.synchronizers.createCameraPositionSynchronizer(`ipe-camera-${Date.now()}`);
     for (const q of planos) sync.add({ renderingEngineId: RE_ID, viewportId: q.id });
     this.sincronizador = sync as unknown as { destroy: () => void };
+  }
+
+  /** 0.100.4: a lupa — enquanto o botão está apertado; a roda muda o aumento. */
+  lupa: Lupa | null = null;
+
+  private cliqueLupa(e: MouseEvent, q: Quadro): void {
+    if (botoesAtuais[BOTAO_DO_EVENTO[e.button]] !== "lupa") return;
+    const vp = motor?.getViewport(q.id);
+    const cel = q.el.parentElement;
+    if (!vp || !cel) return;
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    this.lupa?.fechar();
+    const l = new Lupa(vp, cel, q.tipo === "pilha");
+    this.lupa = l;
+    const r = () => vp.canvas.getBoundingClientRect();
+    l.mover(e.clientX - r().left, e.clientY - r().top);
+    const mover = (ev: MouseEvent) => l.mover(ev.clientX - r().left, ev.clientY - r().top);
+    const roda = (ev: WheelEvent) => { ev.preventDefault(); ev.stopImmediatePropagation(); l.roda(ev.deltaY); };
+    const soltar = () => {
+      window.removeEventListener("mousemove", mover, true);
+      window.removeEventListener("mouseup", soltar, true);
+      window.removeEventListener("wheel", roda, true);
+      l.fechar();
+      if (this.lupa === l) this.lupa = null;
+    };
+    window.addEventListener("mousemove", mover, true);
+    window.addEventListener("mouseup", soltar, true);
+    window.addEventListener("wheel", roda, { capture: true, passive: false });
   }
 
   /** "Ir ao SUV máximo perto do cursor (3 cm)": o clique procura o máximo numa esfera em volta do ponto e leva

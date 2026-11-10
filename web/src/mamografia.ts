@@ -8,12 +8,18 @@
 // Duas telas: a segunda é outra janela do navegador (no outro monitor quando o navegador deixa saber onde ele
 // está), que recebe o token desta por mensagem — não pede a senha — e as duas mudam de etapa juntas por um
 // BroadcastChannel.
-import { type Types, utilities } from "@cornerstonejs/core";
+import { Enums as CE, type Types, metaData, utilities } from "@cornerstonejs/core";
 
 import * as API from "./api";
 import { tr } from "./i18n";
 import { abrirMenu, icone } from "./menu";
-import { type Grade, type SerieCarregada, type Spec, carregarSerie } from "./visor";
+import { type Ferramenta, type Grade, type SerieCarregada, type Spec, botoes, carregarSerie } from "./visor";
+
+/** Quem escolhe a ferramenta de verdade é a barra principal (marca o ícone e grava a escolha). */
+function escolherFerramenta(f: Ferramenta, botao: "esq" | "meio" | "dir"): void {
+  const fn = (window as unknown as { __ipeEscolher?: (f: Ferramenta, b: string) => void }).__ipeEscolher;
+  fn?.(f, botao);
+}
 
 type V3 = [number, number, number];
 type P2 = [number, number];
@@ -23,6 +29,7 @@ const IC_MG = {
   antes: "M15 6l-6 6 6 6",
   depois: "M9 6l6 6-6 6",
   tomo: "M4 7h16M4 12h16M4 17h16",
+  lupa: "M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13zM15.5 15.5L21 21M8 10.5h5M10.5 8v5",
   telas: "M2 5h9v12H2zM13 5h9v12h-9zM6 20h2M17 20h2",
   sair: "M6 6l12 12M18 6L6 18",
 };
@@ -177,6 +184,27 @@ export class ModoMamografia {
   private rotuloEtapa: HTMLElement;
   private bTelas: HTMLButtonElement;
   private bTomo: HTMLButtonElement;
+  private bLupa: HTMLButtonElement;
+  private antesDaLupa: Ferramenta | null = null;
+
+  /** A lupa no botão esquerdo, ou a função que ele tinha de volta. */
+  alternarLupa(): void {
+    const atual = botoes().esq;
+    if (atual === "lupa") {
+      escolherFerramenta(this.antesDaLupa && this.antesDaLupa !== "lupa" ? this.antesDaLupa : "janela", "esq");
+      this.antesDaLupa = null;
+    } else {
+      this.antesDaLupa = atual;
+      escolherFerramenta("lupa", "esq");
+    }
+    this.marcarLupa();
+  }
+
+  marcarLupa(): void {
+    const on = botoes().esq === "lupa";
+    this.bLupa.classList.toggle("ligado", on);
+    this.bLupa.setAttribute("aria-pressed", String(on));
+  }
   private aoCanal = (e: MessageEvent) => this.mensagem(e.data);
   private aoRedimensionar = () => { clearTimeout(this.relogio); this.relogio = window.setTimeout(() => this.enquadrar(), 150); };
   private relogio = 0;
@@ -202,6 +230,8 @@ export class ModoMamografia {
     bProto.onclick = () => abrirMenu(this.dados.protocolos.map((n, i) => ({
       rotulo: tr(n), marcado: i === this.dados.indice, acao: () => void this.trocarProtocolo(i) })), 0, 0, tr("Protocolo de mamografia"), bProto);
     this.bTomo = this.botao("Tomossíntese do quadro", IC_MG.tomo, () => void this.alternarTomo());
+    // 0.100.4: a lupa no botão esquerdo (segure e passe; a roda muda o aumento); de novo, a função de antes volta
+    this.bLupa = this.botao("Lupa no botão esquerdo", IC_MG.lupa, () => this.alternarLupa());
     this.bTelas = this.botao(op.tela === 2 ? "Fechar esta tela" : "Duas telas", IC_MG.telas, () => void this.alternarTelas());
     const bSair = this.botao("Sair do modo mamografia", IC_MG.sair, () => this.sair());
     if (op.tela === 2) bSair.hidden = true;
@@ -215,7 +245,7 @@ export class ModoMamografia {
     this.barra.className = "barra-mg";
     this.barra.setAttribute("role", "toolbar");
     this.barra.setAttribute("aria-label", tr("Mamografia"));
-    this.barra.append(titulo, bProto, bAntes, bEtapa, bDepois, this.bTomo, this.bTelas, nota, bSair);
+    this.barra.append(titulo, bProto, bAntes, bEtapa, bDepois, this.bTomo, this.bLupa, this.bTelas, nota, bSair);
     g.raiz.classList.add("mg");
     canalMg()?.addEventListener("message", this.aoCanal);
     window.addEventListener("resize", this.aoRedimensionar);
@@ -322,6 +352,7 @@ export class ModoMamografia {
       if (ag && ag.posicoes.has(c.sop)) {
         c.posicoes = ag.posicoes;
         await this.g.mostrar(i, ag.s, inicioNaPilha(ag.posicoes, c.sop, im.tomo));
+        this.ouvirPilha(i);
         return;
       }
     }
@@ -336,6 +367,84 @@ export class ModoMamografia {
 
   private vp(i: number): Types.IStackViewport | null {
     return (this.g.viewport(i) as Types.IStackViewport) || null;
+  }
+
+  // ------------------------------------------------------------------ 0.100.4: rolar pela pilha da incidência
+  /** Por quadro: a imagem da pilha que está enquadrada, onde a parede torácica (o meio da caixa, do lado da
+   * parede) está no canvas e a escala (pixels da tela por mm, ou por pixel da imagem quando falta o espaçamento). */
+  private ancoras = new Map<number, { sop: string; x: number; y: number; pxMm: number | null; pxImg: number; caixaH: number }>();
+  private ouvidos = new WeakSet<HTMLElement>();
+  private ajustando = false;
+
+  private static sopDe(imageId: string | undefined): string {
+    return /\/instances\/([^/]+)\/frames\//.exec(imageId || "")?.[1] || "";
+  }
+
+  private static mmPorPixel(imageId: string): number | null {
+    const p = metaData.get("imagePlaneModule", imageId) as { columnPixelSpacing?: number; rowPixelSpacing?: number } | undefined;
+    const v = p?.columnPixelSpacing || p?.rowPixelSpacing;
+    return v && v > 0 ? v : null;
+  }
+
+  /** O ponto da parede torácica da imagem (pixels) e a escala atual do quadro. */
+  private medir(i: number): { sop: string; x: number; y: number; pxMm: number | null; pxImg: number; caixaH: number } | null {
+    const vp = this.vp(i);
+    const id = (vp as unknown as { csImage?: { imageId: string } } | null)?.csImage?.imageId ?? vp?.getCurrentImageId();
+    const sop = ModoMamografia.sopDe(id);
+    const im = sop ? this.dados.imagens[sop] : undefined;
+    if (!vp || !id || !im?.caixa) return null;
+    const [x0, y0, x1, y1] = im.caixa;
+    const p = noCanvas(vp, id, im.parede === "right" ? x1 : x0, (y0 + y1) / 2);
+    const a = noCanvas(vp, id, 0, 0), b = noCanvas(vp, id, 1, 0);
+    const pxImg = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const mm = ModoMamografia.mmPorPixel(id);
+    return { sop, x: p[0], y: p[1], pxImg, pxMm: mm ? pxImg / mm : null, caixaH: pxImg * Math.max(1, y1 - y0) };
+  }
+
+  /** Ao passar para outra imagem da mesma incidência (a 2D seguinte, a tomo), o Cornerstone3D guarda o zoom e o
+   * deslocamento **relativos ao tamanho da imagem** — numa imagem de outro tamanho ou espaçamento a mama muda de
+   * tamanho e sai do lugar. Aqui a imagem nova fica na **mesma escala física** (mm por pixel da tela; sem o
+   * espaçamento, a mesma altura da mama) e com a parede torácica exatamente onde estava. */
+  private ouvirPilha(i: number): void {
+    const vp = this.vp(i);
+    const el = vp?.element as HTMLElement | undefined;
+    if (!el || this.ouvidos.has(el)) return;
+    this.ouvidos.add(el);
+    el.addEventListener(CE.Events.CAMERA_MODIFIED, () => {
+      if (this.ajustando) return;
+      const k = this.g.quadros.findIndex((q) => q.el === el);
+      const a = this.ancoras.get(k);
+      const m = k >= 0 ? this.medir(k) : null;
+      if (a && m && m.sop === a.sop) this.ancoras.set(k, m);       // zoom ou deslocamento à mão: segue junto
+    });
+    el.addEventListener(CE.Events.STACK_NEW_IMAGE, () => {
+      const k = this.g.quadros.findIndex((q) => q.el === el);
+      if (k >= 0) this.reancorar(k);
+    });
+  }
+
+  private reancorar(i: number): void {
+    const a = this.ancoras.get(i);
+    const vp = this.vp(i);
+    const m = this.medir(i);
+    if (!a || !vp || !m || m.sop === a.sop) return;
+    const c = this.celulas[i];
+    this.ajustando = true;
+    try {
+      const fator = a.pxMm && m.pxMm ? a.pxMm / m.pxMm : a.caixaH / m.caixaH;
+      if (Number.isFinite(fator) && fator > 0 && Math.abs(fator - 1) > 1e-3) vp.setZoom(vp.getZoom() * fator);
+      const depois = this.medir(i)!;
+      moverNoCanvas(vp, [depois.x, depois.y], [a.x, a.y]);
+      vp.render();
+    } finally {
+      this.ajustando = false;
+    }
+    const agora = this.medir(i);
+    if (agora) this.ancoras.set(i, { ...agora, x: a.x, y: a.y });
+    if (c && c.sop !== m.sop) {
+      c.sop = m.sop;                    // o quadro mostra outra imagem da incidência (o botão da tomo acompanha)
+      if (i === this.g.ativo) this.atualizarTomo();
+    }
   }
 
   /** Espelha, enquadra a mama, encosta a parede torácica e alinha pelo mamilo os quadros mostrados. */
@@ -409,7 +518,12 @@ export class ModoMamografia {
         }
       }
     }
-    for (const i of zooms.keys()) this.celulas[i].pronto = true;
+    for (const i of zooms.keys()) {
+      this.celulas[i].pronto = true;
+      const m = this.medir(i);
+      if (m) this.ancoras.set(i, m);
+      else this.ancoras.delete(i);
+    }
   }
 
   ampliar(i: number): void {
@@ -529,8 +643,9 @@ export class ModoMamografia {
         const b = noCanvas(vp, id, 1, 0);
         const ix = im.caixa ? (im.parede === "right" ? im.caixa[2] : im.caixa[0]) : 0;
         const iy = im.caixa ? (im.caixa[1] + im.caixa[3]) / 2 : 0;
-        return { ...base, espelhado: !!vp.getCamera().flipHorizontal, zoom: vp.getZoom(),
+        return { ...base, espelhado: !!vp.getCamera().flipHorizontal, zoom: vp.getZoom(), tomo: !!im.tomo,
           escala: Math.hypot(b[0] - a[0], b[1] - a[1]), parede_x: noCanvas(vp, id, ix, iy)[0] / cw,
+          parede_y: noCanvas(vp, id, ix, iy)[1] / ch,
           mamilo_y: im.mamilo ? noCanvas(vp, id, im.mamilo[0], im.mamilo[1])[1] / ch : null,
           cortes: vp.getImageIds().length, corte: vp.getCurrentImageIdIndex() };
       }),

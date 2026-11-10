@@ -3,6 +3,19 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.4 — visor web: lupa y pila alineada en mamografía; informe con BI-RADS, PDF/SR y búsqueda activa
+- **Mamografía**: al pasar de la 2D a la tomosíntesis de la misma incidencia, la imagen nueva queda en la misma
+  escala en mm y con la pared torácica en el mismo lugar (la tomo tiene otro tamaño y espaciado; antes la mama
+  cambiaba de tamaño y se movía). Vale también con el zoom hecho a mano.
+- **Lupa**: mantener el botón muestra los píxeles de la propia imagen aumentados alrededor del cursor, con la
+  ventana del cuadro; la rueda cambia el aumento (1,5× a 8×). Botón en la barra de mamografía y herramienta en
+  "Zoom y lupa".
+- **Informe en el navegador**: el formulario **BI-RADS®** de Ipê (composición, hallazgos, categoría por mama,
+  recomendación), con las mismas frases en el texto; **Descargar PDF** (el PDF de Ipê, con encabezado y firma); al
+  firmar, el **PDF** y el **SR** guardados en el estudio y la **búsqueda activa** (BI-RADS 0 y 3), con los pedidos
+  abiertos de la paciente arriba del informe.
+- El servidor sin ventana (`ipe server`) inicia el Qt de interfaz sin pantalla, para generar el PDF.
+
 ## 0.100.3 — visor web: los botones del mouse vuelven a obedecer
 - **Corregido**: después de cambiar la función de un botón (por ejemplo, la ventana en el derecho, que antes era
   zoom), el mouse seguía haciendo la función anterior — Cornerstone3D sumaba el botón nuevo a los anteriores y, al

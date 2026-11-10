@@ -306,3 +306,26 @@ aside.laudo select, aside.laudo input { min-width: 0; width: 100%; }
 /* 0.100.2: o arranjo do PET/CT no painel */
 .linha-arranjo { display: grid; grid-template-columns: 18px 1fr 1fr; gap: 4px; align-items: center; margin: 2px 0; }
 .linha-arranjo span { color: var(--suave); font-size: 12px; text-align: right; }
+
+/* 0.100.4: a lupa */
+canvas.lupa { position: absolute; z-index: 6; pointer-events: none; border-radius: 50%;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.7); }
+
+/* 0.100.4: o formulário BI-RADS, o PDF/DICOM e a busca ativa no laudo */
+aside.laudo details { border: 1px solid var(--borda, #333); border-radius: 6px; padding: 4px 8px; margin: 4px 0; }
+aside.laudo details > summary { cursor: pointer; font-weight: 600; padding: 2px 0; }
+aside.laudo details label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; margin: 4px 0; }
+aside.laudo details label.marcar { flex-direction: row; align-items: center; gap: 6px; }
+aside.laudo .linha-laudo { display: flex; gap: 6px; }
+aside.laudo .linha-laudo > label { flex: 1; min-width: 0; }
+aside.laudo .final-birads { font-weight: 400; color: var(--acento); }
+aside.laudo .final-texto { font-size: 12px; margin: 4px 0; color: var(--acento); }
+aside.laudo ol.achados-birads { margin: 2px 0 4px; padding-left: 18px; font-size: 12px; }
+aside.laudo ol.achados-birads li { display: flex; gap: 4px; align-items: baseline; }
+aside.laudo ol.achados-birads li span { flex: 1; }
+aside.laudo ol.achados-birads li button { padding: 0 6px; }
+aside.laudo .form-achado { border-left: 2px solid var(--acento); padding-left: 6px; margin: 4px 0; }
+aside.laudo .rotulo-campo { font-size: 12px; margin-top: 4px; color: var(--suave); }
+aside.laudo .buscas-laudo { font-size: 12px; border-left: 3px solid #e0a030; padding: 2px 8px; margin: 4px 0; }
+aside.laudo .buscas-laudo .busca.atrasada { color: #ff7a6a; }
+aside.laudo textarea.cabecalho-laudo { min-height: 36px; resize: vertical; }

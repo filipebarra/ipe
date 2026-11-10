@@ -8450,5 +8450,14 @@
  "medindo…": "midiendo…",
  "rede…": "red…",
  " · {} Mbit/s": " · {} Mbit/s",
- "Rede até o servidor central: {}\n{}\nIda e volta (ms): quanto o servidor leva para responder. Vazão (Mbit/s): quanto chega por segundo.\nClique para medir de novo.": "Red hasta el servidor central: {}\n{}\nIda y vuelta (ms): cuánto tarda el servidor en responder. Caudal (Mbit/s): cuánto llega por segundo.\nHaga clic para medir de nuevo."
+ "Rede até o servidor central: {}\n{}\nIda e volta (ms): quanto o servidor leva para responder. Vazão (Mbit/s): quanto chega por segundo.\nClique para medir de novo.": "Red hasta el servidor central: {}\n{}\nIda y vuelta (ms): cuánto tarda el servidor en responder. Caudal (Mbit/s): cuánto llega por segundo.\nHaga clic para medir de nuevo.",
+ "laudo não encontrado": "informe no encontrado",
+ "laudo web: DICOM no exame": "informe web: DICOM en el estudio",
+ "laudo web: PDF": "informe web: PDF",
+ "laudo web: busca ativa": "informe web: búsqueda activa",
+ "o PDF precisa do Qt de interface (atualize o servidor)": "el PDF necesita el Qt de interfaz (actualice el servidor)",
+ "o laudo ainda não foi assinado": "el informe todavía no fue firmado",
+ "sem permissão para assinar": "sin permiso para firmar",
+ "PDF: {}": "PDF: {}",
+ "não foi possível gravar no exame: {}": "no fue posible guardar en el estudio: {}"
 }

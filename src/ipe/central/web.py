@@ -765,6 +765,11 @@ def mamografia(repo, s, q: dict, pode_ver, settings, prefs: dict | None = None) 
                     membros = [x for x in M.same_view(lista, base) if not x.tomo] + \
                         [x for x in M.same_view(lista, base.with_tomo(True)) if x.tomo]
                     if len(membros) > 1 and any(x.sop_uid == im.sop_uid for x in membros):
+                        # 0.100.4: cada imagem da pilha com a sua análise (caixa da mama, parede, mamilo) — ao
+                        # rolar da 2D para a tomo o navegador refaz o enquadramento na imagem nova, na mesma
+                        # escala e com a parede no mesmo lugar
+                        for x in membros:
+                            registrar(x)
                         c["pilha"] = [{"study": x.study_uid, "series": x.series_uid, "sop": x.sop_uid,
                                        "tomo": bool(x.tomo), "quadros": int(x.frames or 1)} for x in membros]
                         if c.get("alt") is None:
@@ -887,11 +892,12 @@ def texto_dos_achados(repo, study: str) -> str:
     return "\n".join(partes)
 
 
-def laudo(repo, s, q: dict, pode_ver, leituras) -> dict:
+def laudo(repo, s, q: dict, pode_ver, leituras, settings=None) -> dict:
     """O que a janela do laudo do navegador precisa: os laudos do exame (versões), os modelos que ele vê, o
     sugerido para o exame, os campos automáticos ({paciente}, {comparacao}, {medidas}…), o texto dos achados de
     IA revisados e quem está laudando. Gravar, assinar e a trava vão pelo /api/rpc, com as regras de sempre."""
     from ipe.auth.visibilidade import com_visao
+    from ipe.central import laudo_web as LW
     from ipe.reporting import fill as F
     from ipe.reporting.templates import PLACEHOLDERS, best_template
     if not s.can("view"):
@@ -916,7 +922,11 @@ def laudo(repo, s, q: dict, pode_ver, leituras) -> dict:
     trava = leituras.quem(study) if leituras is not None else None
     return {
         "laudos": repo.reports(study),
-        "modelos": [{k: m.get(k) for k in ("id", "name", "modalities", "keywords", "text")} for m in modelos],
+        "modelos": [{k: m.get(k) for k in ("id", "name", "modalities", "keywords", "text", "birads")} for m in modelos],
+        # 0.100.4: o formulário BI-RADS, o PDF e o SR no exame, e a busca ativa da paciente
+        "birads": LW.catalogo_birads(),
+        "opcoes": LW.preferencias(settings, s.username, info),
+        "buscas": LW.buscas_do_paciente(repo, info),
         "sugerido": sug.get("id") if sug else "",
         "contexto": {k: str(v) for k, v in ctx.items()},
         "campos": PLACEHOLDERS,
