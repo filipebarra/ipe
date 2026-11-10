@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.7 — RM de mama: fibroglandular e realce de fundo; fim da leitura envia ao PACS
+- **Fibroglandular e realce…** (painel da dinâmica da mama): separa o tecido fibroglandular da gordura no T1 sem
+  saturação (ou no Dixon, ou na pré-contraste) e dá, em cada mama, a porcentagem e o volume; com a dinâmica aberta,
+  a mediana do realce do FGT na primeira fase e quanto dele realça mais de 20%. Tira pele, músculo e parede lateral do
+  tórax, corrige o degradê da bobina e deixa um implante fora da conta. **Copiar frases** para o laudo e **Gravar a
+  máscara (SEG)** para conferir. Devolve número, não categoria: a categoria fica com o médico.
+- **Fim da leitura** (Configurações ▸ Laudos): ao assinar o laudo, o KO das imagens-chave, o GSPS das medidas, o
+  laudo desta assinatura (PDF e SR) e as séries do Ipê vão sozinhos ao PACS escolhido, pela fila de envios — também
+  quando o laudo é assinado no navegador. Ocultas, cópias locais e séries de outro aparelho não vão.
+
 ## 0.100.6 — Linux: pacote .deb e install.sh no portátil
 - **Pacote `.deb`** no release (`Ipe-<versão>-linux-amd64.deb`, pacote `ipe-viewer`): `sudo apt install ./…deb`
   instala em `/opt/ipe`, com o comando `ipe-viewer`, o ícone e o atalho **Ipê** no menu; o `apt` traz as bibliotecas

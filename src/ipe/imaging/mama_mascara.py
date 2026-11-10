@@ -191,6 +191,7 @@ def mascara_da_mama(pre: np.ndarray, referencia: float, orientation, pixel_mm=(1
         saida = saida[:, :, ::-1]
     saida = np.swapaxes(saida, 1, 2) if eixo == 0 else saida
     info["modo"] = MODO_PAREDE
+    info["limites"] = limites          # por corte e linha, a 1ª coluna de pulmão (colunas crescendo para trás)
     info["linhas_com_parede"] = float(np.mean(achados / max(n_lin_r, 1)))
     info["reducao"] = f
     info["cortes_com_pulmao"] = float(np.mean(~vazios))

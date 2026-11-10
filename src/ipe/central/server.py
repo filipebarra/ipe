@@ -616,7 +616,8 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._json(200, {"mensagens": []}, raw=True)
             feitos.add(rep["id"])
             LW.guardar_preferencias(getattr(c, "settings", None), s.username, op)
-            msgs = LW.depois_de_assinar(c.repo, c.storage, rep, info, pref)
+            msgs = LW.depois_de_assinar(c.repo, c.storage, rep, info, {**pref, "usuario": s.username},
+                                        getattr(c, "settings", None))
             return self._json(200, {"mensagens": msgs}, raw=True)
         if path == "/api/web/abriu" and method == "POST":
             data = json.loads(self._body() or b"{}")

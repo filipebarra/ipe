@@ -146,13 +146,32 @@ def test_numeros_do_exame_saem_pelo_painel(env, tmp_path, monkeypatch):
     w.close()
 
 
+def test_fibroglandular_sai_pelo_painel(env, tmp_path, monkeypatch):
+    """0.100.7: o botão do fibroglandular mede (aqui sem T1: na pré da dinâmica, com aviso) e mostra a tabela."""
+    from PySide6.QtWidgets import QMessageBox, QPushButton
+    app, w, tab = _tab_com_dinamica(env, tmp_path)
+    vistos = []
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: vistos.append((self.text(), self.informativeText())) or 0)
+    monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: vistos.append(("info", a[2])) or 0)
+    assert "Fibroglandular e realce…" in [b.text() for b in tab.dyn.panel.findChildren(QPushButton)]
+    tab.dyn.fgt_do_exame()
+    assert vistos, "nada apareceu"
+    texto, info = vistos[0]
+    assert texto != "info", info
+    assert "Série medida" in texto and "pré-contraste da dinâmica" in texto
+    assert "menos confiável" in info
+    tab.close_dynamic()
+    app.processEvents()
+    w.close()
+
+
 def test_nenhum_botao_do_painel_fica_cortado():
     """Na largura mínima do painel, todo botão tem que caber inteiro."""
     from types import SimpleNamespace
     from PySide6.QtWidgets import QPushButton
     from ipe.ui.viewer import dynamic as D
     app = QApplication.instance() or QApplication([])
-    vazio = SimpleNamespace(reconfigure=lambda: 0, numeros_do_exame=lambda: 0, save_maps=lambda: 0,
+    vazio = SimpleNamespace(reconfigure=lambda: 0, numeros_do_exame=lambda: 0, fgt_do_exame=lambda: 0, save_maps=lambda: 0,
                             clear_slice=lambda: 0, chart_to_film=lambda: 0, close=lambda: 0,
                             refresh=lambda: 0, maps=None)
     for largura in (320, 360, 480):

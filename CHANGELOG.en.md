@@ -3,6 +3,17 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.7 — Breast MRI: fibroglandular tissue and background enhancement; end of reading sends to the PACS
+- **Fibroglandular and enhancement…** (breast dynamic panel): separates fibroglandular tissue from fat on the
+  non-fat-saturated T1 (or on Dixon, or on the pre-contrast) and gives, for each breast, the percentage and the
+  volume; with the dynamic open, the median FGT enhancement in the first phase and how much of it enhances more than
+  20%. Removes skin, muscle and lateral chest wall, corrects the coil gradient and leaves an implant out. **Copy
+  sentences** for the report and **Save the mask (SEG)** to check it. It returns numbers, not a category: the category
+  is the physician's call.
+- **End of reading** (Settings ▸ Reports): when the report is signed, the key-image KO, the measurement GSPS, the
+  report of this signature (PDF and SR) and Ipê's series go to the chosen PACS on their own, through the send queue —
+  also when the report is signed in the browser. Hidden series, local copies and other devices' series are not sent.
+
 ## 0.100.6 — Linux: .deb package and install.sh in the portable
 - **`.deb` package** in the release (`Ipe-<version>-linux-amd64.deb`, package `ipe-viewer`): `sudo apt install ./…deb`
   installs into `/opt/ipe`, with the `ipe-viewer` command, the icon and the **Ipê** entry in the applications menu;

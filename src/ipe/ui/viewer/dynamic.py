@@ -472,6 +472,9 @@ class DynamicPanel(QWidget):
         botoes = (("Parâmetros…", self.s.reconfigure, "Fases, limiares e disposição dos quadros."),
                   ("Números do exame…", self.s.numeros_do_exame,
                    "Realce de fundo do parênquima e angiovolume da mama inteira."),
+                  ("Fibroglandular e realce…", self.s.fgt_do_exame,
+                   "Quanto da mama é tecido fibroglandular (no T1 sem saturação, no Dixon ou, sem eles, na "
+                   "pré-contraste) e quanto ele realça na primeira fase."),
                   ("Salvar mapas…", self.s.save_maps, "Grava os mapas dos quadros como séries novas."),
                   ("Apagar curvas", self.s.clear_slice, "Apaga as curvas e ROIs deste corte."),
                   ("Gráfico no filme", self.s.chart_to_film, "Põe o gráfico numa folha de filme."),
@@ -992,6 +995,67 @@ class DynamicSession:
         cx.setInformativeText(f"<small>{e.mascara}<br><br>{e.formula}<br><br>{avisos}</small>")
         cx.setTextFormat(Qt.RichText)
         cx.exec()
+
+    def fgt_do_exame(self) -> None:
+        """Fibroglandular × gordura e realce de fundo do FGT (0.100.7), com a máscara para conferir."""
+        from PySide6.QtWidgets import QApplication, QProgressDialog
+        from ipe.imaging import mama_fgt as F
+        from ipe.imaging import mama_fgt_exame as FE
+        tab = self.tab
+        dlg = QProgressDialog("Separando gordura e glândula…", "Cancelar", 0, 0, tab)
+        dlg.setWindowTitle("Fibroglandular e realce")
+        dlg.setWindowModality(Qt.WindowModal)
+        dlg.setMinimumDuration(300)
+
+        def progresso(feitos: int, total: int) -> bool:
+            if feitos % 4 == 0 or feitos == total:
+                dlg.setMaximum(total)
+                dlg.setValue(feitos)
+                QApplication.processEvents()
+            return not dlg.wasCanceled()
+
+        try:
+            r, esc, vol, frames = FE.medir(tab.repo, tab.cache, tab.study_uid, self.maps, progresso)
+        except Exception as erro:  # noqa: BLE001
+            dlg.close()
+            log.exception("fibroglandular do exame")
+            QMessageBox.information(tab, "Fibroglandular e realce", str(erro) or "Não consegui medir; o registro "
+                                    "do erro está no log.")
+            return
+        finally:
+            dlg.close()
+        self.ultimo_fgt = r
+        frases = F.frases(r)
+        tabela = "".join("<tr><td>" + nome + "</td><td><b>" + valor + "</b></td></tr>" for nome, valor in FE.linhas(r))
+        cx = QMessageBox(QMessageBox.NoIcon, "Fibroglandular e realce", "<table cellpadding=3>" + tabela + "</table>",
+                         parent=tab)
+        avisos = "<br>".join(r.avisos)
+        cx.setInformativeText("<small>" + r.texto_metodo + "<br><br>"
+                              + "<br>".join(frases) + ("<br><br>" + avisos if avisos else "") + "</small>")
+        cx.setTextFormat(Qt.RichText)
+        copiar = cx.addButton("Copiar frases", QMessageBox.ActionRole)
+        gravar = cx.addButton("Gravar a máscara (SEG)", QMessageBox.ActionRole) if vol is not None else None
+        cx.addButton(QMessageBox.Close)
+        cx.exec()
+        if cx.clickedButton() is copiar:
+            QApplication.clipboard().setText("\n".join(frases))
+            tab.status_message.emit("Frases do fibroglandular copiadas.")
+        elif gravar is not None and cx.clickedButton() is gravar:
+            db = getattr(tab.repo, "db", None)
+            storage = getattr(tab, "storage_root", None)
+            if db is None or storage is None:
+                QMessageBox.information(tab, "Fibroglandular e realce", "Este banco não aceita série nova daqui.")
+                return
+            try:
+                novas = FE.gravar_seg(r, vol, frames, db, storage, tab.repo, tab.study_uid)
+            except Exception:  # noqa: BLE001
+                log.exception("gravar a SEG do fibroglandular")
+                QMessageBox.warning(tab, "Fibroglandular e realce", "Não consegui gravar a máscara; o registro do "
+                                    "erro está no log.")
+                return
+            if hasattr(tab, "recarregar_series"):
+                tab.recarregar_series()
+            tab.status_message.emit(f"Máscara gravada: {FE.DESC_SEG} ({len(novas)} série).")
 
     @staticmethod
     def resumo_do_salvamento(feitos: list[str], faltaram: list[str]) -> str:

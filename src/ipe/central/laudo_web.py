@@ -80,13 +80,18 @@ def pdf_do_laudo(info: dict, rep: dict, cabecalho: str, assinatura: str) -> byte
         return write_pdf(None, info, rep, cabecalho, assinatura, [], False)
 
 
-def depois_de_assinar(repo, storage: Path, rep: dict, info: dict, op: dict) -> list[str]:
+def depois_de_assinar(repo, storage: Path, rep: dict, info: dict, op: dict, settings=None) -> list[str]:
     """O que a janela do Ipê faz ao assinar (report_window.sign/store_dicom): o PDF encapsulado e o SR no
     exame (como séries novas) e a busca ativa. Devolve as frases para mostrar ao médico."""
     from ipe.reporting import birads as B
     from ipe.reporting import busca_ativa as BA
     from ipe.reporting import dicom_out as D
+    from ipe.exporter import fim_leitura as FL
     msgs: list[str] = []
+    try:
+        series_antes = FL.antes(repo, rep["study_uid"])
+    except Exception:  # noqa: BLE001
+        series_antes = None
     files = repo.files_for_study(rep["study_uid"])
     if files and (op.get("pdf") or op.get("sr")):
         tmp = Path(tempfile.mkdtemp(prefix="ipe_laudo_web_"))
@@ -117,7 +122,46 @@ def depois_de_assinar(repo, storage: Path, rep: dict, info: dict, op: dict) -> l
             msgs.append(txt)
     except Exception:  # noqa: BLE001
         log.exception("laudo web: busca ativa")
+    if series_antes is not None:
+        try:
+            txt = fim_da_leitura(repo, storage, rep, settings, series_antes, op.get("usuario", ""))
+            if txt:
+                msgs.append(txt)
+        except Exception as e:  # noqa: BLE001
+            log.exception("laudo web: fim da leitura")
+            msgs.append(f"não foi possível enviar ao PACS: {e}")
     return msgs
+
+
+def fim_da_leitura(repo, storage, rep: dict, settings, series_antes: set[str], usuario: str = "") -> str:
+    """0.100.7: o fim da leitura do Ipê (exporter/fim_leitura.py) para o laudo assinado no navegador: grava o KO e
+    o GSPS e manda ao PACS, numa linha de fundo do servidor (a resposta ao navegador não espera o envio)."""
+    from ipe.exporter import fim_leitura as FL
+    cfg = FL.config(settings)
+    if not cfg.get("ligado"):
+        return ""
+    no = FL.destino(repo, cfg)
+    if no is None:
+        return "fim da leitura: escolha o destino em Configurações ▸ Laudos ▸ Fim da leitura"
+    study = rep["study_uid"]
+    FL.gravar_ko_gsps(repo, storage, study, cfg)
+    novas = FL.antes(repo, study) - set(series_antes)
+    series = FL.escolher(repo, study, novas, cfg)
+    if not series:
+        return "fim da leitura: nada do Ipê para enviar"
+    resumo = FL.resumo(repo, study, series)
+
+    def enviar():
+        try:
+            ok, falhas = FL.enviar_direto(repo, settings, no, study, series)
+            repo.audit("fim_da_leitura", f"{no.get('name', '')}: {resumo} — {ok} enviada(s), {falhas} falha(s)",
+                       usuario, study)
+        except Exception as e:  # noqa: BLE001
+            log.exception("laudo web: envio ao PACS")
+            repo.audit("fim_da_leitura", f"{no.get('name', '')}: falhou — {e}", usuario, study)
+
+    threading.Thread(target=enviar, name="ipe-fim-da-leitura", daemon=True).start()
+    return f"enviando ao {no.get('name', 'PACS')}: {resumo}"
 
 
 def buscas_do_paciente(repo, info: dict) -> list[dict]:

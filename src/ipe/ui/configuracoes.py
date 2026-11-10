@@ -57,6 +57,7 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
     ("Laudos", [
         ("Prioridade, subespecialidade e prazos (SLA)…", "f:abrir_config_sla", "users"),
         ("Busca ativa (prazos por BI-RADS)…", "f:abrir_config_busca_ativa", "users"),
+        ("Fim da leitura (enviar ao PACS ao assinar)…", "f:abrir_config_fim_leitura", "configure"),
         ("IA no texto do laudo…", "f:abrir_config_laudo_ia", ""),
     ]),
     ("Monitores", [

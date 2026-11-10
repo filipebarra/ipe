@@ -901,6 +901,11 @@ class ReportWindow(QWidget):
         self._set_setting("report.dicom_sr", self.save_sr.isChecked())
         auth.audit(self.repo, "laudo_assinado", rep.get("title", ""), self.study_uid)
         msgs = []
+        from ipe.exporter import fim_leitura as FL
+        try:
+            series_antes = FL.antes(self.repo, self.study_uid)
+        except Exception:  # noqa: BLE001
+            series_antes = None
         try:
             n = self.store_dicom(rep)
             if n:
@@ -915,6 +920,14 @@ class ReportWindow(QWidget):
                 msgs.append(txt)
         except Exception:  # noqa: BLE001
             log.exception("busca ativa")
+        if series_antes is not None:                             # 0.100.7: fim da leitura → PACS
+            try:
+                txt = self.fim_da_leitura(series_antes)
+                if txt:
+                    msgs.append(txt)
+            except Exception as e:  # noqa: BLE001
+                log.exception("fim da leitura")
+                msgs.append(f"não foi possível enviar ao PACS: {e}")
         self.load(rep["id"])
         self.status.setText("Laudo assinado. " + "; ".join(msgs))
         self.saved.emit(self.study_uid)
@@ -927,6 +940,43 @@ class ReportWindow(QWidget):
                     QTimer.singleShot(0, lambda w=w, u=self.study_uid: w.fechar_exame(u, "laudo assinado"))
                     break
             QTimer.singleShot(0, self.close)
+
+    def _rede(self):
+        """O serviço de rede da janela principal (a fila de envios que o médico vê)."""
+        from PySide6.QtWidgets import QApplication
+        w = self.parent()
+        while w is not None:
+            if hasattr(w, "net") and hasattr(getattr(w, "net"), "send"):
+                return w.net
+            w = w.parent()
+        for w in QApplication.topLevelWidgets():
+            if hasattr(w, "net") and hasattr(getattr(w, "net"), "send"):
+                return w.net
+        return None
+
+    def fim_da_leitura(self, series_antes: set[str]) -> str:
+        """0.100.7: com a opção ligada (Configurações ▸ Laudos ▸ Fim da leitura), grava o KO e o GSPS e manda ao
+        PACS o laudo desta assinatura, o KO, o GSPS e as séries do Ipê do exame. Devolve a frase para a tela."""
+        from ipe.exporter import fim_leitura as FL
+        cfg = FL.config(self.settings)
+        if not cfg.get("ligado"):
+            return ""
+        no = FL.destino(self.repo, cfg)
+        if no is None:
+            return "fim da leitura: escolha o destino em Configurações ▸ Laudos ▸ Fim da leitura"
+        storage = getattr(self.tab, "storage_root", None)
+        FL.gravar_ko_gsps(self.repo, storage, self.study_uid, cfg)
+        novas = FL.antes(self.repo, self.study_uid) - set(series_antes)
+        series = FL.escolher(self.repo, self.study_uid, novas, cfg)
+        if not series:
+            return "fim da leitura: nada do Ipê para enviar"
+        net = self._rede()
+        if net is None:
+            return "fim da leitura: sem a fila de rede"
+        net.send(no, None, [self.study_uid], f"Fim da leitura · {self.report.get('title') or 'Laudo'}", series)
+        auth.audit(self.repo, "fim_da_leitura", f"{no.get('name', '')}: {FL.resumo(self.repo, self.study_uid, series)}",
+                   self.study_uid)
+        return f"enviando ao {no.get('name', 'PACS')}: {FL.resumo(self.repo, self.study_uid, series)}"
 
     def store_dicom(self, rep: dict) -> int:
         from ipe.reporting import dicom_out as D

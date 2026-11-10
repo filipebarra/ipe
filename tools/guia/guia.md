@@ -663,7 +663,18 @@ No painel **Medidas**, **Editar lesão…** (ou duplo clique na linha) reabre a 
 
 Botão **Números do exame…** no painel da dinâmica. Ele mede sobre a máscara da mama e devolve: volume da mama na máscara, angiovolume do exame, realce de fundo do parênquima (média e mediana) e o percentual de cada um dos seis padrões — com a fórmula escrita ao lado.
 
-> **Até onde esse número vale hoje.** A máscara corta na parede torácica, mas mantém pele, vasos e músculo peitoral. O realce de fundo da literatura é medido sobre o tecido fibroglandular, e essa separação ainda não existe. Então o número serve para comparar a mesma paciente e o mesmo serviço ao longo do tempo — não para virar categoria no laudo nem para comparar com número publicado.
+> **Até onde esse número vale hoje.** A máscara corta na parede torácica, mas mantém pele, vasos e músculo peitoral. Então o número serve para comparar a mesma paciente e o mesmo serviço ao longo do tempo — não para virar categoria no laudo nem para comparar com número publicado. O realce medido só no tecido fibroglandular está no botão seguinte.
+
+### Fibroglandular e realce de fundo
+
+Botão **Fibroglandular e realce…** no painel da dinâmica. O programa separa, na mama, o **tecido fibroglandular** (FGT) da gordura e mede quanto ele **realça** na primeira fase pós-contraste.
+
+- **Onde separa**: no **T1 sem saturação** do exame (o "A T1", "Axi T1" ou "Ax T1 FSE"), que é onde gordura e glândula mais se distinguem; sem ele, no **Dixon** (o par FAT:/WATER:, pela fração de gordura); sem os dois, na **pré-contraste da dinâmica**, com o aviso de que o número é menos confiável.
+- **Como**: tira a pele (3 mm), corrige o degradê da bobina usando a gordura como referência e separa com um limiar automático (Otsu) em cada mama. Tira também o **músculo** (o escuro encostado na parede torácica, até 25 mm dela) e a parede lateral do tórax (o que fica atrás do ponto mais anterior do pulmão). Um **implante** (bloco escuro, liso e grosso) sai da conta, com aviso.
+- **O resultado**: em cada mama, a porcentagem e o volume do FGT; e, com a dinâmica aberta, a **mediana do realce** do FGT e quanto dele realça mais de 20%. A máscara é levada para a grade da dinâmica pela posição no paciente, então a dinâmica pode ter outra resolução.
+- **Copiar frases** leva duas frases prontas para o laudo; **Gravar a máscara (SEG)** grava a mama e o FGT como uma série de segmentação (*Mama e fibroglandular · Ipê*), para conferir por cima das imagens.
+
+> **O programa devolve número, não categoria.** A porcentagem em volume sai bem abaixo da impressão visual (um exame laudado como "esparsas" mediu 10%), e o realce medido voxel a voxel ainda não foi aferido contra laudos. A categoria de quantidade (a–d) e a de realce de fundo (mínimo a acentuado) ficam com o médico; o número serve para acompanhar a mesma paciente e para ver assimetria entre as mamas.
 
 ### Dinâmica pronta na chegada
 
@@ -1210,6 +1221,16 @@ Para ler os PDF do exame — anexados, laudos guardados em PDF ou PDF que vieram
 ## Laudo em andamento (servidor central)
 
 No modo cliente, quem abre o laudo de um exame passa a ser **quem está laudando**, até fechar a janela do laudo. Outro médico que abrir o laudo do mesmo exame é avisado ("Dra. Ana está laudando este exame desde 10:05") e escolhe **Só ler** (a janela abre sem poder gravar) ou **Assumir o laudo** (fica no registro de acesso, e o primeiro não grava mais). Quem só abre as imagens vê o aviso na barra de status. O servidor recusa gravar ou assinar o laudo de quem não está com ele. Se o computador de quem laudava travar, a trava cai sozinha em 10 minutos.
+
+## Fim da leitura: enviar ao PACS ao assinar
+
+**Configurações ▸ Laudos ▸ Fim da leitura (enviar ao PACS ao assinar)…** liga o envio e escolhe o **destino** (um dos nós de rede ativos). Ao **assinar** o laudo, o programa grava as imagens-chave como um **KO** e as medidas como um **GSPS** no exame, e manda ao destino, pela fila de envios (a mesma do envio à mão):
+
+- **o laudo** desta assinatura (o PDF e o SR, se você os guarda no exame);
+- **as imagens-chave (KO)** e **as medidas e anotações (GSPS)**;
+- **as séries do Ipê** no exame (as SEG das análises, mapas, capturas).
+
+Cada item se liga e desliga. Não vão: o laudo de antes, as séries de outro aparelho, as **ocultas** e as cópias que ficam só neste computador (a cópia sem implante, as tabelas da segmentação). A barra de status do laudo diz "enviando ao PACS: …" e o envio fica no registro de acesso. Vale também para o laudo assinado no **navegador**: o servidor central grava e manda sozinho.
 
 ## Fechar o exame sozinho
 

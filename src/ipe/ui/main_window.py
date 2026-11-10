@@ -759,6 +759,10 @@ class MainWindow(QMainWindow):
             except Exception:  # noqa: BLE001
                 pass
 
+    def abrir_config_fim_leitura(self) -> None:
+        from ipe.ui.fim_leitura_dialog import FimLeituraDialog
+        FimLeituraDialog(self.repo, self.settings, self).exec()
+
     def abrir_config_busca_ativa(self) -> None:
         from ipe.ui.busca_ativa_dialog import BuscaAtivaConfigDialog
         BuscaAtivaConfigDialog(self.repo, self).exec()
