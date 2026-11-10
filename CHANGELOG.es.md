@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.5 — visor web: doble clic amplía; "Salir" vuelve a la lista
+- **Doble clic** en un cuadro lo amplía a 1×1; otro doble clic vuelve a la disposición anterior, cada cuadro como
+  estaba (corte, zoom, ventana). Sobre una medida, el doble clic sigue siendo de la medida.
+- **Salir**: con un estudio abierto, cierra el estudio y vuelve a la lista de estudios; en la lista, sale de Ipê Web.
+- Cerrar o recargar la pestaña con un estudio abierto pide confirmación.
+
 ## 0.100.4 — visor web: lupa y pila alineada en mamografía; informe con BI-RADS, PDF/SR y búsqueda activa
 - **Mamografía**: al pasar de la 2D a la tomosíntesis de la misma incidencia, la imagen nueva queda en la misma
   escala en mm y con la pared torácica en el mismo lugar (la tomo tiene otro tamaño y espaciado; antes la mama

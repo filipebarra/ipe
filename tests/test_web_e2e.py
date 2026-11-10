@@ -161,7 +161,9 @@ def test_login_lista_exame_e_quadros(servidor):
         assert info["voi"] == "SIGMOID" and info["ts"] == "1.2.840.10008.1.2.4.202" and info["max"] > 2000
         media, dp = _pixels(pg)
         assert media < 230 and dp > 5, (media, dp)
-        # sair volta ao login
+        # 0.100.5: "Sair" com o exame aberto volta à lista; na lista, sai (volta ao login)
+        pg.click("button.sair")
+        pg.wait_for_selector("table.lista tbody tr")
         pg.click("button.sair")
         pg.wait_for_selector("#usuario")
         b.close()

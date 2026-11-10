@@ -445,6 +445,7 @@ const T: Trad = {
   "Ambas as mamas": ["Both breasts", "Ambas mamas"],
   "Zoom e lupa": ["Zoom and magnifier", "Zoom y lupa"],
   "Lupa": ["Magnifier", "Lupa"],
+  "Fechar o exame e voltar à lista": ["Close the study and go back to the list", "Cerrar el estudio y volver a la lista"],
   "Apagar medida": ["Delete measurement", "Borrar medida"],
   "Apaga a medida selecionada (clique nela antes)": ["Deletes the selected measurement (click it first)", "Borra la medida seleccionada (haga clic en ella antes)"],
   "Clique numa medida para selecioná-la antes de apagar.": ["Click a measurement to select it before deleting.", "Haga clic en una medida para seleccionarla antes de borrar."],

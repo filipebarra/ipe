@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.5 — web viewer: double-click maximizes; "Sign out" goes back to the list
+- **Double-click** a viewport to maximize it to 1×1; double-click again to go back to the previous layout, each
+  viewport as it was (slice, zoom, window). On a measurement, the double-click still belongs to the measurement.
+- **Sign out** (Sair): with a study open, it closes the study and goes back to the study list; on the list, it signs
+  out of Ipê Web.
+- Closing or reloading the tab with a study open asks for confirmation.
+
 ## 0.100.4 — web viewer: magnifier and aligned stack in mammography; report with BI-RADS, PDF/SR and active recall
 - **Mammography**: scrolling from the 2D image to the tomosynthesis of the same view keeps the same scale in mm and
   the chest wall in the same place (the tomo has another size and spacing; before, the breast changed size and moved).

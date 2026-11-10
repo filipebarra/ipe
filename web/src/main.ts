@@ -113,8 +113,15 @@ async function entrouNaSegunda(): Promise<void> {
 
 function cabecalho(...extra: Node[]): HTMLElement {
   const quem = config?.usuario.full_name || config?.usuario.username || "";
-  const b = el("button", { class: "sair", title: quem, onclick: async () => { await API.sair(); config = null; telaLogin(); } },
-    tr("Sair"));
+  // 0.100.5: com um exame aberto, "Sair" fecha o exame e volta à lista; na lista, sai do Ipê Web
+  const noExame = /^#\/(exame|mg)\//.test(location.hash);
+  const b = el("button", { class: "sair", title: noExame ? tr("Fechar o exame e voltar à lista") : quem,
+    onclick: async () => {
+      if (noExame) { location.hash = "#/lista"; return; }
+      await API.sair();
+      config = null;
+      telaLogin();
+    } }, tr("Sair"));
   return el("header", {}, el("strong", {}, tr("Ipê Web")), ...extra, el("span", { class: "quem" }, quem), b);
 }
 
@@ -1110,6 +1117,13 @@ function rota(): void {
 }
 
 window.addEventListener("hashchange", rota);
+// 0.100.5: fechar a aba (ou recarregar) com um exame aberto pede confirmação; a 2ª tela da mamografia não pede
+window.addEventListener("beforeunload", (e) => {
+  if (API.tokenAtual() && /^#\/exame\//.test(location.hash)) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
+});
 (window as unknown as Record<string, unknown>).__ipeIdioma = (l: string) => { setLang(l); rota(); }; // testes
 window.addEventListener("resize", () => grade?.redimensionar());
 rota();

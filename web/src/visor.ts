@@ -418,6 +418,8 @@ export class Grade {
   montar(linhas: number, colunas: number, specs?: Spec[]): void {
     const antigas: Spec[] = specs ?? this.quadros.map((q) => this.specDe(q));
     this.desmontar(false);
+    this.ampliado = null;
+    this.raiz.classList.remove("com-ampliado");
     this.raiz.style.gridTemplateColumns = `repeat(${colunas}, 1fr)`;
     this.raiz.style.gridTemplateRows = `repeat(${linhas}, 1fr)`;
     this.linhas = linhas;
@@ -442,6 +444,7 @@ export class Grade {
       botoes.className = "planos";
       cel.append(el, textos, botoes);
       cel.addEventListener("mousedown", () => this.ativar(i), true);
+      cel.addEventListener("dblclick", (e) => this.duploClique(e, i));
       // arrastar a série da tira para o quadro
       cel.addEventListener("dragover", (e) => {
         if (!e.dataTransfer?.types.includes(TIPO_ARRASTO)) return;
@@ -532,6 +535,49 @@ export class Grade {
     this.marcarAtivo();
     this.fonteDasLinhas();
     this.aoMudar();
+  }
+
+  // ------------------------------------------------------------------ 0.100.5: duplo clique amplia o quadro
+  /** O quadro ampliado (1×1) ou null. Os outros só se escondem: ao voltar, cada um está como estava (corte, zoom,
+   * janela, medidas). */
+  ampliado: number | null = null;
+  /** Quem usa a grade do seu jeito (a mamografia) desliga o duplo clique daqui. */
+  duploAmplia = true;
+
+  private duploClique(e: MouseEvent, i: number): void {
+    if (!this.duploAmplia || e.button !== 0 || csTools.state.isInteractingWithTool) return;
+    const q = this.quadros[i];
+    const vp = q ? motor?.getViewport(q.id) : undefined;
+    if (vp) {
+      // um duplo clique numa medida é da medida (editar o texto da seta), não da grade
+      const r = vp.canvas.getBoundingClientRect();
+      const ponto = [e.clientX - r.left, e.clientY - r.top] as Types.Point2;
+      try {
+        if (csTools.utilities.getAnnotationNearPoint(vp.element, ponto, 8)) return;
+      } catch { /* sem medidas */ }
+    }
+    this.alternarAmpliado(i);
+  }
+
+  /** Leva o quadro para 1×1; de novo (ou noutro quadro), volta ao arranjo de antes. */
+  alternarAmpliado(i: number): void {
+    const cels = this.quadros.map((q) => q.el.parentElement as HTMLElement);
+    if (this.ampliado !== null) {
+      this.ampliado = null;
+      cels.forEach((c) => { c.style.display = ""; });
+      this.raiz.classList.remove("com-ampliado");
+      this.raiz.style.gridTemplateColumns = `repeat(${this.colunas}, 1fr)`;
+      this.raiz.style.gridTemplateRows = `repeat(${this.linhas}, 1fr)`;
+    } else {
+      if (this.quadros.length < 2) return;
+      this.ampliado = i;
+      cels.forEach((c, k) => { c.style.display = k === i ? "" : "none"; });
+      this.raiz.classList.add("com-ampliado");
+      this.raiz.style.gridTemplateColumns = "1fr";
+      this.raiz.style.gridTemplateRows = "1fr";
+    }
+    this.ativar(i);
+    requestAnimationFrame(() => this.redimensionar());
   }
 
   /** As linhas de referência saem do quadro ativo (se for de corte) e aparecem nos outros. */

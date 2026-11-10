@@ -324,6 +324,7 @@ export class ModoMamografia {
     this.g.quadros.forEach((q, i) => {
       const cel = q.el.parentElement!;
       cel.addEventListener("dblclick", () => this.ampliar(i));
+      this.g.duploAmplia = false;            // o duplo clique aqui é o da mamografia (com o enquadramento)
       const c = this.celulas[i];
       if (c && !c.sop) {
         const nota = document.createElement("div");
@@ -653,12 +654,14 @@ export class ModoMamografia {
   }
 
   sair(): void {
+    this.g.duploAmplia = true;
     this.encerrar();
     this.op.aoSair();
   }
 
   /** Deixa o modo: fecha a segunda tela e solta os ouvintes. */
   encerrar(): void {
+    this.g.duploAmplia = true;
     if (this.op.tela === 1) {
       canalMg()?.postMessage({ tipo: "fim", study: this.op.study });
       this.segunda?.close();

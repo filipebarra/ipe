@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.5 — visualizador web: duplo clique amplia; "Sair" volta à lista
+- **Duplo clique** num quadro amplia para 1×1; outro duplo clique volta ao arranjo de antes, cada quadro como estava
+  (corte, zoom, janela). Sobre uma medida, o duplo clique continua sendo da medida.
+- **Sair**: com um exame aberto, fecha o exame e volta à lista de exames; na lista, sai do Ipê Web.
+- Fechar ou recarregar a aba com um exame aberto pede confirmação.
+
 ## 0.100.4 — visualizador web: lupa e pilha alinhada na mamografia; laudo com BI-RADS, PDF/SR e busca ativa
 - **Mamografia**: ao rolar da 2D para a tomossíntese da mesma incidência, a imagem nova fica na mesma escala em mm e
   com a parede torácica no mesmo lugar (a tomo tem outro tamanho e espaçamento; antes a mama mudava de tamanho e
