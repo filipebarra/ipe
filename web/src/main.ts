@@ -20,6 +20,7 @@ import { ModoDinamica, dinamicaDoExame, guardarTabelas } from "./dinamica";
 import { PainelLaudo } from "./laudo";
 import { ListaEnvios, painelEnvio } from "./envio";
 import { AbaIA, TarefasIA } from "./ia";
+import * as JAN from "./janelas";
 import { PainelFilme } from "./filme";
 import {
   Grade, TIPO_ARRASTO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
@@ -74,7 +75,8 @@ function telaLogin(msg = ""): void {
   tarefasIA = null;
   grade?.encerrar();
   grade = null;
-  const u = el("input", { id: "usuario", autocomplete: "username", required: true }) as HTMLInputElement;
+  const u = el("input", { id: "usuario", autocomplete: "username", required: true, autocapitalize: "none",
+    autocorrect: "off", spellcheck: "false" }) as HTMLInputElement;     // o teclado do celular punha maiúscula e corrigia
   const s = el("input", { id: "senha", type: "password", autocomplete: "current-password", required: true }) as HTMLInputElement;
   const erro = el("div", { class: "erro", role: "alert" }, msg);
   const form = el("form", { class: "login" },
@@ -86,17 +88,18 @@ function telaLogin(msg = ""): void {
     ev.preventDefault();
     erro.textContent = "";
     try {
-      await API.entrar(u.value, s.value);
+      await API.entrar(u.value.trim(), s.value);
       config = await API.configuracao();
       setLang(config.lang);
-      await iniciar();
-      registrarCores(config);
-      rota();
     } catch (e) {
       const m = String((e as Error).message);
       erro.textContent = m === "401" ? tr("Usuário ou senha incorretos.")
         : m === "429" ? tr("Muitas tentativas: espere alguns minutos.") : tr("Não foi possível falar com o servidor.");
+      if (m !== "401" && m !== "429") API.relatarErro("login", e);
+      return;
     }
+    await prepararVisor();
+    rota();
   };
   app.replaceChildren(form);
   u.focus();
@@ -104,17 +107,52 @@ function telaLogin(msg = ""): void {
 
 API.quandoEncerrar(() => telaLogin(tr("Sessão encerrada: entre de novo.")));
 
+/** 0.100.18: o motor de imagens (Cornerstone3D) não pode impedir a entrada: se ele não iniciar neste navegador, a
+ *  lista abre do mesmo jeito e o motivo aparece ao abrir um exame (e vai para o registro do servidor). */
+let erroDoVisor = "";
+async function prepararVisor(): Promise<void> {
+  try {
+    await iniciar();
+    if (config) registrarCores(config);
+    erroDoVisor = "";
+  } catch (e) {
+    erroDoVisor = String((e as Error)?.message || e);
+    API.relatarErro("iniciar", e);
+  }
+}
+
+/** A página foi recarregada (ou é uma janela de visualização aberta pela lista) com a sessão ainda válida. */
+let retomando = false;
+async function retomar(): Promise<void> {
+  if (retomando) return;
+  retomando = true;
+  app.replaceChildren(el("div", { class: "estado" }, tr("Carregando…")));
+  try {
+    config = await API.configuracao();
+    setLang(config.lang);
+  } catch (e) {
+    retomando = false;
+    if (!(e instanceof API.SessaoEncerrada)) { API.usarToken(""); telaLogin(tr("Não foi possível falar com o servidor.")); }
+    return;
+  }
+  await prepararVisor();
+  retomando = false;
+  rota();
+}
+window.addEventListener("error", (e) => API.relatarErro("janela", e.error ?? e.message));
+window.addEventListener("unhandledrejection", (e) => { if (!(e.reason instanceof API.SessaoEncerrada)) API.relatarErro("promessa", e.reason); });
+
 /** A segunda tela da mamografia recebeu o token: lê a configuração e abre o exame. */
 async function entrouNaSegunda(): Promise<void> {
   try {
     config = await API.configuracao();
     setLang(config.lang);
-    await iniciar();
-    registrarCores(config);
-    rota();
   } catch {
     telaLogin();
+    return;
   }
+  await prepararVisor();
+  rota();
 }
 
 function cabecalho(...extra: Node[]): HTMLElement {
@@ -123,7 +161,8 @@ function cabecalho(...extra: Node[]): HTMLElement {
   const noExame = /^#\/(exame|mg)\//.test(location.hash);
   const b = el("button", { class: "sair", title: noExame ? tr("Fechar o exame e voltar à lista") : quem,
     onclick: async () => {
-      if (noExame) { location.hash = "#/lista"; return; }
+      if (noExame) { voltarALista(); return; }
+      JAN.sairDasJanelas();
       await API.sair();
       try { sessionStorage.removeItem(CHAVE_BUSCA); } catch { /* sem armazenamento */ }
       config = null;
@@ -131,6 +170,59 @@ function cabecalho(...extra: Node[]): HTMLElement {
     } }, noExame ? tr("Fechar") : tr("Sair"));     // 0.100.15: no exame, "Fechar" (Close / Cerrar)
   return el("header", {}, el("strong", {}, tr("Ipê Web")), ...extra, el("span", { class: "quem" }, quem), b);
 }
+
+// ------------------------------------------------------------------ 0.100.18: janelas de visualização (uma por monitor)
+/** Fechar o exame: na janela comum, volta à lista; numa janela de visualização, fecha o exame em todas e elas ficam à
+ *  espera do próximo (a lista está na outra janela). */
+function voltarALista(): void {
+  const k = JAN.estaJanela();
+  if (!k) { location.hash = "#/lista"; return; }
+  JAN.fecharNasJanelas();
+  location.hash = `#/espera/j${k}`;
+}
+
+function telaEspera(): void {
+  pararDisponiveis();
+  mg?.encerrar(); mg = null;
+  din?.encerrar(); din = null;
+  void painelLaudo?.fechar(); painelLaudo = null;
+  tarefasIA?.parar(); tarefasIA = null;
+  grade?.encerrar(); grade = null;
+  document.title = `${tr("Ipê Web")} — ${tr("visualização")} ${JAN.estaJanela()}`;
+  app.replaceChildren(el("div", { class: "espera" }, el("strong", {}, tr("Ipê Web")),
+    el("div", {}, `${tr("Janela de visualização")} ${JAN.estaJanela()}`),
+    el("div", { class: "dica" }, tr("Escolha um exame na lista (na outra janela): ele abre aqui."))), tarja());
+}
+
+JAN.canalJanelas()?.addEventListener("message", (e) => {
+  const m = e.data as JAN.Recado;
+  const k = JAN.estaJanela();
+  if (!k) return;                               // a janela da lista não obedece a recados
+  if (m.tipo === "abrir" && m.study) {
+    const alvo = `#/exame/${m.study}/j${k}`;
+    if (location.hash !== alvo) location.hash = alvo;
+  } else if (m.tipo === "fechar") {
+    if (!/^#\/espera\//.test(location.hash)) location.hash = `#/espera/j${k}`;
+  } else if (m.tipo === "sair") {
+    API.usarToken("");
+    window.close();
+  }
+});
+JAN.lembrarPosicao();
+
+// ------------------------------------------------------------------ 0.100.18: celular e tablet
+/** Tela de celular (estreita, ou baixa e de toque): os painéis viram gavetas, a barra rola, a lista vira cartões. */
+const consultaCel = window.matchMedia("(max-width: 760px), (max-height: 520px) and (pointer: coarse)");
+const consultaToque = window.matchMedia("(pointer: coarse)");
+function celular(): boolean { return consultaCel.matches; }
+function toque(): boolean { return consultaToque.matches; }
+function marcarAparelho(): void {
+  document.documentElement.classList.toggle("cel", celular());
+  document.documentElement.classList.toggle("toque", toque());
+}
+marcarAparelho();
+consultaCel.addEventListener?.("change", marcarAparelho);
+consultaToque.addEventListener?.("change", marcarAparelho);
 
 // ------------------------------------------------------------------ lista
 /** 0.100.15: a busca da lista volta quando o exame é fechado (nesta aba do navegador) */
@@ -166,7 +258,8 @@ async function telaLista(): Promise<void> {
     ...MODALIDADES.map((m) => el("option", { value: m }, m || tr("Todas")))) as HTMLSelectElement;
   const corpo = el("tbody");
   const estado = el("div", { class: "estado" });
-  const form = el("form", { class: "filtros" }, busca, de, ate, mod, el("button", { type: "submit" }, tr("Buscar")));
+  const form = el("form", { class: "filtros" }, busca, de, ate, mod, el("button", { type: "submit" }, tr("Buscar")),
+    JAN.seletorDeJanelas(() => undefined));
   const antes = lerBusca();
   if (antes) {
     busca.value = antes.texto || "";
@@ -176,7 +269,15 @@ async function telaLista(): Promise<void> {
   }
   const abrir = (uid: string) => {
     gravarBusca({ texto: busca.value, de: de.value, ate: ate.value, mod: mod.value, ultimo: uid });
-    location.hash = `#/exame/${uid}`;
+    const n = celular() ? 0 : JAN.quantasJanelas();
+    if (!n) { location.hash = `#/exame/${uid}`; return; }
+    // 0.100.18: a lista continua aqui; o exame abre nas janelas de visualização (uma por monitor)
+    estado.textContent = "";
+    JAN.abrirNasJanelas(uid, n, () => {
+      estado.textContent = tr("O navegador bloqueou a janela de visualização: permita os pop-ups deste endereço (ícone na barra de endereço) e abra o exame de novo.");
+    });
+    corpo.querySelectorAll("tr.ultimo").forEach((x) => x.classList.remove("ultimo"));
+    corpo.querySelector(`tr[data-uid="${uid}"]`)?.classList.add("ultimo");
   };
   // 0.100.2: cada coluna ordena a lista (clicar no título: crescente; de novo: decrescente), e a escolha fica lembrada
   const COLUNAS: { nome: string; valor: (r: API.DicomJson) => string | number; num?: boolean }[] = [
@@ -218,12 +319,14 @@ async function telaLista(): Promise<void> {
     corpo.replaceChildren();
     for (const { r } of ordenadas) {
       const uid = API.texto(r, "0020000D");
-      const tr_ = el("tr", { tabindex: 0 },
+      const tr_ = el("tr", { tabindex: 0, "data-uid": uid },
         el("td", {}, dataBr(API.texto(r, "00080020"))), el("td", {}, API.texto(r, "00100010")),
         el("td", {}, API.texto(r, "00100020")), el("td", {}, API.texto(r, "00081030")),
         el("td", {}, ((r["00080061"]?.Value as string[]) || []).join(", ")),
         el("td", { class: "num" }, API.texto(r, "00201208")));
       tr_.ondblclick = () => abrir(uid);
+      tr_.onclick = () => { if (toque() || celular()) abrir(uid); };       // no toque não há duplo clique
+      for (const [i, c] of [...tr_.children].entries()) c.setAttribute("data-col", tr(COLUNAS[i].nome));
       tr_.onkeydown = (e) => { if ((e as KeyboardEvent).key === "Enter") abrir(uid); };
       if (antes?.ultimo === uid) tr_.classList.add("ultimo");      // o exame que estava aberto
       corpo.append(tr_);
@@ -361,7 +464,8 @@ function seta(): SVGSVGElement {
   return s;
 }
 
-async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
+async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0): Promise<void> {
+  if (janela) document.title = `${tr("Ipê Web")} — ${tr("visualização")} ${janela}`;
   pararDisponiveis();
   mg?.encerrar();
   mg = null;
@@ -371,6 +475,12 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   painelLaudo = null;
   grade?.encerrar();
   fecharMenus();
+  if (erroDoVisor) await prepararVisor();
+  if (erroDoVisor) {
+    app.replaceChildren(cabecalho(), el("div", { class: "estado" },
+      `${tr("Este navegador não conseguiu iniciar o visualizador de imagens")}: ${erroDoVisor}`));
+    return;
+  }
   const todas = await API.qido(`/studies/${study}/series`);
   const segs = todas.filter((s) => API.texto(s, "00080060") === "SEG");
   const series = todas
@@ -388,7 +498,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
 
   // ---------------------------------------------------------------- barra de ícones
   const aviso = el("div", { class: "estado", role: "status" });
-  const voltar = botaoIcone("Voltar à lista", IC.voltar, { onclick: () => { location.hash = "#/lista"; } });
+  const voltar = botaoIcone("Voltar à lista", IC.voltar, { onclick: () => voltarALista() });
   const chip = el("div", { class: "paciente" }, el("strong", {}, nomePac),
     el("span", {}, `${idPac} · ${API.texto(estudo, "00081030")} · ${dataBr(API.texto(estudo, "00080020"))}`));
 
@@ -508,8 +618,10 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   const bPainelDir = botaoIcone("Recolher o painel de ferramentas", "M9 6l6 6-6 6", { class: "ic recolher" });
   const trilhoEsq = el("div", { class: "trilho" }, botaoIcone("Abrir o painel de séries", "M9 6l6 6-6 6"));
   const trilhoDir = el("div", { class: "trilho" }, botaoIcone("Abrir o painel de ferramentas", "M15 6l-6 6 6 6"));
+  const bGavetaEsq = botaoIcone("Séries", "M4 5h16v4H4zM4 11h16v4H4zM4 17h16v2H4z");
+  const bGavetaDir = botaoIcone("Painel de ferramentas", "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M16 4v4M10 10v4M18 16v4");
   const nav = el("nav", { class: "barra", "aria-label": tr("Ferramentas") },
-    el("div", { class: "grupo" }, voltar), ferramentas, medicao,
+    el("div", { class: "grupo" }, voltar), el("div", { class: "grupo so-cel" }, bGavetaEsq, bGavetaDir), ferramentas, medicao,
     el("div", { class: "grupo" }, bLayout, bMpr, bEspessura, bObliquo, bGirar),
     el("div", { class: "grupo" }, bPet, bDin, bSeg, bCine, bCineMenu),
     el("div", { class: "grupo" }, bInverter, bRestaurar, bOverlay, bOverlayMenu),
@@ -550,15 +662,24 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   const esqAberto = lerPreferencia("painelEsq", true);
   const dirAberto = lerPreferencia("painelDir", true);
   const ajustarPaineis = (esq: boolean, dir: boolean) => {
+    if (celular() && esq && dir) { if (tira.hidden) dir = false; else esq = false; }   // uma gaveta por vez
     tira.hidden = !esq;
     lateral.hidden = !dir;
     trilhoEsq.hidden = esq;
     trilhoDir.hidden = dir;
-    gravarPreferencia("painelEsq", esq);
-    gravarPreferencia("painelDir", dir);
+    bGavetaEsq.classList.toggle("ligado", esq);
+    bGavetaDir.classList.toggle("ligado", dir);
+    if (!celular()) {                       // no celular as gavetas abrem e fecham toda hora: não é preferência
+      gravarPreferencia("painelEsq", esq);
+      gravarPreferencia("painelDir", dir);
+    }
     requestAnimationFrame(() => grade?.redimensionar());
   };
-  ajustarPaineis(esqAberto, dirAberto);
+  // 0.100.18: no celular os painéis são gavetas por cima da imagem, fechadas ao abrir
+  bGavetaEsq.onclick = () => ajustarPaineis(tira.hidden, false);
+  bGavetaDir.onclick = () => { ajustarPaineis(false, lateral.hidden); atualizarAba(); };
+  telas.addEventListener("pointerdown", () => { if (celular() && (!tira.hidden || !lateral.hidden)) ajustarPaineis(false, false); }, true);
+  ajustarPaineis(celular() ? false : esqAberto, celular() ? false : dirAberto);
   bPainelEsq.onclick = () => ajustarPaineis(false, !lateral.hidden);
   bPainelDir.onclick = () => { ajustarPaineis(!tira.hidden, false); };
   trilhoEsq.querySelector("button")!.onclick = () => ajustarPaineis(true, !lateral.hidden);
@@ -609,7 +730,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     }
     return carregadas.get(uid)!;
   };
-  const mostrarNoAtivo = async (uid: string, i = g.ativo) => {
+  const mostrarNoAtivo = async (uid: string, i = g.ativo, daTira = false) => {
     aviso.textContent = tr("Carregando…");
     const s = await pegar(uid);
     if (!s) {
@@ -618,6 +739,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     }
     aviso.textContent = "";
     await g.mostrar(i, s);
+    if (daTira && celular() && !tira.hidden) ajustarPaineis(false, false);      // escolheu a série: a gaveta sai da frente
     atualizarAba();
   };
   const itemSerie = (s: API.DicomJson) => {
@@ -630,7 +752,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
       "data-serie": uid }, img,
       el("span", {}, `${API.texto(s, "00200011")} ${API.texto(s, "00080060")} · ${API.texto(s, "00201209")}`),
       el("small", {}, API.texto(s, "0008103E")), el("div", { class: "disp" }, barra), texto);
-    item.onclick = () => void mostrarNoAtivo(uid);
+    item.onclick = () => void mostrarNoAtivo(uid, g.ativo, true);
     item.ondragstart = (e) => {
       e.dataTransfer?.setData(TIPO_ARRASTO, uid);
       if (e.dataTransfer) e.dataTransfer.effectAllowed = "copy";
@@ -687,7 +809,10 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     g.montar(l, c);
     const livres = g.quadros.map((q, i) => (q.serie ? -1 : i)).filter((i) => i >= 0);
     const usadas = new Set(g.quadros.map((q) => q.serie?.series).filter(Boolean));
-    const resto = series.map((s) => API.texto(s, "0020000E")).filter((u) => !usadas.has(u));
+    let resto = series.map((s) => API.texto(s, "0020000E")).filter((u) => !usadas.has(u));
+    // 0.100.18: a 2ª e a 3ª janela de visualização começam nas séries seguintes às da janela anterior
+    const pulo = janela > 1 ? (janela - 1) * l * c : 0;
+    if (pulo && resto.length > pulo) resto = [...resto.slice(pulo), ...resto.slice(0, pulo)];
     livres.forEach((i, k) => { if (resto[k]) void mostrarNoAtivo(resto[k], i); });
   };
 
@@ -1225,10 +1350,11 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   // ---------------------------------------------------------------- começo
   const salvos = lerPreferencia<Partial<Botoes>>("botoes", {});
   const validos = (f: unknown): f is Ferramenta => typeof f === "string" && f in NOMES_FERRAMENTAS && f !== "suvmax" && f !== "linhas";
-  aplicarBotoes({ esq: validos(salvos.esq) ? salvos.esq : "janela", meio: validos(salvos.meio) ? salvos.meio : "mover",
+  // 0.100.18: no toque não há roda — sem escolha guardada, um dedo rola os cortes
+  aplicarBotoes({ esq: validos(salvos.esq) ? salvos.esq : (toque() ? "rolar" : "janela"), meio: validos(salvos.meio) ? salvos.meio : "mover",
     dir: validos(salvos.dir) ? salvos.dir : "zoom" });
   atualizarMarcas();
-  const inicial: [number, number] = series.length >= 2 ? [1, 2] : [1, 1];
+  const inicial: [number, number] = series.length >= 2 && !celular() ? [1, 2] : [1, 1];
   // 0.99.98 (W4): exame de mamografia abre no protocolo do Ipê (uma ou duas telas)
   const dadosMg = await API.mamografia(study).catch(() => null);
   if (grade !== g) return;
@@ -1238,7 +1364,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     mg = modo;
     area.prepend(modo.barra);
     void modo.aplicar();
-    if (tela === 2) modo.anunciar();
+    if (tela === 2) modo.anunciar(janela === 2);
   } else {
     montar(...inicial);
   }
@@ -1271,7 +1397,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
 function rota(): void {
   if (!API.tokenAtual()) {
     // a segunda tela da mamografia: o token vem da janela que a abriu
-    if (/^#\/mg\/[0-9.]+\/2$/.test(location.hash) && window.opener) {
+    if (/^#\/(mg\/[0-9.]+\/2|exame\/[0-9.]+\/j[1-9]|espera\/j[1-9])$/.test(location.hash) && window.opener) {
       app.replaceChildren(el("div", { class: "estado" }, tr("Abrindo a segunda tela…")));
       void pedirToken().then((ok) => { if (ok) void entrouNaSegunda(); else telaLogin(); });
       return;
@@ -1279,18 +1405,21 @@ function rota(): void {
     telaLogin();
     return;
   }
+  if (!config) { void retomar(); return; }
   const h = location.hash || "#/lista";
-  const m = h.match(/^#\/exame\/([0-9.]+)$/);
+  const m = h.match(/^#\/exame\/([0-9.]+)(?:\/j([1-9]))?$/);
   const m2 = h.match(/^#\/mg\/([0-9.]+)\/2$/);
-  if (m) void telaExame(m[1]);
+  // na mamografia, a 2ª janela de visualização é a segunda tela do protocolo (como no Ipê)
+  if (m) void telaExame(m[1], m[2] === "2" ? 2 : 1, Number(m[2] || 0));
   else if (m2) void telaExame(m2[1], 2);
+  else if (/^#\/espera\/j[1-9]$/.test(h)) telaEspera();
   else void telaLista();
 }
 
 window.addEventListener("hashchange", rota);
 // 0.100.5: fechar a aba (ou recarregar) com um exame aberto pede confirmação; a 2ª tela da mamografia não pede
 window.addEventListener("beforeunload", (e) => {
-  if (API.tokenAtual() && /^#\/exame\//.test(location.hash)) {
+  if (API.tokenAtual() && /^#\/exame\/[0-9.]+$/.test(location.hash)) {      // (as janelas de visualização não pedem)
     e.preventDefault();
     e.returnValue = "";
   }

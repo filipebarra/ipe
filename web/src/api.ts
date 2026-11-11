@@ -1,9 +1,18 @@
 // Conversa com o servidor central: login, DICOMweb (QIDO, metadados, quadros, miniatura), configuração.
-// O token fica só na memória da aba: recarregar a página pede o login de novo (nada do paciente no disco).
+// 0.100.18: o token fica na sessão da aba (sessionStorage): some ao fechar a aba, mas sobrevive a um recarregamento —
+// no celular o navegador recarrega a página sozinho (memória, troca de aplicativo) e o login voltava logo depois de
+// entrar. As janelas de visualização abertas pela lista herdam a sessão. Nada do paciente vai para o disco.
 
 export class SessaoEncerrada extends Error {}
 
-let token = "";
+const CHAVE_TOKEN = "ipe.web.token";
+function lerToken(): string {
+  try { return sessionStorage.getItem(CHAVE_TOKEN) || ""; } catch { return ""; }
+}
+function guardarToken(t: string): void {
+  try { if (t) sessionStorage.setItem(CHAVE_TOKEN, t); else sessionStorage.removeItem(CHAVE_TOKEN); } catch { /* sem armazenamento */ }
+}
+let token = lerToken();
 let aoEncerrar: (() => void) | null = null;
 
 export const DICOMWEB = `${location.origin}/dicomweb`;
@@ -26,6 +35,7 @@ async function pedir(url: string, init: RequestInit = {}): Promise<Response> {
   const r = await fetch(url, { ...init, headers: { ...cabecalhos(), ...(init.headers || {}) }, cache: "no-store" });
   if (r.status === 401 && token) {
     token = "";
+    guardarToken("");
     aoEncerrar?.();
     throw new SessaoEncerrada("401");
   }
@@ -51,6 +61,7 @@ export async function entrar(username: string, password: string): Promise<Usuari
   if (!r.ok) throw new Error(String(r.status));
   const d = await r.json();
   token = d.token;
+  guardarToken(token);
   return d as Usuario;
 }
 
@@ -61,6 +72,19 @@ export async function sair(): Promise<void> {
     /* já saiu */
   }
   token = "";
+  guardarToken("");
+}
+
+/** 0.100.18: um erro do navegador vai para o registro do servidor (para achar o defeito de um aparelho que não está
+ *  à mão — o celular que não passava do login). Sem dados do paciente: só a mensagem e o navegador. */
+export function relatarErro(onde: string, erro: unknown): void {
+  try {
+    const e = erro as { message?: string; stack?: string };
+    const corpo = JSON.stringify({ onde, erro: String(e?.message ?? erro).slice(0, 500), pilha: String(e?.stack ?? "").slice(0, 1500),
+      navegador: navigator.userAgent.slice(0, 300), tela: `${window.innerWidth}x${window.innerHeight}`, seguro: window.isSecureContext });
+    void fetch(`${location.origin}/api/web/erro`, { method: "POST", headers: { ...cabecalhos(), "Content-Type": "application/json" },
+      body: corpo, cache: "no-store", keepalive: true }).catch(() => undefined);
+  } catch { /* nada a fazer */ }
 }
 
 export interface Config {
@@ -185,6 +209,7 @@ export async function descomprimir(b64: string): Promise<Uint8Array> {
 /** A segunda tela da mamografia recebe o token da primeira (a janela que a abriu), sem pedir a senha. */
 export function usarToken(t: string): void {
   token = t;
+  guardarToken(t);
 }
 
 export interface ImagemMg {

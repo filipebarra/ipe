@@ -389,6 +389,9 @@ class CentralServer:
 _RUIDO: bytes | None = None
 
 
+#: 0.100.18: erros relatados pelo navegador, por endereço (no máximo 20 por minuto)
+_ERROS_WEB: dict[str, list[float]] = {}
+
 class _Handler(BaseHTTPRequestHandler):
     central: CentralServer = None          # definido na subclasse
     protocol_version = "HTTP/1.1"
@@ -517,6 +520,20 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(200, {"token": tok, "username": s.username, "full_name": s.full_name,
                                     "role": s.role, "user_id": s.user_id, "perms": sorted(s.perms),
                                     "must_change": bool(getattr(s, "must_change", False))}, raw=True)
+        if path == "/api/web/erro" and method == "POST":                    # 0.100.18: erro do navegador no registro
+            ip = self.client_address[0]
+            agora = time.time()
+            vistos = [t for t in _ERROS_WEB.get(ip, []) if agora - t < 60]
+            if len(vistos) < 20:
+                _ERROS_WEB[ip] = vistos + [agora]
+                try:
+                    d = json.loads((self._body() or b"{}")[:6000])
+                    log.warning("Navegador %s: erro em %s: %s | %s | tela %s, seguro=%s | %s", ip,
+                                str(d.get("onde", ""))[:40], str(d.get("erro", ""))[:500], str(d.get("navegador", ""))[:300],
+                                str(d.get("tela", ""))[:20], d.get("seguro"), str(d.get("pilha", ""))[:1500].replace("\n", " ⏎ "))
+                except Exception:  # noqa: BLE001
+                    pass
+            return self._json(200, {"ok": True}, raw=True)
         s = self._auth()
         if s is None:
             return None

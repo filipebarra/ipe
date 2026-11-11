@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.18 — Browser: multiple windows (one per monitor), phone and tablet
+- **Viewer windows**: the list in one window and studies in 1, 2 or 3 separate windows, one per monitor, for any study.
+  The windows stay open waiting for the next study and remember their position; in mammography the 2nd window is the
+  protocol's second screen.
+- **Phone and tablet**: list as cards, one image at a time, panels as drawers, scrolling toolbar; one finger does the
+  toolbar function (scroll slices), two fingers zoom and pan.
+- **Login on phones**: after signing in it went back to the login page. The session now lives in the tab (it survives
+  the reloads phones do on their own), the keyboard no longer capitalises the user name, and an image-engine failure no
+  longer blocks sign-in. Browser errors now go to the server log.
+
 ## 0.100.17 — Mammography in the browser: the same zoom across the stack
 - When scrolling to another image of the view (another 2D, the tomo), the zoom did not follow, and scrolling back did
   not restore the opening zoom. The browser was not reading the mammography pixel size (ImagerPixelSpacing; functional

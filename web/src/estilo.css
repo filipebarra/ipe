@@ -410,3 +410,85 @@ table.lista tr.ultimo td { background: rgba(227, 179, 65, 0.16); }
 .achados-ia .acoes-achados { display: flex; justify-content: flex-end; }
 .achados-ia .nota { font-size: 12px; }
 .achados-ia .nota:empty { display: none; }
+
+/* ================================================================ 0.100.18: celular e tablet */
+.so-cel { display: none !important; }
+.toque .tela, .toque .quadro canvas { touch-action: none; }             /* os gestos são do visualizador */
+.toque button.ic { min-width: 42px; height: 42px; }
+.toque .planos { opacity: 0.95; }
+
+/* tablet (e janelas estreitas): painéis mais finos; a barra rola de lado em vez de sumir */
+@media (max-width: 1100px) {
+  .barra { overflow-x: auto; scrollbar-width: none; }
+  .barra::-webkit-scrollbar { display: none; }
+  .barra .grupo { flex: none; }
+  .tira { width: 180px; }
+  .lateral { width: 260px; }
+  header .quem { display: none; }
+  .rodape .botoes-mouse { display: none; }
+}
+
+/* celular */
+html.cel { font-size: 15px; }
+.cel .so-cel { display: flex !important; }
+.cel header { flex-wrap: wrap; min-height: 0; padding: 4px 8px; gap: 4px 8px; overflow: visible; }
+.cel header:has(.paciente) > strong { display: none; }
+.cel header .sair { margin-left: auto; }
+.cel header .quem { display: none; }
+.cel header .paciente { order: 1; flex: 1 1 0; min-width: 0; max-width: none; border: 0; padding: 0 4px; }
+.cel header .sair { order: 2; height: 36px; }
+.cel header .barra { order: 3; flex: 1 1 100%; overflow-x: auto; margin: 0 -8px; padding: 0 4px 2px;
+  border-top: 1px solid var(--borda); scrollbar-width: none; }
+.cel header .barra::-webkit-scrollbar { display: none; }
+.cel .barra .grupo { flex: none; padding: 0 4px; }
+.cel .trilho { display: none; }
+.cel .telaexame { position: relative; flex-wrap: nowrap; overflow: hidden; }
+.cel .area { flex: 1 1 auto; min-height: 0; }
+.cel .tira, .cel .lateral { position: absolute; z-index: 20; top: 0; bottom: 0; width: min(86vw, 340px); max-height: none;
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.7); overflow-y: auto; }
+.cel .tira { left: 0; }
+.cel .lateral { right: 0; }
+.cel .tira[hidden], .cel .lateral[hidden] { display: none; }
+.cel .tira .dica { display: none; }
+.cel .serie { grid-template-columns: 64px minmax(0, 1fr); }
+.cel .serie img { grid-row: 1 / span 3; width: 64px; height: 64px; }
+.cel .grade { padding: 0; }
+.cel .textos { font-size: 10px; }
+.cel .planos { top: auto; bottom: 26px; }
+.cel .planos button { padding: 6px 10px; font-size: 12px; }
+.cel .rodape { height: 24px; gap: 10px; padding: 0 8px; font-size: 11px; overflow: hidden; white-space: nowrap; }
+.cel .rodape .botoes-mouse, .cel .rodape .carga-curta, .cel .rodape button.link[aria-pressed] { display: none; }
+.cel .menu { max-width: 94vw; max-height: 80vh; overflow: auto; }
+.cel .menu-item { min-height: 40px; }
+.cel .painel-carga { display: none; }
+
+/* a lista de exames no celular: um cartão por exame */
+.cel .telalista { padding: 8px; }
+.cel .filtros { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.cel .filtros input#busca { grid-column: 1 / 3; min-width: 0; }
+.cel .filtros input, .cel .filtros select, .cel .filtros button { min-height: 40px; min-width: 0; width: 100%; }
+.cel table.lista, .cel table.lista tbody { display: block; }
+.cel table.lista thead { display: block; overflow-x: auto; white-space: nowrap; margin-bottom: 6px; }
+.cel table.lista thead tr { display: flex; gap: 12px; }
+.cel table.lista th { border: 0; padding: 4px 2px; font-size: 12px; }
+.cel table.lista tbody tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 12px; margin-bottom: 8px;
+  background: var(--cartao); border: 1px solid var(--borda); border-radius: 10px; }
+.cel table.lista td { border: 0; padding: 0; }
+.cel table.lista td:nth-child(2) { grid-column: 1; grid-row: 1; font-weight: 600; font-size: 15px; }       /* paciente */
+.cel table.lista td:nth-child(1) { grid-column: 2; grid-row: 1; color: var(--suave); text-align: right; }   /* data */
+.cel table.lista td:nth-child(4) { grid-column: 1; grid-row: 2; }                                           /* descrição */
+.cel table.lista td:nth-child(5) { grid-column: 2; grid-row: 2; text-align: right; color: var(--acento); font-weight: 600; }
+.cel table.lista td:nth-child(3) { grid-column: 1; grid-row: 3; color: var(--suave); font-size: 12px; }     /* ID */
+.cel table.lista td:nth-child(6) { grid-column: 2; grid-row: 3; color: var(--suave); font-size: 12px; }
+.cel table.lista td:nth-child(6)::after { content: " im"; }
+.cel table.lista tr.ultimo { border-color: var(--acento); }
+.cel .login { padding: 20px; }
+.cel .login input, .cel .login button { min-height: 44px; font-size: 16px; }      /* 16 px: o iPhone não amplia a página ao digitar */
+.cel input, .cel select { font-size: 16px; }
+
+/* 0.100.18: janelas de visualização (uma por monitor) */
+.filtros select.janelas { margin-left: auto; }
+.cel .filtros select.janelas { display: none; }
+.espera { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--suave); text-align: center; padding: 24px; }
+.espera strong { color: var(--acento); font-size: 22px; }
+.espera .dica { font-size: 13px; }

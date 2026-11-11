@@ -216,8 +216,12 @@ export function aplicarBotoes(f: Ferramenta | Partial<Botoes>): void {
     // esquerdo — a função que saía do meio ou do direito continuava lá, na frente da nova ("o botão muda, mas o mouse
     // não faz"). Por isso cada ferramenta perde todos os botões antes de receber exatamente os seus.
     for (const nome of Object.keys(fixos)) tg.setToolPassive(nome, { removeAllBindings: true });
+    // 0.100.18: toque — um dedo faz a função do botão esquerdo (é do Cornerstone3D); dois dedos, a pinça do zoom
+    // (que também desloca); três dedos movem
+    const toque: Record<string, number[]> = { [ZoomTool.toolName]: [2], [PanTool.toolName]: [3] };
     for (const [nome, bs] of Object.entries(fixos)) {
-      if (bs.length) tg.setToolActive(nome, { bindings: bs.map((b) => ({ mouseButton: b })) });
+      const lig = [...bs.map((b) => ({ mouseButton: b })), ...(toque[nome] || []).map((n) => ({ numTouchPoints: n }))];
+      if (lig.length) tg.setToolActive(nome, { bindings: lig as never });
     }
   }
 }

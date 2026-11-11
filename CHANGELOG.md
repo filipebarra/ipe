@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.18 — Navegador: várias janelas (uma por monitor), celular e tablet
+- **Janelas de visualização**: a lista numa janela e os exames em 1, 2 ou 3 janelas separadas, uma por monitor, para
+  qualquer exame. As janelas ficam abertas à espera do próximo exame e lembram a posição; na mamografia, a 2ª janela é a
+  segunda tela do protocolo.
+- **Celular e tablet**: lista em cartões, uma imagem por vez, painéis em gavetas, barra que rola; um dedo faz a função
+  da barra (rolar os cortes), dois dedos ampliam e deslocam.
+- **Login no celular**: depois de entrar, voltava para o login. A sessão agora fica na aba (sobrevive ao recarregamento
+  que o celular faz sozinho), o teclado não põe maiúscula no usuário, e uma falha do motor de imagens não impede mais
+  a entrada. Os erros do navegador passam a ir para o registro do servidor.
+
 ## 0.100.17 — Mamografia no navegador: o mesmo zoom em toda a pilha
 - Ao rolar para outra imagem da incidência (outra 2D, a tomo), o zoom não acompanhava, e ao voltar não era mais o da
   abertura. O navegador não lia o tamanho do pixel da mamografia (ImagerPixelSpacing; na tomo, grupos funcionais) e

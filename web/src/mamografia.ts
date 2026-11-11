@@ -277,7 +277,7 @@ export class ModoMamografia {
     void this.aplicar();
   }
 
-  private mensagem(m: { tipo?: string; study?: string; passo?: number; telas?: number; indice?: number }): void {
+  private mensagem(m: { tipo?: string; study?: string; passo?: number; telas?: number; indice?: number; forcar?: boolean }): void {
     if (!m || m.study !== this.op.study) return;
     if (m.tipo === "passo" && typeof m.passo === "number") {
       this.passo = m.passo;
@@ -291,6 +291,8 @@ export class ModoMamografia {
     } else if (m.tipo === "protocolo" && typeof m.indice === "number" && m.indice !== this.dados.indice) {
       void this.trocarProtocolo(m.indice, false);
     } else if (m.tipo === "oi" && this.op.tela === 1) {
+      // 0.100.18: a 2ª janela de visualização (outro monitor) é a segunda tela: o protocolo passa a duas telas
+      if (m.forcar && this.telas !== 2) { this.telas = 2; void this.aplicar(); }
       // a segunda acabou de abrir: diz em que etapa estamos
       canalMg()?.postMessage({ tipo: "passo", study: this.op.study, passo: this.passo, telas: this.telas });
     }
@@ -707,7 +709,7 @@ export class ModoMamografia {
   }
 
   /** Na segunda tela: avisa a principal que abriu, para receber a etapa de agora. */
-  anunciar(): void {
-    canalMg()?.postMessage({ tipo: "oi", study: this.op.study });
+  anunciar(forcar = false): void {
+    canalMg()?.postMessage({ tipo: "oi", study: this.op.study, forcar });
   }
 }
