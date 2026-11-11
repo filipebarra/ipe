@@ -546,6 +546,91 @@ def _objeto_web(obj) -> dict:
             "so_serie": obj.so_series or "", "serie_ref": obj.series_ref or ""}
 
 
+def series_ia(repo, s, q: dict, pode_ver) -> dict:
+    """0.100.14: as séries do exame com IA (resultado de IA ou analisadas por uma), para o selo nas miniaturas."""
+    from ipe.ai import series_ia as SIA
+    if not s.can("view"):
+        raise PermissionError("sem permissão")
+    study = (q.get("study") or [""])[0]
+    if not study or not pode_ver(s, study):
+        raise PermissionError("exame não visível")
+    return {"series": {uid: {**d, "dica": SIA.dica(d)} for uid, d in SIA.series_com_ia(repo, study).items()}}
+
+
+def _rotulos3d(volumes, alvo: int = 700) -> list:
+    """0.100.14: os volumes "só rótulo" (níveis da coluna, níveis linfonodais) para o navegador: uma nuvem de pontos
+    em mm (paciente) por nível, ralea até ~`alvo` pontos, e a tolerância (meio passo da nuvem). O navegador põe o
+    nome no centro dos pontos que o plano do quadro corta — como o Ipê faz com a máscara —, em qualquer série e
+    plano do exame."""
+    import numpy as np
+    out = []
+    for mv in volumes or []:
+        if not getattr(mv, "so_rotulo", False) or not mv.label:
+            continue
+        m = np.asarray(mv.mascara, bool)
+        n = int(m.sum())
+        if n < 4:
+            continue
+        passo = max(1, int(round((n / alvo) ** (1 / 3))))
+        sub = m[::passo, ::passo, ::passo]
+        k, j, i = np.nonzero(sub)
+        if len(k) < 2:
+            k, j, i = np.nonzero(m)
+            passo = 1
+        ijk = np.stack([i * passo, j * passo, k * passo]).astype(float)
+        pts = (np.asarray(mv.origem, float)[:, None] + np.asarray(mv.matriz, float) @ ijk).T
+        tol = 0.5 * passo * float(max(np.linalg.norm(np.asarray(mv.matriz, float), axis=0)))
+        out.append({"texto": str(mv.label), "cor": [int(c) for c in (mv.color or (230, 230, 230))[:3]],
+                    "tol": round(max(tol, 0.75), 2), "pontos": np.round(pts, 1).tolist()})
+    return out
+
+
+def _niveis_web(repo, study: str, assinatura: list) -> list:
+    """Os objetos de rótulos da IA do Ipê: níveis da coluna (a SEG) e níveis linfonodais (o mapa guardado na SEG)."""
+    from ipe.ai import coluna as COL
+    from ipe.ai import linfonodos as LN
+    objs = []
+    for r in repo.series_for_study(study, ocultas=True):
+        desc = r.description or ""
+        if desc not in (COL.MARCA, LN.DESC_SEG):
+            continue
+        for inst in repo.instances_for_series(r.series_uid)[-1:]:
+            cam = str(inst.get("path") or "")
+            try:
+                st = Path(cam).stat()
+            except OSError:
+                continue
+            assinatura.append((cam, st.st_mtime_ns, st.st_size))
+            objs.append((r, cam, desc == COL.MARCA))
+    return objs
+
+
+def _objeto_niveis(r, cam: str, coluna: bool, study: str) -> dict | None:
+    from ipe.ai import coluna as COL
+    from ipe.ai import linfonodos as LN
+    try:
+        if coluna:
+            obj = COL.objeto_do_seg(cam, study)
+            vols, fonte, rotulo = obj.volumes, obj.source, obj.label
+            achados = [str(f) for f in (obj.findings or [])]
+        else:
+            import pydicom
+            ds = pydicom.dcmread(cam, stop_before_pixels=True, force=True)
+            texto = str(ds.private_block(LN.GRUPO_PRIVADO, LN.CRIADOR)[0x01].value)
+            vols, fonte, rotulo = LN.mapa_do_json(texto), LN.FONTE_OVERLAY, "mapa dos níveis"
+            achados = [mv.label for mv in vols]
+    except Exception:  # noqa: BLE001
+        log.exception("níveis da IA para o navegador: %s", cam)
+        return None
+    rot = _rotulos3d(vols)
+    if not rot:
+        return None
+    return {"chave": f"{'coluna' if coluna else 'linfonodos'}:{r.series_uid}", "fonte": fonte, "rotulo": rotulo,
+            "cor": [230, 230, 230], "achados": achados[:50], "por_sop": {}, "todos": [], "planos": [],
+            "mascaras": [], "so_serie": "", "serie_ref": "", "rotulos3d": rot, "ia": True,
+            "serie": r.series_uid, "descricao": r.description or ""}
+
+
 def overlays(repo, s, q: dict, pode_ver, settings) -> dict:
     """Os objetos de overlay do exame (CAD/IA em SR, anotações GSPS de outro sistema, contornos RTSTRUCT),
     lidos com o mesmo leitor do Ipê (imaging/overlays.py), em coordenadas de pixel
@@ -574,6 +659,7 @@ def overlays(repo, s, q: dict, pode_ver, settings) -> dict:
                 continue
             escolhidos.append((r, sop, cam))
             assinatura.append((cam, st.st_mtime_ns, st.st_size))
+    niveis = _niveis_web(repo, study, assinatura)                   # 0.100.14: coluna e linfonodos
     chave = (study, tuple(assinatura))
     hit = _OVERLAYS.get(study)
     if hit is not None and hit[0] == chave:
@@ -588,6 +674,10 @@ def overlays(repo, s, q: dict, pode_ver, settings) -> dict:
             if d["por_sop"] or d["todos"] or d["planos"] or d["mascaras"]:
                 d["serie"] = r.series_uid
                 d["descricao"] = r.description or ""
+                objetos.append(d)
+        for r, cam, coluna in niveis:
+            d = _objeto_niveis(r, cam, coluna, study)
+            if d is not None:
                 objetos.append(d)
         _OVERLAYS[study] = (chave, objetos)
         while len(_OVERLAYS) > 8:

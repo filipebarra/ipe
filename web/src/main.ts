@@ -611,6 +611,17 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     d.estimar(uid, Number(API.texto(s, "00201209") || 0));
     listaSeries.append(item);
   }
+  // 0.100.14: o selo "IA" nas séries com resultado de IA ou analisadas por uma (como no Ipê)
+  const marcarIA = () => void API.seriesIA(study).then((m) => {
+    for (const [uid, info] of Object.entries(m)) {
+      const b = barras.get(uid);
+      if (!b || b.item.querySelector(".selo-ia")) continue;
+      const dica = `${tr(info.resultado ? "Resultado de IA" : "IA nesta série")}: ${info.ferramentas.map((f) => tr(f)).join(", ")}`;
+      b.item.append(el("em", { class: `selo-ia${info.resultado ? " resultado" : ""}`, title: dica }, "IA"));
+      b.item.title = `${b.item.title}\n${dica}`;
+    }
+  }).catch(() => undefined);
+  marcarIA();
   // exames anteriores do mesmo paciente (abrir troca de exame)
   void (async () => {
     if (!idPac) return;
@@ -722,6 +733,9 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     const recarregar = el("button", { type: "button", class: "link" }, tr("Recarregar o exame")) as HTMLButtonElement;
     recarregar.onclick = () => void telaExame(study);
     aviso.replaceChildren(`${tr(t.ferramenta)}: ${tr("pronto")}${t.mensagem ? ` — ${t.mensagem}` : ""}. `, recarregar);
+    // 0.100.14: os nomes (coluna, linfonodos) e o selo já aparecem; recarregar traz as séries novas
+    void ov.carregar();
+    marcarIA();
   };
   if (podeIA) void listaIA.atualizar();
   const abrirAbaIA = () => {

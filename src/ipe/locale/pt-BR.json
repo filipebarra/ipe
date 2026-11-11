@@ -6402,7 +6402,10 @@
   "seu perfil não permite imprimir (print)",
   "Abrir o instalador agora?",
   "Abrir o instalador?",
-  "Agora:"
+  "Agora:",
+  "séries com IA",
+  "· Ipe",
+  "· MedSAM2"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8117,6 +8120,8 @@
   "{} ({}@{})",
   "{} arquivo(s) em {}",
   "{} folha(s) enviada(s) para {}{}",
-  "{} folha(s) na impressora {}"
+  "{} folha(s) na impressora {}",
+  "IA nesta série: {}",
+  "Resultado de IA: {}"
  ]
 }

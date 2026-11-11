@@ -8611,5 +8611,10 @@
  "{} folha(s) na impressora {}": "{} hoja(s) en la impresora {}",
  "Abrir o instalador agora?": "¿Abrir el instalador ahora?",
  "Abrir o instalador?": "¿Abrir el instalador?",
- "Agora:": "Ahora:"
+ "Agora:": "Ahora:",
+ "séries com IA": "series con IA",
+ "· Ipe": "· Ipe",
+ "· MedSAM2": "· MedSAM2",
+ "IA nesta série: {}": "IA en esta serie: {}",
+ "Resultado de IA: {}": "Resultado de IA: {}"
 }

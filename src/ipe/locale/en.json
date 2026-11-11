@@ -8611,5 +8611,10 @@
  "{} folha(s) na impressora {}": "{} sheet(s) on printer {}",
  "Abrir o instalador agora?": "Open the installer now?",
  "Abrir o instalador?": "Open the installer?",
- "Agora:": "Now:"
+ "Agora:": "Now:",
+ "séries com IA": "series with AI",
+ "· Ipe": "· Ipe",
+ "· MedSAM2": "· MedSAM2",
+ "IA nesta série: {}": "AI on this series: {}",
+ "Resultado de IA: {}": "AI result: {}"
 }

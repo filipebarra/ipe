@@ -1762,6 +1762,13 @@ class ViewerTab(OncoMixin, QWidget):
                 it.setForeground(QBrush(QColor(255, 210, 0)))
                 it.setSizeHint(QSize(112, 30))
                 self.strip.addItem(it)
+            # 0.100.14: o selo "IA" nas séries com resultado de IA ou analisadas por uma
+            try:
+                from ipe.ai import series_ia as SIA
+                com_ia = SIA.series_com_ia(self.repo, st_uid)     # todas (a tira não tem as SEG)
+            except Exception:  # noqa: BLE001
+                log.exception("séries com IA")
+                com_ia = {}
             for s in self.series:
                 if s.study_uid != st_uid:
                     continue
@@ -1774,10 +1781,16 @@ class ViewerTab(OncoMixin, QWidget):
                 pm = QPixmap()
                 if s.thumbnail:
                     pm.loadFromData(s.thumbnail, "PNG")
+                dicas = []
                 if n_ann:
                     pm = with_badge(pm, f"✎ {n_ann}")
-                    item.setToolTip(f"{n_ann} imagem(ns) com medida ou anotação — "
-                                    "botão direito para ir direto a elas")
+                    dicas.append(f"{n_ann} imagem(ns) com medida ou anotação — botão direito para ir direto a elas")
+                ia = com_ia.get(s.series_uid)
+                if ia:
+                    pm = with_badge(pm, "IA", QColor(186, 140, 255), topo=True)
+                    dicas.append(SIA.dica(ia))
+                if dicas:
+                    item.setToolTip("\n".join(dicas))
                 if not pm.isNull():
                     item.setIcon(QIcon(pm))
                 item.setData(Qt.UserRole, s.series_uid)

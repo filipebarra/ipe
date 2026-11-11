@@ -694,8 +694,9 @@ def icon(name: str) -> QIcon:
     return ic
 
 
-def with_badge(pm: QPixmap, text: str, color: QColor = GREEN) -> QPixmap:
-    """Miniatura com um selo no canto (ex.: número de imagens com medida)."""
+def with_badge(pm: QPixmap, text: str, color: QColor = GREEN, topo: bool = False) -> QPixmap:
+    """Miniatura com um selo no canto (ex.: número de imagens com medida). `topo`: no canto de cima, à esquerda
+    (0.100.14: o selo "IA", que não pode cobrir o das medidas)."""
     out = QPixmap(pm)
     if out.isNull():
         out = QPixmap(80, 80)
@@ -708,7 +709,7 @@ def with_badge(pm: QPixmap, text: str, color: QColor = GREEN) -> QPixmap:
     p.setFont(f)
     w = p.fontMetrics().horizontalAdvance(text) + 10
     h = p.fontMetrics().height() + 2
-    r = QRectF(out.width() - w - 2, out.height() - h - 2, w, h)
+    r = QRectF(2, 2, w, h) if topo else QRectF(out.width() - w - 2, out.height() - h - 2, w, h)
     p.setBrush(QBrush(color))
     p.setPen(Qt.NoPen)
     p.drawRoundedRect(r, h / 2, h / 2)

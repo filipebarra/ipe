@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.14 — IA visible en el navegador; sello IA en las miniaturas
+- **Navegador:** los **niveles de la columna** y los **niveles ganglionares** pedidos desde la pestaña IA no
+  aparecían (el overlay decía "Sin CAD/IA en este estudio"). Ahora los nombres aparecen en cualquier serie y plano,
+  MPR incluido, como en el Ipê, en cuanto termina la tarea.
+- **Overlay del navegador:** el ítem **CAD/IA (hallazgos, segmentaciones, niveles)** enciende y apaga solo la IA, y se
+  recuerda de un estudio al otro.
+- **Sello IA** en las miniaturas de las series (Ipê y navegador): en las series que son resultado de IA o que fueron
+  analizadas por una, con las herramientas en la ayuda.
+
 ## 0.100.13 — Instalar la segmentación: Python descargado e idioma
 - **El instalador de la segmentación fallaba** con "os error 448 (punto de montaje no confiable)" en algunos Windows:
   uv crea un acceso directo de carpeta al Python 3.12 que descarga, y Windows lo bloquea. Ahora el entorno se crea

@@ -147,8 +147,19 @@ export interface ObjetoOv {
   mascaras: { sop: string; quadro: number; r0: number; c0: number; h: number; w: number; bits: string; cor: number[];
     rotulo: string; escala?: number[] }[];
   so_serie: string; serie_ref: string;
+  /** 0.100.14: nomes em 3D (níveis da coluna, níveis linfonodais): pontos em mm, o nome vai no centro dos que o
+   *  plano do quadro corta */
+  rotulos3d?: { texto: string; cor: number[]; tol: number; pontos: number[][] }[];
+  ia?: boolean;
 }
 export interface Overlays { tipos: Record<string, string>; ocultos: string[]; objetos: ObjetoOv[] }
+
+/** 0.100.14: as séries com IA (resultado de IA ou analisadas por uma), para o selo nas miniaturas. */
+export async function seriesIA(study: string): Promise<Record<string, { resultado: boolean; ferramentas: string[]; dica: string }>> {
+  const r = await pedir(`${location.origin}/api/web/series_ia?study=${encodeURIComponent(study)}`);
+  if (!r.ok) return {};
+  return ((await r.json()) as { series: Record<string, { resultado: boolean; ferramentas: string[]; dica: string }> }).series || {};
+}
 
 export async function overlays(study: string): Promise<Overlays | null> {
   const r = await pedir(`${location.origin}/api/web/overlays?study=${encodeURIComponent(study)}`);

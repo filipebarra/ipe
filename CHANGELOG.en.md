@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.14 — AI visible in the browser; AI badge on thumbnails
+- **Browser:** the **spine levels** and **lymph node levels** requested from the AI tab did not show (the overlay said
+  "No CAD/AI in this study"). The names now appear on any series and plane, MPR included, as in Ipê, as soon as the
+  task finishes.
+- **Browser overlay:** a **CAD/AI (findings, segmentations, levels)** item turns only the AI on and off, remembered
+  from one study to the next.
+- **AI badge** on series thumbnails (Ipê and browser): on series that are an AI result or were analysed by one, with
+  the tools in the tooltip.
+
 ## 0.100.13 — Installing segmentation: downloaded Python and language
 - **The segmentation installer failed** with "os error 448 (untrusted mount point)" on some Windows machines: uv
   creates a folder shortcut to the Python 3.12 it downloads, and Windows blocks that shortcut. The environment is now

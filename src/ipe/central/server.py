@@ -617,6 +617,13 @@ class _Handler(BaseHTTPRequestHandler):
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, r, raw=True)
+        if path == "/api/web/series_ia" and method == "GET":               # 0.100.14: selo IA nas miniaturas
+            from ipe.central import web as WEB
+            try:
+                r = WEB.series_ia(c.repo, s, parse_qs(parts.query), c.pode_ver)
+            except PermissionError as e:
+                return self._error(403, str(e))
+            return self._json(200, r, raw=True)
         if path in ("/api/web/suv", "/api/web/seg") and method == "GET":   # 0.99.94 (W3): PET/CT
             from ipe.central import web as WEB
             fn = WEB.suv_da_serie if path.endswith("suv") else WEB.seg_mapa

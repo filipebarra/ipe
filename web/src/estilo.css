@@ -91,6 +91,10 @@ table.lista tbody tr:hover, table.lista tbody tr:focus { background: #262a31; }
 .serie b { position: absolute; top: 6px; right: 8px; font-size: 10px; font-weight: 600; color: #fff;
   background: rgba(0, 0, 0, 0.65); padding: 0 3px; border-radius: 3px; }
 .serie b:empty { display: none; }
+/* 0.100.14: selo IA (canto de cima, à esquerda; o de cima à direita é o andamento da carga) */
+.serie .selo-ia { position: absolute; top: 6px; left: 8px; font-size: 10px; font-weight: 700; font-style: normal;
+  color: #1a1030; background: #ba8cff; padding: 0 4px; border-radius: 6px; pointer-events: none; }
+.serie .selo-ia.resultado { background: #d9c2ff; }
 .serie.baixando .disp { visibility: visible; }
 .barra .disponiveis { color: var(--suave); font-size: 12px; white-space: nowrap; }
 .quadro.alvo { outline: 2px dashed var(--acento); outline-offset: -3px; }

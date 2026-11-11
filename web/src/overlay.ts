@@ -12,6 +12,11 @@ import { type ItemMenu, abrirMenu } from "./menu";
 import { type Grade, linhasDeReferencia } from "./visor";
 
 const CHAVE = "ipe.web.overlayOcultos";
+const CHAVE_IA = "ipe.web.overlayIA";
+
+function lerIA(): boolean {
+  try { return localStorage.getItem(CHAVE_IA) !== "0"; } catch { return true; }
+}
 
 type Fatia = { r0: number; c0: number; h: number; w: number; dados: Uint8Array };
 
@@ -43,6 +48,9 @@ export class Overlay {
   textos = true;
   private seg: { segmentos: API.MapaSeg["segmentos"]; fatias: Map<string, Fatia> } | null = null;
   segVisivel = true;
+  /** 0.100.14: o CAD/IA (achados, segmentações, níveis) ligado ou não, sem mexer nos textos e nas medidas;
+   *  lembrado de um exame para o outro */
+  iaOn = lerIA();
   private bits = new Map<string, Uint8Array>();
 
   constructor(private g: Grade, private study: string, private aoMudar: () => void = () => {}) {
@@ -65,7 +73,7 @@ export class Overlay {
   }
 
   visivel(o: API.ObjetoOv): boolean {
-    return this.ligado && !this.ocultos.has(o.fonte) && !this.ocultosObj.has(o.chave);
+    return this.ligado && this.iaOn && !this.ocultos.has(o.fonte) && !this.ocultosObj.has(o.chave);
   }
 
   /** O botão: liga ou desliga tudo o que está na imagem (CAD/IA, textos, medidas, linhas), como no Ipê. */
@@ -84,6 +92,14 @@ export class Overlay {
 
   medidasOn = true;
   linhasOn = linhasDeReferencia();
+
+  /** 0.100.14: liga ou desliga só o CAD/IA (o resto do overlay fica como está). */
+  mostrarIA(on: boolean): void {
+    this.iaOn = on;
+    try { localStorage.setItem(CHAVE_IA, on ? "1" : "0"); } catch { /* sem armazenamento */ }
+    if (on) this.ligado = true;
+    this.aplicar();
+  }
 
   mostrarTipo(tipo: string, on: boolean): void {
     if (on) this.ocultos.delete(tipo);
@@ -124,6 +140,7 @@ export class Overlay {
       { rotulo: this.ligado ? tr("Ocultar todo o overlay") : tr("Mostrar o overlay"), acao: () => this.alternar() },
       { separador: true },
       { titulo: tr("Na imagem") },
+      { rotulo: tr("CAD/IA (achados, segmentações, níveis)"), marcado: this.iaOn, acao: () => this.mostrarIA(!this.iaOn) },
       { rotulo: tr("Textos nos cantos"), marcado: this.textos, acao: () => { this.textos = !this.textos; this.aplicar(); } },
       { rotulo: tr("Medidas"), marcado: this.medidasOn, acao: () => { this.medidasOn = !this.medidasOn; this.aplicar(); } },
       { rotulo: tr("Linhas de referência"), marcado: this.linhasOn,
@@ -136,7 +153,8 @@ export class Overlay {
     if (tipos.length) {
       itens.push({ separador: true }, { titulo: tr("CAD/IA e anotações") });
       for (const t of tipos) {
-        itens.push({ rotulo: tr(nomes[t] || t), marcado: !this.ocultos.has(t), acao: () => this.mostrarTipo(t, this.ocultos.has(t)) });
+        itens.push({ rotulo: tr(nomes[t] || t), marcado: !this.ocultos.has(t), desligado: !this.iaOn,
+          acao: () => this.mostrarTipo(t, this.ocultos.has(t)) });
       }
       const objs = this.objetos;
       if (objs.length > 1) {
@@ -162,7 +180,10 @@ export class Overlay {
     let c = cel.querySelector<HTMLCanvasElement>("canvas.camada-ov");
     const vp = q.tipo === "pilha" ? (this.g.viewport(this.g.quadros.indexOf(q)) as Types.IStackViewport | null) : null;
     const id = vp?.getCurrentImageId?.();
-    const nada = !this.ligado || !vp || !id;
+    // 0.100.14: no MPR (plano reconstruído) só os nomes em 3D (níveis da coluna, linfonodais)
+    const vv = q.tipo === "plano" && this.objetos.some((o) => o.rotulos3d?.length)
+      ? (this.g.viewport(this.g.quadros.indexOf(q)) as Types.IVolumeViewport | null) : null;
+    const nada = !this.ligado || ((!vp || !id) && !vv?.getCamera);
     if (nada && !c) return;
     if (!c) {
       c = document.createElement("canvas");
@@ -181,6 +202,18 @@ export class Overlay {
     c.dataset.desenhados = "0";
     if (nada) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (!vp || !id) {
+      const cam = vv!.getCamera();
+      let n = 0;
+      const usados: number[][] = [];
+      if (cam.viewPlaneNormal && cam.focalPoint) {
+        for (const o of this.objetos) {
+          if (this.visivel(o) && o.rotulos3d?.length) n += this.rotulos(ctx, o.rotulos3d, cam.focalPoint, cam.viewPlaneNormal, vv!, usados);
+        }
+      }
+      c.dataset.desenhados = String(n);
+      return;
+    }
     const p = partesDoImageId(id!);
     const sop = p?.sop || "";
     const quadro = (p?.quadro || 1) - 1;
@@ -188,7 +221,7 @@ export class Overlay {
       vp!.worldToCanvas(csUtils.imageToWorldCoords(id!, [x, y]) as Types.Point3);
     let n = 0;
     // a SEG da série (o mapa de rótulos), por baixo de tudo
-    if (this.seg && this.segVisivel) {
+    if (this.seg && this.segVisivel && this.iaOn) {
       const f = this.seg.fatias.get(sop);
       if (f) {
         this.pintarMascara(ctx, f, tela, (v) => this.seg!.segmentos.find((s) => s.n === v)?.cor);
@@ -198,6 +231,7 @@ export class Overlay {
     const plano = metaData.get("imagePlaneModule", id!) as {
       imagePositionPatient: number[]; rowCosines: number[]; columnCosines: number[];
       rowPixelSpacing: number; columnPixelSpacing: number; sliceThickness?: number } | undefined;
+    const usados: number[][] = [];
     for (const o of this.objetos) {
       if (!this.visivel(o)) continue;
       if (o.so_serie && p && o.so_serie !== p.series) continue;
@@ -210,6 +244,12 @@ export class Overlay {
       for (const g of gs) {
         this.tracar(ctx, g.tipo, g.pontos.map(([x, y]) => tela(x, y)), g.texto, g.cor || o.cor);
         n++;
+      }
+      // 0.100.14: nomes em 3D (níveis da coluna, linfonodais): no centro dos pontos que o plano corta
+      if (plano && o.rotulos3d?.length) {
+        const rc = plano.rowCosines, cc = plano.columnCosines;
+        n += this.rotulos(ctx, o.rotulos3d, plano.imagePositionPatient,
+          [rc[1] * cc[2] - rc[2] * cc[1], rc[2] * cc[0] - rc[0] * cc[2], rc[0] * cc[1] - rc[1] * cc[0]], vp!, usados);
       }
       // contornos 3D (RTSTRUCT, SR com coordenadas 3D): os que caem neste corte
       if (plano && o.planos.length) {
@@ -226,6 +266,39 @@ export class Overlay {
       }
     }
     c.dataset.desenhados = String(n);
+  }
+
+  /** Os nomes cujo volume o plano corta (como o Ipê: num sagital, todos os níveis; num axial, o do corte). Dois
+   *  nomes no mesmo lugar: fica o primeiro. */
+  private rotulos(ctx: CanvasRenderingContext2D, lista: NonNullable<API.ObjetoOv["rotulos3d"]>,
+    pos: ArrayLike<number>, nrm: ArrayLike<number>, vp: { worldToCanvas: (p: Types.Point3) => Types.Point2 }, usados: number[][]): number {
+    const tam = Math.max(11, Math.min(15, (ctx.canvas.clientWidth || 500) / 40));
+    ctx.font = `bold ${tam}px system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    let n = 0;
+    for (const r of lista) {
+      let sx = 0, sy = 0, sz = 0, k = 0;
+      for (const p3 of r.pontos) {
+        const d = (p3[0] - pos[0]) * nrm[0] + (p3[1] - pos[1]) * nrm[1] + (p3[2] - pos[2]) * nrm[2];
+        if (Math.abs(d) > r.tol) continue;
+        sx += p3[0] - d * nrm[0]; sy += p3[1] - d * nrm[1]; sz += p3[2] - d * nrm[2];
+        k++;
+      }
+      if (k < 2) continue;
+      const [x, y] = vp.worldToCanvas([sx / k, sy / k, sz / k] as Types.Point3);
+      const w = ctx.measureText(r.texto).width + 6, h = tam + 2;
+      const caixa = [x - w / 2, y - h / 2, x + w / 2, y + h / 2];
+      if (usados.some((u) => caixa[0] < u[2] && caixa[2] > u[0] && caixa[1] < u[3] && caixa[3] > u[1])) continue;
+      usados.push(caixa);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
+      ctx.strokeText(r.texto, x, y);
+      ctx.fillStyle = rgb(r.cor);
+      ctx.fillText(r.texto, x, y);
+      n++;
+    }
+    return n;
   }
 
   private desempacotar(m: API.ObjetoOv["mascaras"][number]): Uint8Array {
