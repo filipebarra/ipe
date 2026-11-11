@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.13 — Installing segmentation: downloaded Python and language
+- **The segmentation installer failed** with "os error 448 (untrusted mount point)" on some Windows machines: uv
+  creates a folder shortcut to the Python 3.12 it downloads, and Windows blocks that shortcut. The environment is now
+  created straight from the real Python (the shortcut is removed); a Python already downloaded is reused.
+- The installer speaks **Ipê's language** (English, Spanish or Portuguese), and the "Install segmentation" question
+  and other messages built from parts are now translated.
+- The Windows package was missing some AI tools (emphysema, Genant, aorta…) that are imported by name, so the web AI
+  tab came up empty with an error. They are all included now, and one faulty tool no longer breaks the list.
+
 ## 0.100.12 — Web viewer: AI tab
 - Browser CAD/AI is now the **AI** tab of the right panel, like the film tab: every Ipê AI tool (those suitable for
   the study first, the others with the reason), the series for each (the suggested one or the active viewport's) and

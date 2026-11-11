@@ -6399,7 +6399,10 @@
   "imagem de exame fora do seu acesso",
   "impressoras do sistema",
   "o filme está vazio",
-  "seu perfil não permite imprimir (print)"
+  "seu perfil não permite imprimir (print)",
+  "Abrir o instalador agora?",
+  "Abrir o instalador?",
+  "Agora:"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

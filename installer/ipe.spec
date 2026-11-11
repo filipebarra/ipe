@@ -52,6 +52,9 @@ if MODELOS.is_dir() and any(MODELOS.glob("*.onnx")):
 # pydicom e pynetdicom escolhem o decodificador em tempo de execução; sem isto o pacote
 # abre e só falha quando aparece um arquivo comprimido — que é o pior momento.
 hidden = collect_submodules("pydicom") + collect_submodules("pynetdicom")
+# 0.100.13: as ferramentas de IA são importadas pelo nome (`ai/ferramentas.GENERICAS`); sem isto o pacote não
+# levava enfisema, genant, aorta… e a lista de CAD/IA do navegador quebrava inteira.
+hidden += collect_submodules("ipe")
 hidden += ["pylibjpeg", "libjpeg", "openjpeg", "gdcm",
            "pylibjpeg_libjpeg", "pylibjpeg_openjpeg", "jpeg_ls", "pyjpegls", "sqlalchemy.dialects.sqlite"]
 try:                                             # 0.99.96: HTJ2K para o visualizador web (sem ele, JPEG-LS)

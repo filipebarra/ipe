@@ -148,6 +148,8 @@ def tr(text):
     if hit is not None:
         return hit
     out = _state["strings"].get(text)
+    if out is None and "\n\n" in text:
+        out = _match_paragrafos(text)
     if out is None and ("\n" in text or "<br" in text):
         out = _match_lines(text)
     if out is None:
@@ -179,6 +181,41 @@ def _match_pattern(text: str) -> str | None:
             out = out.replace("{}", _parte(g), 1)
         return out
     return None
+
+
+def _um(text: str, padrao: bool = True) -> str | None:
+    """Tradução de um trecho inteiro (frase ou, se `padrao`, padrão), sem partir em linhas."""
+    nu = text.strip()
+    if not nu:
+        return text
+    t = _state["strings"].get(nu)
+    if t is None and padrao:
+        t = _match_pattern(nu)
+        if t == nu:                     # padrão genérico que só devolve o mesmo texto
+            t = None
+    return None if t is None else text.replace(nu, t)
+
+
+def _match_paragrafos(text: str) -> str | None:
+    """0.100.13: mensagem montada com pedaços que se traduzem sozinhos, separados por linha em branco
+    (`texto + "\n\nAbrir o instalador agora?"`): junta os parágrafos no maior trecho que tenha tradução. Antes,
+    a mensagem inteira não batia com nada e saía em português (instalar a segmentação, com o Ipê em inglês)."""
+    par = text.split("\n\n")
+    out, i, algum = [], 0, False
+    while i < len(par):
+        for j in range(len(par), i, -1):
+            trecho = "\n\n".join(par[i:j])
+            # vários parágrafos juntos: só frase inteira (um padrão genérico "{}\n\n{}" engoliria tudo)
+            t = _um(trecho, padrao=False) if j > i + 1 else (_um(trecho) or (_match_lines(trecho) if "\n" in trecho else None))
+            if t is not None:
+                out.append(t)
+                algum = algum or t != trecho
+                i = j
+                break
+        else:
+            out.append(par[i])
+            i += 1
+    return "\n\n".join(out) if algum else None
 
 
 _LINHAS = re.compile(r"(\n|<br>|<br/>|<br />)")

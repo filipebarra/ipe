@@ -428,7 +428,11 @@ class AutomationEngine(QObject):
         ativas = {t.ferramenta for t in TA.REGISTRO.ativas(study_uid)}
         out = []
         for tipo in self.tipos_manuais():
-            f = self._ferramenta(tipo)
+            try:
+                f = self._ferramenta(tipo)
+            except Exception:  # noqa: BLE001 - uma ferramenta quebrada não derruba a lista inteira
+                log.exception("ferramenta de IA %s", tipo)
+                f = None
             if f is None:
                 continue
             titulo, escolher, ja = f

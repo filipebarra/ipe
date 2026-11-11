@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.13 — Instalar a segmentação: Python baixado e idioma
+- **O instalador da segmentação falhava** com "os error 448 (ponto de montagem não confiável)" em alguns Windows: o
+  uv cria um atalho de pasta para o Python 3.12 que ele baixa, e o Windows bloqueia esse atalho. Agora o ambiente é
+  criado direto do Python de verdade (o atalho é apagado); quem já baixou o Python não baixa de novo.
+- O instalador fala o **idioma do Ipê** (inglês, espanhol ou português), e a pergunta "Instalar a segmentação" e
+  outras mensagens montadas em partes passaram a sair traduzidas.
+- O pacote do Windows não levava algumas ferramentas de IA (enfisema, Genant, aorta…), importadas pelo nome: a aba IA
+  do navegador ficava vazia com erro. Agora vão todas, e uma ferramenta com problema não derruba a lista.
+
 ## 0.100.12 — Visualizador web: aba IA
 - O CAD/IA do navegador virou a aba **IA** do painel da direita, como a do filme: todas as ferramentas de IA do Ipê
   (as que servem para o exame primeiro, as outras com o motivo), a série de cada uma (a sugerida ou a do quadro

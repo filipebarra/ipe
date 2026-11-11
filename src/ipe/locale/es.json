@@ -8608,5 +8608,8 @@
  "{} ({}@{})": "{} ({}@{})",
  "{} arquivo(s) em {}": "{} archivo(s) en {}",
  "{} folha(s) enviada(s) para {}{}": "{} hoja(s) enviada(s) a {}{}",
- "{} folha(s) na impressora {}": "{} hoja(s) en la impresora {}"
+ "{} folha(s) na impressora {}": "{} hoja(s) en la impresora {}",
+ "Abrir o instalador agora?": "¿Abrir el instalador ahora?",
+ "Abrir o instalador?": "¿Abrir el instalador?",
+ "Agora:": "Ahora:"
 }

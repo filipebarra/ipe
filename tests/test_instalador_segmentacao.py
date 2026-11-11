@@ -28,3 +28,30 @@ def test_visual_cpp_no_programa_e_no_instalador():
     assert "TemVisualCpp" in iss and "AvisarVisualCpp();" in iss and SEG.URL_VCREDIST in iss
     for lang in ("english", "brazilianportuguese", "spanish"):
         assert f"{lang}.VcTexto=" in iss
+
+
+def test_bat_no_idioma_do_ipe_e_sem_o_atalho_do_uv():
+    """0.100.13: com o Ipê em inglês o instalador falava português; e o atalho de pasta que o uv cria para o
+    Python 3.12 ("os error 448") quebrava o ambiente."""
+    import re
+    t = BAT.read_bytes().decode("utf-8")
+    usadas = set(re.findall(r"!(M_[A-Z0-9_]+)!", t))
+    for lang in ("pt", "en", "es"):
+        bloco = t.split(f":textos_{lang}\r\n")[1].split("goto :eof")[0]
+        assert set(re.findall(r'set "(M_[A-Z0-9_]+)=', bloco)) == usadas, lang
+    assert "IPE_LANG" in t and "call :textos_%L%" in t
+    assert 'cpython-3.12-*' in t and 'rmdir "%%~D"' in t          # tira o atalho
+    assert '"!PYREAL!" -m venv' in t                              # ambiente do python.exe de verdade
+    src = (BAT.parent / "src" / "ipe" / "ui" / "segmentacao.py").read_text(encoding="utf-8")
+    assert 'os.environ["IPE_LANG"]' in src
+
+
+def test_mensagem_montada_em_paragrafos_se_traduz():
+    from ipe.core import i18n
+    try:
+        i18n.load("en")
+        k = next(x for x in i18n._state["strings"] if x.startswith("A segmentação de órgãos usa"))
+        out = i18n.tr(k + "\n\nAbrir o instalador agora?")
+        assert out.startswith("Organ segmentation") and out.endswith("Open the installer now?")
+    finally:
+        i18n.load(i18n.BASE_LANG)

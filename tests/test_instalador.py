@@ -23,6 +23,7 @@ def test_receita_leva_os_idiomas_e_os_decodificadores():
     for chave in ("pylibjpeg", "openjpeg", "gdcm", "sqlalchemy.dialects.sqlite"):
         assert chave in spec, f"{chave} não está nos imports escondidos"
     assert 'collect_submodules("pydicom")' in spec
+    assert 'collect_submodules("ipe")' in spec   # 0.100.13: as IAs importadas pelo nome vão no pacote
     idiomas = sorted(p.name for p in (RAIZ / "src" / "ipe" / "locale").glob("*.json"))
     assert idiomas == ["en.json", "es.json", "pt-BR.json"]
 

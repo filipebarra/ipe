@@ -61,7 +61,9 @@ def test_sobre_cabe_na_tela():
     app.processEvents()
     assert box.height() < 500, f"a janela Sobre tem {box.height()} px (a antiga tinha 4.433)"
     box.close()
-    assert "Guia do usuário" in ajuda.texto_sobre() and "0.13" not in ajuda.texto_sobre()
+    import re
+    # o histórico da 0.13 não volta (o número da versão, 0.100.13, pode conter "0.13")
+    assert "Guia do usuário" in ajuda.texto_sobre() and not re.search(r"(?<![\d.])0\.13", ajuda.texto_sobre())
 
 
 def test_f1_abre_o_guia(env, monkeypatch):

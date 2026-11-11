@@ -109,6 +109,8 @@ def abrir_instalador(janela, perguntar: bool = True) -> bool:
                 != QMessageBox.Yes:
             return False
     try:
+        from ipe.core import i18n
+        os.environ["IPE_LANG"] = i18n.current()        # 0.100.13: o instalador fala o idioma do Ipê
         if sys.platform == "win32":
             os.startfile(str(arq))                       # noqa: S606 - janela de console própria
         else:
