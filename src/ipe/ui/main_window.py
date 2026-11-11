@@ -2920,6 +2920,7 @@ class MainWindow(QMainWindow):
                                     keyfile=self.settings.get("central.keyfile", "") or "")
                 srv.on_import = lambda _s: self._refresh_timer.start()
                 srv.settings = self.settings
+                srv.net = self.net        # 0.100.9: o navegador envia ao PACS pela fila deste computador
                 srv.start()
                 self.central = srv
             except OSError as e:

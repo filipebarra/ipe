@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.9 — Visualizador web: enviar a um destino DICOM
+- **Enviar a um destino DICOM** no navegador: o exame, as séries marcadas ou a imagem do quadro ativo, para os nós
+  do servidor, pela fila de envios do servidor (a mesma do Ipê). Vão junto, se quiser, as medidas (GSPS) e as
+  imagens-chave (KO). **Envios** no rodapé mostra o andamento e cancela. Só para quem tem a permissão de enviar.
+
 ## 0.100.8 — PET pela borda (gradiente); retomar a sessão; movimento na dinâmica web
 - **PET: borda pelo gradiente (como o PET Edge)** na Segmentar 3D: o contorno fica onde o sinal cai mais depressa, com
   a correção do volume parcial pela resolução do PET (medida na própria lesão quando ela é grande; o campo

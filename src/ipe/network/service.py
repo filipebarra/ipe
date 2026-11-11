@@ -54,6 +54,8 @@ class Job:
     cancel: threading.Event = field(default_factory=threading.Event)
     started: float = 0.0
     finished: float = 0.0
+    sop_uids: list[str] | None = None   # 0.100.9: só estas imagens (o envio de uma imagem pelo navegador)
+    dono: str = ""                      # 0.100.9: quem pediu pelo navegador (para mostrar só os dele)
 
     @property
     def active(self) -> bool:
@@ -304,6 +306,10 @@ class NetworkService(QObject):
     def run_async(self, fn: Callable[[], Any], on_done: Callable[[Any, Exception | None], None],
                   pool: QThreadPool | None = None) -> None:
         relay = _Relay()
+        # 0.100.9: pedido de outra linha (o servidor do navegador): a resposta tem de voltar na linha do serviço,
+        # que tem o laço de eventos — numa linha sem laço o sinal nunca seria entregue
+        if relay.thread() != self.thread():
+            relay.moveToThread(self.thread())
         self._relays.add(relay)
 
         def finish(res, err) -> None:
@@ -424,8 +430,8 @@ class NetworkService(QObject):
         return self.repo.files_for_study(study_uid, resto) if resto else []
 
     def send(self, node: dict, identity: dict | None, study_uids: list[str], label: str,
-             series_uids: list[str] | None = None) -> Job:
-        job = Job("send", label, node, identity, list(study_uids), series_uids)
+             series_uids: list[str] | None = None, sop_uids: list[str] | None = None, dono: str = "") -> Job:
+        job = Job("send", label, node, identity, list(study_uids), series_uids, sop_uids=sop_uids or None, dono=dono)
         self._submit(job)
         return job
 
@@ -554,7 +560,12 @@ class NetworkService(QObject):
                 self.sink.flush(120)
                 self._audit_identity("download", job.node, job.identity, f"{job.label} ({n} imagens)")
                 return f"{n} imagens baixadas"
-            files = [f for uid in job.study_uids for f in self._arquivos_para_enviar(uid, job.series_uids)]
+            if job.sop_uids:
+                quero = set(job.sop_uids)
+                files = [i["path"] for uid in job.study_uids for se in (job.series_uids or [])
+                         for i in self.repo.instances_for_series(se) if i.get("sop_uid") in quero and i.get("path")]
+            else:
+                files = [f for uid in job.study_uids for f in self._arquivos_para_enviar(uid, job.series_uids)]
             sent, failed = cli.store(t, files, progress, job.cancel)
             self._audit_identity("envio", job.node, job.identity, f"{job.label} ({sent} imagens)")
             if failed:

@@ -6368,7 +6368,16 @@
   "não consegui gravar a sessão",
   "sem dinâmica",
   "sem movimento a corrigir",
-  "sessão anterior ilegível"
+  "sessão anterior ilegível",
+  "KO/GSPS do envio pelo navegador",
+  "destino não encontrado ou desligado",
+  "envio não encontrado",
+  "esta identidade não fala com este destino",
+  "este servidor não tem a fila de rede ligada",
+  "exame fora do seu acesso",
+  "imagens: diga de qual série (uma)",
+  "seu perfil não permite enviar para nós DICOM (send)",
+  "série de outro exame"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8063,6 +8072,9 @@
   "rotação até {}° (fase {})",
   "• e mais {}",
   "O Ipê não foi fechado direito da última vez. O exame que estava aberto:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados.",
-  "O Ipê não foi fechado direito da última vez. Os {} exames que estavam abertos:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados."
+  "O Ipê não foi fechado direito da última vez. Os {} exames que estavam abertos:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados.",
+  "{} (medidas e imagens-chave)",
+  "{} ({} imagem(ns))",
+  "{}: {} — pelo navegador"
  ]
 }

@@ -59,6 +59,7 @@ def run_server(args) -> int:
         from ipe.network.service import NetworkService
         from ipe.automation.engine import AutomationEngine
         net = NetworkService(db, repo, paths.storage, settings)
+        srv.net = net                    # 0.100.9: o navegador envia ao PACS pela mesma fila
         net.start_server()
         auto = AutomationEngine(repo, db, net, settings, paths)
         auto.start()

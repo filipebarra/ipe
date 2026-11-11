@@ -1097,8 +1097,15 @@ Nesta primeira fase:
 - **Curvas tempo-intensidade**: desenhe uma ROI (elipse, retângulo ou polígono) ou marque um **ponto** (valor do pixel, média 3×3) em qualquer quadro; embaixo aparece a curva e a tabela com a **classe** (médio/rápido × persistente/platô/washout), o realce inicial, o SER, o pico, o TTP, o BAT, a lavagem, o iAUC90 e o MRT — os números do Ipê.
 - **Curva sob o cursor (0.100.2)**: como no Ipê, passar o mouse sobre a imagem mostra a curva do ponto (3×3 pixels), tracejada, junto das guardadas; a caixa **Curva sob o cursor** na barra desliga.
 - **O rótulo de cada quadro (0.100.2)**: nos quadros de fase, **◂ ▸** passam de fase; clicar no texto (ou o botão direito) abre o menu do quadro — o que mostrar (qualquer fase ou mapa), **Subtração (fase − pré-contraste)** de qualquer fase, **Paisagem** (10 a 50% da anatomia de volta na subtração, como no Ipê) e a **cor** (as tabelas do Ipê, ou cinza). A barra escolhe também a **cor do mapa por cima da fase**.
-- **Correção de movimento (0.100.8)**: **Movimento** na barra — **Não**, **Translação** ou **Rígida** (com rotação), como no Ipê. O servidor faz a conta do Ipê (a translação 3D de cada fase sobre a pré e, na rígida, a rotação da fase que girou) e o navegador aplica ao montar cada corte: os mapas, as curvas, as subtrações e o quadro da fase que se mexeu saem corrigidos. A dica do seletor diz quanto mexeu (o maior deslocamento e a maior rotação). Vem ligada como você a deixou no Ipê; trocar a pré refaz a conta.
+- **Correção de movimento (0.100.8)**: o seletor da correção de movimento na barra — **Sem correção**, **Translação** ou **Rígida** (com rotação), como no Ipê. O servidor faz a conta do Ipê (a translação 3D de cada fase sobre a pré e, na rígida, a rotação da fase que girou) e o navegador aplica ao montar cada corte: os mapas, as curvas, as subtrações e o quadro da fase que se mexeu saem corrigidos. A dica do seletor diz quanto mexeu (o maior deslocamento e a maior rotação). Vem ligada como você a deixou no Ipê; trocar a pré refaz a conta.
 - Ficam só no Ipê, por enquanto: fases fora da conta e a linha de base pela média das fases pré.
+
+**Enviar a um destino DICOM (0.100.9).** O botão **Enviar a um destino DICOM** (o avião de papel, ao lado do Laudo) só aparece para quem tem a permissão de enviar para nós DICOM.
+
+- **O que**: o exame inteiro, as séries marcadas (a do quadro ativo já vem marcada) ou só a imagem do quadro ativo.
+- **Para**: os nós DICOM ativos do servidor (os do serviço, os seus e os compartilhados com você) e, se o nó tiver, a identidade (o AE) com que o servidor fala com ele.
+- **Junto: as medidas (GSPS) e as imagens-chave (KO)**: o que se mediu no exame vira um GSPS e as imagens-chave um KO, gravados no exame e mandados no mesmo envio.
+- O envio entra na **fila de envios do servidor**, a mesma do Ipê. **Envios**, no rodapé, mostra os que você pediu, com o andamento (enviadas/total), o resultado e **Cancelar** enquanto anda. Cada envio fica no registro de acesso, com o seu nome.
 
 **Laudo no navegador (0.99.98).**
 

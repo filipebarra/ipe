@@ -8557,5 +8557,17 @@
  "rotação até {}° (fase {})": "rotación hasta {}° (fase {})",
  "• e mais {}": "• y {} más",
  "O Ipê não foi fechado direito da última vez. O exame que estava aberto:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados.": "Ipê no se cerró bien la última vez. El examen que estaba abierto:\n\n{}\n\n¿Reabrir? Las medidas y la disposición vuelven como estaban la última vez que se guardaron.",
- "O Ipê não foi fechado direito da última vez. Os {} exames que estavam abertos:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados.": "Ipê no se cerró bien la última vez. Los {} exámenes que estaban abiertos:\n\n{}\n\n¿Reabrir? Las medidas y la disposición vuelven como estaban la última vez que se guardaron."
+ "O Ipê não foi fechado direito da última vez. Os {} exames que estavam abertos:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados.": "Ipê no se cerró bien la última vez. Los {} exámenes que estaban abiertos:\n\n{}\n\n¿Reabrir? Las medidas y la disposición vuelven como estaban la última vez que se guardaron.",
+ "KO/GSPS do envio pelo navegador": "KO/GSPS del envío desde el navegador",
+ "destino não encontrado ou desligado": "destino no encontrado o apagado",
+ "envio não encontrado": "envío no encontrado",
+ "esta identidade não fala com este destino": "esta identidad no habla con este destino",
+ "este servidor não tem a fila de rede ligada": "este servidor no tiene la cola de red encendida",
+ "exame fora do seu acesso": "examen fuera de su acceso",
+ "imagens: diga de qual série (uma)": "imágenes: diga de qué serie (una)",
+ "seu perfil não permite enviar para nós DICOM (send)": "su perfil no permite enviar a nodos DICOM (send)",
+ "série de outro exame": "serie de otro examen",
+ "{} (medidas e imagens-chave)": "{} (medidas e imágenes clave)",
+ "{} ({} imagem(ns))": "{} ({} imagen(es))",
+ "{}: {} — pelo navegador": "{}: {} — desde el navegador"
 }

@@ -8557,5 +8557,17 @@
  "rotação até {}° (fase {})": "rotation up to {}° (phase {})",
  "• e mais {}": "• and {} more",
  "O Ipê não foi fechado direito da última vez. O exame que estava aberto:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados.": "Ipê was not closed properly last time. The exam that was open:\n\n{}\n\nReopen? Measurements and layout come back as they were last saved.",
- "O Ipê não foi fechado direito da última vez. Os {} exames que estavam abertos:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados.": "Ipê was not closed properly last time. The {} exams that were open:\n\n{}\n\nReopen? Measurements and layout come back as they were last saved."
+ "O Ipê não foi fechado direito da última vez. Os {} exames que estavam abertos:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados.": "Ipê was not closed properly last time. The {} exams that were open:\n\n{}\n\nReopen? Measurements and layout come back as they were last saved.",
+ "KO/GSPS do envio pelo navegador": "KO/GSPS of the send from the browser",
+ "destino não encontrado ou desligado": "destination not found or turned off",
+ "envio não encontrado": "send not found",
+ "esta identidade não fala com este destino": "this identity does not talk to this destination",
+ "este servidor não tem a fila de rede ligada": "this server does not have the network queue on",
+ "exame fora do seu acesso": "exam outside your access",
+ "imagens: diga de qual série (uma)": "images: say from which series (one)",
+ "seu perfil não permite enviar para nós DICOM (send)": "your profile does not allow sending to DICOM nodes (send)",
+ "série de outro exame": "series from another exam",
+ "{} (medidas e imagens-chave)": "{} (measurements and key images)",
+ "{} ({} imagem(ns))": "{} ({} image(s))",
+ "{}: {} — pelo navegador": "{}: {} — from the browser"
 }

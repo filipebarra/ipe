@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.9 — Web viewer: send to a DICOM destination
+- **Send to a DICOM destination** from the browser: the exam, the checked series or the active viewport's image, to
+  the server's nodes, through the server's send queue (the same as Ipê's). Optionally along with the measurements
+  (GSPS) and key images (KO). **Sends** in the footer shows progress and cancels. Only for users with send
+  permission.
+
 ## 0.100.8 — PET by edge (gradient); resume the session; motion in the web dynamic
 - **PET: edge by gradient (like PET Edge)** in 3D Segment: the contour sits where the signal falls fastest, with
   partial-volume correction using the PET resolution (measured on the lesion itself when it is large; the *PET

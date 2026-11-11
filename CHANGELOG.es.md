@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.9 — Visor web: enviar a un destino DICOM
+- **Enviar a un destino DICOM** desde el navegador: el examen, las series marcadas o la imagen del cuadro activo, a
+  los nodos del servidor, por la cola de envíos del servidor (la misma de Ipê). Opcionalmente junto con las medidas
+  (GSPS) y las imágenes clave (KO). **Envíos** en el pie muestra el avance y cancela. Solo para quien tiene permiso
+  de enviar.
+
 ## 0.100.8 — PET por el borde (gradiente); retomar la sesión; movimiento en la dinámica web
 - **PET: borde por el gradiente (como el PET Edge)** en Segmentar 3D: el contorno queda donde la señal cae más rápido,
   con la corrección del volumen parcial por la resolución del PET (medida en la propia lesión cuando es grande; el

@@ -58,6 +58,7 @@ class CentralServer:
         from ipe.central.atualizacoes import Atualizacoes
         self.atualizacoes = Atualizacoes(self.storage.parent / "Atualizacoes")   # 0.99.56 (onda B1)
         self.settings = None             # 0.99.91: o visualizador web lê idioma, janelas e protocolos daqui
+        self.net = None                  # 0.100.9: a fila de rede (enviar ao PACS pelo navegador)
 
     # ------------------------------------------------------------------ ciclo de vida
     @property
@@ -543,6 +544,25 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._error(403, str(e))
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
+            return self._json(200, r, raw=True)
+        if path in ("/api/web/destinos", "/api/web/enviar", "/api/web/envios", "/api/web/envios/cancelar"):
+            from ipe.central import envios_web as EW                       # 0.100.9: enviar ao PACS
+            try:
+                if path == "/api/web/destinos" and method == "GET":
+                    r = EW.destinos(c, s)
+                elif path == "/api/web/envios" and method == "GET":
+                    r = EW.envios(c, s)
+                elif method == "POST":
+                    corpo = json.loads(self._body() or b"{}")
+                    r = (EW.enviar if path.endswith("enviar") else EW.cancelar)(c, s, corpo)
+                else:
+                    return self._error(405, "método")
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            except RuntimeError as e:
+                return self._error(503, str(e))
             return self._json(200, r, raw=True)
         if path == "/api/web/overlays" and method == "GET":                # 0.100.2: overlay / CAD
             from ipe.central import web as WEB

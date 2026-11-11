@@ -18,6 +18,7 @@ import { Disponiveis } from "./disponiveis";
 import { ModoMamografia, pedirToken } from "./mamografia";
 import { ModoDinamica, dinamicaDoExame, guardarTabelas } from "./dinamica";
 import { PainelLaudo } from "./laudo";
+import { ListaEnvios, painelEnvio } from "./envio";
 import {
   Grade, TIPO_ARRASTO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
   ARRANJO_PET_PADRAO, type ConteudoPet, type VistaPet,
@@ -233,6 +234,7 @@ const NOMES_FERRAMENTAS: Record<Ferramenta, string> = {
 
 /** Ícones (24×24, traço). */
 const IC: Record<string, string> = {
+  enviar: "M3 11l18-8-8 18-2-8-8-2zM11 13l10-10",
   overlay: "M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5",
   voltar: "M10 6l-6 6 6 6M4 12h16",
   janela: "M12 3a9 9 0 1 0 0.01 0M12 3v18M12 8h5M12 13h7",
@@ -446,6 +448,13 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   const bCineMenu = el("button", { type: "button", class: "ic estreito", "aria-label": tr("Velocidade do cine"),
     title: tr("Velocidade do cine") }, seta());
   const bLaudo = botaoIcone("Laudo", IC.laudo, { "aria-pressed": "false" });
+  // 0.100.9: enviar ao PACS (só com a permissão de enviar)
+  const podeEnviar = !!config?.usuario.perms?.includes("send");
+  const bEnviar = botaoIcone("Enviar a um destino DICOM", IC.enviar);
+  if (!podeEnviar) bEnviar.style.display = "none";      // (o estilo do botão de ícone venceria o hidden)
+  const listaEnvios = new ListaEnvios();
+  const bEnvios = el("button", { type: "button", class: "link", style: "display: none",
+    title: tr("Os envios que você pediu e o andamento") }, tr("Envios")) as HTMLButtonElement;
   const bOverlay = botaoIcone("Overlay (CAD/IA, textos, medidas)", IC.overlay, { "aria-pressed": "true" });
   const bOverlayMenu = el("button", { type: "button", class: "ic estreito", "aria-label": tr("Opções do overlay"),
     title: tr("Opções do overlay") }, seta()) as HTMLButtonElement;
@@ -462,7 +471,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     el("div", { class: "grupo" }, bLayout, bMpr, bEspessura, bObliquo, bGirar),
     el("div", { class: "grupo" }, bPet, bDin, bSeg, bCine, bCineMenu),
     el("div", { class: "grupo" }, bInverter, bRestaurar, bOverlay, bOverlayMenu),
-    el("div", { class: "grupo" }, bLaudo));
+    el("div", { class: "grupo" }, bLaudo, bEnviar));
 
   // ---------------------------------------------------------------- painéis
   const tira = el("aside", { class: "tira", "aria-label": tr("Séries") },
@@ -489,7 +498,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   const lateral = el("aside", { class: "lateral", "aria-label": tr("Painel de ferramentas") }, abas, corpoAba);
   const geral = el("span", { class: "disponiveis", title: tr("Imagens já baixadas e prontas no navegador") });
   const cargaCurta = el("span", { class: "carga-curta" });
-  const rodape = el("footer", { class: "rodape" }, geral, cargaCurta, bCarga, rodapeBotoes,
+  const rodape = el("footer", { class: "rodape" }, geral, cargaCurta, bCarga, bEnvios, rodapeBotoes,
     el("span", { class: "tarja-rodape" }, tr("Não destinado a uso diagnóstico")));
   const area = el("div", { class: "area" }, telas, aviso, painelCarga);
   app.replaceChildren(cabecalho(chip, nav), el("main", { class: "telaexame" }, trilhoEsq, tira, area, lateral, trilhoDir), rodape);
@@ -684,6 +693,27 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   bInverter.onclick = () => g.inverter();
   bRestaurar.onclick = () => g.restaurar();
   let relogio = 0;
+  listaEnvios.aoMudar = (ativos, total) => {
+    bEnvios.style.display = total ? "" : "none";
+    bEnvios.textContent = ativos ? `${tr("Envios")} (${ativos} ${tr("andando")})` : tr("Envios");
+    bEnvios.classList.toggle("andando", ativos > 0);
+  };
+  if (podeEnviar) void listaEnvios.atualizar();
+  bEnvios.onclick = () => { void listaEnvios.atualizar(); abrirPainel(listaEnvios.raiz, bEnvios, tr("Envios")); };
+  bEnviar.onclick = async () => {
+    const q = g.quadros[g.ativo];
+    const real = q?.serie && !q.serie.series.startsWith("ipe") ? q.serie.series : null;
+    const id = (g.viewport() as unknown as { getCurrentImageId?: () => string } | null)?.getCurrentImageId?.() || "";
+    const m = /\/instances\/([^/]+)\/frames\//.exec(id);
+    const lista = series.filter((x) => API.texto(x, "0020000E")).map((x) => ({
+      uid: API.texto(x, "0020000E"),
+      rotulo: `${API.texto(x, "00200011") || "–"} · ${API.texto(x, "00080060")} · ${API.texto(x, "0008103E") || tr("sem descrição")}`,
+    }));
+    for (const x of segs) lista.push({ uid: API.texto(x, "0020000E"), rotulo: `${API.texto(x, "00200011") || "–"} · SEG · ${API.texto(x, "0008103E")}` });
+    const painel = await painelEnvio(study, lista, real, real && m ? decodeURIComponent(m[1]) : null, listaEnvios,
+      () => fecharMenus());
+    abrirPainel(painel, bEnviar, tr("Enviar a um destino DICOM"));
+  };
   bCarga.onclick = () => {
     painelCarga.hidden = !painelCarga.hidden;
     bCarga.setAttribute("aria-pressed", String(!painelCarga.hidden));
