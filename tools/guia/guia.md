@@ -1107,11 +1107,11 @@ Nesta primeira fase:
 - **Junto: as medidas (GSPS) e as imagens-chave (KO)**: o que se mediu no exame vira um GSPS e as imagens-chave um KO, gravados no exame e mandados no mesmo envio.
 - O envio entra na **fila de envios do servidor**, a mesma do Ipê. **Envios**, no rodapé, mostra os que você pediu, com o andamento (enviadas/total), o resultado e **Cancelar** enquanto anda. Cada envio fica no registro de acesso, com o seu nome.
 
-**CAD/IA no navegador (0.100.10).** O botão **CAD/IA neste exame** (o chip, ao lado do Enviar) só aparece para quem tem a permissão **Pedir CAD/IA à mão** (de fábrica: administrador e médico; o administrador ajusta em **Usuários ▸ Perfis e permissões**).
+**CAD/IA no navegador (aba IA, 0.100.12).** A aba **IA** do painel da direita (ao lado de Filme) só aparece para quem tem a permissão **Pedir CAD/IA à mão** (de fábrica: administrador e médico; o administrador ajusta em **Usuários ▸ Perfis e permissões**). O botão **CAD/IA neste exame** da barra e **IA**, no rodapé, abrem a mesma aba.
 
-- O painel lista as ferramentas de IA do Ipê (órgãos abdominais, coluna, nódulos, composição corporal, enfisema, autoPET, cálcio…). Para cada uma, mostra a **série sugerida** (a mesma que o automático escolheria) ou por que ela não serve para o exame. Dá para trocar pela **série do quadro ativo**. **Rodar** (ou **Refazer**, se o exame já tem o resultado) põe a ferramenta na fila.
-- A IA roda **no servidor**, na mesma fila do automático da chegada, uma por vez. Por isso, o pacote de segmentação tem de estar instalado no computador do servidor. A janela *Tarefas de IA* do Ipê mostra as mesmas tarefas.
-- **IA**, no rodapé, mostra as tarefas do exame (as pedidas e as automáticas): o estado (na fila, montando o volume, rodando, gravando, pronto), a etapa e o tempo. **Cancelar** aparece nas que você pediu (quem configura cancela qualquer uma).
+- **Tarefas deste exame**, no alto: as pedidas e as automáticas, com o estado (na fila, montando o volume, rodando, gravando, pronto), a etapa, o tempo e uma barra enquanto anda. **Cancelar** aparece nas que você pediu (quem configura cancela qualquer uma).
+- **Ferramentas**, embaixo: todas as ferramentas de IA do Ipê (órgãos abdominais, coluna, nódulos, composição corporal, enfisema, autoPET, cálcio…). Primeiro as que **servem para este exame**, com a **série sugerida** (a mesma que o automático escolheria); depois as **outras**, com o motivo de não servirem. Em qualquer uma dá para escolher a **série do quadro ativo**.
+- Escolha a ferramenta e a série e clique **Rodar** (ou **Refazer**, se o exame já tem o resultado). A IA roda **no servidor**, na mesma fila do automático da chegada, uma por vez; o pacote de segmentação tem de estar instalado no computador do servidor. A janela *Tarefas de IA* do Ipê mostra as mesmas tarefas.
 - Quando a tarefa termina, um aviso na área das imagens oferece **Recarregar o exame**: as séries novas (SEG, tabelas) entram na lista e no overlay.
 
 **Filme e impressão no navegador (0.100.11).** A aba **Filme** do painel da direita só aparece para quem tem a permissão de imprimir.

@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.12 — Visor web: pestaña IA
+- El CAD/IA del navegador pasó a ser la pestaña **IA** del panel derecho, como la de la película: todas las
+  herramientas de IA del Ipê (primero las que sirven para el estudio, las demás con el motivo), la serie de cada una
+  (la sugerida o la del cuadro activo) y **Ejecutar**; arriba, las tareas del estudio con el progreso y **Cancelar**.
+  El botón de la barra e **IA** en el pie abren la pestaña.
+
 ## 0.100.11 — Visor web: armar el filme e imprimir
 - Pestaña **Filme** en el navegador: los cuadros ajustados (ventana, zoom, desplazamiento, giro) van al filme (el
   cuadro, todos o la serie cada N); la vista previa la dibuja el servidor con el código del compositor de Ipê;

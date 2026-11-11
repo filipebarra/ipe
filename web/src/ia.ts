@@ -1,6 +1,6 @@
 // 0.100.10: pedir CAD/IA pelo navegador e acompanhar. A IA roda no servidor, pela mesma fila do automático da
 // chegada (uma por vez); aqui aparecem as ferramentas que servem para o exame, com a série que cada uma usaria, e as
-// tarefas do exame (as pedidas e as automáticas) com a etapa. Só para quem tem a permissão de pedir CAD/IA.
+// tarefas do exame (as pedidas e as automáticas) com a etapa. 0.100.12: tudo numa aba do painel da direita. Só para quem tem a permissão de pedir CAD/IA.
 import { cabecalhos } from "./api";
 import { tr } from "./i18n";
 
@@ -109,49 +109,103 @@ export class TarefasIA {
   }
 }
 
-/** O painel de pedir: as ferramentas para o exame, a série de cada uma (a sugerida ou a do quadro ativo). */
-export async function painelIA(study: string, serieAtual: { uid: string; rotulo: string } | null, tarefas: TarefasIA,
-  fechar: () => void): Promise<HTMLElement> {
-  const raiz = el("div", { class: "painel-ia" });
-  let d: { ferramentas: Ferramenta[]; instalado: boolean };
-  try {
-    d = (await pedirJson(`/api/web/ia?study=${encodeURIComponent(study)}`)) as typeof d;
-  } catch (e) {
-    raiz.append(el("div", { class: "erro" }, `${tr("Não consegui ler as ferramentas")}: ${(e as Error).message}`));
-    return raiz;
+/** 0.100.12: a aba IA do painel da direita. Todas as ferramentas de CAD/IA do Ipê, as que servem para o exame aberto
+ *  primeiro (com a série sugerida ou a do quadro ativo) e as outras com o motivo; em cima, as tarefas do exame com o
+ *  andamento. Fica montada (o painel redesenha a aba a cada mudança do quadro): só a série do quadro é trocada. */
+export class AbaIA {
+  raiz = el("div", { class: "aba-ia" });
+  private lista = el("div", { class: "lista-ia" });
+  private nota = el("div", { class: "nota" });
+  private aviso = el("div", { class: "aviso" });
+  private dados: { ferramentas: Ferramenta[]; instalado: boolean } | null = null;
+  private quadroVisto = "";
+  private carregando: Promise<void> | null = null;
+
+  constructor(private study: string, private tarefas: TarefasIA,
+    private serieAtual: () => { uid: string; rotulo: string } | null) {
+    this.aviso.hidden = true;
+    const bAtualizar = el("button", { type: "button", class: "link", title: tr("Ler de novo as ferramentas e as tarefas") }, tr("Atualizar"));
+    bAtualizar.onclick = () => { void this.carregar(); void this.tarefas.atualizar(); };
+    this.raiz.append(
+      el("div", { class: "titulo-painel com-botao" }, el("span", {}, tr("CAD/IA neste exame")), bAtualizar),
+      el("div", { class: "dica" }, tr("Escolha a ferramenta e a série e clique em Rodar. A IA roda no servidor, uma por vez; o andamento aparece logo abaixo.")),
+      this.aviso, this.nota,
+      // o andamento em cima (a lista de ferramentas é comprida)
+      el("div", { class: "titulo-painel" }, tr("Tarefas deste exame")), this.tarefas.raiz,
+      el("div", { class: "titulo-painel" }, tr("Ferramentas")), this.lista);
   }
-  raiz.append(el("div", { class: "titulo-painel" }, tr("CAD/IA neste exame")));
-  if (!d.instalado) raiz.append(el("div", { class: "aviso" }, tr("O pacote de segmentação (IA) não está instalado no servidor.")));
-  const nota = el("div", { class: "nota" });
-  const lista = el("div", { class: "lista-ia" });
-  const usaveis = d.ferramentas.filter((f) => f.serie);
-  const outras = d.ferramentas.filter((f) => !f.serie);
-  for (const f of [...usaveis, ...outras]) {
-    const sSerie = el("select", { "aria-label": `${tr("Série")}: ${f.titulo}` });
+
+  /** a aba apareceu ou o quadro mudou: lê as ferramentas na primeira vez; depois só troca a série do quadro */
+  mostrar(): void {
+    if (!this.dados) { void this.carregar(); return; }
+    const q = this.serieAtual()?.uid || "";
+    if (q !== this.quadroVisto) this.desenhar();
+  }
+
+  carregar(): Promise<void> {
+    this.carregando ??= (async () => {
+      try {
+        this.dados = (await pedirJson(`/api/web/ia?study=${encodeURIComponent(this.study)}`)) as typeof this.dados;
+        this.desenhar();
+      } catch (e) {
+        this.lista.replaceChildren(el("div", { class: "erro" }, `${tr("Não consegui ler as ferramentas")}: ${(e as Error).message}`));
+      } finally {
+        this.carregando = null;
+      }
+    })();
+    return this.carregando;
+  }
+
+  private desenhar(): void {
+    const d = this.dados;
+    if (!d) return;
+    const atual = this.serieAtual();
+    this.quadroVisto = atual?.uid || "";
+    this.aviso.hidden = d.instalado;
+    this.aviso.textContent = d.instalado ? "" : tr("O pacote de segmentação (IA) não está instalado no servidor.");
+    // a escolha de série de cada ferramenta sobrevive ao redesenho
+    const escolhidas = new Map<string, string>();
+    for (const s of this.lista.querySelectorAll<HTMLSelectElement>(".ferramenta-ia select")) {
+      const t = (s.closest(".ferramenta-ia") as HTMLElement | null)?.dataset.tipo;
+      if (t) escolhidas.set(t, s.value);
+    }
+    const usaveis = d.ferramentas.filter((f) => f.serie);
+    const outras = d.ferramentas.filter((f) => !f.serie);
+    const linhas: HTMLElement[] = [];
+    if (usaveis.length) linhas.push(el("div", { class: "grupo-ia" }, tr("Servem para este exame")));
+    for (const f of usaveis) linhas.push(this.linha(f, atual, escolhidas.get(f.tipo), d.instalado));
+    if (outras.length) linhas.push(el("div", { class: "grupo-ia" }, tr("Outras ferramentas")));
+    for (const f of outras) linhas.push(this.linha(f, atual, escolhidas.get(f.tipo), d.instalado));
+    if (!linhas.length) linhas.push(el("div", { class: "dica" }, tr("Nenhuma ferramenta de CAD/IA no servidor.")));
+    this.lista.replaceChildren(...linhas);
+  }
+
+  private linha(f: Ferramenta, atual: { uid: string; rotulo: string } | null, antes: string | undefined,
+    instalado: boolean): HTMLElement {
+    const sSerie = el("select", { "aria-label": `${tr("Série")}: ${tr(f.titulo)}` });
     if (f.serie) sSerie.append(el("option", { value: f.serie }, `${tr("sugerida")}: ${f.serie_rotulo}`));
-    if (serieAtual && serieAtual.uid !== f.serie) sSerie.append(el("option", { value: serieAtual.uid }, `${tr("do quadro")}: ${serieAtual.rotulo}`));
+    if (atual && atual.uid !== f.serie) sSerie.append(el("option", { value: atual.uid }, `${tr("do quadro")}: ${atual.rotulo}`));
+    if (antes && [...sSerie.options].some((o) => o.value === antes)) sSerie.value = antes;
     const b = el("button", { type: "button", class: "primario" }, f.ja_feita ? tr("Refazer") : tr("Rodar"));
-    b.disabled = !d.instalado || f.andando || !sSerie.options.length;
+    b.disabled = !instalado || f.andando || !sSerie.options.length;
     b.onclick = async () => {
       b.disabled = true;
-      nota.textContent = tr("Pondo na fila…");
+      this.nota.textContent = tr("Pondo na fila…");
       try {
-        const r = (await pedirJson("/api/web/ia/pedir", { study, tipo: f.tipo, serie: sSerie.value || null })) as { tarefa: number };
-        tarefas.pedidas.add(r.tarefa);
-        nota.textContent = "";
-        fechar();
-        await tarefas.atualizar();
+        const r = (await pedirJson("/api/web/ia/pedir", { study: this.study, tipo: f.tipo, serie: sSerie.value || null })) as { tarefa: number };
+        this.tarefas.pedidas.add(r.tarefa);
+        this.nota.textContent = `${tr(f.titulo)}: ${tr("na fila")}.`;
+        await Promise.all([this.tarefas.atualizar(), this.carregar()]);
       } catch (e) {
-        nota.textContent = `${tr("Não foi possível pedir")}: ${(e as Error).message}`;
+        this.nota.textContent = `${tr("Não foi possível pedir")}: ${(e as Error).message}`;
         b.disabled = false;
       }
     };
-    const info = f.andando ? tr("na fila ou rodando") : f.ja_feita ? tr("já feita neste exame") : f.serie ? "" : f.motivo;
-    lista.append(el("div", { class: `ferramenta-ia${f.serie ? "" : " sem-serie"}`, "data-tipo": f.tipo },
+    const info = f.andando ? tr("na fila ou rodando") : f.ja_feita ? tr("já feita neste exame")
+      : f.serie ? "" : (f.motivo || tr("sem série que sirva; escolha um quadro com a série"));
+    return el("div", { class: `ferramenta-ia${f.serie ? "" : " sem-serie"}`, "data-tipo": f.tipo },
       el("div", { class: "ferramenta-titulo" }, tr(f.titulo)),
       ...(sSerie.options.length ? [sSerie] : []),
-      ...(info ? [el("small", {}, info)] : []), b));
+      ...(info ? [el("small", {}, info)] : []), b);
   }
-  raiz.append(lista, nota);
-  return raiz;
 }

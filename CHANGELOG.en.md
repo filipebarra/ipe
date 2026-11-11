@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.12 — Web viewer: AI tab
+- Browser CAD/AI is now the **AI** tab of the right panel, like the film tab: every Ipê AI tool (those suitable for
+  the study first, the others with the reason), the series for each (the suggested one or the active viewport's) and
+  **Run**; at the top of the tab, the study's tasks with progress and **Cancel**. The toolbar button and **AI** in the
+  footer open the tab.
+
 ## 0.100.11 — Web viewer: build the film and print
 - **Film** tab in the browser: adjusted viewports (window, zoom, pan, rotation) go into the film (the viewport, all
   or the series every N); the preview is drawn by the server with Ipê's composer code; edit, reorder and remove

@@ -19,7 +19,7 @@ import { ModoMamografia, pedirToken } from "./mamografia";
 import { ModoDinamica, dinamicaDoExame, guardarTabelas } from "./dinamica";
 import { PainelLaudo } from "./laudo";
 import { ListaEnvios, painelEnvio } from "./envio";
-import { TarefasIA, painelIA } from "./ia";
+import { AbaIA, TarefasIA } from "./ia";
 import { PainelFilme } from "./filme";
 import {
   Grade, TIPO_ARRASTO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
@@ -497,7 +497,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   const telas = el("section", { class: "grade" });
   const painelCarga = el("pre", { class: "painel-carga", hidden: true });
 
-  const ABAS = ["Imagem", "Medidas", "DICOM", "PET", "Filme"] as const;
+  const ABAS = ["Imagem", "Medidas", "DICOM", "PET", "Filme", "IA"] as const;
   type Aba = typeof ABAS[number];
   const corpoAba = el("div", { class: "corpo-aba", role: "tabpanel" });
   const botoesAba = new Map<Aba, HTMLButtonElement>();
@@ -506,6 +506,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     const b = el("button", { type: "button", role: "tab", "aria-selected": "false", "data-aba": a }, tr(a)) as HTMLButtonElement;
     b.onclick = () => mostrarAba(a);
     if (a === "Filme" && !config?.usuario.perms?.includes("print")) b.style.display = "none";   // 0.100.11
+    if (a === "IA" && !podeIA) b.style.display = "none";                                         // 0.100.12
     botoesAba.set(a, b);
     abas.append(b);
   }
@@ -708,7 +709,10 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   bInverter.onclick = () => g.inverter();
   bRestaurar.onclick = () => g.restaurar();
   let relogio = 0;
+  let ativasAntes = -1;
   listaIA.aoMudar = (ativas, total) => {
+    if (ativasAntes >= 0 && ativas !== ativasAntes) void abaIA.carregar();
+    ativasAntes = ativas;
     bTarefasIA.style.display = total ? "" : "none";
     bTarefasIA.textContent = ativas ? `${tr("IA")} (${ativas} ${tr("andando")})` : tr("IA");
     bTarefasIA.classList.toggle("andando", ativas > 0);
@@ -720,14 +724,13 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     aviso.replaceChildren(`${tr(t.ferramenta)}: ${tr("pronto")}${t.mensagem ? ` — ${t.mensagem}` : ""}. `, recarregar);
   };
   if (podeIA) void listaIA.atualizar();
-  bTarefasIA.onclick = () => { void listaIA.atualizar(); abrirPainel(listaIA.raiz, bTarefasIA, tr("Tarefas de IA")); };
-  bIA.onclick = async () => {
-    const q = g.quadros[g.ativo];
-    const real = q?.serie && !q.serie.series.startsWith("ipe") ? q.serie : null;
-    const painel = await painelIA(study, real ? { uid: real.series, rotulo: `${real.numero || "–"} · ${real.modalidade} · ${real.descricao}` } : null,
-      listaIA, () => fecharMenus());
-    abrirPainel(painel, bIA, tr("CAD/IA neste exame"));
+  const abrirAbaIA = () => {
+    if (lateral.hidden) ajustarPaineis(!tira.hidden, true);
+    mostrarAba("IA");
+    void listaIA.atualizar();
   };
+  bTarefasIA.onclick = abrirAbaIA;
+  bIA.onclick = abrirAbaIA;
   listaEnvios.aoMudar = (ativos, total) => {
     bEnvios.style.display = total ? "" : "none";
     bEnvios.textContent = ativos ? `${tr("Envios")} (${ativos} ${tr("andando")})` : tr("Envios");
@@ -872,7 +875,15 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
 
   // ---------------------------------------------------------------- abas da direita
   let abaAtual: Aba = lerPreferencia<Aba>("aba", "Medidas");
-  if (!ABAS.includes(abaAtual) || (abaAtual === "Filme" && !config?.usuario.perms?.includes("print"))) abaAtual = "Medidas";
+  if (!ABAS.includes(abaAtual) || (abaAtual === "Filme" && !config?.usuario.perms?.includes("print"))
+    || (abaAtual === "IA" && !podeIA)) abaAtual = "Medidas";
+  // 0.100.12: a aba IA — todas as ferramentas de CAD/IA, a escolhida roda para o exame aberto
+  const serieDoQuadro = () => {
+    const q = g.quadros[g.ativo];
+    const real = q?.serie && !q.serie.series.startsWith("ipe") ? q.serie : null;
+    return real ? { uid: real.series, rotulo: `${real.numero || "–"} · ${real.modalidade} · ${real.descricao}` } : null;
+  };
+  const abaIA = new AbaIA(study, listaIA, serieDoQuadro);
   // 0.100.11: o filme (a aba Filme), montado com os quadros e impresso pelo servidor
   let painelFilme: PainelFilme | null = null;
   const filme = () => {
@@ -902,6 +913,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   };
   const conteudoAba: Record<Aba, () => Node[]> = {
     Filme: () => [filme().raiz],
+    IA: () => { abaIA.mostrar(); return [abaIA.raiz]; },
     Imagem: () => {
       const s = g.quadros[g.ativo]?.serie;
       const lista = janelasProntas(s?.modalidade || "");

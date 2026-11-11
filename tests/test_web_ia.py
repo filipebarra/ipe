@@ -2,6 +2,7 @@
 o pedido entrando na fila de IA do servidor (o TotalSegmentator simulado), as tarefas com a etapa até o "Pronto",
 o cancelamento e a permissão de pedir CAD/IA (o residente não pede)."""
 import json
+import os
 import sys
 import threading
 import time
@@ -154,20 +155,36 @@ def test_pelo_navegador(servidor):
             pg.locator("table.lista tbody tr").first.dblclick()
             pg.wait_for_selector(".quadro canvas")
             botao = pg.locator("nav.barra button[aria-label='CAD/IA neste exame']")
+            aba = pg.locator(".lateral .abas button[data-aba='IA']")
             assert botao.is_visible() == pode
+            assert aba.is_visible() == pode       # 0.100.12: a aba IA só com a permissão
             if not pode:
                 pg.close()
                 continue
+            # a aba lista todas as ferramentas: as que servem para o exame primeiro, as outras com o motivo
+            aba.click()
+            assert _esperar(srv, lambda: pg.locator(".aba-ia .ferramenta-ia[data-tipo='abdome'] button").count() == 1, 20)
+            tipos = pg.eval_on_selector_all(".aba-ia .ferramenta-ia", "els => els.map(e => e.dataset.tipo)")
+            assert len(tipos) >= 4 and tipos[0] == "abdome", tipos
+            assert pg.locator(".aba-ia .ferramenta-ia.sem-serie").count() >= 1
+            # o botão da barra também leva à aba
+            pg.click(".lateral .abas button[data-aba='Medidas']")
             botao.click()
-            assert _esperar(srv, lambda: pg.locator(".painel-ia .ferramenta-ia[data-tipo='abdome'] button").count() == 1, 20)
-            linha = pg.locator(".painel-ia .ferramenta-ia[data-tipo='abdome']")
+            assert _esperar(srv, lambda: pg.locator(".aba-ia").count() == 1, 10)
+            linha = pg.locator(".aba-ia .ferramenta-ia[data-tipo='abdome']")
             assert "AX PORTAL" in linha.inner_text()
             linha.locator("button").click()
-            assert _esperar(srv, lambda: pg.locator(".painel-ia").count() == 0, 20)
+            # a tarefa aparece na própria aba, com o andamento, até ficar pronta
+            assert _esperar(srv, lambda: pg.locator(".aba-ia .tarefas-ia .tarefa").count() == 1, 20)
             assert _esperar(srv, lambda: "Recarregar o exame" in pg.inner_text(".area"), 60), pg.inner_text(".area")
+            assert _esperar(srv, lambda: pg.locator(".aba-ia .tarefas-ia .tarefa.pronto").count() == 1, 15)
+            assert "Órgãos abdominais" in pg.inner_text(".aba-ia .tarefas-ia")
+            # depois de feita, a ferramenta vira "Refazer"
+            assert _esperar(srv, lambda: "Refazer" in linha.inner_text(), 15), linha.inner_text()
+            pg.screenshot(path=str(Path(os.environ.get("IPE_SHOT_DIR", "/tmp")) / "aba_ia.png")) if os.environ.get("IPE_SHOT_DIR") else None
+            pg.click(".lateral .abas button[data-aba='Medidas']")
             pg.click(".rodape button:has-text('IA')")
-            assert _esperar(srv, lambda: pg.locator(".tarefas-ia .tarefa.pronto").count() == 1, 15)
-            assert "Órgãos abdominais" in pg.inner_text(".tarefas-ia")
+            assert _esperar(srv, lambda: pg.locator(".aba-ia .tarefas-ia .tarefa.pronto").count() == 1, 10)
             pg.click(".area button:has-text('Recarregar o exame')")
             assert _esperar(srv, lambda: pg.locator(".tira .serie").count() >= 1, 20)
             pg.close()

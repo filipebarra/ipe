@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.12 — Visualizador web: aba IA
+- O CAD/IA do navegador virou a aba **IA** do painel da direita, como a do filme: todas as ferramentas de IA do Ipê
+  (as que servem para o exame primeiro, as outras com o motivo), a série de cada uma (a sugerida ou a do quadro
+  ativo) e **Rodar**; no alto da aba, as tarefas do exame com o andamento e **Cancelar**. O botão da barra e **IA** no
+  rodapé abrem a aba.
+
 ## 0.100.11 — Visualizador web: montar o filme e imprimir
 - Aba **Filme** no navegador: os quadros ajustados (janela, zoom, deslocamento, giro) vão para o filme (o quadro, todos
   ou a série a cada N); a prévia é desenhada pelo servidor com o código do compositor do Ipê; editar, reordenar e
