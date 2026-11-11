@@ -3,6 +3,17 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.8 — PET by edge (gradient); resume the session; motion in the web dynamic
+- **PET: edge by gradient (like PET Edge)** in 3D Segment: the contour sits where the signal falls fastest, with
+  partial-volume correction using the PET resolution (measured on the lesion itself when it is large; the *PET
+  resolution (FWHM)* field for small ones). On test spheres, ±15% of the true volume from 1.3 cm, against twice the
+  error or more for 41% in small lesions. Warns when the lesion is near the resolution limit.
+- **Resume the session**: Ipê records the open exams and saves the analysis state every 2 minutes; after a crash, it
+  offers to reopen what was open, as it was (Settings ▸ Viewer ▸ Analysis state on open: ask, reopen without asking
+  or do not reopen).
+- **Web viewer — motion correction in the breast dynamic**: translation or rigid, with Ipê's computation done on the
+  server; maps, curves, subtractions and the phase that moved come out corrected.
+
 ## 0.100.7 — Breast MRI: fibroglandular tissue and background enhancement; end of reading sends to the PACS
 - **Fibroglandular and enhancement…** (breast dynamic panel): separates fibroglandular tissue from fat on the
   non-fat-saturated T1 (or on Dixon, or on the pre-contrast) and gives, for each breast, the percentage and the

@@ -6351,7 +6351,24 @@
   "tecido fibroglandular esparso",
   "tecido fibroglandular extremo",
   "tecido fibroglandular heterogêneo",
-  "trocar a SEG do fibroglandular"
+  "trocar a SEG do fibroglandular",
+  "A resolução do PET (largura a meia altura). Usada para levar a borda achada pelo gradiente à borda verdadeira nas lesões pequenas; nas grandes, o programa a mede na própria lesão. PET/TC atual: 5–7 mm.",
+  "Depois de uma queda, os exames que estavam abertos:",
+  "Não reabrir",
+  "O exame",
+  "PET: borda pelo gradiente (como o PET Edge)",
+  "Reabrir",
+  "Reabrir sem perguntar",
+  "Resolução do PET (FWHM):",
+  "Retomar a sessão",
+  "a ajustada",
+  "guardar o estado periódico",
+  "medida na própria lesão",
+  "modo: translacao ou rigido",
+  "não consegui gravar a sessão",
+  "sem dinâmica",
+  "sem movimento a corrigir",
+  "sessão anterior ilegível"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8036,6 +8053,16 @@
   "{} medida(s)/anotação(ões) (GSPS)",
   "{} {}% ({} de {} mL)",
   "{}: falhou — {}",
-  "{}: {} — {} enviada(s), {} falha(s)"
+  "{}: {} — {} enviada(s), {} falha(s)",
+  "O Ipê não foi fechado direito da última vez. {} que estava{} aberto{}:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados.",
+  "Os {} exames",
+  "Sessão retomada: {} exame(s) reaberto(s).",
+  "borda em {}% do máximo; resolução do PET {} mm ({})",
+  "lesão perto do limite da resolução ({} mm para {} mm): o volume é menos confiável",
+  "maior deslocamento {} mm (fase {})",
+  "rotação até {}° (fase {})",
+  "• e mais {}",
+  "O Ipê não foi fechado direito da última vez. O exame que estava aberto:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados.",
+  "O Ipê não foi fechado direito da última vez. Os {} exames que estavam abertos:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados."
  ]
 }

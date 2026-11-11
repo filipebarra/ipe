@@ -1040,6 +1040,13 @@ class SegmentDialog(QDialog):
         self.pct = QDoubleSpinBox(decimals=0, minimum=5, maximum=95, value=pct0)
         self.pct.setSuffix(" %")
         self.abs = QDoubleSpinBox(decimals=2, minimum=0.1, maximum=100, value=float(tab.settings.get("segment.pet_abs", 2.5)))
+        # 0.100.8: a resolução do aparelho entra na correção do volume parcial da borda pelo gradiente. Numa lesão
+        # grande o programa a mede na própria lesão; nas pequenas usa esta.
+        self.fwhm = QDoubleSpinBox(decimals=1, minimum=2.0, maximum=15.0, singleStep=0.5, suffix=" mm",
+                                   value=float(tab.settings.get("segment.pet_fwhm", 6.0)))
+        self.fwhm.setToolTip("A resolução do PET (largura a meia altura). Usada para levar a borda achada pelo "
+                             "gradiente à borda verdadeira nas lesões pequenas; nas grandes, o programa a mede na "
+                             "própria lesão. PET/TC atual: 5–7 mm.")
         self.radius = QDoubleSpinBox(decimals=0, minimum=10, maximum=400, value=60 if cad else 120)
         self.radius.setSuffix(" mm")
         self.limiar = QDoubleSpinBox(decimals=0, minimum=5, maximum=1000, suffix=" %",
@@ -1086,6 +1093,7 @@ class SegmentDialog(QDialog):
         form.addRow("Máximo:", self.hi)
         form.addRow("% do SUVmáx:", self.pct)
         form.addRow("SUV mínimo:", self.abs)
+        form.addRow("Resolução do PET (FWHM):", self.fwhm)
         linha_lim = QHBoxLayout()
         linha_lim.addWidget(self.limiar)
         for texto, passo in (("−", -10.0), ("+", 10.0)):
@@ -1194,7 +1202,8 @@ class SegmentDialog(QDialog):
     def _show_rows(self) -> None:
         m = self.method.currentData()
         for w, vis in ((self.lo, m == "range"), (self.hi, m == "range"),
-                       (self.pct, m in ("pet_pct", "realce_pct")), (self.abs, m == "pet_abs")):
+                       (self.pct, m in ("pet_pct", "realce_pct")), (self.abs, m == "pet_abs"),
+                       (self.fwhm, m == "pet_grad")):
             w.setVisible(vis)
             lab = self.form.labelForField(w)
             if lab is not None:
@@ -1248,7 +1257,7 @@ class SegmentDialog(QDialog):
                 self.res = self.pronto
             else:
                 self.res = segment(self.vol, self.seed, m, lo, hi, self.suv, self.pct.value(), self.abs.value(),
-                                   self.radius.value(), self.modality)
+                                   self.radius.value(), self.modality, self.fwhm.value())
             self.res.sul_razao = getattr(self.vp, "sul_razao", None) if self.suv else None
             self.res.glic = getattr(self.vp, "glic", None) if self.suv else None
         except Exception as e:  # noqa: BLE001
@@ -1510,6 +1519,7 @@ class SegmentDialog(QDialog):
             self.tab.settings.set("segment.pet_method", self.method.currentData())
             self.tab.settings.set("segment.pet_pct", self.pct.value())
             self.tab.settings.set("segment.pet_abs", self.abs.value())
+            self.tab.settings.set("segment.pet_fwhm", self.fwhm.value())
         if link:
             self.tab.choose_lesion_for(vp, self.saved_ann)
         self.tab.refresh_lesions()

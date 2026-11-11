@@ -563,10 +563,11 @@ class _Handler(BaseHTTPRequestHandler):
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, r, raw=True)
-        if path in ("/api/web/mamografia", "/api/web/dinamica") and method == "GET":   # 0.99.98 (W4, W5)
+        if path in ("/api/web/mamografia", "/api/web/dinamica", "/api/web/dinamica_movimento") and method == "GET":
             from ipe.central import web as WEB
             prefs = c.repo.user_prefs(s.user_id) if s.user_id else {}
-            fn = WEB.mamografia if path.endswith("mamografia") else WEB.dinamica
+            fn = {"/api/web/mamografia": WEB.mamografia, "/api/web/dinamica": WEB.dinamica,
+                  "/api/web/dinamica_movimento": WEB.dinamica_movimento}[path]
             try:
                 r = fn(c.repo, s, parse_qs(parts.query), c.pode_ver, c.settings, prefs)
             except PermissionError as e:

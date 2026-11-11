@@ -3,6 +3,18 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.8 — PET por el borde (gradiente); retomar la sesión; movimiento en la dinámica web
+- **PET: borde por el gradiente (como el PET Edge)** en Segmentar 3D: el contorno queda donde la señal cae más rápido,
+  con la corrección del volumen parcial por la resolución del PET (medida en la propia lesión cuando es grande; el
+  campo *Resolución del PET (FWHM)* en las pequeñas). En las esferas de prueba, ±15% del volumen real a partir de
+  1,3 cm, contra el doble o más de error del 41% en las pequeñas. Avisa cuando la lesión está cerca del límite de
+  resolución.
+- **Retomar la sesión**: Ipê anota los exámenes abiertos y guarda el estado del análisis cada 2 minutos; después de
+  una caída, ofrece reabrir lo que estaba abierto, como estaba (Configuración ▸ Visor ▸ Estado del análisis al abrir:
+  preguntar, reabrir sin preguntar o no reabrir).
+- **Visor web — corrección de movimiento en la dinámica de mama**: traslación o rígida, con el cálculo de Ipê hecho en
+  el servidor; mapas, curvas, sustracciones y la fase que se movió salen corregidos.
+
 ## 0.100.7 — RM de mama: fibroglandular y realce de fondo; el fin de la lectura envía al PACS
 - **Fibroglandular y realce…** (panel de la dinámica de mama): separa el tejido fibroglandular de la grasa en el T1
   sin saturación (o en el Dixon, o en la precontraste) y da, en cada mama, el porcentaje y el volumen; con la

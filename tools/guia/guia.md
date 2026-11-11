@@ -537,6 +537,8 @@ Ao fechar o exame (pelo X da aba, ao trocar de exame ou ao sair do programa), o 
 - **Usar a montagem do exame anterior** — num controle: o layout e as vistas do exame anterior do paciente, cada quadro com a série equivalente deste exame (mesma modalidade e descrição);
 - **Abrir o anterior ao lado, como estava** — o anterior entra na aba com os quadros dele como você deixou, ao lado dos deste exame.
 
+**Retomar a sessão depois de uma queda (0.100.8).** Enquanto o Ipê está aberto, ele anota quais exames estão abertos e guarda o estado da análise de cada um **a cada 2 minutos**, e não só ao fechar. Se o programa (ou o computador) cair, na próxima abertura ele mostra os exames que estavam abertos e pergunta se reabre: **Reabrir** abre cada um como estava da última vez que o estado foi guardado (layout, cortes, medidas, painéis), com o que estava na frente de novo na frente. Fechar o programa direito apaga a anotação. Em **Configurações ▸ Visualizador ▸ Estado da análise ao abrir…**, **Depois de uma queda, os exames que estavam abertos**: perguntar (de fábrica), reabrir sem perguntar ou não reabrir.
+
 **Configurações ▸ Visualizador ▸ Estado da análise ao abrir…**: reabrir como deixei (de fábrica), perguntar ou abrir como de fábrica. O estado fica só no Ipê — no banco deste computador ou, no modo cliente, no servidor central, para todas as estações —, não vai junto com o exame. Não vale quando o exame abre com séries escolhidas, por um protocolo com etapas, repartido entre monitores, no modo mamografia ou em reunião: aí quem manda é o protocolo.
 
 ### A memória do layout
@@ -1095,7 +1097,8 @@ Nesta primeira fase:
 - **Curvas tempo-intensidade**: desenhe uma ROI (elipse, retângulo ou polígono) ou marque um **ponto** (valor do pixel, média 3×3) em qualquer quadro; embaixo aparece a curva e a tabela com a **classe** (médio/rápido × persistente/platô/washout), o realce inicial, o SER, o pico, o TTP, o BAT, a lavagem, o iAUC90 e o MRT — os números do Ipê.
 - **Curva sob o cursor (0.100.2)**: como no Ipê, passar o mouse sobre a imagem mostra a curva do ponto (3×3 pixels), tracejada, junto das guardadas; a caixa **Curva sob o cursor** na barra desliga.
 - **O rótulo de cada quadro (0.100.2)**: nos quadros de fase, **◂ ▸** passam de fase; clicar no texto (ou o botão direito) abre o menu do quadro — o que mostrar (qualquer fase ou mapa), **Subtração (fase − pré-contraste)** de qualquer fase, **Paisagem** (10 a 50% da anatomia de volta na subtração, como no Ipê) e a **cor** (as tabelas do Ipê, ou cinza). A barra escolhe também a **cor do mapa por cima da fase**.
-- Ficam só no Ipê, por enquanto: correção de movimento, fases fora da conta e a linha de base pela média das fases pré.
+- **Correção de movimento (0.100.8)**: **Movimento** na barra — **Não**, **Translação** ou **Rígida** (com rotação), como no Ipê. O servidor faz a conta do Ipê (a translação 3D de cada fase sobre a pré e, na rígida, a rotação da fase que girou) e o navegador aplica ao montar cada corte: os mapas, as curvas, as subtrações e o quadro da fase que se mexeu saem corrigidos. A dica do seletor diz quanto mexeu (o maior deslocamento e a maior rotação). Vem ligada como você a deixou no Ipê; trocar a pré refaz a conta.
+- Ficam só no Ipê, por enquanto: fases fora da conta e a linha de base pela média das fases pré.
 
 **Laudo no navegador (0.99.98).**
 
@@ -1448,6 +1451,13 @@ O painel de lesões dá nome a cada lesão, e as medidas de exames diferentes se
 - **Ligação pela posição**: cada medida ligada a uma lesão guarda onde ela está no paciente (em mm). Desenhe a medida no exame de seguimento no lugar da lesão: levada ao exame anterior pelo registro (o rígido, ou o alinhamento salvo ao ligar os quadros), se cair a até **10 mm** de onde a lesão estava, a medida **liga sozinha** a ela, e a barra de status diz a qual e a que distância. Sem registro entre os dois exames não liga (não há como saber onde o ponto está no outro); com duas lesões perto, também não — ligue à mão. A caixa e a distância ficam no painel de lesões.
 - **Seguimento…** (no painel): as lesões medidas antes e ainda sem medida neste exame, uma por linha. **Repetir a medida** abre a série equivalente no lugar estimado, com o contorno anterior em amarelo e a mesma ferramenta; a próxima medida liga à lesão. **Pequena demais (5 mm)** (alvo; o RECIST 1.1 soma 5 mm), **Ausente (0)**, e, nas não alvo, **Presente / estável** e **Progressão inequívoca**. Medidas feitas antes da 0.99.59 não têm posição: o Repetir abre a série, sem o lugar.
 - **Nadir**: a linha *Nadir* mostra, em cada exame, a menor soma até ali, e o cabeçalho marca com ▼ o exame que é o nadir do atual. O resumo do laudo traz as quatro datas — base, nadir, anterior e atual — com a soma de cada uma.
+
+**Contorno da lesão no PET pela borda (0.100.8).** Na **Segmentar 3D** de um PET, o método **PET: borda pelo gradiente (como o PET Edge)** contorna a lesão onde o sinal **cai mais depressa**, e não num valor fixo. O limiar em % do SUVmáx (41%) depende do pico: numa lesão pequena o volume parcial derruba o máximo, o limiar desce até o fundo borrado e o contorno incha. A borda pelo gradiente não depende do pico.
+
+- O programa parte do ponto mais quente perto do clique, lança raios em cerca de 260 direções e, em cada uma, acha a queda mais íngreme antes de o sinal voltar a subir (outra lesão, o coração, a bexiga). A borda de cada direção é conferida com as vizinhas, e a lesão é o que fica dentro dela.
+- **Correção do volume parcial**: numa lesão borrada pela resolução do aparelho, a queda mais íngreme fica um pouco para dentro da borda verdadeira — pouco numa lesão de 4 cm, bastante numa de 1,3 cm. O programa leva cada raio de volta à borda verdadeira usando a **resolução do PET (FWHM)**. Numa lesão grande, ele mede a resolução na própria lesão (a largura da queda); nas pequenas, usa o campo **Resolução do PET (FWHM)** da janela (6 mm de fábrica; PET/TC atual, 5–7 mm). O valor fica guardado.
+- A nota da janela diz em que porcentagem do máximo ficou a borda e qual resolução foi usada. Abaixo de 1,5 × a resolução, ela avisa que a lesão está **perto do limite** e que o volume é menos confiável.
+- Em esferas de teste (resolução de 7 mm, ruído de PET, fundo 4:1 a 8:1), o volume ficou a ±15% do real a partir de 1,3 cm, e o 41% errou o dobro ou mais nas pequenas.
 
 **PET no seguimento** (0.99.60, botão **PET…** do painel de lesões):
 

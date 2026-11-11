@@ -853,6 +853,8 @@ def dinamica(repo, s, q: dict, pode_ver, settings, prefs: dict | None = None) ->
     motivo = dset.check()
     if motivo:
         return {**base, "motivo": motivo}
+    if q.get("_dset"):                         # para a correção de movimento (o mesmo conjunto de fases)
+        return {"dset": dset}
     par = DC.parametros_iniciais(_Preferencias(settings, prefs))
     pre = int(par.get("pre", 0) or 0)
     pre = pre if 0 <= pre < len(dset.phases) - 2 else 0
@@ -863,7 +865,59 @@ def dinamica(repo, s, q: dict, pode_ver, settings, prefs: dict | None = None) ->
             "com_horario": bool(dset.timed), "pre": pre, "inicial": dset.default_early(pre),
             "tardia": len(dset.phases) - 1,
             "parametros": {k: par.get(k) for k in ("threshold_pct", "threshold_all", "noise_pct", "rapido_pct",
-                                                  "tardio_pct", "sinal_min_pct", "relative")}}
+                                                  "tardio_pct", "sinal_min_pct", "relative")},
+            # 0.100.8: a correção de movimento, como a deixou no Ipê
+            "movimento": "rigido" if par.get("motion_rigido") else ("translacao" if par.get("motion") else "")}
+
+
+_MOVIMENTO: dict = {}                          # (exame, pré, modo, fases) → resposta (a conta leva segundos)
+_MOVIMENTO_TRAVA = __import__("threading").Lock()
+
+
+def dinamica_movimento(repo, s, q: dict, pode_ver, settings, prefs: dict | None = None) -> dict:
+    """0.100.8: a correção de movimento da dinâmica, com a mesma conta do Ipê (`DynamicMaps.estimate_motion`):
+    translação 3D de cada fase sobre a pré (correlação de fase) e, no modo rígido, rotação + translação para a fase
+    que girou. Devolve, por fase, o deslocamento (corte, linha, coluna, em voxels) e, para as que giraram, a matriz
+    4×4 (índice da pré → índice da fase). O navegador aplica ao montar a pilha de cada corte."""
+    import numpy as np
+
+    from ipe.imaging.dynamic import DynamicMaps
+    from ipe.imaging.series import FrameCache
+    modo = (q.get("modo") or ["translacao"])[0]
+    if modo not in ("translacao", "rigido"):
+        raise ValueError("modo: translacao ou rigido")
+    r = dinamica(repo, s, {**q, "_dset": ["1"]}, pode_ver, settings, prefs)
+    dset = r.get("dset")
+    if dset is None:
+        return {"modo": "", "motivo": r.get("motivo") or "sem dinâmica", "shifts": [], "matrizes": {}, "rotacoes": []}
+    pre = int((q.get("pre") or ["0"])[0] or 0)
+    pre = pre if 0 <= pre < len(dset.phases) else 0
+    study = (q.get("study") or [""])[0]
+    chave = (study, pre, modo, tuple(f[0].series_uid + f[0].sop_uid for f in dset.phases))
+    with _MOVIMENTO_TRAVA:
+        if chave in _MOVIMENTO:
+            return _MOVIMENTO[chave]
+    maps = DynamicMaps(dset, FrameCache(max_mb=512), pre=pre, motion="rigido" if modo == "rigido" else True)
+    mm = maps._espacamento()
+    desl = [float(np.hypot(np.hypot(sz * mm[2], sy * mm[1]), sx * mm[0])) for sz, sy, sx in maps.shifts]
+    partes = []
+    if any(v > 0 for v in desl):
+        i = int(np.argmax(desl))
+        partes.append(f"maior deslocamento {desl[i]:.1f} mm (fase {i + 1})")
+    if maps.matrizes:
+        partes.append(f"rotação até {maps.rotacao_maxima:.1f}° (fase {', '.join(str(i + 1) for i in sorted(maps.matrizes))})")
+    out = {"modo": modo, "motivo": "", "pre": pre,
+           "shifts": [[float(v) for v in t] for t in maps.shifts],
+           "matrizes": {str(i): np.asarray(M, float).tolist() for i, M in maps.matrizes.items()},
+           "rotacoes": [float(v) for v in maps.rotacoes],
+           "resumo": "; ".join(partes) or "sem movimento a corrigir",
+           "maior_mm": float(max(desl, default=0.0)), "fase_maior": int(np.argmax(desl)) + 1 if desl else 0,
+           "rotacao_max": float(maps.rotacao_maxima), "fases_giradas": [i + 1 for i in sorted(maps.matrizes)]}
+    with _MOVIMENTO_TRAVA:
+        _MOVIMENTO[chave] = out
+        while len(_MOVIMENTO) > 32:
+            _MOVIMENTO.pop(next(iter(_MOVIMENTO)))
+    return out
 
 
 # ------------------------------------------------------------------ laudo no navegador (0.99.98, W6)

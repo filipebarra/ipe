@@ -93,6 +93,14 @@ class MainWindow(QMainWindow):
         self._pending_imports: list[Path] = []
         self.detached: list[ScreenWindow] = []
         self.sync_hub = SyncHub(self.repo, self, settings)
+        # 0.100.8: o que está aberto, para retomar depois de uma queda
+        from ipe.ui.sessao import INTERVALO_ESTADO_S, Sessao
+        self.sessao = Sessao(paths.config)
+        self._t_sessao = QTimer(self, singleShot=True, interval=1500)
+        self._t_sessao.timeout.connect(self.gravar_sessao)
+        self._t_estados = QTimer(self, interval=INTERVALO_ESTADO_S * 1000)
+        self._t_estados.timeout.connect(self.guardar_estados)
+        self._t_estados.start()
 
         self.setWindowTitle(f"{APP_NAME} {__version__} — {NOT_FOR_DIAGNOSIS}")
         self.resize(1400, 860)
@@ -961,13 +969,21 @@ class MainWindow(QMainWindow):
         nota.setWordWrap(True)
         f.addRow(nota)
         f.addRow("Exame com estado salvo:", c)
+        # 0.100.8: depois de uma queda
+        from ipe.ui import sessao as SS
+        r = QComboBox()
+        for k, v in (("perguntar", "Perguntar"), ("sempre", "Reabrir sem perguntar"), ("nunca", "Não reabrir")):
+            r.addItem(v, k)
+        r.setCurrentIndex(max(0, r.findData(self.settings.get(SS.CHAVE_RETOMAR, "perguntar") or "perguntar")))
+        f.addRow("Depois de uma queda, os exames que estavam abertos:", r)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.accepted.connect(d.accept)
         bb.rejected.connect(d.reject)
         f.addRow(bb)
-        d._c = c
+        d._c, d._r = c, r
         if d.exec():
             self.settings.set("viewer.estado_ao_abrir", c.currentData())
+            self.settings.set(SS.CHAVE_RETOMAR, r.currentData())
             self.settings.save()
         return d
 
@@ -1084,6 +1100,7 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(4000, lambda: self.procurar_atualizacao(silencioso=True))   # 0.99.56 (onda B1)
         elif self._central is None:
             QTimer.singleShot(8000, lambda: self.procurar_versao_github(silencioso=True))  # 0.99.70
+        QTimer.singleShot(600, self.oferecer_retomar)                          # 0.100.8
 
     # ------------------------------------------------------------------ perfis e atualizações (0.99.56)
     _perfil: dict = {}
@@ -1415,6 +1432,7 @@ class MainWindow(QMainWindow):
 
     def _focar_aba(self, _i: int = -1) -> None:
         """Ao trocar de aba, o teclado vai para o exame: ← → andam nas etapas, não nas abas."""
+        self.marcar_sessao()
         def focar():
             tab = self.tabs.currentWidget()
             if not isinstance(tab, ViewerTab):
@@ -1540,6 +1558,7 @@ class MainWindow(QMainWindow):
             win.close()
 
     def discard_tab(self, tab) -> None:
+        self.marcar_sessao()
         if isinstance(tab, ViewerTab):
             try:
                 tab.guardar_layout()
@@ -1725,6 +1744,7 @@ class MainWindow(QMainWindow):
         if len(telas) > 1 and self.abrir_dividido(study_uid, telas, series_uids):
             self.browser.refresh()
             self.auto.on_study_opened(study_uid)
+            self.marcar_sessao()
             return
         target = telas[0] if telas else None
         layout = layout_for_screen(self.settings, target or self.screen())
@@ -1740,6 +1760,7 @@ class MainWindow(QMainWindow):
             self.tabs.setCurrentIndex(idx)
         self.browser.refresh()
         self.auto.on_study_opened(study_uid)
+        self.marcar_sessao()
 
     @staticmethod
     def repartir(itens: list, n: int) -> list:
@@ -3679,6 +3700,88 @@ class MainWindow(QMainWindow):
         caixa.exec()
         return caixa.clickedButton() is sim
 
+    # ------------------------------------------------------------ retomar a sessão (0.100.8)
+    def marcar_sessao(self) -> None:
+        t = getattr(self, "_t_sessao", None)
+        if t is not None:
+            t.start()
+
+    def exames_abertos(self) -> list[dict]:
+        out, vistos = [], set()
+        for t in self.all_viewer_tabs():
+            uid = getattr(t, "study_uid", None)
+            if not uid or uid in vistos:
+                continue
+            vistos.add(uid)
+            series = [vp.series_uid for vp in getattr(t, "viewports", [])
+                      if getattr(vp, "series_uid", None) and not vp.series_uid.startswith(("key:", "mpr:", "mg:"))]
+            try:
+                titulo = t.title()
+            except Exception:  # noqa: BLE001
+                titulo = uid
+            out.append({"study": uid, "series": list(dict.fromkeys(series)), "titulo": titulo})
+        return out
+
+    def gravar_sessao(self) -> None:
+        atual = self.tabs.currentWidget()
+        self.sessao.gravar(self.exames_abertos(), getattr(atual, "study_uid", None) if isinstance(atual, ViewerTab)
+                           else None)
+
+    def guardar_estados(self) -> None:
+        """De tempos em tempos, o estado da análise de cada exame aberto (o que a queda levaria)."""
+        for t in self.all_viewer_tabs():
+            try:
+                t.guardar_estado()
+            except Exception:  # noqa: BLE001
+                log.debug("guardar o estado periódico", exc_info=True)
+
+    def oferecer_retomar(self, perguntar=None) -> int:
+        """A última vez caiu com exame aberto: oferece reabrir. Devolve quantos reabriu."""
+        from ipe.ui import sessao as SS
+        exames = self.sessao.exames_da_queda()
+        ativo = (self.sessao.anterior or {}).get("ativo")
+        self.sessao.esquecer_a_queda()
+        if not exames:
+            return 0
+        modo = str(self.settings.get(SS.CHAVE_RETOMAR, "perguntar") or "perguntar")
+        if modo == "nunca":
+            return 0
+        if modo != "sempre":
+            if perguntar is None:
+                def perguntar(texto: str) -> bool:
+                    cx = QMessageBox(QMessageBox.Question, "Retomar a sessão", texto, parent=self)
+                    sim = cx.addButton("Reabrir", QMessageBox.AcceptRole)
+                    cx.addButton("Agora não", QMessageBox.RejectRole)
+                    cx.exec()
+                    return cx.clickedButton() is sim
+            n = len(exames)
+            lista = SS.descrever(exames)
+            if n == 1:
+                texto = (f"O Ipê não foi fechado direito da última vez. O exame que estava aberto:\n\n{lista}\n\n"
+                         "Reabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados.")
+            else:
+                texto = (f"O Ipê não foi fechado direito da última vez. Os {n} exames que estavam abertos:\n\n"
+                         f"{lista}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram "
+                         "guardados.")
+            if not perguntar(texto):
+                return 0
+        abertos = 0
+        for e in exames:
+            uid = e.get("study")
+            if not uid or self.repo.study_info(uid) is None:
+                continue
+            try:
+                # sem as séries: assim o estado da análise guardado (layout, medidas, cortes) volta inteiro
+                self.open_study(uid)
+                abertos += 1
+            except Exception:  # noqa: BLE001
+                log.exception("retomar o exame %s", uid)
+        if ativo:
+            self._focus_open_study(ativo)
+        if abertos:
+            self.statusBar().showMessage(f"Sessão retomada: {abertos} exame(s) reaberto(s).", 8000)
+        return abertos
+
     def closeEvent(self, e) -> None:  # noqa: N802
         # Com exame aberto, o X fecha o exame — em **todas** as telas — e devolve o banco de
         # dados. Só com tudo fechado é que ele encerra o programa.
@@ -3720,6 +3823,9 @@ class MainWindow(QMainWindow):
         if client is not None:
             client.logout()
         self.net.shutdown()
+        self._t_sessao.stop()
+        self._t_estados.stop()
+        self.sessao.encerrar()                        # 0.100.8: fechou direito, nada a retomar
         super().closeEvent(e)
 
     # ------------------------------------------------------------ importação

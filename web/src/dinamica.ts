@@ -4,8 +4,9 @@
 // por cima da fase, como fusão; e as curvas tempo-intensidade das ROIs, com a classe (persistente, platô,
 // washout), o realce inicial, o SER e os descritores (BAT, lavagem, iAUC90, MRT).
 //
-// O que fica de fora por enquanto (só no Ipê): correção de movimento, fases fora da conta e linha de base pela
-// média das fases pré.
+// 0.100.8: correção de movimento (translação ou rígida), com a conta do Ipê feita no servidor e aplicada aqui ao
+// montar a pilha de cada corte. O que fica de fora por enquanto (só no Ipê): fases fora da conta e linha de base
+// pela média das fases pré.
 import { Enums, type Types, cache, imageLoader, metaData, utilities } from "@cornerstonejs/core";
 
 import * as API from "./api";
@@ -28,6 +29,88 @@ export interface Dinamica {
   mapas_salvos: { series: string; descricao: string; chave: string; cores: string }[];
   classes: string[];
   mapas: Record<string, { nome: string; descricao: string; unidade: string; cores: string }>;
+  movimento?: "" | "translacao" | "rigido";
+}
+
+/** 0.100.8: a correção de movimento do servidor (DynamicMaps.estimate_motion). */
+export interface Movimento {
+  modo: "" | "translacao" | "rigido";
+  motivo: string;
+  pre?: number;
+  shifts: number[][]; // por fase: (corte, linha, coluna) em voxels
+  matrizes: Record<string, number[][]>; // fase → 4×4: (coluna, linha, corte) da pré → da fase
+  rotacoes: number[];
+  resumo?: string;
+  maior_mm?: number;
+  fase_maior?: number;
+  rotacao_max?: number;
+  fases_giradas?: number[];
+}
+
+export async function movimentoDoExame(study: string, pre: number, modo: string): Promise<Movimento | null> {
+  const r = await fetch(`${location.origin}/api/web/dinamica_movimento?study=${encodeURIComponent(study)}&pre=${pre}&modo=${modo}`,
+    { headers: API.cabecalhos(), cache: "no-store" });
+  if (!r.ok) return null;
+  return (await r.json()) as Movimento;
+}
+
+/** A imagem amostrada em (y + dy, x + dx), bilinear, bordas repetidas (shift_image do Ipê). */
+export function deslocarImagem(img: Float32Array, w: number, h: number, dy: number, dx: number): Float32Array {
+  let a = img;
+  if (Math.abs(dy) > 1e-3) {
+    const y0 = Math.floor(dy), fy = dy - y0;
+    const b = new Float32Array(a.length);
+    for (let y = 0; y < h; y++) {
+      const r0 = Math.min(Math.max(y + y0, 0), h - 1), r1 = Math.min(r0 + 1, h - 1);
+      for (let x = 0; x < w; x++) b[y * w + x] = a[r0 * w + x] * (1 - fy) + a[r1 * w + x] * fy;
+    }
+    a = b;
+  }
+  if (Math.abs(dx) > 1e-3) {
+    const x0 = Math.floor(dx), fx = dx - x0;
+    const b = new Float32Array(a.length);
+    for (let x = 0; x < w; x++) {
+      const c0 = Math.min(Math.max(x + x0, 0), w - 1), c1 = Math.min(c0 + 1, w - 1);
+      for (let y = 0; y < h; y++) b[y * w + x] = a[y * w + c0] * (1 - fx) + a[y * w + c1] * fx;
+    }
+    a = b;
+  }
+  return a === img ? img.slice() : a;
+}
+
+/** O corte k da pré tirado da fase girada pela matriz M (trilinear; fora do volume, 0) — _fase_girada do Ipê. */
+export async function cortePelaMatriz(ler: (z: number) => Promise<Float32Array>, nz: number, w: number, h: number,
+  M: number[][], k: number): Promise<Float32Array> {
+  const n = w * h;
+  const ii = new Float32Array(n), jj = new Float32Array(n), kk = new Float32Array(n);
+  let kmin = Infinity, kmax = -Infinity;
+  for (let J = 0; J < h; J++) {
+    for (let I = 0; I < w; I++) {
+      const p = J * w + I;
+      ii[p] = M[0][0] * I + M[0][1] * J + M[0][2] * k + M[0][3];
+      jj[p] = M[1][0] * I + M[1][1] * J + M[1][2] * k + M[1][3];
+      kk[p] = M[2][0] * I + M[2][1] * J + M[2][2] * k + M[2][3];
+      const kc = Math.min(Math.max(kk[p], 0), nz - 1);
+      if (kc < kmin) kmin = kc;
+      if (kc > kmax) kmax = kc;
+    }
+  }
+  const z0 = Math.floor(kmin), z1 = Math.min(Math.floor(kmax) + 1, nz - 1);
+  const bloco: Float32Array[] = [];
+  for (let z = z0; z <= z1; z++) bloco.push(await ler(z));
+  const out = new Float32Array(n);
+  for (let p = 0; p < n; p++) {
+    if (kk[p] < -0.5 || kk[p] > nz - 0.5 || ii[p] < -0.5 || ii[p] > w - 0.5 || jj[p] < -0.5 || jj[p] > h - 0.5) continue;
+    const x = Math.min(Math.max(ii[p], 0), w - 1), y = Math.min(Math.max(jj[p], 0), h - 1);
+    const z = Math.min(Math.max(kk[p], 0), nz - 1) - z0;
+    const i0 = Math.floor(x), j0 = Math.floor(y), k0 = Math.floor(z);
+    const i1 = Math.min(i0 + 1, w - 1), j1 = Math.min(j0 + 1, h - 1), k1 = Math.min(k0 + 1, bloco.length - 1);
+    const fi = x - i0, fj = y - j0, fk = z - k0;
+    const plano = (b: Float32Array) => (b[j0 * w + i0] * (1 - fi) + b[j0 * w + i1] * fi) * (1 - fj)
+      + (b[j1 * w + i0] * (1 - fi) + b[j1 * w + i1] * fi) * fj;
+    out[p] = plano(bloco[k0]) * (1 - fk) + plano(bloco[k1]) * fk;
+  }
+  return out;
 }
 
 export async function dinamicaDoExame(study: string): Promise<Dinamica | null> {
@@ -208,7 +291,9 @@ function registrarCarregador(): void {
       const m = /^ipedin:([a-z0-9]+):(\d+)$/.exec(imageId);
       if (!m || !atual) throw new Error("dinâmica fechada");
       const k = Number(m[2]);
-      const dados = /^fs\d+p\d+$/.test(m[1]) ? await atual.subtracaoDaFase(m[1], k) : (await atual.mapasDoCorte(k))[m[1] as Chave];
+      const dados = /^fs\d+p\d+$/.test(m[1]) ? await atual.subtracaoDaFase(m[1], k)
+        : /^fc\d+$/.test(m[1]) ? (await atual.pilhaDoCorte(k))[Number(m[1].slice(2))]
+          : (await atual.mapasDoCorte(k))[m[1] as Chave];
       return atual.imagemDoMapa(imageId, dados);
     })(),
   }) as never);
@@ -254,6 +339,10 @@ export class ModoDinamica {
   private rolando = false;
   private soltar: (() => void)[] = [];
   private curvas: { uid: string; valores: number[]; n: number }[] = [];
+  mov: Movimento | null = null;
+  private w = 0;
+  private h = 0;
+  private notaMov: HTMLSelectElement | null = null;
 
   constructor(private g: Grade, private dados: Dinamica, private op: OpcoesDin) {
     registrarCarregador();
@@ -284,6 +373,13 @@ export class ModoDinamica {
     }
     this.fases = d.fases.map((f) => f.quadros.map((q) => porSerie.get(q.series)?.get(`${q.sop}|${q.quadro}`) || ""));
     if (this.fases.some((f) => f.some((id) => !id))) return false;
+    const plano0 = metaData.get("imagePlaneModule", this.fases[0][0]) as { rows: number; columns: number } | undefined;
+    this.h = plano0?.rows || 0;
+    this.w = plano0?.columns || 0;
+    if (d.movimento) {
+      const m = await movimentoDoExame(this.op.study, d.pre, d.movimento);
+      if (m && m.modo && !m.motivo) this.mov = m;
+    }
     const pa = d.parametros;
     this.par = { pre: d.pre, inicial: d.inicial, tardia: d.tardia, tempos: d.fases.map((f) => f.tempo),
       limiar: Number(pa.threshold_pct ?? 50), limiarEmTodos: !!pa.threshold_all, relativo: pa.relative !== false,
@@ -331,9 +427,66 @@ export class ModoDinamica {
     }
   }
 
-  private async pilhaDoCorte(k: number): Promise<Float32Array[]> {
-    const imgs = await Promise.all(this.fases.map((f) => imageLoader.loadAndCacheImage(f[Math.min(k, f.length - 1)])));
-    return imgs.map((im) => pixelsDa(im as Types.IImage));
+  private async lerCorte(i: number, z: number): Promise<Float32Array> {
+    const f = this.fases[i];
+    const im = await imageLoader.loadAndCacheImage(f[Math.min(Math.max(z, 0), f.length - 1)]);
+    return pixelsDa(im as Types.IImage);
+  }
+
+  /** As fases do corte k — com a correção de movimento, a fase i amostrada onde a pré está (stack() do Ipê). */
+  async pilhaDoCorte(k: number): Promise<Float32Array[]> {
+    const mov = this.mov;
+    if (!mov || !this.w) {
+      const imgs = await Promise.all(this.fases.map((f) => imageLoader.loadAndCacheImage(f[Math.min(k, f.length - 1)])));
+      return imgs.map((im) => pixelsDa(im as Types.IImage));
+    }
+    return Promise.all(this.fases.map(async (f, i) => {
+      const M = mov.matrizes[String(i)];
+      if (M) return cortePelaMatriz((z) => this.lerCorte(i, z), f.length, this.w, this.h, M, k);
+      const [dz, dy, dx] = mov.shifts[i] || [0, 0, 0];
+      if (!dz && !dy && !dx) return this.lerCorte(i, k);
+      const z = k + dz, z0 = Math.floor(z), fz = z - z0;
+      let px = await this.lerCorte(i, z0);
+      if (fz >= 1e-3) {
+        const b = await this.lerCorte(i, z0 + 1);
+        const m = new Float32Array(px.length);
+        for (let p = 0; p < px.length; p++) m[p] = px[p] * (1 - fz) + b[p] * fz;
+        px = m;
+      }
+      return deslocarImagem(px, this.w, this.h, dy, dx);
+    }));
+  }
+
+  /** 0.100.8: liga ou desliga a correção de movimento e refaz os mapas. */
+  async mudarMovimento(modo: "" | "translacao" | "rigido"): Promise<boolean> {
+    let m: Movimento | null = null;
+    if (modo) {
+      if (this.notaMov) this.notaMov.title = tr("Calculando o movimento…");
+      m = await movimentoDoExame(this.op.study, this.par.pre, modo);
+      if (!m || m.motivo) {
+        this.op.aviso(m?.motivo || tr("Não consegui calcular o movimento."));
+        if (this.notaMov) this.notaMov.title = "";
+        return false;
+      }
+    }
+    this.mov = m;
+    await this.refazer();
+    return true;
+  }
+
+  private notaDoMovimento(): string {
+    const m = this.mov;
+    if (!m) return "";
+    const partes: string[] = [];
+    if ((m.maior_mm || 0) > 0) partes.push(`${tr("maior deslocamento")} ${(m.maior_mm || 0).toFixed(1)} mm (${tr("fase")} ${m.fase_maior})`);
+    if (m.fases_giradas?.length) partes.push(`${tr("rotação até")} ${(m.rotacao_max || 0).toFixed(1)}° (${tr("fase")} ${m.fases_giradas.join(", ")})`);
+    return `${tr("Movimento corrigido")}: ${partes.join("; ") || tr("sem movimento a corrigir")}`;
+  }
+
+  private corrigida(i: number): boolean {
+    const m = this.mov;
+    if (!m) return false;
+    return !!m.matrizes[String(i)] || (m.shifts[i] || []).some((v) => v);
   }
 
   /** Os mapas do corte k (calculados uma vez; os últimos 24 cortes ficam guardados, como no Ipê). */
@@ -350,6 +503,14 @@ export class ModoDinamica {
   private registrarChave(ch: string): void {
     if (this.registradas.has(ch)) return;
     this.registradas.add(ch);
+    if (/^fc\d+$/.test(ch) && !this.janelas.has(ch)) {
+      // a janela da fase corrigida é a da fase original
+      const voi = metaData.get("voiLutModule", this.fases[Number(ch.slice(2))][Math.floor(this.fases[0].length / 2)]) as
+        { windowCenter?: number[] | number; windowWidth?: number[] | number } | undefined;
+      const c = Number(Array.isArray(voi?.windowCenter) ? voi?.windowCenter[0] : voi?.windowCenter);
+      const w = Number(Array.isArray(voi?.windowWidth) ? voi?.windowWidth[0] : voi?.windowWidth);
+      if (Number.isFinite(c) && Number.isFinite(w) && w > 0) this.janelas.set(ch, [c - w / 2, c + w / 2]);
+    }
     const prov = utilities.genericMetadataProvider;
     this.fases[0].forEach((id0, k) => {
       const id = `ipedin:${ch}:${k}`;
@@ -422,6 +583,15 @@ export class ModoDinamica {
   }
 
   private serieDaFase(i: number): SerieCarregada {
+    if (this.corrigida(i)) {
+      // a fase que se mexeu aparece corrigida (no lugar da pré), como no Ipê
+      const ch = `fc${i}`;
+      this.registrarChave(ch);
+      const n = this.fases[0].length;
+      return { study: this.op.study, series: `ipedin-${ch}`, imageIds: Array.from({ length: n }, (_, k) => `ipedin:${ch}:${k}`),
+        modalidade: "MR", descricao: `${tr("Fase")} ${i + 1} · ${this.dados.fases[i].rotulo} · ${tr("corrigida")}`,
+        numero: "", semVolume: "fase", bytes: 0, suv: null, suvMotivo: "" };
+    }
     return { study: this.op.study, series: `ipedin-fase${i}`, imageIds: this.fases[i], modalidade: "MR",
       descricao: `${tr("Fase")} ${i + 1} · ${this.dados.fases[i].rotulo} · ${Math.round(this.dados.fases[i].tempo)} s`,
       numero: "", semVolume: "fase", bytes: 0, suv: null, suvMotivo: "" };
@@ -653,9 +823,19 @@ export class ModoDinamica {
     const aviso = document.createElement("span");
     aviso.className = "nota-din";
     aviso.textContent = this.dados.com_horario ? "" : tr("Sem o horário das fases: uma fase por minuto.");
+    // 0.100.8: correção de movimento
+    const modos: ("" | "translacao" | "rigido")[] = ["", "translacao", "rigido"];
+    const sMov = escolha([tr("Sem correção"), tr("Translação"), tr("Rígida")], modos.indexOf(this.mov?.modo || ""),
+      (j) => { sMov.disabled = true; void this.mudarMovimento(modos[j]).then((ok) => {
+        sMov.disabled = false;
+        if (!ok) sMov.value = String(modos.indexOf(this.mov?.modo || ""));
+      }); }, "Correção de movimento");
+    // o resumo da correção (quanto mexeu) vai na dica do próprio seletor: a barra não ganha mais uma linha
+    this.notaMov = sMov;
+    sMov.title = this.notaDoMovimento();
     this.barra.append(titulo, rotulo("Pré", sPre), rotulo("Inicial", sIni), rotulo("Tardia", sTar),
       ...quadros.map((q, i) => rotulo(`Q${i + 1}`, q)), rotulo("Sobre a fase", sSobre), rotulo("Cor", sCorSobre),
-      rotulo("Opacidade", op), rotulo("Curva sob o cursor", cCurva), aviso, sair);
+      rotulo("Opacidade", op), rotulo("Curva sob o cursor", cCurva), sMov, aviso, sair);
   }
 
   async mudarFases(pre: number, inicial: number, tardia: number): Promise<void> {
@@ -663,16 +843,28 @@ export class ModoDinamica {
       this.op.aviso(tr("A fase inicial deve vir depois do pré-contraste, e a tardia não pode vir antes da inicial."));
       return;
     }
+    const prePrevio = this.par.pre;
     this.par = { ...this.par, pre, inicial, tardia };
+    if (this.mov && pre !== prePrevio) {
+      // a correção é sobre a pré: outra pré, outra conta
+      const m = await movimentoDoExame(this.op.study, pre, this.mov.modo);
+      this.mov = m && m.modo && !m.motivo ? m : null;
+    }
+    await this.refazer();
+  }
+
+  /** Os mapas, as janelas e as imagens calculadas de novo (outras fases ou outra correção de movimento). */
+  private async refazer(): Promise<void> {
     this.corteCache.clear();
     // as imagens dos mapas de antes saem do cache (as das fases ficam)
     for (const ch of this.registradas) {
       this.fases[0].forEach((_id, k) => { try { cache.removeImageLoadObject(`ipedin:${ch}:${k}`); } catch { /* não estava */ } });
     }
-    for (const ch of [...this.janelas.keys()]) if (ch.startsWith("fs")) this.janelas.delete(ch);
+    for (const ch of [...this.janelas.keys()]) if (ch.startsWith("fs") || ch.startsWith("fc")) this.janelas.delete(ch);
     this.registradas.clear();
     await this.prepararJanelas();
     for (const ch of CALCULADOS) this.registrarChave(ch);
+    if (this.notaMov) this.notaMov.title = this.notaDoMovimento();
     await this.montar();
   }
 
@@ -945,7 +1137,7 @@ export class ModoDinamica {
   /** Para os testes: os parâmetros e o corte de agora. */
   estado(): Record<string, unknown> {
     return { par: this.par, corte: this.corte(), quadros: this.quadros.map((q) => q.v), detalhe: this.quadros,
-      sobre: this.sobre, corSobre: this.corSobre, desenhado: this.camada?.dataset.desenhado ?? null,
+      sobre: this.sobre, corSobre: this.corSobre, desenhado: this.camada?.dataset.desenhado ?? null, movimento: this.mov?.modo || "",
       rotulos: this.g.quadros.map((q) => q.el.parentElement?.querySelector(".rotulo-din .texto-rotulo")?.textContent || "") };
   }
 

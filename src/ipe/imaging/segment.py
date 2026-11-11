@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 METHODS = {"range": "Faixa de valores (mín–máx)", "pet_pct": "PET: % do SUVmáx", "pet_abs": "PET: SUV fixo",
+           "pet_grad": "PET: borda pelo gradiente (como o PET Edge)",
            "realce_pct": "RM dinâmica: % do realce da própria lesão",
            "realce": "RM dinâmica: realce acima de um limiar fixo",
            "medsam2": "IA: contorno pela caixa (MedSAM2)"}
@@ -181,9 +182,29 @@ def default_range(data: np.ndarray, seed: tuple[int, int, int], modality: str = 
     return m - half, m + half
 
 
+def _borda_pet(vol, sub: np.ndarray, s: tuple, notes: list, fwhm_mm: float, raio_mm: float) -> np.ndarray:
+    """A borda pelo gradiente (`pet_borda`), no recorte `sub`. Deixa em `notes` os avisos e, por último, o valor da
+    borda (o "limiar" equivalente, que o chamador tira de lá)."""
+    from ipe.imaging import pet_borda as PB
+    voxel = (max(vol.dz, 1e-6), max(vol.dy, 1e-6), max(vol.dx, 1e-6))
+    b = PB.achar_borda(sub, s, voxel, raio_max_mm=raio_mm, fwhm_mm=fwhm_mm)
+    m, off = PB.mascara(sub, b, voxel)
+    reg = np.zeros(sub.shape, bool)
+    reg[off[0]:off[0] + m.shape[0], off[1]:off[1] + m.shape[1], off[2]:off[2] + m.shape[2]] = m
+    reg = _grow(reg, tuple(int(v) for v in b.centro))
+    origem = "medida na própria lesão" if b.fwhm_da_lesao else "a ajustada"
+    notes.append(f"borda em {100 * b.fracao_borda:.0f}% do máximo; resolução do PET {b.fwhm_mm:.1f} mm ({origem})")
+    diam = 2 * float(np.median(b.raios_mm)) if b.raios_mm.size else 0.0
+    if diam < 1.5 * b.fwhm_mm:
+        notes.append(f"lesão perto do limite da resolução ({diam:.0f} mm para {b.fwhm_mm:.1f} mm): o volume é "
+                     "menos confiável")
+    notes.append(b.valor_borda)
+    return reg
+
+
 def segment(vol, seed: tuple[int, int, int], method: str = "range", lo: float | None = None,
             hi: float | None = None, suv: float | None = None, pct: float = 41.0, abs_suv: float = 2.5,
-            radius_mm: float = 120.0, modality: str = "") -> SegResult:
+            radius_mm: float = 120.0, modality: str = "", fwhm_mm: float = 6.0) -> SegResult:
     """Segmenta a partir da semente (k, j, i) do volume `vol` (imaging.volume.Volume)."""
     data = vol.data
     nz, ny, nx = data.shape
@@ -217,8 +238,12 @@ def segment(vol, seed: tuple[int, int, int], method: str = "range", lo: float | 
     else:
         if lo is None or hi is None:
             lo, hi = default_range(data, (k, j, i), modality)
-    inside = (sub >= lo) & (sub <= hi)
-    reg = _grow(inside, s)
+    if method == "pet_grad":
+        reg = _borda_pet(vol, sub, s, notes, fwhm_mm, min(radius_mm, 80.0))
+        lo, hi = notes.pop(), float("inf")
+    else:
+        inside = (sub >= lo) & (sub <= hi)
+        reg = _grow(inside, s)
     res = SegResult(np.zeros((0, 0, 0), bool), (k0, j0, i0), (k, j, i), float(lo), float(hi), method, notes=notes)
     if not reg.any():
         res.notes.append("a semente está fora da faixa")
