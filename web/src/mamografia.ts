@@ -371,8 +371,11 @@ export class ModoMamografia {
   }
 
   // ------------------------------------------------------------------ 0.100.4: rolar pela pilha da incidência
-  /** Por quadro: a imagem da pilha que está enquadrada, onde a parede torácica (o meio da caixa, do lado da
-   * parede) está no canvas e a escala (pixels da tela por mm, ou por pixel da imagem quando falta o espaçamento). */
+  /** 0.100.17: por quadro, o **alvo** do enquadramento — fixado ao abrir a etapa (ou quando o médico mexe no zoom
+   * e no deslocamento à mão) e aplicado, sempre do zero, a cada imagem que a roda traz: onde a parede torácica fica
+   * no canvas e a escala (pixels da tela por mm; sem o tamanho do pixel, a altura da mama na tela). Antes o alvo
+   * era remedido a cada troca de imagem: os erros somavam, e ir e voltar não devolvia o zoom da abertura.
+   * `sop`/`pxImg` são da imagem mostrada agora (para saber quanto o médico ampliou à mão). */
   private ancoras = new Map<number, { sop: string; x: number; y: number; pxMm: number | null; pxImg: number; caixaH: number }>();
   private ouvidos = new WeakSet<HTMLElement>();
   private ajustando = false;
@@ -381,7 +384,11 @@ export class ModoMamografia {
     return /\/instances\/([^/]+)\/frames\//.exec(imageId || "")?.[1] || "";
   }
 
-  private static mmPorPixel(imageId: string): number | null {
+  /** mm por pixel da imagem: o do servidor (lê ImagerPixelSpacing e os grupos funcionais da tomo, que o carregador
+   * do navegador não lê); na falta, o dos metadados. */
+  private mmPorPixel(sop: string, imageId: string): number | null {
+    const mm = this.dados.imagens[sop]?.mm;
+    if (mm && mm > 0) return mm;
     const p = metaData.get("imagePlaneModule", imageId) as { columnPixelSpacing?: number; rowPixelSpacing?: number } | undefined;
     const v = p?.columnPixelSpacing || p?.rowPixelSpacing;
     return v && v > 0 ? v : null;
@@ -398,14 +405,15 @@ export class ModoMamografia {
     const p = noCanvas(vp, id, im.parede === "right" ? x1 : x0, (y0 + y1) / 2);
     const a = noCanvas(vp, id, 0, 0), b = noCanvas(vp, id, 1, 0);
     const pxImg = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    const mm = ModoMamografia.mmPorPixel(id);
+    const mm = this.mmPorPixel(sop, id);
     return { sop, x: p[0], y: p[1], pxImg, pxMm: mm ? pxImg / mm : null, caixaH: pxImg * Math.max(1, y1 - y0) };
   }
 
   /** Ao passar para outra imagem da mesma incidência (a 2D seguinte, a tomo), o Cornerstone3D guarda o zoom e o
    * deslocamento **relativos ao tamanho da imagem** — numa imagem de outro tamanho ou espaçamento a mama muda de
-   * tamanho e sai do lugar. Aqui a imagem nova fica na **mesma escala física** (mm por pixel da tela; sem o
-   * espaçamento, a mesma altura da mama) e com a parede torácica exatamente onde estava. */
+   * tamanho e sai do lugar. Aqui a imagem nova fica na **mesma escala física** do alvo (mm por pixel da tela; sem o
+   * espaçamento, a mesma altura da mama) e com a parede torácica exatamente no lugar do alvo — como se as imagens
+   * estivessem empilhadas. */
   private ouvirPilha(i: number): void {
     const vp = this.vp(i);
     const el = vp?.element as HTMLElement | undefined;
@@ -416,11 +424,23 @@ export class ModoMamografia {
       const k = this.g.quadros.findIndex((q) => q.el === el);
       const a = this.ancoras.get(k);
       const m = k >= 0 ? this.medir(k) : null;
-      if (a && m && m.sop === a.sop) this.ancoras.set(k, m);       // zoom ou deslocamento à mão: segue junto
+      if (!a || !m || m.sop !== a.sop || !(a.pxImg > 0) || !(m.pxImg > 0)) return;
+      // zoom ou deslocamento à mão: o alvo segue junto (a escala muda na mesma proporção)
+      const f = m.pxImg / a.pxImg;
+      this.ancoras.set(k, { sop: a.sop, x: m.x, y: m.y, pxImg: m.pxImg,
+        pxMm: a.pxMm !== null ? a.pxMm * f : m.pxMm, caixaH: a.caixaH * f });
     });
-    el.addEventListener(CE.Events.STACK_NEW_IMAGE, () => {
+    const aoTrocar = () => {
       const k = this.g.quadros.findIndex((q) => q.el === el);
       if (k >= 0) this.reancorar(k);
+    };
+    el.addEventListener(CE.Events.STACK_NEW_IMAGE, aoTrocar);
+    // a imagem pode chegar em etapas (primeiro uma versão menor): confere de novo depois de desenhada
+    el.addEventListener(CE.Events.IMAGE_RENDERED, () => {
+      const k = this.g.quadros.findIndex((q) => q.el === el);
+      const a = this.ancoras.get(k);
+      const m = k >= 0 && !this.ajustando ? this.medir(k) : null;
+      if (a && m && m.sop !== a.sop) this.reancorar(k);
     });
   }
 
@@ -430,18 +450,29 @@ export class ModoMamografia {
     const m = this.medir(i);
     if (!a || !vp || !m || m.sop === a.sop) return;
     const c = this.celulas[i];
+    const im = this.dados.imagens[m.sop];
+    const id = (vp as unknown as { csImage?: { imageId: string } }).csImage?.imageId ?? vp.getCurrentImageId()!;
+    const mm = this.mmPorPixel(m.sop, id);
+    const alturaCaixa = im?.caixa ? Math.max(1, im.caixa[3] - im.caixa[1]) : 0;
+    // a escala que esta imagem tem de ter (pixels da tela por pixel dela) para ficar igual ao alvo
+    const quero = a.pxMm !== null && mm ? a.pxMm * mm : (alturaCaixa ? a.caixaH / alturaCaixa : 0);
+    let agora = m;
     this.ajustando = true;
     try {
-      const fator = a.pxMm && m.pxMm ? a.pxMm / m.pxMm : a.caixaH / m.caixaH;
-      if (Number.isFinite(fator) && fator > 0 && Math.abs(fator - 1) > 1e-3) vp.setZoom(vp.getZoom() * fator);
-      const depois = this.medir(i)!;
-      moverNoCanvas(vp, [depois.x, depois.y], [a.x, a.y]);
+      for (let volta = 0; volta < 3 && quero > 0; volta++) {
+        const fator = quero / agora.pxImg;
+        if (!Number.isFinite(fator) || fator <= 0 || Math.abs(fator - 1) < 5e-4) break;
+        vp.setZoom(vp.getZoom() * fator);
+        agora = this.medir(i) ?? agora;
+      }
+      moverNoCanvas(vp, [agora.x, agora.y], [a.x, a.y]);
       vp.render();
     } finally {
       this.ajustando = false;
     }
-    const agora = this.medir(i);
-    if (agora) this.ancoras.set(i, { ...agora, x: a.x, y: a.y });
+    const fim = this.medir(i);
+    // o alvo não muda: só anota qual imagem está no quadro e a escala dela
+    this.ancoras.set(i, { ...a, sop: m.sop, pxImg: fim?.pxImg ?? agora.pxImg });
     if (c && c.sop !== m.sop) {
       c.sop = m.sop;                    // o quadro mostra outra imagem da incidência (o botão da tomo acompanha)
       if (i === this.g.ativo) this.atualizarTomo();

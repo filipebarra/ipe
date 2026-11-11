@@ -713,6 +713,38 @@ _ANALISE: dict[tuple, dict] = {}
 _ANALISE_TRAVA = threading.Lock()
 
 
+def mm_do_pixel_mg(ds) -> float | None:
+    """0.100.17: o tamanho do pixel **no plano da mama** (mm), para o navegador manter a mesma escala ao rolar da 2D
+    para a tomo. Na mamografia 2D ele costuma vir só em ImagerPixelSpacing (no detector: dividido pelo fator de
+    ampliação estimado, quando o aparelho informa, dá o plano da mama — IHE Mammo); na tomossíntese, nos grupos
+    funcionais. O carregador do navegador não lê nenhum dos dois: sem isto, a escala ia pela altura da caixa da
+    mama, que muda de imagem para imagem — o zoom não acompanhava e não voltava."""
+    def primeiro(v):
+        try:
+            x = float(v[0])
+            return x if x > 0 else None
+        except Exception:  # noqa: BLE001
+            return None
+    v = primeiro(ds.get("PixelSpacing")) if ds.get("PixelSpacing") is not None else None
+    if v:
+        return v
+    try:
+        pm = ds.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence[0]
+        v = primeiro(pm.get("PixelSpacing")) if pm.get("PixelSpacing") is not None else None
+        if v:
+            return v
+    except Exception:  # noqa: BLE001
+        pass
+    v = primeiro(ds.get("ImagerPixelSpacing")) if ds.get("ImagerPixelSpacing") is not None else None
+    if not v:
+        return None
+    try:
+        f = float(ds.get("EstimatedRadiographicMagnificationFactor") or 0)
+    except (TypeError, ValueError):
+        f = 0.0
+    return v / f if 0.5 < f < 3 else v
+
+
 def analise_da_mama(caminho: str, quadro: int = 0) -> dict:
     """Largura, altura, caixa da mama, lado da parede torácica e mamilo da imagem (as contas do Ipê em
     imaging/mammo.py). Guardado por arquivo e data: a mesma imagem não é lida duas vezes."""
@@ -745,6 +777,9 @@ def analise_da_mama(caminho: str, quadro: int = 0) -> dict:
             mam = M.mamilo(px, mono1, lado) if lado else None
             out = {"largura": int(w), "altura": int(h), "caixa": list(caixa) if caixa else None,
                    "parede": lado, "mamilo": [float(mam[0]), float(mam[1])] if mam else None}
+            mm = mm_do_pixel_mg(ds)
+            if mm:
+                out["mm"] = round(float(mm), 6)
     except Exception as e:  # noqa: BLE001
         log.debug("mamografia web: não li %s: %s", caminho, e)
     with _ANALISE_TRAVA:

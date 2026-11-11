@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.17 — Mammography in the browser: the same zoom across the stack
+- When scrolling to another image of the view (another 2D, the tomo), the zoom did not follow, and scrolling back did
+  not restore the opening zoom. The browser was not reading the mammography pixel size (ImagerPixelSpacing; functional
+  groups in tomo) and re-measured the framing at every change, accumulating error. The server now provides the pixel
+  size and the step's opening framing (or your manual zoom) is applied to every image, as if they were stacked.
+- GitHub publishing: actions updated (Node 24) and the build only starts once the new code has arrived.
+
 ## 0.100.16 — Browser: review AI findings
 - **Findings to review** in the browser's AI tab (emphysema, nodules, Genant, calcium, aorta, PET tumour burden, body
   composition): Go to, Confirm, Correct the numbers, Discard, Back to suggested and **Send to report** (only confirmed

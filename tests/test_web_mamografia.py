@@ -44,8 +44,10 @@ def _serie(out, study, lado, view, numero, parede, tomo=False):
     ds.InstanceNumber = 1
     ds.ImageLaterality = lado
     ds.ViewPosition = view
-    ds.PixelSpacing = [0.1, 0.1]
-    ds.ImagerPixelSpacing = [0.1, 0.1]
+    # 0.100.17: como nos aparelhos de verdade — a 2D só tem ImagerPixelSpacing (no detector, com o fator de
+    # ampliação); a tomo tem o PixelSpacing nos grupos funcionais. O carregador do navegador não lê nenhum dos dois.
+    ds.ImagerPixelSpacing = [0.11, 0.11]
+    ds.EstimatedRadiographicMagnificationFactor = 1.1          # 0,11 / 1,1 = 0,1 mm no plano da mama
     ds.PresentationIntentType = "FOR PRESENTATION"
     img = _mama(lado, parede)
     if tomo:
@@ -55,8 +57,13 @@ def _serie(out, study, lado, view, numero, parede, tomo=False):
         # e outro campo: uma faixa de ar em cima e do lado da pele (a parede continua na borda)
         pele = ((0, 0), (0, 140)) if parede == "left" else ((0, 0), (140, 0))
         img = np.pad(img, ((90, 0), pele[1]))
-        ds.PixelSpacing = [0.05, 0.05]
-        ds.ImagerPixelSpacing = [0.05, 0.05]
+        from pydicom.dataset import Dataset
+        from pydicom.sequence import Sequence
+        del ds.ImagerPixelSpacing, ds.EstimatedRadiographicMagnificationFactor
+        pm, fg = Dataset(), Dataset()
+        pm.PixelSpacing = [0.05, 0.05]
+        fg.PixelMeasuresSequence = Sequence([pm])
+        ds.SharedFunctionalGroupsSequence = Sequence([fg])
         cortes = np.stack([img * (0.8 + 0.02 * k) for k in range(9)])
         _mono(ds, cortes[0], signed=False)
         ds.NumberOfFrames = len(cortes)
@@ -249,6 +256,25 @@ def test_mamografia_uma_tela(servidor_mg):
         q2 = _celulas(pg)["quadros"][0]
         assert q2["escala"] == pytest.approx(qz["escala"] * 2, rel=0.02)
         assert q2["parede_x"] == pytest.approx(qz["parede_x"], abs=0.01) and q2["parede_y"] == pytest.approx(qz["parede_y"], abs=0.01)
+        # 0.100.17: ir e voltar várias vezes pela roda de verdade não soma erro: a 2D volta exatamente como estava
+        # e a tomo fica sempre na mesma escala (como se as imagens estivessem empilhadas)
+        caixa = pg.locator(".quadro .tela").first.bounding_box()
+        pg.mouse.move(caixa["x"] + caixa["width"] / 2, caixa["y"] + caixa["height"] / 2)
+        tomo_ref = None
+        for _ in range(4):
+            pg.mouse.wheel(0, 100)
+            assert _esperar(lambda: _celulas(pg)["quadros"][0]["tomo"])
+            pg.wait_for_timeout(250)
+            qt = _celulas(pg)["quadros"][0]
+            assert qt["escala"] == pytest.approx(q2["escala"] / 2, rel=0.01)
+            tomo_ref = tomo_ref or qt
+            assert qt["parede_x"] == pytest.approx(tomo_ref["parede_x"], abs=0.01)
+            pg.evaluate("() => window.__ipeGrade.viewport(0).setImageIdIndex(0)")
+            assert _esperar(lambda: _celulas(pg)["quadros"][0]["corte"] == 0 and not _celulas(pg)["quadros"][0]["tomo"])
+            pg.wait_for_timeout(150)
+            qv = _celulas(pg)["quadros"][0]
+            assert qv["escala"] == pytest.approx(q2["escala"], rel=0.002)
+            assert qv["parede_x"] == pytest.approx(q2["parede_x"], abs=0.01) and qv["parede_y"] == pytest.approx(q2["parede_y"], abs=0.01)
         # 0.100.4: a lupa — no botão esquerdo pela barra; segurar mostra os pixels da imagem aumentados, a roda
         # muda o aumento; soltar fecha; o botão de novo devolve a janela ao esquerdo
         pg.click(".barra-mg button[aria-label='Lupa no botão esquerdo']")

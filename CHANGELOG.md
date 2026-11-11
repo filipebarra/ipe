@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.17 — Mamografia no navegador: o mesmo zoom em toda a pilha
+- Ao rolar para outra imagem da incidência (outra 2D, a tomo), o zoom não acompanhava, e ao voltar não era mais o da
+  abertura. O navegador não lia o tamanho do pixel da mamografia (ImagerPixelSpacing; na tomo, grupos funcionais) e
+  remedia o enquadramento a cada troca, somando erro. Agora o servidor informa o tamanho do pixel e o enquadramento
+  da abertura da etapa (ou o seu zoom à mão) é aplicado a cada imagem, como se estivessem empilhadas.
+- Publicação no GitHub: ações atualizadas (Node 24) e a versão só é montada depois de o código novo chegar.
+
 ## 0.100.16 — Navegador: revisar os achados de IA
 - **Achados para revisar** na aba IA do navegador (enfisema, nódulos, Genant, cálcio, aorta, carga tumoral PET,
   composição corporal): Ir até, Confirmar, Corrigir os números, Descartar, Voltar a sugerido e **Mandar ao laudo** (só

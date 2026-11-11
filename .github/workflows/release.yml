@@ -21,8 +21,8 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Bibliotecas
@@ -47,7 +47,7 @@ jobs:
         run: |
           choco install innosetup --no-progress -y
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DVersao=${{ steps.v.outputs.versao }}" installer\ipe.iss
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: windows
           path: |
@@ -59,8 +59,8 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Bibliotecas do sistema (Qt)
@@ -105,7 +105,7 @@ jobs:
           H=$(mktemp -d); mkdir x && tar xzf "dist/Ipe-${{ steps.v.outputs.versao }}-linux-portable.tar.gz" -C x
           HOME=$H bash x/Ipe/install.sh && HOME=$H "$H/.local/bin/ipe-viewer" --help | head -3
           HOME=$H bash x/Ipe/install.sh --uninstall && test ! -e "$H/.local/share/ipe/programa"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: linux
           path: |
@@ -114,10 +114,10 @@ jobs:
 
   release:
     needs: [windows, linux]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v7
         with:
           path: pacotes
       - name: Notas (a entrada do CHANGELOG.en.md desta versão; desde a 0.99.33 o release sai em inglês)

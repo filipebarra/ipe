@@ -191,6 +191,8 @@ export interface ImagemMg {
   study: string; series: string; sop: string; quadros: number; tomo: boolean; inicio: number;
   serie: string; rotulo: string;
   largura?: number; altura?: number; caixa?: number[] | null; parede?: string; mamilo?: number[] | null;
+  /** 0.100.17: mm por pixel no plano da mama (ImagerPixelSpacing, grupos funcionais da tomo) */
+  mm?: number;
 }
 
 export interface CelulaMg {
