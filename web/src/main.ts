@@ -125,13 +125,24 @@ function cabecalho(...extra: Node[]): HTMLElement {
     onclick: async () => {
       if (noExame) { location.hash = "#/lista"; return; }
       await API.sair();
+      try { sessionStorage.removeItem(CHAVE_BUSCA); } catch { /* sem armazenamento */ }
       config = null;
       telaLogin();
-    } }, tr("Sair"));
+    } }, noExame ? tr("Fechar") : tr("Sair"));     // 0.100.15: no exame, "Fechar" (Close / Cerrar)
   return el("header", {}, el("strong", {}, tr("Ipê Web")), ...extra, el("span", { class: "quem" }, quem), b);
 }
 
 // ------------------------------------------------------------------ lista
+/** 0.100.15: a busca da lista volta quando o exame é fechado (nesta aba do navegador) */
+const CHAVE_BUSCA = "ipe.web.busca";
+type Busca = { texto: string; de: string; ate: string; mod: string; ultimo?: string };
+function lerBusca(): Busca | null {
+  try { const v = sessionStorage.getItem(CHAVE_BUSCA); return v ? (JSON.parse(v) as Busca) : null; } catch { return null; }
+}
+function gravarBusca(b: Busca): void {
+  try { sessionStorage.setItem(CHAVE_BUSCA, JSON.stringify(b)); } catch { /* sem armazenamento */ }
+}
+
 const MODALIDADES = ["", "CT", "MR", "MG", "US", "PT", "NM", "CR", "DX", "XA", "RF"];
 
 function dataBr(d: string): string {
@@ -156,6 +167,17 @@ async function telaLista(): Promise<void> {
   const corpo = el("tbody");
   const estado = el("div", { class: "estado" });
   const form = el("form", { class: "filtros" }, busca, de, ate, mod, el("button", { type: "submit" }, tr("Buscar")));
+  const antes = lerBusca();
+  if (antes) {
+    busca.value = antes.texto || "";
+    de.value = antes.de || "";
+    ate.value = antes.ate || "";
+    mod.value = antes.mod || "";
+  }
+  const abrir = (uid: string) => {
+    gravarBusca({ texto: busca.value, de: de.value, ate: ate.value, mod: mod.value, ultimo: uid });
+    location.hash = `#/exame/${uid}`;
+  };
   // 0.100.2: cada coluna ordena a lista (clicar no título: crescente; de novo: decrescente), e a escolha fica lembrada
   const COLUNAS: { nome: string; valor: (r: API.DicomJson) => string | number; num?: boolean }[] = [
     { nome: "Data", valor: (r) => `${API.texto(r, "00080020")}${API.texto(r, "00080030")}` },
@@ -201,10 +223,13 @@ async function telaLista(): Promise<void> {
         el("td", {}, API.texto(r, "00100020")), el("td", {}, API.texto(r, "00081030")),
         el("td", {}, ((r["00080061"]?.Value as string[]) || []).join(", ")),
         el("td", { class: "num" }, API.texto(r, "00201208")));
-      tr_.ondblclick = () => { location.hash = `#/exame/${uid}`; };
-      tr_.onkeydown = (e) => { if ((e as KeyboardEvent).key === "Enter") location.hash = `#/exame/${uid}`; };
+      tr_.ondblclick = () => abrir(uid);
+      tr_.onkeydown = (e) => { if ((e as KeyboardEvent).key === "Enter") abrir(uid); };
+      if (antes?.ultimo === uid) tr_.classList.add("ultimo");      // o exame que estava aberto
       corpo.append(tr_);
     }
+    const ult = corpo.querySelector<HTMLElement>("tr.ultimo");
+    if (ult) { ult.scrollIntoView({ block: "center" }); ult.focus({ preventScroll: true }); }
   };
   const procurar = async () => {
     estado.textContent = tr("Carregando…");
@@ -216,12 +241,13 @@ async function telaLista(): Promise<void> {
     if (d1 || d2) q.set("StudyDate", `${d1}-${d2}`);
     if (mod.value) q.set("ModalitiesInStudy", mod.value);
     q.set("limit", "300");
+    gravarBusca({ texto: busca.value, de: de.value, ate: ate.value, mod: mod.value, ultimo: lerBusca()?.ultimo });
     linhas = await API.qido(`/studies?${q}`);
     estado.textContent = linhas.length ? "" : tr("Nenhum exame encontrado.");
     desenhar();
   };
   form.onsubmit = (e) => { e.preventDefault(); void procurar(); };
-  busca.focus();
+  if (!antes?.ultimo) busca.focus();
   await procurar();
 }
 
@@ -592,7 +618,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     await g.mostrar(i, s);
     atualizarAba();
   };
-  for (const s of series) {
+  const itemSerie = (s: API.DicomJson) => {
     const uid = API.texto(s, "0020000E");
     const img = el("img", { alt: "" }) as HTMLImageElement;
     void API.miniatura(study, uid).then((u) => { if (u) img.src = u; });
@@ -610,7 +636,25 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     barras.set(uid, { item, barra, texto });
     d.estimar(uid, Number(API.texto(s, "00201209") || 0));
     listaSeries.append(item);
-  }
+  };
+  for (const s of series) itemSerie(s);
+  /** 0.100.15: as séries que a IA gravou entram na mesma sessão (sem fechar e abrir o exame): as imagens na tira
+   *  e as SEG no menu de segmentação. Devolve as SEG novas. */
+  const novasSeries = async (): Promise<API.DicomJson[]> => {
+    const agora = await API.qido(`/studies/${study}/series`).catch(() => [] as API.DicomJson[]);
+    const conhecidas = new Set(todas.map((x) => API.texto(x, "0020000E")));
+    const novas = agora.filter((x) => !conhecidas.has(API.texto(x, "0020000E")));
+    todas.push(...novas);
+    const segsNovas = novas.filter((x) => API.texto(x, "00080060") === "SEG");
+    segs.push(...segsNovas);
+    if (segs.length) bSeg.disabled = false;
+    for (const x of novas.filter((y) => !NAO_MOSTRA.has(API.texto(y, "00080060")))
+      .sort((a, b) => Number(API.texto(a, "00200011") || 0) - Number(API.texto(b, "00200011") || 0))) {
+      series.push(x);
+      itemSerie(x);
+    }
+    return segsNovas;
+  };
   // 0.100.14: o selo "IA" nas séries com resultado de IA ou analisadas por uma (como no Ipê)
   const marcarIA = () => void API.seriesIA(study).then((m) => {
     for (const [uid, info] of Object.entries(m)) {
@@ -728,14 +772,16 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     bTarefasIA.textContent = ativas ? `${tr("IA")} (${ativas} ${tr("andando")})` : tr("IA");
     bTarefasIA.classList.toggle("andando", ativas > 0);
   };
-  listaIA.aoTerminar = (t) => {
-    // o exame ganhou séries (SEG, tabelas): recarregar mostra na lista e no overlay
-    const recarregar = el("button", { type: "button", class: "link" }, tr("Recarregar o exame")) as HTMLButtonElement;
-    recarregar.onclick = () => void telaExame(study);
-    aviso.replaceChildren(`${tr(t.ferramenta)}: ${tr("pronto")}${t.mensagem ? ` — ${t.mensagem}` : ""}. `, recarregar);
-    // 0.100.14: os nomes (coluna, linfonodos) e o selo já aparecem; recarregar traz as séries novas
+  listaIA.aoTerminar = async (t) => {
+    // 0.100.15: tudo aparece na mesma sessão — as séries novas na tira, a SEG no menu (e já mostrada, se nenhuma
+    // estava), os nomes da coluna e dos linfonodos no overlay e o selo IA
+    const segsNovas = await novasSeries();
     void ov.carregar();
     marcarIA();
+    const pintar = segsNovas.find((x) => !/Níveis /.test(API.texto(x, "0008103E")));   // a coluna e os linfonodos são nomes
+    if (pintar && !segEscolhida) await escolherSeg(API.texto(pintar, "0020000E"));
+    if (abaAtual !== "Medidas") atualizarAba();
+    aviso.replaceChildren(`${tr(t.ferramenta)}: ${tr("pronto")}${t.mensagem ? ` — ${t.mensagem}` : ""}. ${tr("O resultado já está neste exame.")}`);
   };
   if (podeIA) void listaIA.atualizar();
   const abrirAbaIA = () => {

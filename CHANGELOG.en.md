@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.15 — Browser: Close, the search comes back, AI in the same session
+- With a study open, the top-corner button is **Close**; on the list it is still **Sign out**.
+- **The search comes back**: closing the study returns to the list with the search and filters you had, with the
+  study you had open highlighted.
+- **AI in the same session**: when an AI task finishes, the new series join the strip and the SEG joins the menu (and
+  is shown if none was chosen), without closing and reopening the study.
+
 ## 0.100.14 — AI visible in the browser; AI badge on thumbnails
 - **Browser:** the **spine levels** and **lymph node levels** requested from the AI tab did not show (the overlay said
   "No CAD/AI in this study"). The names now appear on any series and plane, MPR included, as in Ipê, as soon as the

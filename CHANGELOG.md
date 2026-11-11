@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.15 — Navegador: Fechar, a busca volta, IA na mesma sessão
+- Com o exame aberto, o botão do canto de cima é **Fechar** (em inglês, *Close*; em espanhol, *Cerrar*); na lista
+  continua **Sair**.
+- **A busca volta**: fechar o exame volta à lista com a busca e os filtros que estavam, com o exame aberto marcado.
+- **IA na mesma sessão**: ao terminar uma tarefa de IA, as séries novas entram na tira, a SEG entra no menu (e já
+  aparece, se nenhuma estava escolhida), sem fechar e abrir o exame.
+
 ## 0.100.14 — IA visível no navegador; selo IA nas miniaturas
 - **Navegador:** os **níveis da coluna** e os **níveis linfonodais** pedidos pela aba IA não apareciam (o overlay
   dizia "Sem CAD/IA neste exame"). Agora os nomes aparecem em qualquer série e plano, inclusive no MPR, como no Ipê,

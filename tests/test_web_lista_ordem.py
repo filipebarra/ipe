@@ -88,3 +88,46 @@ def test_ordenar_colunas(servidor_lista):
         assert _esperar(lambda: _pacientes(pg) == ["BRUNO", "CARLA", "ANA"])
         b.close()
     assert not erros, erros
+
+
+@pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_dist) não foi construído")
+def test_busca_volta_ao_fechar_o_exame(servidor_lista):
+    """0.100.15: fazer uma busca, abrir um exame e fechá-lo volta à mesma busca (não à lista inteira), com o exame
+    que estava aberto marcado; sair do Ipê Web esquece a busca."""
+    pw = pytest.importorskip("playwright.sync_api")
+    erros = []
+    with pw.sync_playwright() as p:
+        b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
+        pg = b.new_page(viewport={"width": 1300, "height": 850})
+        pg.on("pageerror", lambda e: erros.append(str(e)))
+        pg.goto(f"http://127.0.0.1:{servidor_lista.port}/web/")
+        pg.fill("#usuario", "admin")
+        pg.fill("#senha", "admin123")
+        pg.click("button[type=submit]")
+        pg.wait_for_selector("table.lista tbody tr")
+        assert pg.locator("table.lista tbody tr").count() == 3
+        pg.fill("#busca", "ANA")
+        pg.click("form.filtros button[type=submit]")
+        assert _esperar(lambda: _pacientes(pg) == ["ANA"])
+        pg.locator("table.lista tbody tr").first.dblclick()
+        pg.wait_for_selector(".quadro canvas")
+        assert pg.inner_text("header button.sair") == "Fechar"
+        pg.click("header button.sair")
+        pg.wait_for_selector("table.lista tbody tr")
+        assert _esperar(lambda: _pacientes(pg) == ["ANA"])
+        assert pg.input_value("#busca") == "ANA"
+        assert pg.locator("table.lista tbody tr.ultimo").count() == 1
+        # o botão "voltar" da barra também
+        pg.locator("table.lista tbody tr").first.dblclick()
+        pg.wait_for_selector(".quadro canvas")
+        pg.click("nav.barra button[aria-label='Voltar à lista']")
+        assert _esperar(lambda: _pacientes(pg) == ["ANA"])
+        # sair do Ipê Web e entrar de novo: a lista inteira
+        pg.click("header button.sair")
+        pg.wait_for_selector("#usuario")
+        pg.fill("#usuario", "admin")
+        pg.fill("#senha", "admin123")
+        pg.click("button[type=submit]")
+        assert _esperar(lambda: len(_pacientes(pg)) == 3)
+        b.close()
+    assert not erros, erros

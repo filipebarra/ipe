@@ -383,3 +383,6 @@ aside.laudo textarea.cabecalho-laudo { min-height: 36px; resize: vertical; }
 .painel-filme .nota { font-size: 12px; min-height: 1em; }
 .painel-filme select { max-width: 100%; }
 iframe.imprimir-filme { position: fixed; right: 0; bottom: 0; width: 1px; height: 1px; border: 0; opacity: 0; }
+
+/* 0.100.15: o exame que estava aberto, ao voltar à lista */
+table.lista tr.ultimo td { background: rgba(227, 179, 65, 0.16); }

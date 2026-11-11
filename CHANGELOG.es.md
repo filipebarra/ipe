@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.15 — Navegador: Cerrar, la búsqueda vuelve, IA en la misma sesión
+- Con el estudio abierto, el botón de la esquina superior es **Cerrar**; en la lista sigue siendo **Salir**.
+- **La búsqueda vuelve**: cerrar el estudio vuelve a la lista con la búsqueda y los filtros que había, con el estudio
+  abierto marcado.
+- **IA en la misma sesión**: al terminar una tarea de IA, las series nuevas entran en la tira y la SEG en el menú (y
+  se muestra si no había ninguna elegida), sin cerrar y abrir el estudio.
+
 ## 0.100.14 — IA visible en el navegador; sello IA en las miniaturas
 - **Navegador:** los **niveles de la columna** y los **niveles ganglionares** pedidos desde la pestaña IA no
   aparecían (el overlay decía "Sin CAD/IA en este estudio"). Ahora los nombres aparecen en cualquier serie y plano,

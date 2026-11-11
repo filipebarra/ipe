@@ -176,7 +176,8 @@ def test_pelo_navegador(servidor):
             linha.locator("button").click()
             # a tarefa aparece na própria aba, com o andamento, até ficar pronta
             assert _esperar(srv, lambda: pg.locator(".aba-ia .tarefas-ia .tarefa").count() == 1, 20)
-            assert _esperar(srv, lambda: "Recarregar o exame" in pg.inner_text(".area"), 60), pg.inner_text(".area")
+            series_antes = pg.locator(".tira .serie").count()
+            assert _esperar(srv, lambda: "O resultado já está neste exame." in pg.inner_text(".area"), 60), pg.inner_text(".area")
             assert _esperar(srv, lambda: pg.locator(".aba-ia .tarefas-ia .tarefa.pronto").count() == 1, 15)
             assert "Órgãos abdominais" in pg.inner_text(".aba-ia .tarefas-ia")
             # depois de feita, a ferramenta vira "Refazer"
@@ -185,8 +186,12 @@ def test_pelo_navegador(servidor):
             pg.click(".lateral .abas button[data-aba='Medidas']")
             pg.click(".rodape button:has-text('IA')")
             assert _esperar(srv, lambda: pg.locator(".aba-ia .tarefas-ia .tarefa.pronto").count() == 1, 10)
-            pg.click(".area button:has-text('Recarregar o exame')")
-            assert _esperar(srv, lambda: pg.locator(".tira .serie").count() >= 1, 20)
+            # 0.100.15: na mesma sessão — a SEG no menu (e já mostrada) e o selo IA, sem fechar e abrir o exame
+            assert not pg.locator("nav.barra button[aria-label='Segmentação (SEG)']").is_disabled()
+            assert _esperar(srv, lambda: pg.locator(".tira .serie .selo-ia").count() >= 1, 15)
+            assert pg.locator(".tira .serie").count() >= series_antes
+            assert _esperar(srv, lambda: "Órgãos abdominais" in pg.inner_text(".area") or
+                            pg.evaluate("() => [...document.querySelectorAll('canvas.camada-ov')].some(c => Number(c.dataset.desenhados) > 0)"), 20)
             pg.close()
         b.close()
     assert not erros, erros

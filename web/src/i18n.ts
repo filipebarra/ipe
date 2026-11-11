@@ -596,6 +596,8 @@ const T: Trad = {
   "Resultado de IA": ["AI result", "Resultado de IA"],
   "IA nesta série": ["AI on this series", "IA en esta serie"],
   "Coluna": ["Spine", "Columna"],
+  "Fechar": ["Close", "Cerrar"],
+  "O resultado já está neste exame.": ["The result is already in this study.", "El resultado ya está en este estudio."],
   "Apagar medida": ["Delete measurement", "Borrar medida"],
   "Apaga a medida selecionada (clique nela antes)": ["Deletes the selected measurement (click it first)", "Borra la medida seleccionada (haga clic en ella antes)"],
   "Clique numa medida para selecioná-la antes de apagar.": ["Click a measurement to select it before deleting.", "Haga clic en una medida para seleccionarla antes de borrar."],

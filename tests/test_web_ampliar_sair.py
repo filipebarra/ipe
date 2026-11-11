@@ -58,11 +58,13 @@ def test_duplo_clique_sair_e_fechar(servidor):
             pg.goto("about:blank", timeout=3000)
         assert dialogos == ["beforeunload"] and pg.url == url
         assert pg.locator(".quadro canvas").count() >= 1
-        # "Sair" com o exame aberto: volta à lista, sem sair do Ipê Web
+        # "Fechar" (0.100.15; antes "Sair") com o exame aberto: volta à lista, sem sair do Ipê Web
+        assert pg.inner_text("header button.sair") == "Fechar"
         pg.click("header button.sair")
         pg.wait_for_selector("table.lista tbody tr")
         assert pg.evaluate("() => location.hash") == "#/lista"
         # na lista, sair da página não pede nada, e "Sair" sai do Ipê Web
+        assert pg.inner_text("header button.sair") == "Sair"
         pg.click("header button.sair")
         pg.wait_for_selector("#usuario")
         b.close()

@@ -146,6 +146,9 @@ def test_login_lista_exame_e_quadros(servidor):
         # voltar, abrir a mamografia em JPEG-LS (sigmoide): não pode ficar branca
         icone(pg, 'Voltar à lista')
         pg.wait_for_selector("table.lista tbody tr")
+        # 0.100.15: a busca anterior (modalidade CT) volta com a lista; a mamografia pede todas
+        assert pg.input_value("select[title=Modalidade]") == "CT"
+        pg.select_option("select[title=Modalidade]", "")
         pg.fill("#busca", "JLS")
         pg.click("button:has-text('Buscar')")
         assert _esperar(lambda: pg.locator("table.lista tbody tr").count() == 1)
