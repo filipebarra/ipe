@@ -14,6 +14,7 @@ PERMISSIONS: dict[str, str] = {
     "delete": "Apagar exames",
     "case_lists": "Listas de casos e modo reunião",
     "print": "Filmes e impressão",
+    "ai": "Pedir CAD/IA à mão (pelo navegador)",
     "report": "Escrever laudos (rascunho) e editar modelos",
     "sign_report": "Assinar (liberar) laudos",
     "configure": "Configurar rede, automação e preferências do computador",

@@ -344,3 +344,21 @@ aside.laudo textarea.cabecalho-laudo { min-height: 36px; resize: vertical; }
 .envios .envio.done .envio-estado { color: #6c6; }
 .envios progress { width: 100%; height: 6px; }
 .rodape .link.andando { font-weight: 600; }
+
+/* 0.100.10: CAD/IA pelo navegador */
+.painel-ia { display: flex; flex-direction: column; gap: 8px; min-width: 380px; max-width: 520px; max-height: 70vh; overflow: auto; padding: 4px; }
+.painel-ia .lista-ia { display: flex; flex-direction: column; gap: 6px; }
+.painel-ia .ferramenta-ia { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; padding: 6px; border: 1px solid var(--borda, #444); border-radius: 6px; }
+.painel-ia .ferramenta-ia .ferramenta-titulo { font-weight: 600; grid-column: 1 / 2; }
+.painel-ia .ferramenta-ia select { grid-column: 1 / 2; max-width: 100%; font-size: 12px; }
+.painel-ia .ferramenta-ia small { grid-column: 1 / 2; opacity: 0.8; }
+.painel-ia .ferramenta-ia button { grid-column: 2 / 3; grid-row: 1 / span 3; }
+.painel-ia .ferramenta-ia.sem-serie { opacity: 0.6; }
+.painel-ia .aviso { color: #e6a23c; font-size: 12px; }
+.tarefas-ia { display: flex; flex-direction: column; gap: 8px; min-width: 320px; max-width: 460px; max-height: 60vh; overflow: auto; padding: 4px; }
+.tarefas-ia .tarefa { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.tarefas-ia .tarefa-titulo { font-weight: 600; }
+.tarefas-ia .tarefa.erro .tarefa-estado { color: #e66; }
+.tarefas-ia .tarefa.pronto .tarefa-estado { color: #6c6; }
+.tarefas-ia .tarefa-origem, .tarefas-ia .tarefa-msg { opacity: 0.8; }
+.tarefas-ia progress { width: 100%; height: 6px; }

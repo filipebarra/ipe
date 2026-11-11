@@ -2921,6 +2921,7 @@ class MainWindow(QMainWindow):
                 srv.on_import = lambda _s: self._refresh_timer.start()
                 srv.settings = self.settings
                 srv.net = self.net        # 0.100.9: o navegador envia ao PACS pela fila deste computador
+                srv.auto = self.auto      # 0.100.10: e pede CAD/IA pela fila de IA deste computador
                 srv.start()
                 self.central = srv
             except OSError as e:

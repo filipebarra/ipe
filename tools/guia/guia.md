@@ -1107,6 +1107,13 @@ Nesta primeira fase:
 - **Junto: as medidas (GSPS) e as imagens-chave (KO)**: o que se mediu no exame vira um GSPS e as imagens-chave um KO, gravados no exame e mandados no mesmo envio.
 - O envio entra na **fila de envios do servidor**, a mesma do Ipê. **Envios**, no rodapé, mostra os que você pediu, com o andamento (enviadas/total), o resultado e **Cancelar** enquanto anda. Cada envio fica no registro de acesso, com o seu nome.
 
+**CAD/IA no navegador (0.100.10).** O botão **CAD/IA neste exame** (o chip, ao lado do Enviar) só aparece para quem tem a permissão **Pedir CAD/IA à mão** (de fábrica: administrador e médico; o administrador ajusta em **Usuários ▸ Perfis e permissões**).
+
+- O painel lista as ferramentas de IA do Ipê (órgãos abdominais, coluna, nódulos, composição corporal, enfisema, autoPET, cálcio…). Para cada uma, mostra a **série sugerida** (a mesma que o automático escolheria) ou por que ela não serve para o exame. Dá para trocar pela **série do quadro ativo**. **Rodar** (ou **Refazer**, se o exame já tem o resultado) põe a ferramenta na fila.
+- A IA roda **no servidor**, na mesma fila do automático da chegada, uma por vez. Por isso, o pacote de segmentação tem de estar instalado no computador do servidor. A janela *Tarefas de IA* do Ipê mostra as mesmas tarefas.
+- **IA**, no rodapé, mostra as tarefas do exame (as pedidas e as automáticas): o estado (na fila, montando o volume, rodando, gravando, pronto), a etapa e o tempo. **Cancelar** aparece nas que você pediu (quem configura cancela qualquer uma).
+- Quando a tarefa termina, um aviso na área das imagens oferece **Recarregar o exame**: as séries novas (SEG, tabelas) entram na lista e no overlay.
+
 **Laudo no navegador (0.99.98).**
 
 - **Laudo** (barra) abre o laudo ao lado das imagens, no mesmo registro de laudo do Ipê: o que se escreve num aparece no outro.

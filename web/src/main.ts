@@ -19,6 +19,7 @@ import { ModoMamografia, pedirToken } from "./mamografia";
 import { ModoDinamica, dinamicaDoExame, guardarTabelas } from "./dinamica";
 import { PainelLaudo } from "./laudo";
 import { ListaEnvios, painelEnvio } from "./envio";
+import { TarefasIA, painelIA } from "./ia";
 import {
   Grade, TIPO_ARRASTO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
   ARRANJO_PET_PADRAO, type ConteudoPet, type VistaPet,
@@ -33,6 +34,7 @@ let cronometro: Cronometro | null = null;
 let mg: ModoMamografia | null = null;
 let din: ModoDinamica | null = null;
 let painelLaudo: PainelLaudo | null = null;
+let tarefasIA: TarefasIA | null = null;   // 0.100.10
 
 function pararDisponiveis(): void {
   disp?.parar();
@@ -67,6 +69,8 @@ function telaLogin(msg = ""): void {
   din = null;
   void painelLaudo?.fechar();
   painelLaudo = null;
+  tarefasIA?.parar();
+  tarefasIA = null;
   grade?.encerrar();
   grade = null;
   const u = el("input", { id: "usuario", autocomplete: "username", required: true }) as HTMLInputElement;
@@ -234,6 +238,7 @@ const NOMES_FERRAMENTAS: Record<Ferramenta, string> = {
 
 /** Ícones (24×24, traço). */
 const IC: Record<string, string> = {
+  ia: "M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3M6 6h12v12H6zM10 10h4v4h-4z",
   enviar: "M3 11l18-8-8 18-2-8-8-2zM11 13l10-10",
   overlay: "M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5",
   voltar: "M10 6l-6 6 6 6M4 12h16",
@@ -453,6 +458,14 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   const bEnviar = botaoIcone("Enviar a um destino DICOM", IC.enviar);
   if (!podeEnviar) bEnviar.style.display = "none";      // (o estilo do botão de ícone venceria o hidden)
   const listaEnvios = new ListaEnvios();
+  // 0.100.10: CAD/IA pelo navegador (só com a permissão de pedir CAD/IA)
+  const podeIA = !!config?.usuario.perms?.includes("ai");
+  const bIA = botaoIcone("CAD/IA neste exame", IC.ia);
+  if (!podeIA) bIA.style.display = "none";
+  const listaIA = new TarefasIA(study);
+  tarefasIA = listaIA;
+  const bTarefasIA = el("button", { type: "button", class: "link", style: "display: none",
+    title: tr("As tarefas de IA deste exame e o andamento") }, tr("IA")) as HTMLButtonElement;
   const bEnvios = el("button", { type: "button", class: "link", style: "display: none",
     title: tr("Os envios que você pediu e o andamento") }, tr("Envios")) as HTMLButtonElement;
   const bOverlay = botaoIcone("Overlay (CAD/IA, textos, medidas)", IC.overlay, { "aria-pressed": "true" });
@@ -471,7 +484,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     el("div", { class: "grupo" }, bLayout, bMpr, bEspessura, bObliquo, bGirar),
     el("div", { class: "grupo" }, bPet, bDin, bSeg, bCine, bCineMenu),
     el("div", { class: "grupo" }, bInverter, bRestaurar, bOverlay, bOverlayMenu),
-    el("div", { class: "grupo" }, bLaudo, bEnviar));
+    el("div", { class: "grupo" }, bLaudo, bEnviar, bIA));
 
   // ---------------------------------------------------------------- painéis
   const tira = el("aside", { class: "tira", "aria-label": tr("Séries") },
@@ -498,7 +511,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   const lateral = el("aside", { class: "lateral", "aria-label": tr("Painel de ferramentas") }, abas, corpoAba);
   const geral = el("span", { class: "disponiveis", title: tr("Imagens já baixadas e prontas no navegador") });
   const cargaCurta = el("span", { class: "carga-curta" });
-  const rodape = el("footer", { class: "rodape" }, geral, cargaCurta, bCarga, bEnvios, rodapeBotoes,
+  const rodape = el("footer", { class: "rodape" }, geral, cargaCurta, bCarga, bEnvios, bTarefasIA, rodapeBotoes,
     el("span", { class: "tarja-rodape" }, tr("Não destinado a uso diagnóstico")));
   const area = el("div", { class: "area" }, telas, aviso, painelCarga);
   app.replaceChildren(cabecalho(chip, nav), el("main", { class: "telaexame" }, trilhoEsq, tira, area, lateral, trilhoDir), rodape);
@@ -693,6 +706,26 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   bInverter.onclick = () => g.inverter();
   bRestaurar.onclick = () => g.restaurar();
   let relogio = 0;
+  listaIA.aoMudar = (ativas, total) => {
+    bTarefasIA.style.display = total ? "" : "none";
+    bTarefasIA.textContent = ativas ? `${tr("IA")} (${ativas} ${tr("andando")})` : tr("IA");
+    bTarefasIA.classList.toggle("andando", ativas > 0);
+  };
+  listaIA.aoTerminar = (t) => {
+    // o exame ganhou séries (SEG, tabelas): recarregar mostra na lista e no overlay
+    const recarregar = el("button", { type: "button", class: "link" }, tr("Recarregar o exame")) as HTMLButtonElement;
+    recarregar.onclick = () => void telaExame(study);
+    aviso.replaceChildren(`${tr(t.ferramenta)}: ${tr("pronto")}${t.mensagem ? ` — ${t.mensagem}` : ""}. `, recarregar);
+  };
+  if (podeIA) void listaIA.atualizar();
+  bTarefasIA.onclick = () => { void listaIA.atualizar(); abrirPainel(listaIA.raiz, bTarefasIA, tr("Tarefas de IA")); };
+  bIA.onclick = async () => {
+    const q = g.quadros[g.ativo];
+    const real = q?.serie && !q.serie.series.startsWith("ipe") ? q.serie : null;
+    const painel = await painelIA(study, real ? { uid: real.series, rotulo: `${real.numero || "–"} · ${real.modalidade} · ${real.descricao}` } : null,
+      listaIA, () => fecharMenus());
+    abrirPainel(painel, bIA, tr("CAD/IA neste exame"));
+  };
   listaEnvios.aoMudar = (ativos, total) => {
     bEnvios.style.display = total ? "" : "none";
     bEnvios.textContent = ativos ? `${tr("Envios")} (${ativos} ${tr("andando")})` : tr("Envios");

@@ -6377,7 +6377,14 @@
   "exame fora do seu acesso",
   "imagens: diga de qual série (uma)",
   "seu perfil não permite enviar para nós DICOM (send)",
-  "série de outro exame"
+  "série de outro exame",
+  "Pedir CAD/IA à mão (pelo navegador)",
+  "a linha principal do servidor não respondeu",
+  "este servidor não tem a fila de IA ligada",
+  "o pacote de segmentação (IA) não está instalado neste servidor",
+  "seu perfil não permite pedir CAD/IA (ai)",
+  "só quem pediu (ou quem configura) cancela esta tarefa",
+  "tarefa não encontrada"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8075,6 +8082,11 @@
   "O Ipê não foi fechado direito da última vez. Os {} exames que estavam abertos:\n\n{}\n\nReabrir? As medidas e o arranjo voltam como estavam da última vez que foram guardados.",
   "{} (medidas e imagens-chave)",
   "{} ({} imagem(ns))",
-  "{}: {} — pelo navegador"
+  "{}: {} — pelo navegador",
+  "ferramenta desconhecida: {}",
+  "manual · {}",
+  "{} já está na fila ou rodando neste exame",
+  "{} pedida pelo navegador",
+  "{} · {} · {}"
  ]
 }

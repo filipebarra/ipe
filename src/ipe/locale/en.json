@@ -8569,5 +8569,17 @@
  "série de outro exame": "series from another exam",
  "{} (medidas e imagens-chave)": "{} (measurements and key images)",
  "{} ({} imagem(ns))": "{} ({} image(s))",
- "{}: {} — pelo navegador": "{}: {} — from the browser"
+ "{}: {} — pelo navegador": "{}: {} — from the browser",
+ "Pedir CAD/IA à mão (pelo navegador)": "Request CAD/AI manually (from the browser)",
+ "a linha principal do servidor não respondeu": "the server's main thread did not respond",
+ "este servidor não tem a fila de IA ligada": "this server does not have the AI queue on",
+ "o pacote de segmentação (IA) não está instalado neste servidor": "the segmentation (AI) package is not installed on this server",
+ "seu perfil não permite pedir CAD/IA (ai)": "your profile does not allow requesting CAD/AI (ai)",
+ "só quem pediu (ou quem configura) cancela esta tarefa": "only who requested it (or who configures) can cancel this task",
+ "tarefa não encontrada": "task not found",
+ "ferramenta desconhecida: {}": "unknown tool: {}",
+ "manual · {}": "manual · {}",
+ "{} já está na fila ou rodando neste exame": "{} is already queued or running in this exam",
+ "{} pedida pelo navegador": "{} requested from the browser",
+ "{} · {} · {}": "{} · {} · {}"
 }

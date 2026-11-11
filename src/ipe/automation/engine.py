@@ -46,6 +46,7 @@ class AutomationEngine(QObject):
         self._seg_fila: list[tuple] = []               # (exame, "abdome"|"coluna") esperando o TotalSegmentator
         self._seg_tarefas: dict[tuple, int] = {}       # (exame, tipo) -> id em ai/tarefas.REGISTRO (0.99.32)
         self._seg_simular = False                      # testes: o trabalhador devolve rótulos conhecidos
+        self._seg_escolhida: dict[tuple, str] = {}     # 0.100.10: (exame, tipo) -> série pedida à mão
         self._gestao_rodando: set[int] = set()        # regras da gestão automática em curso (0.99.6)
         self._gestao_tentativas: dict[int, int] = {}  # regra -> repetições depois de erro
         self._last_retention = 0.0
@@ -394,7 +395,82 @@ class AutomationEngine(QObject):
         self._seg_proximo()
         return True
 
+    # ------------------------------------------------------------ pedida à mão (0.100.10: pelo navegador)
+    _TITULOS = {"abdome": "Órgãos abdominais", "coluna": "Níveis da coluna", "cefalometria": "Cefalometria do cavum",
+                "neuro": "Índices do crânio", "linfonodos": "Níveis linfonodais"}
+
+    def _ferramenta(self, tipo: str):
+        """(título, escolher_serie, ja_feita) da ferramenta, ou None."""
+        from ipe.ai import cefalometria as CF
+        from ipe.ai import coluna as COL
+        from ipe.ai import ferramentas as FE
+        from ipe.ai import linfonodos as LN
+        from ipe.ai import neuro as NE
+        from ipe.ai import totalseg as TS
+        gen = FE.modulo(tipo)
+        if gen is not None:
+            return gen.TITULO, gen.escolher_serie, gen.ja_feita
+        mapa = {"abdome": (TS.escolher_serie, TS.ja_segmentado), "coluna": (COL.escolher_serie, COL.ja_identificado),
+                "cefalometria": (CF.escolher_serie, CF.ja_feita), "neuro": (NE.escolher_serie, NE.ja_feita),
+                "linfonodos": (LN.escolher_serie, LN.ja_feita)}
+        if tipo not in mapa:
+            return None
+        return (self._TITULOS[tipo], *mapa[tipo])
+
+    def tipos_manuais(self) -> list[str]:
+        from ipe.ai import ferramentas as FE
+        return list(self._TITULOS) + FE.tipos()
+
+    def ferramentas_do_exame(self, study_uid: str) -> list[dict]:
+        """As ferramentas de IA para este exame: a série que cada uma usaria (ou por que não serve), se o exame já
+        tem o resultado e se ela está na fila ou rodando."""
+        from ipe.ai import tarefas as TA
+        ativas = {t.ferramenta for t in TA.REGISTRO.ativas(study_uid)}
+        out = []
+        for tipo in self.tipos_manuais():
+            f = self._ferramenta(tipo)
+            if f is None:
+                continue
+            titulo, escolher, ja = f
+            try:
+                serie, motivo = escolher(self.repo, study_uid, self.settings)
+            except Exception as e:  # noqa: BLE001
+                serie, motivo = None, str(e)
+            try:
+                feita = bool(ja(self.repo, study_uid))
+            except Exception:  # noqa: BLE001
+                feita = False
+            out.append({"tipo": tipo, "titulo": titulo, "serie": serie, "motivo": "" if serie else str(motivo or ""),
+                        "ja_feita": feita, "andando": titulo in ativas})
+        return out
+
+    def pedir(self, study_uid: str, tipo: str, serie: str | None = None, quem: str = "") -> int:
+        """Põe a ferramenta na fila para este exame, pedida à mão (sem olhar o automático nem se já foi feita). Devolve
+        o número da tarefa no registro de tarefas de IA."""
+        from ipe.ai import tarefas as TA
+        from ipe.ai import totalseg as TS
+        f = self._ferramenta(tipo)
+        if f is None:
+            raise KeyError(f"ferramenta desconhecida: {tipo}")
+        if not self._seg_simular and not TS.instalado(self.settings):
+            raise RuntimeError("o pacote de segmentação (IA) não está instalado neste servidor")
+        titulo = f[0]
+        chave = (study_uid, tipo)
+        if chave in self._seg_fila or titulo in {t.ferramenta for t in TA.REGISTRO.ativas(study_uid)}:
+            raise ValueError(f"{titulo} já está na fila ou rodando neste exame")
+        info = self.repo.study_info(study_uid) or {}
+        nome = f"{info.get('patient_name', '')} {info.get('description', '')}".strip()
+        if serie:
+            self._seg_escolhida[chave] = serie
+        self._seg_fila.append(chave)
+        tarefa = TA.REGISTRO.nova(titulo, study_uid, nome, f"manual · {quem}" if quem else "manual",
+                                  cancelar=lambda k=chave: self._tirar_da_fila(k))
+        self._seg_tarefas[chave] = tarefa.id
+        self._seg_proximo()
+        return tarefa.id
+
     def _tirar_da_fila(self, chave) -> None:
+        self._seg_escolhida.pop(chave, None)
         if chave in self._seg_fila:
             self._seg_fila.remove(chave)
         self._seg_tarefas.pop(chave, None)
@@ -433,6 +509,8 @@ class AutomationEngine(QObject):
             "coluna": COL.escolher_serie, "cefalometria": CF.escolher_serie,
             "neuro": NE.escolher_serie, "linfonodos": LN.escolher_serie}.get(tipo, TS.escolher_serie)
         serie, motivo = escolher(self.repo, study_uid, self.settings)
+        if (study_uid, tipo) in self._seg_escolhida:          # 0.100.10: a série pedida à mão
+            serie, motivo = self._seg_escolhida.pop((study_uid, tipo)), ""
         if serie is None:
             TA.REGISTRO.mudar(tid, TA.VAZIO, mensagem=str(motivo or ""))
             self.repo.add_job_run("segmentacao", titulo, "vazio", 0, f"{nome}: {motivo}")

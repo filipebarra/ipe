@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.10 — Visor web: CAD/IA desde el navegador
+- **CAD/IA en este examen** en el navegador: las herramientas de IA de Ipê que sirven para el examen, con la serie
+  sugerida (o la del cuadro), ejecutándose en la cola de IA del servidor. **IA** en el pie muestra las tareas del
+  examen (pedidas y automáticas) con la etapa y el tiempo, y cancela las suyas; al terminar, **Recargar el examen**
+  trae las series nuevas.
+- Permiso nuevo **Pedir CAD/IA a mano** (de fábrica: administrador y médico).
+
 ## 0.100.9 — Visor web: enviar a un destino DICOM
 - **Enviar a un destino DICOM** desde el navegador: el examen, las series marcadas o la imagen del cuadro activo, a
   los nodos del servidor, por la cola de envíos del servidor (la misma de Ipê). Opcionalmente junto con las medidas

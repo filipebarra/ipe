@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.10 — Web viewer: CAD/AI from the browser
+- **CAD/AI in this exam** in the browser: Ipê's AI tools that fit the exam, with the suggested series (or the
+  viewport's), running in the server's AI queue. **AI** in the footer shows the exam's tasks (requested and
+  automatic) with step and time, and cancels yours; when done, **Reload the exam** brings the new series.
+- New permission **Request CAD/AI manually** (by default: administrator and physician).
+
 ## 0.100.9 — Web viewer: send to a DICOM destination
 - **Send to a DICOM destination** from the browser: the exam, the checked series or the active viewport's image, to
   the server's nodes, through the server's send queue (the same as Ipê's). Optionally along with the measurements

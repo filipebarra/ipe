@@ -59,6 +59,9 @@ class CentralServer:
         self.atualizacoes = Atualizacoes(self.storage.parent / "Atualizacoes")   # 0.99.56 (onda B1)
         self.settings = None             # 0.99.91: o visualizador web lê idioma, janelas e protocolos daqui
         self.net = None                  # 0.100.9: a fila de rede (enviar ao PACS pelo navegador)
+        self.auto = None                 # 0.100.10: a fila de IA (CAD/IA pedida pelo navegador)
+        from ipe.central.ponte import Ponte
+        self.ponte = Ponte()             # chamadas que precisam da linha do laço de eventos
 
     # ------------------------------------------------------------------ ciclo de vida
     @property
@@ -544,6 +547,25 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._error(403, str(e))
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
+            return self._json(200, r, raw=True)
+        if path in ("/api/web/ia", "/api/web/ia/pedir", "/api/web/ia/tarefas", "/api/web/ia/cancelar"):
+            from ipe.central import ia_web as IA                             # 0.100.10: CAD/IA pelo navegador
+            try:
+                if method == "GET" and path == "/api/web/ia":
+                    r = IA.ferramentas(c, s, parse_qs(parts.query))
+                elif method == "GET" and path == "/api/web/ia/tarefas":
+                    r = IA.tarefas(c, s, parse_qs(parts.query))
+                elif method == "POST" and path in ("/api/web/ia/pedir", "/api/web/ia/cancelar"):
+                    corpo = json.loads(self._body() or b"{}")
+                    r = (IA.pedir if path.endswith("pedir") else IA.cancelar)(c, s, corpo)
+                else:
+                    return self._error(405, "método")
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            except (RuntimeError, TimeoutError) as e:
+                return self._error(503, str(e))
             return self._json(200, r, raw=True)
         if path in ("/api/web/destinos", "/api/web/enviar", "/api/web/envios", "/api/web/envios/cancelar"):
             from ipe.central import envios_web as EW                       # 0.100.9: enviar ao PACS
