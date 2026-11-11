@@ -6405,7 +6405,9 @@
   "Agora:",
   "séries com IA",
   "· Ipe",
-  "· MedSAM2"
+  "· MedSAM2",
+  "registrar a revisão do achado",
+  "seu perfil não permite revisar achados de IA (report)"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8122,6 +8124,10 @@
   "{} folha(s) enviada(s) para {}{}",
   "{} folha(s) na impressora {}",
   "IA nesta série: {}",
-  "Resultado de IA: {}"
+  "Resultado de IA: {}",
+  "achado não encontrado: {}",
+  "número desconhecido: {}",
+  "{} {}: {} (navegador)",
+  "{}: não é número ({})"
  ]
 }

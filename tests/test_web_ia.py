@@ -157,8 +157,13 @@ def test_pelo_navegador(servidor):
             botao = pg.locator("nav.barra button[aria-label='CAD/IA neste exame']")
             aba = pg.locator(".lateral .abas button[data-aba='IA']")
             assert botao.is_visible() == pode
-            assert aba.is_visible() == pode       # 0.100.12: a aba IA só com a permissão
+            # 0.100.12: a aba IA só com a permissão; 0.100.16: o residente (escreve laudos) vê a aba para revisar
+            # achados, mas sem as ferramentas
+            assert aba.is_visible()
             if not pode:
+                aba.click()
+                pg.wait_for_selector(".aba-ia")
+                assert pg.locator(".aba-ia .ferramenta-ia").count() == 0
                 pg.close()
                 continue
             # a aba lista todas as ferramentas: as que servem para o exame primeiro, as outras com o motivo

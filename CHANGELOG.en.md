@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.16 — Browser: review AI findings
+- **Findings to review** in the browser's AI tab (emphysema, nodules, Genant, calcium, aorta, PET tumour burden, body
+  composition): Go to, Confirm, Correct the numbers, Discard, Back to suggested and **Send to report** (only confirmed
+  and corrected ones). The same list as in Ipê; it needs the permission to write reports.
+- "Go to" and the browser's reference lines find the right slice even while the series is still arriving.
+
 ## 0.100.15 — Browser: Close, the search comes back, AI in the same session
 - With a study open, the top-corner button is **Close**; on the list it is still **Sign out**.
 - **The search comes back**: closing the study returns to the list with the search and filters you had, with the

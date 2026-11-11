@@ -239,6 +239,25 @@ export interface SerieCarregada {
   suvMotivo: string;
 }
 
+/** 0.100.16: o corte da pilha mais perto do ponto, pela posição de cada corte nos metadados da série (o
+ *  getClosestStackImageIndexForPoint do Cornerstone só vê os cortes já carregados — com a série ainda chegando, não
+ *  saía do lugar). */
+function indiceMaisPerto(vp: Types.IStackViewport, p: Types.Point3): number | null {
+  const ids = vp.getImageIds();
+  let melhor = -1, dmin = Infinity;
+  ids.forEach((id, i) => {
+    const m = META.get(id);
+    const ipp = (m?.["00200032"]?.Value as number[] | undefined)?.map(Number);
+    const iop = (m?.["00200037"]?.Value as number[] | undefined)?.map(Number);
+    if (!ipp || !iop || ipp.length !== 3 || iop.length !== 6) return;
+    const n = [iop[1] * iop[5] - iop[2] * iop[4], iop[2] * iop[3] - iop[0] * iop[5], iop[0] * iop[4] - iop[1] * iop[3]];
+    const d = Math.abs((p[0] - ipp[0]) * n[0] + (p[1] - ipp[1]) * n[1] + (p[2] - ipp[2]) * n[2]);
+    if (d < dmin) { dmin = d; melhor = i; }
+  });
+  if (melhor >= 0) return melhor;
+  return csUtils.getClosestStackImageIndexForPoint(p, vp);
+}
+
 function ordem(m: DicomJson): number {
   const ipp = m["00200032"]?.Value as number[] | undefined;
   const iop = m["00200037"]?.Value as number[] | undefined;
@@ -631,7 +650,7 @@ export class Grade {
       if (x.id === exceto || x.tipo !== "pilha") continue;
       const vp = motor?.getViewport(x.id) as Types.IStackViewport | undefined;
       if (!vp?.getCurrentImageId()) continue;
-      const k = csUtils.getClosestStackImageIndexForPoint(ponto, vp);
+      const k = indiceMaisPerto(vp, ponto);
       if (k === null || k === undefined || k < 0 || k === vp.getCurrentImageIdIndex()) continue;
       void vp.setImageIdIndex(k);
     }

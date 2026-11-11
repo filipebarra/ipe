@@ -8616,5 +8616,11 @@
  "· Ipe": "· Ipe",
  "· MedSAM2": "· MedSAM2",
  "IA nesta série: {}": "IA en esta serie: {}",
- "Resultado de IA: {}": "Resultado de IA: {}"
+ "Resultado de IA: {}": "Resultado de IA: {}",
+ "registrar a revisão do achado": "registrar la revisión del hallazgo",
+ "seu perfil não permite revisar achados de IA (report)": "su perfil no permite revisar hallazgos de IA (report)",
+ "achado não encontrado: {}": "hallazgo no encontrado: {}",
+ "número desconhecido: {}": "número desconocido: {}",
+ "{} {}: {} (navegador)": "{} {}: {} (navegador)",
+ "{}: não é número ({})": "{}: no es un número ({})"
 }

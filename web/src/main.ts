@@ -487,6 +487,8 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   const listaEnvios = new ListaEnvios();
   // 0.100.10: CAD/IA pelo navegador (só com a permissão de pedir CAD/IA)
   const podeIA = !!config?.usuario.perms?.includes("ai");
+  // 0.100.16: a aba IA também para quem revisa achados (escreve laudos), mesmo sem pedir IA
+  const abaIAVisivel = podeIA || !!config?.usuario.perms?.includes("report");
   const bIA = botaoIcone("CAD/IA neste exame", IC.ia);
   if (!podeIA) bIA.style.display = "none";
   const listaIA = new TarefasIA(study);
@@ -532,7 +534,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     const b = el("button", { type: "button", role: "tab", "aria-selected": "false", "data-aba": a }, tr(a)) as HTMLButtonElement;
     b.onclick = () => mostrarAba(a);
     if (a === "Filme" && !config?.usuario.perms?.includes("print")) b.style.display = "none";   // 0.100.11
-    if (a === "IA" && !podeIA) b.style.display = "none";                                         // 0.100.12
+    if (a === "IA" && !abaIAVisivel) b.style.display = "none";                                   // 0.100.12
     botoesAba.set(a, b);
     abas.append(b);
   }
@@ -777,13 +779,14 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     // estava), os nomes da coluna e dos linfonodos no overlay e o selo IA
     const segsNovas = await novasSeries();
     void ov.carregar();
+    void abaIA.achados.carregar();          // 0.100.16: achados novos para revisar
     marcarIA();
     const pintar = segsNovas.find((x) => !/Níveis /.test(API.texto(x, "0008103E")));   // a coluna e os linfonodos são nomes
     if (pintar && !segEscolhida) await escolherSeg(API.texto(pintar, "0020000E"));
     if (abaAtual !== "Medidas") atualizarAba();
     aviso.replaceChildren(`${tr(t.ferramenta)}: ${tr("pronto")}${t.mensagem ? ` — ${t.mensagem}` : ""}. ${tr("O resultado já está neste exame.")}`);
   };
-  if (podeIA) void listaIA.atualizar();
+  if (abaIAVisivel) void listaIA.atualizar();
   const abrirAbaIA = () => {
     if (lateral.hidden) ajustarPaineis(!tira.hidden, true);
     mostrarAba("IA");
@@ -838,11 +841,8 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   };
   let segEscolhida = "";
   // 0.99.98 (W6): o laudo no navegador, ao lado das imagens
-  bLaudo.onclick = async () => {
-    if (painelLaudo) {
-      await painelLaudo.fechar();
-      return;
-    }
+  const abrirLaudo = async (): Promise<PainelLaudo> => {
+    if (painelLaudo) return painelLaudo;
     const p = new PainelLaudo(study, () => {
       if (painelLaudo === p) painelLaudo = null;
       bLaudo.setAttribute("aria-pressed", "false");
@@ -857,6 +857,14 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     bLaudo.classList.add("ligado");
     requestAnimationFrame(() => grade?.redimensionar());
     await p.abrir();
+    return p;
+  };
+  bLaudo.onclick = async () => {
+    if (painelLaudo) {
+      await painelLaudo.fechar();
+      return;
+    }
+    await abrirLaudo();
   };
   // 0.99.98 (W5): dinâmica da mama — mapas calculados no navegador e curvas das ROIs
   const fecharDin = () => {
@@ -936,14 +944,33 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   // ---------------------------------------------------------------- abas da direita
   let abaAtual: Aba = lerPreferencia<Aba>("aba", "Medidas");
   if (!ABAS.includes(abaAtual) || (abaAtual === "Filme" && !config?.usuario.perms?.includes("print"))
-    || (abaAtual === "IA" && !podeIA)) abaAtual = "Medidas";
+    || (abaAtual === "IA" && !abaIAVisivel)) abaAtual = "Medidas";
   // 0.100.12: a aba IA — todas as ferramentas de CAD/IA, a escolhida roda para o exame aberto
   const serieDoQuadro = () => {
     const q = g.quadros[g.ativo];
     const real = q?.serie && !q.serie.series.startsWith("ipe") ? q.serie : null;
     return real ? { uid: real.series, rotulo: `${real.numero || "–"} · ${real.modalidade} · ${real.descricao}` } : null;
   };
-  const abaIA = new AbaIA(study, listaIA, serieDoQuadro);
+  const abaIA = new AbaIA(study, listaIA, serieDoQuadro, podeIA);
+  // 0.100.16: revisar os achados de IA — ir até o achado e mandar os revisados ao laudo
+  abaIA.achados.irAte = async (a) => {
+    if (!a.posicao) return;
+    let i = g.quadros.findIndex((q) => q.tipo === "pilha" && q.serie?.series === a.series_uid);
+    if (i < 0 && a.series_uid && barras.has(a.series_uid)) {
+      i = g.ativo;
+      await mostrarNoAtivo(a.series_uid, i);
+    }
+    if (i >= 0) g.ativar(i);
+    const p = a.posicao as [number, number, number];
+    g.irAoPontoNasPilhas(p as unknown as Parameters<typeof g.irAoPontoNasPilhas>[0]);
+    g.irAoPonto(p);
+  };
+  abaIA.achados.mandarAoLaudo = async (texto) => {
+    const p = await abrirLaudo();
+    p.atualizarIa(texto);
+    return p.inserirTexto(texto) ? tr("Os achados revisados foram para o laudo.")
+      : `${tr("Não deu para escrever no laudo")}: ${p.motivoSemEscrever() || tr("abra um laudo em rascunho")}.`;
+  };
   // 0.100.11: o filme (a aba Filme), montado com os quadros e impresso pelo servidor
   let painelFilme: PainelFilme | null = null;
   const filme = () => {

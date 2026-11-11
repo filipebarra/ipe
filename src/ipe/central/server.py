@@ -589,6 +589,20 @@ class _Handler(BaseHTTPRequestHandler):
             except (RuntimeError, TimeoutError) as e:
                 return self._error(503, str(e))
             return self._json(200, r, raw=True)
+        if path in ("/api/web/achados", "/api/web/achados/revisar"):      # 0.100.16: revisar achados de IA
+            from ipe.central import achados_web as AW
+            try:
+                if method == "GET" and path == "/api/web/achados":
+                    r = AW.achados(c, s, parse_qs(parts.query))
+                elif method == "POST" and path == "/api/web/achados/revisar":
+                    r = AW.revisar(c, s, json.loads(self._body() or b"{}"))
+                else:
+                    return self._error(405, "método")
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            return self._json(200, r, raw=True)
         if path in ("/api/web/destinos", "/api/web/enviar", "/api/web/envios", "/api/web/envios/cancelar"):
             from ipe.central import envios_web as EW                       # 0.100.9: enviar ao PACS
             try:

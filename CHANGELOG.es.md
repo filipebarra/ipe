@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.16 — Navegador: revisar los hallazgos de IA
+- **Hallazgos para revisar** en la pestaña IA del navegador (enfisema, nódulos, Genant, calcio, aorta, carga tumoral
+  PET, composición corporal): Ir a, Confirmar, Corregir los números, Descartar, Volver a sugerido y **Enviar al
+  informe** (solo los confirmados y corregidos). La misma lista del Ipê; requiere el permiso de escribir informes.
+- "Ir a" y las líneas de referencia del navegador encuentran el corte correcto aunque la serie siga llegando.
+
 ## 0.100.15 — Navegador: Cerrar, la búsqueda vuelve, IA en la misma sesión
 - Con el estudio abierto, el botón de la esquina superior es **Cerrar**; en la lista sigue siendo **Salir**.
 - **La búsqueda vuelve**: cerrar el estudio vuelve a la lista con la búsqueda y los filtros que había, con el estudio

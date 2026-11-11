@@ -307,8 +307,20 @@ export class PainelLaudo {
 
   /** Os achados de IA revisados entram no cursor (ou no fim). */
   inserirIa(): void {
-    const ia = this.dados?.ia;
-    if (!ia || !this.podeEscrever()) return;
+    if (this.dados?.ia) this.inserirTexto(this.dados.ia);
+  }
+
+  /** 0.100.16: o texto dos achados revisados mudou (revisão na aba IA): o botão "Inserir achados de IA" usa o novo. */
+  atualizarIa(ia: string): void {
+    if (!this.dados) return;
+    this.dados.ia = ia;
+    this.bIa.disabled = !this.podeEscrever() || !ia;
+    this.bIa.title = ia || tr("Nenhum achado de IA confirmado ou corrigido neste exame.");
+  }
+
+  /** 0.100.16: um texto entra no cursor (ou no fim). Falso se o laudo não pode ser escrito. */
+  inserirTexto(ia: string): boolean {
+    if (!ia || !this.podeEscrever()) return false;
     const t = this.texto;
     const i = t.selectionStart ?? t.value.length;
     const antes = t.value.slice(0, i);
@@ -316,6 +328,12 @@ export class PainelLaudo {
     t.value = antes + bloco + t.value.slice(t.selectionEnd ?? i);
     t.selectionStart = t.selectionEnd = i + bloco.length;
     this.mudou();
+    return true;
+  }
+
+  /** por que não dá para escrever (para o aviso de quem mandou o texto) */
+  motivoSemEscrever(): string {
+    return this.soLeitura || (this.atual && this.atual.status !== "draft" ? tr("O laudo já foi assinado.") : "");
   }
 
   /** Grava o rascunho (o mesmo registro de laudo do Ipê). */

@@ -8616,5 +8616,11 @@
  "· Ipe": "· Ipe",
  "· MedSAM2": "· MedSAM2",
  "IA nesta série: {}": "AI on this series: {}",
- "Resultado de IA: {}": "AI result: {}"
+ "Resultado de IA: {}": "AI result: {}",
+ "registrar a revisão do achado": "log the finding review",
+ "seu perfil não permite revisar achados de IA (report)": "your profile cannot review AI findings (report)",
+ "achado não encontrado: {}": "finding not found: {}",
+ "número desconhecido: {}": "unknown number: {}",
+ "{} {}: {} (navegador)": "{} {}: {} (browser)",
+ "{}: não é número ({})": "{}: not a number ({})"
 }

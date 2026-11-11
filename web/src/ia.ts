@@ -121,23 +121,30 @@ export class AbaIA {
   private quadroVisto = "";
   private carregando: Promise<void> | null = null;
 
+  /** 0.100.16: os achados para revisar (enfisema, nódulos, Genant…) */
+  achados: AchadosIA;
+
   constructor(private study: string, private tarefas: TarefasIA,
-    private serieAtual: () => { uid: string; rotulo: string } | null) {
+    private serieAtual: () => { uid: string; rotulo: string } | null, private podePedir = true) {
+    this.achados = new AchadosIA(study);
     this.aviso.hidden = true;
     const bAtualizar = el("button", { type: "button", class: "link", title: tr("Ler de novo as ferramentas e as tarefas") }, tr("Atualizar"));
-    bAtualizar.onclick = () => { void this.carregar(); void this.tarefas.atualizar(); };
+    bAtualizar.onclick = () => { void this.carregar(); void this.tarefas.atualizar(); void this.achados.carregar(); };
     this.raiz.append(
       el("div", { class: "titulo-painel com-botao" }, el("span", {}, tr("CAD/IA neste exame")), bAtualizar),
       el("div", { class: "dica" }, tr("Escolha a ferramenta e a série e clique em Rodar. A IA roda no servidor, uma por vez; o andamento aparece logo abaixo.")),
       this.aviso, this.nota,
       // o andamento em cima (a lista de ferramentas é comprida)
       el("div", { class: "titulo-painel" }, tr("Tarefas deste exame")), this.tarefas.raiz,
-      el("div", { class: "titulo-painel" }, tr("Ferramentas")), this.lista);
+      this.achados.raiz,
+      ...(podePedir ? [el("div", { class: "titulo-painel" }, tr("Ferramentas")), this.lista] : []));
+    if (!podePedir) (this.raiz.querySelector(".dica") as HTMLElement).hidden = true;
   }
 
   /** a aba apareceu ou o quadro mudou: lê as ferramentas na primeira vez; depois só troca a série do quadro */
   mostrar(): void {
-    if (!this.dados) { void this.carregar(); return; }
+    if (!this.dados) { if (this.podePedir) void this.carregar(); else this.dados = { ferramentas: [], instalado: true };
+      void this.achados.carregar(); return; }
     const q = this.serieAtual()?.uid || "";
     if (q !== this.quadroVisto) this.desenhar();
   }
@@ -207,5 +214,150 @@ export class AbaIA {
       el("div", { class: "ferramenta-titulo" }, tr(f.titulo)),
       ...(sSerie.options.length ? [sSerie] : []),
       ...(info ? [el("small", {}, info)] : []), b);
+  }
+}
+
+// ---------------------------------------------------------------------------- 0.100.16: revisar os achados
+export interface CampoAchado {
+  chave: string; nome: string; unidade: string; valor: number | string | null; original: number | string | null;
+  numero: boolean; corrigido: boolean;
+}
+
+export interface AchadoIA {
+  id: number; ferramenta: string; titulo: string; rotulo: string; tipo: string; local: string; estado: string;
+  cor: string; medidas: string; numeros: string; campos: CampoAchado[]; nota: string; revisao: string;
+  resultado: string; elegibilidade: string; modelo: string; posicao: number[] | null; series_uid: string;
+}
+
+const ESTADOS: Record<string, string> = { sugerido: "Sugerido", confirmado: "Confirmado", corrigido: "Corrigido", descartado: "Descartado" };
+
+function numeroBr(v: number | string | null): string {
+  if (v === null || v === undefined) return "";
+  return typeof v === "number" ? String(Math.round(v * 100) / 100).replace(".", ",") : String(v);
+}
+
+/** Os achados de IA do exame para revisar — como o painel "Achados de IA" do Ipê: Ir até, Confirmar, Corrigir,
+ *  Descartar, Voltar a sugerido e Mandar ao laudo (só os confirmados e corrigidos vão). */
+export class AchadosIA {
+  raiz = el("div", { class: "achados-ia" });
+  private lista = el("div", { class: "lista-achados" });
+  private resumo = el("div", { class: "dica" });
+  private nota = el("div", { class: "nota" });
+  private bLaudo = el("button", { type: "button", class: "primario" }, tr("Mandar ao laudo"));
+  private dados: { achados: AchadoIA[]; contagem: Record<string, number>; texto_laudo: string; pode_revisar: boolean } | null = null;
+  private aberto = 0;              // o achado com o formulário de correção aberto
+  /** levar os quadros até o achado */
+  irAte: (a: AchadoIA) => void | Promise<void> = () => {};
+  /** pôr o texto no laudo (abre o laudo, se preciso); devolve a mensagem para mostrar */
+  mandarAoLaudo: (texto: string) => Promise<string> = async () => "";
+
+  constructor(private study: string) {
+    this.bLaudo.title = tr("Só os achados confirmados ou corrigidos vão ao laudo");
+    this.bLaudo.onclick = async () => {
+      const t = this.dados?.texto_laudo || "";
+      if (!t) {
+        this.nota.textContent = tr("Nenhum achado confirmado ou corrigido: nada vai ao laudo sem revisão.");
+        return;
+      }
+      this.nota.textContent = await this.mandarAoLaudo(t);
+    };
+    this.raiz.append(el("div", { class: "titulo-painel" }, tr("Achados para revisar")), this.resumo, this.lista,
+      el("div", { class: "acoes-achados" }, this.bLaudo), this.nota);
+    this.raiz.hidden = true;
+  }
+
+  async carregar(): Promise<void> {
+    try {
+      this.dados = (await pedirJson(`/api/web/achados?study=${encodeURIComponent(this.study)}`)) as typeof this.dados;
+    } catch {
+      return;                      // sem rede agora: fica o que estava
+    }
+    this.desenhar();
+  }
+
+  private desenhar(): void {
+    const d = this.dados;
+    this.raiz.hidden = !d || !d.achados.length;
+    if (!d || !d.achados.length) return;
+    const c = d.contagem;
+    this.resumo.textContent = `${d.achados.length} ${tr("achado(s)")}: ${c.sugerido || 0} ${tr("sugerido(s)")}, ${c.confirmado || 0} `
+      + `${tr("confirmado(s)")}, ${c.corrigido || 0} ${tr("corrigido(s)")}, ${c.descartado || 0} ${tr("descartado(s)")}`;
+    this.bLaudo.disabled = !d.texto_laudo;
+    this.lista.replaceChildren(...d.achados.map((a) => this.linha(a, d.pode_revisar)));
+  }
+
+  private linha(a: AchadoIA, pode: boolean): HTMLElement {
+    const nome = [a.rotulo, tr(a.tipo)].filter(Boolean).join(" ");
+    const linha = el("div", { class: `achado ${a.estado}`, "data-id": String(a.id) },
+      el("div", { class: "achado-titulo" }, el("span", {}, nome || tr(a.titulo)),
+        el("em", { style: `color: ${a.cor}` }, tr(ESTADOS[a.estado] || a.estado))),
+      el("div", { class: "achado-ferramenta" }, tr(a.titulo)),
+      ...(a.local ? [el("div", { class: "achado-local" }, tr(a.local))] : []),
+      ...(a.resultado ? [el("div", { class: "achado-resultado" }, `${tr("Resultado")}: ${tr(a.resultado)}`)] : []),
+      ...(a.numeros ? [el("div", { class: "achado-numeros" }, a.numeros)] : []),
+      el("div", { class: "achado-revisao" }, tr(a.revisao)));
+    const botoes = el("div", { class: "botoes-achado" });
+    const botao = (rotulo: string, f: () => void, dica = "") => {
+      const b = el("button", { type: "button", class: "link", ...(dica ? { title: dica } : {}) }, tr(rotulo));
+      b.onclick = f;
+      botoes.append(b);
+      return b;
+    };
+    if (a.posicao) botao("Ir até", () => void this.irAte(a), tr("Leva os quadros até o achado"));
+    if (pode) {
+      if (a.estado !== "confirmado") botao("Confirmar", () => void this.marcar(a, "confirmado"));
+      if (a.campos.length) botao("Corrigir…", () => { this.aberto = this.aberto === a.id ? 0 : a.id; this.desenhar(); });
+      if (a.estado !== "descartado") botao("Descartar", () => void this.marcar(a, "descartado"));
+      if (a.estado !== "sugerido") botao("Voltar a sugerido", () => void this.marcar(a, "sugerido"));
+    }
+    linha.append(botoes);
+    if (pode && this.aberto === a.id) linha.append(this.formulario(a));
+    return linha;
+  }
+
+  private formulario(a: AchadoIA): HTMLElement {
+    const f = el("form", { class: "corrigir-achado" });
+    const entradas = new Map<string, HTMLInputElement>();
+    for (const c of a.campos) {
+      const e = el("input", { type: "text", name: c.chave, value: numeroBr(c.valor),
+        inputmode: c.numero ? "decimal" : "text", "aria-label": tr(c.nome) }) as HTMLInputElement;
+      entradas.set(c.chave, e);
+      f.append(el("label", {}, el("span", {}, `${tr(c.nome)}${c.unidade ? ` (${c.unidade})` : ""}`), e,
+        ...(c.corrigido ? [el("small", {}, `${tr("IA")}: ${numeroBr(c.original)}`)] : [])));
+    }
+    const nota = el("input", { type: "text", name: "nota", value: a.nota, "aria-label": tr("Observação") }) as HTMLInputElement;
+    f.append(el("label", {}, el("span", {}, tr("Observação")), nota));
+    const cancelar = el("button", { type: "button", class: "link" }, tr("Cancelar"));
+    cancelar.onclick = () => { this.aberto = 0; this.desenhar(); };
+    f.append(el("div", { class: "acoes" }, el("button", { type: "submit", class: "primario" }, tr("Gravar a correção")), cancelar));
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      const corrigidos: Record<string, string> = {};
+      for (const [k, inp] of entradas) corrigidos[k] = inp.value;
+      try {
+        await pedirJson("/api/web/achados/revisar", { id: a.id, corrigidos, nota: nota.value });
+        this.aberto = 0;
+        this.nota.textContent = "";
+        await this.carregar();
+      } catch (err) {
+        this.nota.textContent = `${tr("Não foi possível gravar")}: ${(err as Error).message}`;
+      }
+    };
+    return f;
+  }
+
+  private async marcar(a: AchadoIA, estado: string): Promise<void> {
+    try {
+      await pedirJson("/api/web/achados/revisar", { id: a.id, estado });
+      this.nota.textContent = "";
+      await this.carregar();
+    } catch (err) {
+      this.nota.textContent = `${tr("Não foi possível gravar")}: ${(err as Error).message}`;
+    }
+  }
+
+  /** o texto que vai ao laudo agora (depois das revisões) */
+  get textoLaudo(): string {
+    return this.dados?.texto_laudo || "";
   }
 }
