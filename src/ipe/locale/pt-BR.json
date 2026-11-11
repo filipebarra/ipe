@@ -6384,7 +6384,22 @@
   "o pacote de segmentação (IA) não está instalado neste servidor",
   "seu perfil não permite pedir CAD/IA (ai)",
   "só quem pediu (ou quem configura) cancela esta tarefa",
-  "tarefa não encontrada"
+  "tarefa não encontrada",
+  "Baixar PDF",
+  "Destinos de impressão do Ipê",
+  "Impressoras do servidor",
+  "Imprimir neste computador (impressoras do navegador)",
+  "Navegador: PDF",
+  "Navegador: impressora local",
+  "Neste computador",
+  "contar a impressão do filme",
+  "destino de impressão desconhecido",
+  "filme do navegador",
+  "folha fora do filme",
+  "imagem de exame fora do seu acesso",
+  "impressoras do sistema",
+  "o filme está vazio",
+  "seu perfil não permite imprimir (print)"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8087,6 +8102,18 @@
   "manual · {}",
   "{} já está na fila ou rodando neste exame",
   "{} pedida pelo navegador",
-  "{} · {} · {}"
+  "{} · {} · {}",
+  "Destino: {}",
+  "Impressora do servidor: {}",
+  "destino de impressão não encontrado: {}",
+  "filme grande demais ({} imagens; até {})",
+  "impressora DICOM não encontrada: {}",
+  "impressora não encontrada neste computador: {}",
+  "o destino {} não tem pasta",
+  "tipo de destino desconhecido: {}",
+  "{} ({}@{})",
+  "{} arquivo(s) em {}",
+  "{} folha(s) enviada(s) para {}{}",
+  "{} folha(s) na impressora {}"
  ]
 }

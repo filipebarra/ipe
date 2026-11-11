@@ -362,3 +362,16 @@ aside.laudo textarea.cabecalho-laudo { min-height: 36px; resize: vertical; }
 .tarefas-ia .tarefa.pronto .tarefa-estado { color: #6c6; }
 .tarefas-ia .tarefa-origem, .tarefas-ia .tarefa-msg { opacity: 0.8; }
 .tarefas-ia progress { width: 100%; height: 6px; }
+
+/* 0.100.11: filme */
+.painel-filme { display: flex; flex-direction: column; gap: 8px; }
+.painel-filme .corpo-filme { display: flex; flex-direction: column; gap: 8px; }
+.painel-filme .montar-filme, .painel-filme .selecao-filme, .painel-filme .saida-filme { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.painel-filme .ajustes-filme { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.painel-filme .ajustes-filme input[type=text] { width: 100%; box-sizing: border-box; }
+.painel-filme .folhas-filme { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.painel-filme .previa-filme { width: 100%; height: auto; border: 1px solid var(--borda, #444); cursor: pointer; background: #fff; }
+.painel-filme .previa-vazia { padding: 18px; text-align: center; opacity: 0.7; border: 1px dashed var(--borda, #444); }
+.painel-filme .nota { font-size: 12px; min-height: 1em; }
+.painel-filme select { max-width: 100%; }
+iframe.imprimir-filme { position: fixed; right: 0; bottom: 0; width: 1px; height: 1px; border: 0; opacity: 0; }

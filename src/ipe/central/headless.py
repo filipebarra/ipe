@@ -44,11 +44,17 @@ def run_server(args) -> int:
     import os
     if not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY") and sys.platform.startswith("linux"):
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    # 0.100.11: QApplication (de widgets), não só a de interface: o filme do navegador é desenhado pelas células do
+    # compositor (QWidget), na linha principal
     try:
-        from PySide6.QtGui import QGuiApplication
-        app = QCoreApplication.instance() or QGuiApplication(sys.argv)
+        from PySide6.QtWidgets import QApplication
+        app = QCoreApplication.instance() or QApplication(sys.argv)
     except Exception:  # noqa: BLE001
-        app = QCoreApplication.instance() or QCoreApplication(sys.argv)
+        try:
+            from PySide6.QtGui import QGuiApplication
+            app = QCoreApplication.instance() or QGuiApplication(sys.argv)
+        except Exception:  # noqa: BLE001
+            app = QCoreApplication.instance() or QCoreApplication(sys.argv)
     port = args.port or int(settings.get("central.port", 8043))
     srv = CentralServer(db, repo, paths.storage, port=port, certfile=settings.get("central.certfile", "") or "",
                         keyfile=settings.get("central.keyfile", "") or "")

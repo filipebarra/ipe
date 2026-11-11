@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.11 — Visor web: armar el filme e imprimir
+- Pestaña **Filme** en el navegador: los cuadros ajustados (ventana, zoom, desplazamiento, giro) van al filme (el
+  cuadro, todos o la serie cada N); la vista previa la dibuja el servidor con el código del compositor de Ipê;
+  editar, reordenar y quitar celdas; cuadrícula, papel, horizontal, textos, encabezado, anonimizar.
+- **Imprimir**: descargar el PDF, imprimir en la computadora de quien usa el navegador, en las impresoras del
+  servidor, en las impresoras DICOM y en los destinos de impresión de Ipê. Cuenta en el panel de filmes. Solo con
+  permiso de imprimir.
+- El servidor sin pantalla (`ipe server`) pasó a usar Qt de widgets (offscreen) para dibujar las hojas.
+
 ## 0.100.10 — Visor web: CAD/IA desde el navegador
 - **CAD/IA en este examen** en el navegador: las herramientas de IA de Ipê que sirven para el examen, con la serie
   sugerida (o la del cuadro), ejecutándose en la cola de IA del servidor. **IA** en el pie muestra las tareas del

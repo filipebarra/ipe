@@ -1114,6 +1114,21 @@ Nesta primeira fase:
 - **IA**, no rodapé, mostra as tarefas do exame (as pedidas e as automáticas): o estado (na fila, montando o volume, rodando, gravando, pronto), a etapa e o tempo. **Cancelar** aparece nas que você pediu (quem configura cancela qualquer uma).
 - Quando a tarefa termina, um aviso na área das imagens oferece **Recarregar o exame**: as séries novas (SEG, tabelas) entram na lista e no overlay.
 
+**Filme e impressão no navegador (0.100.11).** A aba **Filme** do painel da direita só aparece para quem tem a permissão de imprimir.
+
+- **Montar**: ajuste a imagem no quadro com as ferramentas de sempre (janela, zoom, deslocamento, giro, inverter) e clique **+ Quadro ativo**, **+ Todos os quadros** ou **+ Série do quadro** (a série inteira, uma imagem a cada N, com o ajuste do quadro). Só imagens originais entram (não MPR, MIP ou mapas).
+- **A prévia é o que sai**: o servidor desenha a folha com o mesmo código do compositor do Ipê (cabeçalho com paciente e exame, régua, textos, medidas). ◂ ▸ passam de folha.
+- **Editar**: clique numa célula da prévia. **Editar no quadro ativo** põe a imagem no quadro com o ajuste dela; mude o que quiser e clique **Atualizar a célula**. **◂ ▸** mudam a ordem e **Remover** tira.
+- **Folha**: nome, grade (1×1 a 6×5), papel (A4, A3, Carta, filmes de 8×10 a 14×17 pol), paisagem, textos, cabeçalho, anonimizar, régua e fundo preto. O filme fica guardado no navegador até você limpar.
+- **Imprimir**, em **Saída**:
+  - **Baixar PDF**;
+  - **Imprimir neste computador**: o navegador abre a janela de imprimir dele, com as impressoras do computador de quem está usando;
+  - as **impressoras do computador do servidor**, pelo nome;
+  - as **impressoras DICOM** cadastradas no servidor;
+  - os **destinos de impressão do Ipê** (PDF ou imagens numa pasta, impressora do sistema, impressora DICOM).
+- **Só esta folha** imprime a folha da prévia. Cada impressão conta no painel de filmes (o filme fica salvo, com quem imprimiu e para onde) e no registro de acesso.
+- O zoom e o deslocamento vão como no Ipê, em relação a "caber na célula". Como a célula do filme tem outra proporção que o quadro da tela, o enquadramento pode mudar um pouco; a prévia mostra como vai sair.
+
 **Laudo no navegador (0.99.98).**
 
 - **Laudo** (barra) abre o laudo ao lado das imagens, no mesmo registro de laudo do Ipê: o que se escreve num aparece no outro.

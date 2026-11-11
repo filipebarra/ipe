@@ -548,6 +548,28 @@ class _Handler(BaseHTTPRequestHandler):
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, r, raw=True)
+        if path.startswith("/api/web/filme/"):                              # 0.100.11: filme do navegador
+            from ipe.central import filme_web as FW
+            try:
+                if method == "GET" and path == "/api/web/filme/opcoes":
+                    return self._json(200, FW.opcoes(c, s), raw=True)
+                if method != "POST":
+                    return self._error(405, "método")
+                corpo = json.loads(self._body() or b"{}")
+                if path == "/api/web/filme/previa":
+                    return self._send(200, FW.previa(c, s, corpo), "image/png")
+                if path == "/api/web/filme/pdf":
+                    return self._send(200, FW.pdf(c, s, corpo), "application/pdf")
+                if path == "/api/web/filme/imprimir":
+                    return self._json(200, FW.imprimir(c, s, corpo), raw=True)
+                return self._error(404, "rota")
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            except Exception as e:  # noqa: BLE001 - impressora fora, papel errado…
+                log.exception("filme do navegador")
+                return self._error(502, f"{type(e).__name__}: {e}")
         if path in ("/api/web/ia", "/api/web/ia/pedir", "/api/web/ia/tarefas", "/api/web/ia/cancelar"):
             from ipe.central import ia_web as IA                             # 0.100.10: CAD/IA pelo navegador
             try:

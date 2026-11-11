@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.11 — Web viewer: build the film and print
+- **Film** tab in the browser: adjusted viewports (window, zoom, pan, rotation) go into the film (the viewport, all
+  or the series every N); the preview is drawn by the server with Ipê's composer code; edit, reorder and remove
+  cells; grid, paper, landscape, texts, header, anonymize.
+- **Print**: download the PDF, print on the browser user's computer, on the server's printers, on DICOM printers and
+  on Ipê's print destinations. Counts in the films panel. Only with print permission.
+- The headless server (`ipe server`) now uses Qt widgets (offscreen) to draw the sheets.
+
 ## 0.100.10 — Web viewer: CAD/AI from the browser
 - **CAD/AI in this exam** in the browser: Ipê's AI tools that fit the exam, with the suggested series (or the
   viewport's), running in the server's AI queue. **AI** in the footer shows the exam's tasks (requested and

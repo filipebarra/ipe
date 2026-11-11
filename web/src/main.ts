@@ -20,6 +20,7 @@ import { ModoDinamica, dinamicaDoExame, guardarTabelas } from "./dinamica";
 import { PainelLaudo } from "./laudo";
 import { ListaEnvios, painelEnvio } from "./envio";
 import { TarefasIA, painelIA } from "./ia";
+import { PainelFilme } from "./filme";
 import {
   Grade, TIPO_ARRASTO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
   ARRANJO_PET_PADRAO, type ConteudoPet, type VistaPet,
@@ -496,7 +497,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   const telas = el("section", { class: "grade" });
   const painelCarga = el("pre", { class: "painel-carga", hidden: true });
 
-  const ABAS = ["Imagem", "Medidas", "DICOM", "PET"] as const;
+  const ABAS = ["Imagem", "Medidas", "DICOM", "PET", "Filme"] as const;
   type Aba = typeof ABAS[number];
   const corpoAba = el("div", { class: "corpo-aba", role: "tabpanel" });
   const botoesAba = new Map<Aba, HTMLButtonElement>();
@@ -504,6 +505,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
   for (const a of ABAS) {
     const b = el("button", { type: "button", role: "tab", "aria-selected": "false", "data-aba": a }, tr(a)) as HTMLButtonElement;
     b.onclick = () => mostrarAba(a);
+    if (a === "Filme" && !config?.usuario.perms?.includes("print")) b.style.display = "none";   // 0.100.11
     botoesAba.set(a, b);
     abas.append(b);
   }
@@ -870,7 +872,13 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
 
   // ---------------------------------------------------------------- abas da direita
   let abaAtual: Aba = lerPreferencia<Aba>("aba", "Medidas");
-  if (!ABAS.includes(abaAtual)) abaAtual = "Medidas";
+  if (!ABAS.includes(abaAtual) || (abaAtual === "Filme" && !config?.usuario.perms?.includes("print"))) abaAtual = "Medidas";
+  // 0.100.11: o filme (a aba Filme), montado com os quadros e impresso pelo servidor
+  let painelFilme: PainelFilme | null = null;
+  const filme = () => {
+    painelFilme ??= new PainelFilme(study, g, (uid) => pegar(uid), `${nomePac.replace(/\^/g, " ").trim()} — ${API.texto(estudo, "00081030")}`.trim());
+    return painelFilme;
+  };
   const secao = (t: string) => el("div", { class: "titulo-painel" }, tr(t));
   const secaoPronta = (t: string) => el("div", { class: "titulo-painel" }, t); // já traduzida
   const imagemAtual = (): string => {
@@ -893,6 +901,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1): Promise<void> {
     csTools.annotation.selection.setAnnotationSelected(m.uid, true, false);
   };
   const conteudoAba: Record<Aba, () => Node[]> = {
+    Filme: () => [filme().raiz],
     Imagem: () => {
       const s = g.quadros[g.ativo]?.serie;
       const lista = janelasProntas(s?.modalidade || "");
