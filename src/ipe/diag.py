@@ -129,6 +129,10 @@ def na_janela(win, app) -> None:
         faulthandler.dump_traceback_later(40, repeat=True, file=na_janela._pilhas)
     except Exception:  # noqa: BLE001
         pass
+    try:
+        win.settings.set("viewer.outro_paciente_externo", "manter")      # o roteiro abre vários pacientes
+    except Exception:  # noqa: BLE001
+        pass
     marca("janela_aberta", plataforma=app.platformName())
     QTimer.singleShot(3000, importar)
 
