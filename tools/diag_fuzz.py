@@ -74,7 +74,8 @@ def _base(tipo: str, pasta: Path) -> Path:
 
 
 def _pelo_gdcm(origem: Path, destino: Path, sintaxe: str) -> bool:
-    import gdcm
+    import importlib
+    gdcm = importlib.import_module("gdcm")     # só no diagnóstico: o programa não usa o GDCM (0.100.29)
     r = gdcm.ImageReader()
     r.SetFileName(str(origem))
     if not r.Read():

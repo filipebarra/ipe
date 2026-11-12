@@ -247,6 +247,18 @@ def _vigiar_quedas(pasta) -> None:
         arq.write(f"\n=== {APP_NAME} iniciado em {__import__('datetime').datetime.now():%Y-%m-%d %H:%M:%S} ===\n")
         arq.flush()
         faulthandler.enable(file=arq, all_threads=True)
+        # 0.100.29: no programa instalado, aberto sem terminal, o que as bibliotecas nativas escrevem ao morrer
+        # ("terminating due to uncaught exception of type …") ia para lugar nenhum. Vai para o mesmo arquivo.
+        if getattr(sys, "frozen", False):
+            try:
+                tem_terminal = os.isatty(2)
+            except OSError:
+                tem_terminal = False
+            if not tem_terminal:
+                try:
+                    os.dup2(arq.fileno(), 2)
+                except OSError:
+                    pass
         _vigiar_quedas.arquivo = arq
     except Exception:  # noqa: BLE001
         log.debug("faulthandler", exc_info=True)

@@ -55,7 +55,7 @@ hidden = collect_submodules("pydicom") + collect_submodules("pynetdicom")
 # 0.100.13: as ferramentas de IA são importadas pelo nome (`ai/ferramentas.GENERICAS`); sem isto o pacote não
 # levava enfisema, genant, aorta… e a lista de CAD/IA do navegador quebrava inteira.
 hidden += collect_submodules("ipe")
-hidden += ["pylibjpeg", "libjpeg", "openjpeg", "gdcm",
+hidden += ["pylibjpeg", "libjpeg", "openjpeg",
            "pylibjpeg_libjpeg", "pylibjpeg_openjpeg", "jpeg_ls", "pyjpegls", "sqlalchemy.dialects.sqlite"]
 try:                                             # 0.99.96: HTJ2K para o visualizador web (sem ele, JPEG-LS)
     import imagecodecs  # noqa: F401

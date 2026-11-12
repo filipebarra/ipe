@@ -20,8 +20,9 @@ def _texto(nome: str) -> str:
 def test_receita_leva_os_idiomas_e_os_decodificadores():
     spec = _texto("ipe.spec")
     assert '"ipe/locale"' in spec              # o destino tem que ser este
-    for chave in ("pylibjpeg", "openjpeg", "gdcm", "sqlalchemy.dialects.sqlite"):
+    for chave in ("pylibjpeg", "openjpeg", "libjpeg", "sqlalchemy.dialects.sqlite"):
         assert chave in spec, f"{chave} não está nos imports escondidos"
+    assert '"gdcm"' not in spec                 # 0.100.29: o GDCM derrubava o programa (test_sem_gdcm)
     assert 'collect_submodules("pydicom")' in spec
     assert 'collect_submodules("ipe")' in spec   # 0.100.13: as IAs importadas pelo nome vão no pacote
     idiomas = sorted(p.name for p in (RAIZ / "src" / "ipe" / "locale").glob("*.json"))

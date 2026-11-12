@@ -169,7 +169,13 @@ def read_frame(frame: Frame) -> FrameImage:
                 ds.pixel_array_options(decoding_plugin=plug)
             except Exception:  # noqa: BLE001
                 pass
-        arr = ds.pixel_array
+        try:
+            arr = ds.pixel_array
+        except Exception:  # noqa: BLE001
+            if not plug:
+                raise
+            ds.pixel_array_options()             # o preferido não deu conta: os outros, na ordem do pydicom
+            arr = ds.pixel_array
         if int(ds.get("NumberOfFrames", 1) or 1) > 1:
             arr = arr[frame.frame_index]
     photometric = str(ds.get("PhotometricInterpretation", "MONOCHROME2")).upper()
@@ -316,11 +322,15 @@ def voi_window(ds, frame_index: int = 0) -> tuple[tuple[float, float] | None, st
 
 _MULTI: dict[str, bool] = {}
 
-# 0.99.86: o decodificador mais rápido por sintaxe. O pydicom tenta o gdcm primeiro; no JPEG-LS (a sintaxe
+# 0.99.86: o decodificador mais rápido por sintaxe. O pydicom tentava o gdcm primeiro; no JPEG-LS (a sintaxe
 # da compressão sem perda do Ipê, e de toda a mamografia guardada) o pyjpegls (CharLS) é ~1,7× mais rápido
 # numa mamografia 4096×3328 (340 ms contra 585 ms) e, ao contrário do gdcm, solta o GIL: os quatro quadros
 # da mamografia decodificam em paralelo. Sem o pyjpegls instalado, fica o padrão.
-_PREFERIDOS = {"1.2.840.10008.1.2.4.80": "pyjpegls", "1.2.840.10008.1.2.4.81": "pyjpegls"}
+# 0.100.29: o GDCM saiu (ver `ipe._sem_gdcm`). No JPEG 2000 o pydicom passaria a tentar o Pillow primeiro, que é
+# 2× mais lento que o OpenJPEG do pylibjpeg (47 ms contra 24 ms num corte de TC): fica o pylibjpeg, e, se ele
+# falhar, os outros na ordem do pydicom.
+_PREFERIDOS = {"1.2.840.10008.1.2.4.80": "pyjpegls", "1.2.840.10008.1.2.4.81": "pyjpegls",
+               "1.2.840.10008.1.2.4.90": "pylibjpeg", "1.2.840.10008.1.2.4.91": "pylibjpeg"}
 _DISPONIVEL: dict[str, str | None] = {}
 
 
@@ -367,7 +377,7 @@ def decodificador_preferido(ts: str) -> str | None:
 
 
 def preaquecer() -> None:
-    """Carrega os decodificadores antes do primeiro exame (o primeiro import do gdcm, do CharLS e do
+    """Carrega os decodificadores antes do primeiro exame (o primeiro import do CharLS, do libjpeg e do
     OpenJPEG custava ~0,3 s na primeira imagem). Roda numa linha à parte depois que a janela abre."""
     try:
         from pydicom.pixels import get_decoder
@@ -375,7 +385,7 @@ def preaquecer() -> None:
         for ts in (JPEGLSLossless, JPEG2000Lossless, JPEG2000, JPEGBaseline8Bit, JPEGLossless, RLELossless):
             get_decoder(ts).available_plugins
             decodificador_preferido(str(ts))
-        for mod in ("gdcm", "jpeg_ls", "openjpeg", "libjpeg"):
+        for mod in ("jpeg_ls", "openjpeg", "libjpeg"):
             try:
                 __import__(mod)
             except Exception:  # noqa: BLE001

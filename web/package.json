@@ -1,7 +1,7 @@
 {
   "name": "ipe-web",
   "private": true,
-  "version": "0.100.28",
+  "version": "0.100.29",
   "type": "module",
   "scripts": {
     "build": "vite build",

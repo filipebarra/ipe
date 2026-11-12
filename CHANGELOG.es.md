@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.29 — El programa ya no se cierra solo con un archivo comprimido fuera de lo común
+- Al abrir un estudio, Ipê podía **cerrarse solo** (visto en macOS): el decodificador GDCM termina todo el proceso
+  cuando la cabecera DICOM no coincide con la imagen comprimida (filas, columnas, color). GDCM salió del programa;
+  JPEG, JPEG 2000 y JPEG-LS quedan con pylibjpeg, CharLS y Pillow, que devuelven un error tratable — la imagen
+  defectuosa aparece como error y el resto del estudio se abre. Vale para Windows, Linux y macOS.
+- En el programa instalado, el último mensaje de una biblioteca antes de una caída también va a `queda.log`.
+
 ## 0.100.28 — macOS: el teclado llega al programa
 - En el paquete de prueba de macOS no se podía escribir (por ejemplo, la dirección del servidor): la app estaba
   marcada como "solo de fondo", sin icono en el Dock. Corregido; Ipê ahora aparece en el Dock y recibe el teclado.
