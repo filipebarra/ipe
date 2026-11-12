@@ -3,6 +3,10 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.30 — macOS: clicking the menu bar icon no longer closes the program
+- On macOS 27, clicking the Ipê icon in the menu bar (next to the clock) closed the program — a Qt defect with that
+  system. On the Mac, Ipê no longer adds that icon: the Dock does the same job. Windows and Linux are unchanged.
+
 ## 0.100.29 — The program no longer closes by itself on an unusual compressed file
 - When opening a study, Ipê could **close by itself** (seen on macOS): the GDCM decoder ends the whole process when
   the DICOM header does not match the compressed image (rows, columns, colour). GDCM was removed; JPEG, JPEG 2000

@@ -3648,10 +3648,14 @@ class MainWindow(QMainWindow):
             hb.buttons["pacs"].defaultAction().setText(f"PACS ({active})" if active else "PACS")
 
     def _setup_tray(self) -> None:
+        import sys
         from PySide6.QtWidgets import QSystemTrayIcon
         from ipe.ui.icons import icon
         self.tray = None
-        if not QSystemTrayIcon.isSystemTrayAvailable():
+        # 0.100.30: no macOS não há ícone na barra de menus. No macOS 27, clicar nele fechava o programa: o Qt
+        # (6.11) pergunta o número de cliques a um evento que não é de mouse e o sistema aborta
+        # (`-[NSEvent clickCount]` dentro do `libqcocoa`). No Mac o Dock já faz o papel da bandeja.
+        if sys.platform == "darwin" or not QSystemTrayIcon.isSystemTrayAvailable():
             return
         self.tray = QSystemTrayIcon(icon("mpr"), self)
         self.tray.setToolTip(APP_NAME)
