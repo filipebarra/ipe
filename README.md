@@ -1,7 +1,7 @@
 # Ipê
 
-**DICOM viewer for research and teaching**, written in Python (PySide6), for Windows and Linux. It
-started as a breast-imaging reading station and grew to cover CT, MR, PET/CT, nuclear medicine,
+**DICOM viewer for research and teaching**, written in Python (PySide6), for Windows, Linux and macOS
+(experimental). It started as a breast-imaging reading station and grew to cover CT, MR, PET/CT, nuclear medicine,
 ultrasound and radiography, with DICOM networking, films, printing and reporting.
 
 > **Not intended for diagnostic use.** Ipê is not a medical device registered with ANVISA or any
@@ -190,6 +190,19 @@ From the source code:
 ./executar.sh
 ```
 
+### macOS (experimental)
+From the [releases](https://github.com/filipebarra/ipe/releases) (no Python needed), since 0.100.28:
+- `Ipe-<version>-macos-arm64.dmg` for Apple silicon (M1 and later); `Ipe-<version>-macos-x86_64.dmg` for Intel Macs.
+- Open the `.dmg` and drag **Ipe** to Applications. The app is **not signed by Apple**: the first time, right-click
+  (or Control-click) ▸ **Open** ▸ **Open**. If macOS says the app "is damaged", run
+  `xattr -dr com.apple.quarantine /Applications/Ipe.app` in the Terminal, or use System Settings ▸ Privacy &
+  Security ▸ **Open Anyway**.
+
+The macOS package is new and has had far less use than the Windows and Linux ones. Known limits: shortcuts still
+use Ctrl; `ipe://` links do not open the program; **Check for updates** finds the new version but does not install
+it (download the new `.dmg`); there is no menu bar icon (the Dock does that job); organ segmentation has not been
+tested on a real Mac. If the program closes by itself, please send `~/Library/Logs/DicomViewer/queda.log`.
+
 To try it without real studies: **Help ▸ Generate test studies (phantoms)**.
 
 Organ segmentation (TotalSegmentator) is optional and installed separately, with
@@ -225,7 +238,8 @@ ipe server                             headless central server
 `ipe info` shows the paths. On Windows they are in `%LOCALAPPDATA%\DicomViewer` (the program's old
 name, kept for those who upgrade): the `dicomviewer.sqlite` database, the `Storage\` folder with the
 DICOM files, `Impressoes\`, `settings.json` and logs. The `IPE_HOME` environment variable (or the old
-`DICOMVIEWER_HOME`) changes the folder — useful to keep one database per research project.
+`DICOMVIEWER_HOME`) changes the folder — useful to keep one database per research project. On macOS
+the data is in `~/Library/Application Support/DicomViewer` and the logs in `~/Library/Logs/DicomViewer`.
 
 ## Coming from DicomViewer
 

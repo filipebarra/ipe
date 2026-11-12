@@ -1,6 +1,7 @@
 # Ipê
 
-**Visualizador DICOM para pesquisa e ensino**, em Python (PySide6), para Windows e Linux. Nasceu numa
+**Visualizador DICOM para pesquisa e ensino**, em Python (PySide6), para Windows, Linux e macOS
+(experimental). Nasceu numa
 estação de laudo de imagem da mama e cresceu para cobrir TC, RM, PET/CT, medicina nuclear,
 ultrassom e radiografia, com rede DICOM, filmes, impressão e laudo.
 
@@ -186,6 +187,20 @@ Pelo código:
 ./executar.sh
 ```
 
+### macOS (experimental)
+Pelos [releases](https://github.com/filipebarra/ipe/releases) (sem Python), desde a 0.100.28:
+- `Ipe-<versão>-macos-arm64.dmg` para Mac com chip Apple (M1 em diante); `Ipe-<versão>-macos-x86_64.dmg` para Mac
+  com processador Intel.
+- Abra o `.dmg` e arraste o **Ipe** para Aplicativos. O programa **não tem assinatura da Apple**: na primeira vez,
+  botão direito (ou Control+clique) ▸ **Abrir** ▸ **Abrir**. Se o macOS disser que o app "está danificado", rode
+  `xattr -dr com.apple.quarantine /Applications/Ipe.app` no Terminal, ou vá em Ajustes do Sistema ▸ Privacidade e
+  Segurança ▸ **Abrir Mesmo Assim**.
+
+O pacote do macOS é novo e foi muito menos usado que os de Windows e Linux. Limites conhecidos: os atalhos continuam
+com Ctrl; links `ipe://` não abrem o programa; **Procurar atualizações** acha a versão nova, mas não a instala (baixe
+o `.dmg` novo); não há ícone na barra de menus (o Dock faz esse papel); a segmentação de órgãos não foi testada num
+Mac de verdade. Se o programa fechar sozinho, mande o arquivo `~/Library/Logs/DicomViewer/queda.log`.
+
 Para testar sem exames reais: **Ajuda ▸ Gerar exames de teste (fantomas)**.
 
 A segmentação de órgãos (TotalSegmentator) é opcional e se instala à parte, com
@@ -221,7 +236,8 @@ ipe server                             servidor central sem janela
 `ipe info` mostra os caminhos. No Windows ficam em `%LOCALAPPDATA%\DicomViewer` (o nome antigo do
 programa, mantido para quem atualiza): banco `dicomviewer.sqlite`, pasta `Storage\` com os
 arquivos DICOM, `Impressoes\`, `settings.json` e logs. A variável de ambiente `IPE_HOME` (ou a
-antiga `DICOMVIEWER_HOME`) troca a pasta — útil para manter um banco por projeto de pesquisa.
+antiga `DICOMVIEWER_HOME`) troca a pasta — útil para manter um banco por projeto de pesquisa. No macOS os
+dados ficam em `~/Library/Application Support/DicomViewer` e os logs em `~/Library/Logs/DicomViewer`.
 
 ## Para quem vem do DicomViewer
 

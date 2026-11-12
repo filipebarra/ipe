@@ -1,6 +1,7 @@
 # Ipê
 
-**Visor DICOM para investigación y docencia**, en Python (PySide6), para Windows y Linux. Nació
+**Visor DICOM para investigación y docencia**, en Python (PySide6), para Windows, Linux y macOS
+(experimental). Nació
 como estación de lectura de imagen mamaria y creció para cubrir TC, RM, PET/TC, medicina nuclear,
 ecografía y radiografía, con red DICOM, placas, impresión e informe.
 
@@ -85,6 +86,16 @@ administrador, y pregunta el idioma, la carpeta del programa y la de la base.
 `instalar.bat` una vez y luego en `executar.bat`. Para generar el instalador de Windows vea
 [installer/LEIAME.md](installer/LEIAME.md).
 
+**macOS (experimental):** desde los [releases](https://github.com/filipebarra/ipe/releases) (sin Python), desde la
+0.100.28: `Ipe-<versión>-macos-arm64.dmg` para Mac con chip Apple (M1 en adelante) o `Ipe-<versión>-macos-x86_64.dmg`
+para Mac con Intel. Abra el `.dmg` y arrastre **Ipe** a Aplicaciones. El programa **no está firmado por Apple**: la
+primera vez, clic derecho (o Control+clic) ▸ **Abrir** ▸ **Abrir**; si macOS dice que la app "está dañada", ejecute
+`xattr -dr com.apple.quarantine /Applications/Ipe.app` en la Terminal. El paquete de macOS es nuevo y se ha usado
+mucho menos que los de Windows y Linux. Límites conocidos: los atajos siguen con Ctrl; los enlaces `ipe://` no abren
+el programa; **Buscar actualizaciones** encuentra la versión nueva pero no la instala (descargue el `.dmg` nuevo); no
+hay icono en la barra de menús; la segmentación de órganos no se probó en un Mac real. Si el programa se cierra
+solo, envíe `~/Library/Logs/DicomViewer/queda.log`.
+
 **Linux:** desde los [releases](https://github.com/filipebarra/ipe/releases) (sin Python):
 - **Debian/Ubuntu:** `sudo apt install ./Ipe-<versión>-linux-amd64.deb` — el comando es `ipe-viewer`, e **Ipê**
   aparece en el menú de aplicaciones.
@@ -116,7 +127,8 @@ ipe register-url                       registra los enlaces ipe:// y dicomviewer
 
 `ipe info` muestra las rutas. En Windows: `%LOCALAPPDATA%\DicomViewer` (el nombre anterior del
 programa, mantenido para quien actualiza). La variable `IPE_HOME` (o la antigua
-`DICOMVIEWER_HOME`) cambia la carpeta.
+`DICOMVIEWER_HOME`) cambia la carpeta. En macOS: `~/Library/Application Support/DicomViewer` (datos) y
+`~/Library/Logs/DicomViewer` (registros).
 
 ## Desarrollo
 
