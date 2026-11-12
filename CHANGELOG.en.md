@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.31 — macOS: checking for updates (and all HTTPS) works again
+- In the macOS package, **Check for updates** failed with "certificate verify failed": the program could not find
+  the certificate authorities. The same applied to downloading AI models, DICOMweb over HTTPS and the AI report.
+  Where the system does not provide the certificates, Ipê now uses Mozilla's list (certifi). Windows is unchanged.
+
 ## 0.100.30 — macOS: clicking the menu bar icon no longer closes the program
 - On macOS 27, clicking the Ipê icon in the menu bar (next to the clock) closed the program — a Qt defect with that
   system. On the Mac, Ipê no longer adds that icon: the Dock does the same job. Windows and Linux are unchanged.

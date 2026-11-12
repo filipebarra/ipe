@@ -55,6 +55,8 @@ CREDITOS: tuple[Credito, ...] = (
     Credito("imagecodecs (OpenJPH)", "HTJ2K sem perda na cópia de envio do visualizador web: menos bytes na rede e "
             "carga progressiva no navegador", "BSD-3-Clause (OpenJPH: BSD-2-Clause)",
             "https://github.com/cgohlke/imagecodecs", pacotes=("imagecodecs",), modulos=("imagecodecs",)),
+    Credito("certifi", "certificados das autoridades (lista da Mozilla) para o HTTPS onde o sistema não os entrega",
+            "MPL-2.0", "https://github.com/certifi/python-certifi", pacotes=("certifi",), modulos=("certifi",)),
     Credito("NumPy", "todas as contas com as imagens (janela, MPR, 3D, mapas, medidas)", "BSD-3-Clause",
             "https://numpy.org", pacotes=("numpy",), modulos=("numpy",)),
     Credito("SQLAlchemy", "o banco de dados dos exames (SQLite)", "MIT", "https://www.sqlalchemy.org",

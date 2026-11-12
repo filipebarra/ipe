@@ -65,6 +65,20 @@ def na_janela(win, app) -> None:
         (d / "resultado.json").write_text(json.dumps(res, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
         print("DIAG", nome, extra, flush=True)
 
+    def github():
+        # 0.100.31: no pacote do macOS a busca de atualização falhava (CERTIFICATE_VERIFY_FAILED)
+        import threading
+
+        def consulta():
+            try:
+                from ipe.core import atualizar_github as AG
+                (d / "github.txt").write_text("OK " + AG.consultar(timeout=20)["versao"], encoding="utf-8")
+            except Exception as e:  # noqa: BLE001
+                (d / "github.txt").write_text("ERRO " + str(e), encoding="utf-8")
+        threading.Thread(target=consulta, daemon=True).start()
+
+    github()
+
     def importar():
         pasta = os.environ.get("IPE_DIAG_PASTA")
         if not pasta:

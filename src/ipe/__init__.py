@@ -1,6 +1,6 @@
 """Ipê — visualizador DICOM para pesquisa e ensino."""
 
-__version__ = "0.100.30"
+__version__ = "0.100.31"
 APP_NAME = "Ipê"
 #: o nome sem acento, para onde acento não cabe: arquivos, executáveis e campos DICOM
 APP_ASCII = "Ipe"
@@ -40,6 +40,30 @@ def _sem_gdcm() -> None:
     sys.modules["gdcm"] = None        # type: ignore[assignment]  # `import gdcm` passa a dar ImportError
 
 
+def _certificados_https() -> None:
+    """0.100.31: HTTPS no Mac (e no Linux fora do padrão Debian) — o Python que vai dentro do pacote procura os
+    certificados das autoridades numa pasta que só existe na máquina que montou o pacote; toda conexão HTTPS conferida
+    (procurar atualização no GitHub, baixar modelos, DICOMweb, laudo por IA) falhava com CERTIFICATE_VERIFY_FAILED.
+    Quando o sistema não entrega os certificados, valem os do certifi (a lista da Mozilla). No Windows o Python usa
+    o repositório do sistema e nada muda; quem definiu SSL_CERT_FILE/SSL_CERT_DIR continua mandando."""
+    import os
+    import sys
+    if sys.platform == "win32" or os.environ.get("SSL_CERT_FILE") or os.environ.get("SSL_CERT_DIR"):
+        return
+    try:
+        import ssl
+        onde = ssl.get_default_verify_paths()
+        if onde.cafile and os.path.isfile(onde.cafile):
+            return
+        if onde.capath and os.path.isdir(onde.capath) and any(os.scandir(onde.capath)):
+            return
+        import certifi
+        os.environ["SSL_CERT_FILE"] = certifi.where()
+    except Exception:  # noqa: BLE001 - sem certifi: fica como estava
+        pass
+
+
 _sem_gdcm()
+_certificados_https()
 #: o fim da descrição das séries que o programa grava ("Medidas (Ipe)", "Medidas (DicomViewer)")
 MARCAS_NOSSAS = tuple(f"({n})" for n in FABRICANTES_NOSSOS)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ipe"
-version = "0.100.30"
+version = "0.100.31"
 description = "Ipê — visualizador DICOM para pesquisa e ensino (Windows e Linux)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -16,6 +16,7 @@ dependencies = [
     "numpy>=1.26",
     "SQLAlchemy>=2.0",
     "platformdirs>=4.0",
+    "certifi",                 # 0.100.31: certificados das autoridades onde o sistema não entrega (pacote do macOS)
     "pylibjpeg>=2.0",
     "pylibjpeg-libjpeg>=2.1",
     "pylibjpeg-openjpeg>=2.3",

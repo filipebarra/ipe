@@ -19,6 +19,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [pylibjpeg-openjpeg](https://github.com/pydicom/pylibjpeg-openjpeg) | JPEG 2000 (OpenJPEG) | MIT (OpenJPEG: BSD-2-Clause) |
 | [pyjpegls](https://github.com/pydicom/pyjpegls) | gravação em JPEG-LS (CharLS) na compressão sem perda | MIT (CharLS: BSD-3-Clause) |
 | [imagecodecs (OpenJPH)](https://github.com/cgohlke/imagecodecs) | HTJ2K sem perda na cópia de envio do visualizador web: menos bytes na rede e carga progressiva no navegador | BSD-3-Clause (OpenJPH: BSD-2-Clause) |
+| [certifi](https://github.com/certifi/python-certifi) | certificados das autoridades (lista da Mozilla) para o HTTPS onde o sistema não os entrega | MPL-2.0 |
 | [NumPy](https://numpy.org) | todas as contas com as imagens (janela, MPR, 3D, mapas, medidas) | BSD-3-Clause |
 | [SQLAlchemy](https://www.sqlalchemy.org) | o banco de dados dos exames (SQLite) | MIT |
 | [SQLite](https://www.sqlite.org) | o arquivo do banco de dados | domínio público |

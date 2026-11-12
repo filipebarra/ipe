@@ -40,6 +40,7 @@ for _inst in ("instalar_segmentacao.bat", "instalar_segmentacao.sh"):
     if (RAIZ / _inst).exists():
         datas += [(str(RAIZ / _inst), "ipe")]
 datas += collect_data_files("pydicom")          # tabelas de UID e de conjuntos de caracteres
+datas += collect_data_files("certifi")          # 0.100.31: o cacert.pem (HTTPS no pacote do macOS)
 
 # Modelos de IA (hoje só a rede de densidade, 23 MB). Vão **se estiverem na pasta**: quem não
 # quiser o peso no instalador é só não pôr o arquivo lá. `ai/densidade_nyu.py` procura em
@@ -56,7 +57,8 @@ hidden = collect_submodules("pydicom") + collect_submodules("pynetdicom")
 # levava enfisema, genant, aorta… e a lista de CAD/IA do navegador quebrava inteira.
 hidden += collect_submodules("ipe")
 hidden += ["pylibjpeg", "libjpeg", "openjpeg",
-           "pylibjpeg_libjpeg", "pylibjpeg_openjpeg", "jpeg_ls", "pyjpegls", "sqlalchemy.dialects.sqlite"]
+           "pylibjpeg_libjpeg", "pylibjpeg_openjpeg", "jpeg_ls", "pyjpegls", "sqlalchemy.dialects.sqlite",
+           "certifi"]                                # 0.100.31: HTTPS no pacote do macOS (o gancho leva o cacert.pem)
 try:                                             # 0.99.96: HTJ2K para o visualizador web (sem ele, JPEG-LS)
     import imagecodecs  # noqa: F401
     hidden += ["imagecodecs", "imagecodecs._htj2k", "imagecodecs._shared", "imagecodecs._shared_cython", "imagecodecs._imcd"]
