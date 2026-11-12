@@ -1,12 +1,12 @@
-# Pacote de TESTE do Ipê para macOS (0.100.24). Não cria release: o resultado fica só como artefato desta
-# execução (2 dias), para o Filipe testar num Mac antes de o macOS entrar no release.yml.
+# Pacote de TESTE do Ipê para macOS (0.100.24). Não publica nada: os .dmg ficam como artefato da execução (2 dias)
+# e num release em RASCUNHO (só o dono vê), de onde são baixados para o computador do Filipe testar num Mac.
 name: macOS (teste)
 
 on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   macos:
@@ -67,3 +67,20 @@ jobs:
           name: macos-${{ matrix.arq }}
           path: Ipe-*-macos-*.dmg
           retention-days: 2
+
+  rascunho:
+    needs: macos
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: pacotes
+      - name: Rascunho (não publicado; só o dono do repositório vê)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la pacotes/*/
+          N="macos-teste-${{ github.run_number }}"
+          gh release create "$N" pacotes/*/*.dmg --repo "$GITHUB_REPOSITORY" --draft --target "$GITHUB_SHA" \
+            --title "macOS (teste, não publicado) $N" \
+            --notes "Pacote de teste do Ipê para macOS. Rascunho: não publicar. arm64 = chip Apple; x86_64 = Intel."
