@@ -9,13 +9,17 @@ on:
         description: "Também gerar o Ipe.app e repetir o roteiro nele"
         type: boolean
         default: true
+      maquina:
+        description: "Runner (macos-15, macos-26…)"
+        type: string
+        default: macos-15
 
 permissions:
   contents: write
 
 jobs:
   diag:
-    runs-on: macos-15
+    runs-on: ${{ inputs.maquina }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
