@@ -65,6 +65,8 @@ def ambiente_do_sistema(env: dict | None = None) -> dict:
     e = dict(os.environ if env is None else env)
     if not frozen() or sys.platform == "win32":
         return e
+    for k in ("DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH", "DYLD_FALLBACK_LIBRARY_PATH"):   # macOS (0.100.24)
+        e.pop(k, None)
     for k in ("LD_LIBRARY_PATH", "LD_PRELOAD"):
         orig = e.pop(k + "_ORIG", None)
         if orig:

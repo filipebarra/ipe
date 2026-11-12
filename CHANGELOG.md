@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.24 — macOS: pacote de teste
+- Primeiro pacote do Ipê para **macOS** (Ipe.app num .dmg, para chip Apple e para Intel), gerado à parte e ainda fora
+  do release. Sem assinatura da Apple: na primeira vez, abrir com o botão direito ▸ Abrir.
+- No Mac, o instalador da segmentação abre no Terminal e usa a pasta Application Support.
+
 ## 0.100.23 — T1 sintético de 1 mm (SynthSR)
 - **Índices ▸ Criar T1 sintético de 1 mm desta série (IA, SynthSR)…**: de uma série 2D do crânio (qualquer contraste
   e espessura) sai uma série T1 isotrópica de 1 mm, na mesma posição do paciente, para o MPR, as medidas guiadas

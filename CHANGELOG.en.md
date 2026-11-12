@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.24 — macOS: test package
+- First Ipê package for **macOS** (Ipe.app in a .dmg, for Apple silicon and for Intel), built separately and not in
+  the release yet. Not signed by Apple: on first launch, right-click ▸ Open.
+- On the Mac, the segmentation installer opens in Terminal and uses the Application Support folder.
+
 ## 0.100.23 — Synthetic 1 mm T1 (SynthSR)
 - **Indices ▸ Create a synthetic 1 mm T1 from this series (AI, SynthSR)…**: a 2D head series (any contrast and
   thickness) becomes an isotropic 1 mm T1 series in the same patient position, for MPR, guided measurements (MRPI)

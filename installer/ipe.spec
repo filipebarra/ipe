@@ -128,3 +128,25 @@ coll = COLLECT(                                  # noqa: F821
     exe, exe_cli, a.binaries, a.datas,
     strip=False, upx=False, name="Ipe",
 )
+
+# --- macOS (0.100.24, pacote de teste): além da pasta dist/Ipe, um Ipe.app -----------------------
+import sys as _sys
+if _sys.platform == "darwin":
+    _icns = RAIZ / "installer" / "ipe.icns"
+    app = BUNDLE(                                # noqa: F821
+        coll,
+        name="Ipe.app",
+        icon=str(_icns) if _icns.exists() else None,
+        bundle_identifier="br.ipe.viewer",
+        version=versao(),
+        info_plist={
+            "CFBundleName": "Ipe",
+            "CFBundleDisplayName": "Ipê",
+            "CFBundleShortVersionString": versao(),
+            "NSHighResolutionCapable": True,
+            "NSRequiresAquaSystemAppearance": False,
+            "LSMinimumSystemVersion": "12.0",
+            "CFBundleURLTypes": [{"CFBundleURLName": "Ipe", "CFBundleURLSchemes": ["ipe", "dicomviewer"]}],
+            "NSLocalNetworkUsageDescription": "O Ipê recebe e envia exames DICOM pela rede local.",
+        },
+    )

@@ -8656,5 +8656,7 @@
  "T1 sintético pronto em {} min — {}. Está no exame como a série “{}”: arraste para um quadro e abra o MPR.": "Synthetic T1 ready in {} min — {}. It is in the study as the series “{}”: drag it to a viewport and open MPR.",
  "não consegui baixar o modelo do SynthSR ({}); rode de novo o instalar_segmentacao com internet": "could not download the SynthSR model ({}); run instalar_segmentacao again with internet access",
  "série de origem com só {} cortes: confira a anatomia entre os cortes": "source series with only {} slices: check the anatomy between slices",
- "{} cortes de 1 mm ({} × {}) a partir de “{}”": "{} slices of 1 mm ({} × {}) from “{}”"
+ "{} cortes de 1 mm ({} × {}) a partir de “{}”": "{} slices of 1 mm ({} × {}) from “{}”",
+ "Terminal": "Terminal",
+ "export {}={}": "export {}={}"
 }

@@ -2,7 +2,11 @@
 # Linux: o mesmo do instalar_segmentacao.bat — ambiente próprio com PyTorch (CPU) e TotalSegmentator.
 set -e
 unset PYTHONHOME PYTHONPATH PYTHONSTARTUP VIRTUAL_ENV   # 0.99.69: variáveis de outro Python quebram o novo
-BASE="${XDG_DATA_HOME:-$HOME/.local/share}/DicomViewer/segmentacao"
+if [ "$(uname)" = "Darwin" ]; then                  # 0.100.24: no macOS os dados ficam em Application Support
+  BASE="$HOME/Library/Application Support/DicomViewer/segmentacao"
+else
+  BASE="${XDG_DATA_HOME:-$HOME/.local/share}/DicomViewer/segmentacao"
+fi
 VENV="$BASE/venv"
 export TOTALSEG_HOME_DIR="$BASE/pesos"
 # 0.100.22: o TotalSegmentator e o PyTorch atuais pedem Python 3.10 ou mais novo. Em sistemas
@@ -49,7 +53,11 @@ if [ ! -x "$VENV/bin/python" ]; then
   fi
 fi
 "$VENV/bin/python" -m pip install --upgrade pip
-"$VENV/bin/python" -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+if [ "$(uname)" = "Darwin" ]; then                  # no macOS o PyTorch do PyPI já é o certo (CPU e GPU da Apple)
+  "$VENV/bin/python" -m pip install torch
+else
+  "$VENV/bin/python" -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+fi
 "$VENV/bin/python" -m pip install "TotalSegmentator>=2.18"
 for t in total_fast total_fast_mr liver_segments liver_segments_mr vertebrae_mr vertebrae_body total_mr head_glands_cavities headneck_bones_vessels craniofacial_structures head_muscles headneck_muscles total lung_nodules trunk_cavities; do
   "$VENV/bin/totalseg_download_weights" -t "$t"

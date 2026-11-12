@@ -85,6 +85,23 @@ def tem_visual_cpp(plataforma: str | None = None) -> bool:
     return (sistema / "vcruntime140_1.dll").is_file() and (sistema / "msvcp140.dll").is_file()
 
 
+def _comando_do_mac(cmd: list, env: dict | None = None) -> Path:
+    """macOS: o Terminal não recebe argumentos; abre um arquivo .command. Grava um, temporário, com o comando
+    (e as variáveis que o instalador precisa) e devolve o caminho."""
+    import shlex
+    import tempfile
+    linhas = ["#!/bin/bash"]
+    for k in ("IPE_LANG", "IPE_PESOS", "PYTHONIOENCODING"):
+        v = (env or os.environ).get(k)
+        if v:
+            linhas.append(f"export {k}={shlex.quote(str(v))}")
+    linhas.append(" ".join(shlex.quote(str(c)) for c in cmd))
+    arq = Path(tempfile.mkdtemp(prefix="ipe_")) / "instalar.command"
+    arq.write_text("\n".join(linhas) + "\n", encoding="utf-8")
+    arq.chmod(0o755)
+    return arq
+
+
 def abrir_instalador(janela, perguntar: bool = True) -> bool:
     """Abre o instalador numa janela própria (ele mostra o andamento e pede para fechar no fim).
     O programa não precisa ser reiniciado: o menu passa a funcionar quando o ambiente existir."""
@@ -113,6 +130,10 @@ def abrir_instalador(janela, perguntar: bool = True) -> bool:
         os.environ["IPE_LANG"] = i18n.current()        # 0.100.13: o instalador fala o idioma do Ipê
         if sys.platform == "win32":
             os.startfile(str(arq))                       # noqa: S606 - janela de console própria
+        elif sys.platform == "darwin":                   # 0.100.24: o Terminal do macOS roda um .command
+            from ipe.core.runtime import ambiente_do_sistema
+            subprocess.Popen(["open", "-a", "Terminal", str(_comando_do_mac(["bash", str(arq)]))],
+                             env=ambiente_do_sistema())
         else:
             for term in (["x-terminal-emulator", "-e"], ["gnome-terminal", "--"], ["xterm", "-e"]):
                 if shutil.which(term[0]):
@@ -155,6 +176,8 @@ def abrir_instalador_extras(janela, modelos=(), settings=None, perguntar: bool =
     try:
         if sys.platform == "win32":
             subprocess.Popen(cmd, env=env, creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0x10))
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", "-a", "Terminal", str(_comando_do_mac(cmd, env))], env=env)
         else:
             for term in (["x-terminal-emulator", "-e"], ["gnome-terminal", "--"], ["xterm", "-e"]):
                 if shutil.which(term[0]):

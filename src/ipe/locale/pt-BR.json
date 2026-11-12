@@ -6435,7 +6435,8 @@
   "sem imagem",
   "trocar o T1 sintético anterior",
   "· SynthSR",
-  "Mostrar a série nova no quadro ativo?"
+  "Mostrar a série nova no quadro ativo?",
+  "Terminal"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8162,6 +8163,7 @@
   "T1 sintético pronto em {} min — {}. Está no exame como a série “{}”: arraste para um quadro e abra o MPR.",
   "não consegui baixar o modelo do SynthSR ({}); rode de novo o instalar_segmentacao com internet",
   "série de origem com só {} cortes: confira a anatomia entre os cortes",
-  "{} cortes de 1 mm ({} × {}) a partir de “{}”"
+  "{} cortes de 1 mm ({} × {}) a partir de “{}”",
+  "export {}={}"
  ]
 }

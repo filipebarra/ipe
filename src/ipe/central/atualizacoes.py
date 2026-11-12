@@ -161,6 +161,6 @@ def abrir_pasta(pasta: Path) -> None:
             os.startfile(str(pasta))  # noqa: S606
         else:
             from ipe.core.runtime import ambiente_do_sistema
-            subprocess.Popen(["xdg-open", str(pasta)], env=ambiente_do_sistema())
+            subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", str(pasta)], env=ambiente_do_sistema())
     except Exception:  # noqa: BLE001
         log.exception("abrir a pasta da atualização")
