@@ -60,7 +60,11 @@ jobs:
           V=${{ steps.v.outputs.versao }}
           mkdir dmg && cp -R dist/Ipe.app dmg/ && ln -s /Applications dmg/Applications
           cp installer/macos/LEIAME-macOS.txt dmg/ 2>/dev/null || true
-          hdiutil create -volname "Ipe $V" -srcfolder dmg -ov -format UDZO "Ipe-$V-macos-${{ matrix.arq }}-TESTE.dmg"
+          # o hdiutil dos runners às vezes responde "Resource busy": tenta de novo
+          for i in 1 2 3 4 5; do
+            hdiutil create -volname "Ipe $V" -srcfolder dmg -ov -format UDZO "Ipe-$V-macos-${{ matrix.arq }}-TESTE.dmg" && break
+            sleep 15
+          done
           ls -la *.dmg
       - uses: actions/upload-artifact@v6
         with:
@@ -70,6 +74,7 @@ jobs:
 
   rascunho:
     needs: macos
+    if: ${{ always() }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v7
