@@ -18,7 +18,7 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 #: o fim da descrição das séries que as IAs do Ipê gravam
-MARCAS_IA = ("· TotalSegmentator", "· Ipê", "· Ipe", "· BraTS", "· autoPET", "· MedSAM2", "· SynthSeg")
+MARCAS_IA = ("· TotalSegmentator", "· Ipê", "· Ipe", "· BraTS", "· autoPET", "· MedSAM2", "· SynthSeg", "· SynthSR")
 
 _CACHE: dict[tuple, tuple[str, ...]] = {}
 _TRAVA = threading.Lock()

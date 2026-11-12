@@ -116,6 +116,196 @@ def _synthseg(vol_kji, afim) -> tuple:
     return lab.transpose(2, 1, 0), nomes, np.asarray(lab_1mm).astype(np.uint8), afim_1mm
 
 
+# ------------------------------------------------------------------ SynthSR (0.100.23)
+URL_SYNTHSR = "https://github.com/BBillot/SynthSR/raw/main/models/SynthSR_v10_210712.h5"
+ARQ_SYNTHSR = "SynthSR_v10_210712.h5"
+#: o trabalhador devolve o T1 sintético como inteiro: cinza do SynthSR (0–128) × esta escala
+ESCALA_SYNTHSR = 100.0
+
+
+def _pesos_synthsr() -> Path:
+    """O .h5 original do SynthSR 1.0 (Apache-2.0); baixado uma vez para a pasta dos pesos."""
+    arq = _pesos() / "synthsr" / ARQ_SYNTHSR
+    if arq.is_file() and arq.stat().st_size > 50_000_000:
+        return arq
+    etapa("baixando o modelo do SynthSR (53 MB)")
+    import urllib.request
+    arq.parent.mkdir(parents=True, exist_ok=True)
+    tmp = arq.with_suffix(".parte")
+    try:
+        urllib.request.urlretrieve(URL_SYNTHSR, tmp)   # noqa: S310 - endereço fixo, https
+    except Exception as e:  # noqa: BLE001
+        raise RuntimeError(f"não consegui baixar o modelo do SynthSR ({e}); rode de novo o instalar_segmentacao "
+                           f"com internet") from e
+    if tmp.stat().st_size < 50_000_000:
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError("o modelo do SynthSR baixou incompleto; tente de novo")
+    tmp.replace(arq)
+    return arq
+
+
+def _rede_synthsr(caminho_h5):
+    """A U-Net do SynthSR (ext/neuron `unet`: 24 filtros, 5 níveis, 2 convoluções 3×3×3 por nível com ELU,
+    normalização no fim de cada nível, max-pool 2, salto tirado de **antes** da normalização, subida por
+    vizinho mais próximo, 1×1×1 linear no fim) reescrita em PyTorch, com os pesos originais do Keras."""
+    import h5py
+    import numpy as np
+    import torch
+    from torch import nn
+
+    class Rede(nn.Module):
+        def __init__(self):
+            super().__init__()
+            f = [24, 48, 96, 192, 384]
+            self.desce, self.bn_desce, self.sobe, self.bn_sobe = (nn.ModuleList() for _ in range(4))
+            ant = 1
+            for n in f:
+                self.desce.append(nn.ModuleList([nn.Conv3d(ant, n, 3, padding=1), nn.Conv3d(n, n, 3, padding=1)]))
+                self.bn_desce.append(nn.BatchNorm3d(n, eps=1e-3))
+                ant = n
+            for n in reversed(f[:-1]):
+                self.sobe.append(nn.ModuleList([nn.Conv3d(ant + n, n, 3, padding=1), nn.Conv3d(n, n, 3, padding=1)]))
+                self.bn_sobe.append(nn.BatchNorm3d(n, eps=1e-3))
+                ant = n
+            self.fim = nn.Conv3d(24, 1, 1)
+
+        def forward(self, x):
+            F = nn.functional
+            saltos = []
+            for nivel, (convs, bn) in enumerate(zip(self.desce, self.bn_desce)):
+                for c in convs:
+                    x = F.elu(c(x), inplace=True)
+                if nivel < 4:
+                    saltos.append(x)
+                x = bn(x)
+                if nivel < 4:
+                    x = F.max_pool3d(x, 2)
+            for convs, bn in zip(self.sobe, self.bn_sobe):
+                x = F.interpolate(x, scale_factor=2, mode="nearest")
+                x = torch.cat([saltos.pop(), x], 1)
+                for c in convs:
+                    x = F.elu(c(x), inplace=True)
+                x = bn(x)
+            return self.fim(x)
+
+    rede = Rede()
+    with h5py.File(str(caminho_h5), "r") as h, torch.no_grad():
+        def conv(c, nome):
+            g = h[nome][nome]
+            c.weight.copy_(torch.from_numpy(np.asarray(g["kernel:0"]).transpose(4, 3, 0, 1, 2).copy()))
+            c.bias.copy_(torch.from_numpy(np.asarray(g["bias:0"])))
+
+        def norm(b, nome):
+            g = h[nome][nome]
+            b.weight.copy_(torch.from_numpy(np.asarray(g["gamma:0"])))
+            b.bias.copy_(torch.from_numpy(np.asarray(g["beta:0"])))
+            b.running_mean.copy_(torch.from_numpy(np.asarray(g["moving_mean:0"])))
+            b.running_var.copy_(torch.from_numpy(np.asarray(g["moving_variance:0"])))
+        for nivel in range(5):
+            for i in range(2):
+                conv(rede.desce[nivel][i], f"unet_conv_downarm_{nivel}_{i}")
+            norm(rede.bn_desce[nivel], f"unet_bn_down_{nivel}")
+        for nivel in range(4):
+            for i in range(2):
+                conv(rede.sobe[nivel][i], f"unet_conv_uparm_{5 + nivel}_{i}")
+            norm(rede.bn_sobe[nivel], f"unet_bn_up_{nivel}")
+        conv(rede.fim, "unet_likelihood")
+    return rede.eval()
+
+
+def _para_ras(v, afim):
+    """Troca e inverte eixos (sem interpolar) até o volume ficar o mais perto de RAS. Devolve (v, afim)."""
+    import numpy as np
+    A = np.asarray(afim, float).copy()
+    M = np.abs(A[:3, :3] / np.maximum(np.sqrt((A[:3, :3] ** 2).sum(0)), 1e-9))
+    ordem, livres = [], [0, 1, 2]
+    for mundo in range(3):                              # para cada eixo do mundo, o eixo dos dados mais alinhado
+        e = max(livres, key=lambda c: M[mundo, c])
+        ordem.append(e)
+        livres.remove(e)
+    v = np.transpose(v, ordem)
+    A[:3, :3] = A[:3, ordem]
+    for e in range(3):
+        if A[e, e] < 0:
+            A[:3, 3] = A[:3, 3] + A[:3, e] * (v.shape[e] - 1)
+            A[:3, e] = -A[:3, e]
+            v = np.flip(v, e)
+    return np.ascontiguousarray(v), A
+
+
+def _a_1mm_ras(dados, afim):
+    """Como o predict do SynthSR: borra só o eixo que vai perder resolução, reamostra linear a 1 mm e põe os
+    eixos na ordem/sentido mais perto de RAS (sem interpolar de novo). Devolve (volume, afim)."""
+    import numpy as np
+    from scipy.ndimage import gaussian_filter, map_coordinates
+    afim = np.asarray(afim, float)
+    pix = np.sqrt((afim[:3, :3] ** 2).sum(0))
+    fator = pix / 1.0
+    sig = 0.25 / fator
+    sig[fator > 1] = 0
+    v = gaussian_filter(dados.astype(np.float32), sig) if sig.any() else dados.astype(np.float32)
+    inicio = -(fator - 1) / (2 * fator)
+    passo = 1.0 / fator
+    n = np.ceil(np.asarray(v.shape) * fator).astype(int)
+    eixos = [np.clip(inicio[a] + passo[a] * np.arange(n[a]), 0, v.shape[a] - 1) for a in range(3)]
+    grade = np.meshgrid(*eixos, indexing="ij")
+    novo = map_coordinates(v, grade, order=1, mode="nearest").astype(np.float32)
+    afim2 = afim.copy()
+    afim2[:3, :3] = afim[:3, :3] / fator
+    afim2[:3, 3] = afim[:3, 3] + afim[:3, :3] @ inicio
+    return _para_ras(novo, afim2)
+
+
+def _synthsr(vol_kji, afim, ct: bool = False, espelho: bool = True, prever=None) -> tuple:
+    """T1 sintético de 1 mm (SynthSR 1.0, Iglesias et al.). Devolve (volume (i,j,k) int16 = cinza × ESCALA,
+    afim RAS). O cinza do SynthSR vai de 0 a 128 (substância branca ≈ 110), como na saída original."""
+    import numpy as np
+    if prever is None:
+        import torch
+    dados = np.ascontiguousarray(vol_kji.transpose(2, 1, 0)).astype(np.float32)
+    fat, afim_r = _recorte_da_cabeca(dados, afim)
+    im = np.ascontiguousarray(dados[fat])
+    if ct:
+        im = np.clip(im, 0, 80)
+    im, afim1 = _a_1mm_ras(im, afim_r)
+    im -= im.min()
+    im /= max(float(im.max()), 1e-6)
+    forma = np.asarray(im.shape)
+    W = (np.ceil(forma / 32.0) * 32).astype(int)
+    o = ((W - forma) // 2).astype(int)
+    S = np.zeros(tuple(W), np.float32)
+    S[o[0]:o[0] + forma[0], o[1]:o[1] + forma[1], o[2]:o[2] + forma[2]] = im
+    if prever is None:
+        rede = _rede_synthsr(_pesos_synthsr())
+
+        def prever(x):
+            with torch.no_grad():
+                return rede(torch.from_numpy(np.ascontiguousarray(x))[None, None])[0, 0].numpy()
+    saida = prever(S)
+    if espelho:                                       # como o original: média com a imagem espelhada (esq-dir)
+        saida = 0.5 * saida + 0.5 * prever(S[::-1])[::-1]
+    pred = np.clip(255.0 * saida, 0, 128)
+    pred = pred[o[0]:o[0] + forma[0], o[1]:o[1] + forma[1], o[2]:o[2] + forma[2]]
+    return np.round(pred * ESCALA_SYNTHSR).astype(np.int16), afim1
+
+
+def _sim_synthsr(vol_kji, afim) -> tuple:
+    """Testes do programa (sem PyTorch): a própria série a 1 mm (vizinho mais próximo), no cinza 0–128."""
+    import numpy as np
+    dados = np.ascontiguousarray(vol_kji.transpose(2, 1, 0)).astype(np.float32)
+    afim = np.asarray(afim, float)
+    pix = np.sqrt((afim[:3, :3] ** 2).sum(0))
+    n = np.maximum(np.round(np.asarray(dados.shape) * pix).astype(int), 1)
+    idx = [np.minimum((np.arange(n[a]) + 0.5) / pix[a], dados.shape[a] - 1).astype(int) for a in range(3)]
+    novo = dados[np.ix_(*idx)]
+    novo = (novo - novo.min()) / max(float(novo.max() - novo.min()), 1e-6) * 128.0
+    afim2 = afim.copy()
+    afim2[:3, :3] = afim[:3, :3] / pix
+    afim2[:3, 3] = afim[:3, 3] + afim[:3, :3] @ (-(pix - 1) / (2 * pix))
+    novo, afim2 = _para_ras(novo, afim2)
+    return np.round(novo * ESCALA_SYNTHSR).astype(np.int16), afim2
+
+
 #: 0.99.88: fantoma da carga tumoral no PET — {tarefa: {id: (código do HU, classe)}}
 CARGA_SIM = {
     "total": {1: (1, "liver"), 2: (2, "spleen"), 3: (3, "kidney_left"), 4: (4, "kidney_right"),
@@ -306,7 +496,7 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
 # ================================================================== modelos extras (0.99.83)
 # MedSAM2 (caixa → máscara 3D), autoPET (lesões no PET-FDG) e BraTS (glioma). Os pesos ficam em
 # IPE_PESOS (…/segmentacao/pesos), baixados pelo instalar_modelos_extras. Nada do Ipê é importado aqui.
-ESPECIAIS = ("medsam2", "autopet", "brats")
+ESPECIAIS = ("medsam2", "autopet", "brats", "synthsr")
 
 
 def _pesos() -> Path:
@@ -496,6 +686,9 @@ def _versao_especial(especiais: list) -> str:
     nomes = []
     for t in especiais:
         n = t["nome"]
+        if n == "synthsr":
+            nomes.append("SynthSR 1.0")
+            continue
         pacote = {"medsam2": "MedSAM2", "autopet": "nnunetv2", "brats": "monai"}.get(n, n)
         try:
             nomes.append(f"{n} ({pacote} {version(pacote)})")
@@ -518,6 +711,13 @@ def rodar_especial(nome: str, vol, d: Path, job: dict, t: dict, simular: bool, a
                 import numpy as np
                 cerebro = np.isin(lab, ids)
         return (_sim_brats if simular else _brats)(vol, canais, job, cerebro)
+    if nome == "synthsr":                                   # 0.100.23: sai uma imagem, não uma máscara
+        import numpy as np
+        afim = np.asarray(job["affine"], float)
+        img, afim1 = (_sim_synthsr(vol, afim) if simular else _synthsr(vol, afim, ct=bool(t.get("ct"))))
+        np.save(d / "rotulos_synthsr_1mm.npy", img)
+        (d / "synthsr_afim.json").write_text(json.dumps(np.asarray(afim1, float).tolist()), encoding="utf-8")
+        return np.zeros((1, 1, 1), np.uint8), {}
     raise RuntimeError(f"tarefa especial desconhecida: {nome}")
 
 
@@ -613,6 +813,11 @@ def main(pasta: str) -> int:
     except Exception as e:  # noqa: BLE001 - o motivo vai para o programa mostrar
         resultado["erro"] = f"{type(e).__name__}: {e}"
         resultado["detalhe"] = traceback.format_exc()[-4000:]
+    try:
+        if "synthsr" in resultado["tarefas"] and (d / "synthsr_afim.json").exists():
+            resultado["tarefas"]["synthsr"]["afim_1mm"] = json.loads((d / "synthsr_afim.json").read_text("utf-8"))
+    except Exception:  # noqa: BLE001
+        pass
     (d / "resultado.json").write_text(json.dumps(resultado, ensure_ascii=False), encoding="utf-8")
     etapa("pronto" if resultado["ok"] else "erro")
     return 0 if resultado["ok"] else 1

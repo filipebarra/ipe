@@ -1211,6 +1211,9 @@ class ViewerTab(OncoMixin, QWidget):
         a_nauto.triggered.connect(lambda: self.neuro_automatica(self.active))
         menu_idx.addAction(a_nauto)
         menu_idx.aboutToShow.connect(lambda: a_nres.setEnabled(self.neuro_do_exame() is not None))
+        a_sr = QAction("Criar T1 sintético de 1 mm desta série (IA, SynthSR)…", self)   # 0.100.23
+        a_sr.triggered.connect(lambda: self.t1_sintetico(self.active))
+        menu_idx.addAction(a_sr)
         menu_idx.addSeparator()
         from ipe.imaging import roteiros as RT
         for rid, rot in RT.ROTEIROS.items():
@@ -3223,6 +3226,26 @@ class ViewerTab(OncoMixin, QWidget):
             return None
         from ipe.ai import linfonodos as LN
         return LN.texto_da_lesao(np.asarray(p, float), m)
+
+    def t1_sintetico(self, vp=None, simular: bool = False):
+        """0.100.23: T1 de 1 mm pelo SynthSR a partir da série do quadro — para o MPR dos exames só com 2D."""
+        from ipe.ai import synthsr as SR
+        vp = vp or self.active
+        f = vp.current_frame() if vp is not None else None
+        if f is None:
+            return None
+        linha = self._series_row(f.series_uid)
+        if linha is not None and SR.MARCA in (linha.description or ""):
+            QMessageBox.information(self, SR.TITULO, "Esta série já é um T1 sintético. Escolha a série original.")
+            return None
+        if not simular and QMessageBox.question(
+                self, SR.TITULO,
+                "Cria no exame uma série T1 de 1 mm a partir da série deste quadro, para abrir no MPR e medir "
+                "quando o exame não tem T1 3D. Leva alguns minutos.\n\n"
+                "É imagem sintética: serve para medir a anatomia. Lesões podem não aparecer ou mudar de aspecto — "
+                "não use para procurar nem caracterizar lesão.\n\nCriar agora?") != QMessageBox.Yes:
+            return None
+        return self.segmentar_orgaos(vp, simular=simular, tipo="synthsr")
 
     def neuro_botao(self):
         if self.neuro_do_exame() is not None:
@@ -6100,6 +6123,16 @@ class ViewerTab(OncoMixin, QWidget):
                     self._apply_overlays()
                 self.status_message.emit(msg)
                 QMessageBox.information(self, seg.titulo, msg)
+                return
+            if saida is not None and saida.get("ferramenta") == "synthsr":   # 0.100.23: sai uma série, não achados
+                self.recarregar_series()
+                self.status_message.emit(msg.split("\n")[0])
+                nova = saida.get("nova_serie")
+                if nova and QMessageBox.question(
+                        self, seg.titulo, msg + "\n\nMostrar a série nova no quadro ativo?") == QMessageBox.Yes:
+                    alvo = self.active or vp
+                    if alvo is not None:
+                        self.load_series_into(alvo, nova)
                 return
             if saida is not None and saida.get("ferramenta"):          # 0.99.46: IAs do contrato comum
                 carregar_na_aba(self, saida)

@@ -1734,6 +1734,16 @@ A janela de conferência é a mesma da cefalometria: valor, referência, de quem
 
 No exame ficam a SEG **Encéfalo · SynthSeg** e a imagem **Índices do crânio: conferência · SynthSeg** (axial dos cornos, coronal da comissura posterior e a lista). Automático na chegada: **Configurações ▸ CAD/IA ▸ Índices do crânio (SynthSeg)…**. Precisa rodar uma vez de novo o instalar_segmentacao, que acrescenta a DIPY e os pesos do SynthSeg.
 
+## T1 sintético de 1 mm (SynthSR)
+
+Para os exames de crânio **sem T1 3D** (os protocolos de Parkinson costumam ter só 2D de 4–5 mm), em que o MPR sai em degraus. No botão **Índices**: **Criar T1 sintético de 1 mm desta série (IA, SynthSR)…**. A série do quadro ativo (qualquer contraste, orientação e espessura; de preferência um T1 ou um FLAIR) vai para o SynthSR, que devolve um volume isotrópico de 1 mm com contraste de T1. Em alguns minutos o exame ganha a série **T1 sintético 1 mm · SynthSR**, e o programa pergunta se mostra no quadro ativo.
+
+A série nova está na mesma posição do paciente que a original: abre no **MPR**, sincroniza com as outras séries, e aceita as medidas guiadas (**MRPI e MRPI 2.0**, Evans, ângulo calosal) e os **índices automáticos**. Ela fica só neste computador (não é enviada ao PACS) e leva o selo de IA na miniatura.
+
+**É imagem sintética.** A rede só conhece anatomia normal: lesões podem não aparecer ou mudar de aspecto, e o contraste é calculado, não adquirido. Use para **medir a anatomia** (distâncias, áreas, volumes); **nunca para procurar nem caracterizar lesão**, e confira as medidas contra as imagens originais. Com menos de 20 cortes na série de origem, ou a partir de TC, o resultado é pior, e o programa avisa.
+
+Pelo navegador, a ferramenta aparece na aba **IA** como **T1 sintético de 1 mm (IA, SynthSR)**. Automático na chegada: **Configurações ▸ CAD/IA ▸ T1 sintético (SynthSR)…**; nesse modo só roda em exames de crânio que não têm nenhuma série fina (até 1,5 mm). O modelo (53 MB) é baixado uma vez, pelo instalar_segmentacao ou no primeiro uso.
+
 ## Níveis linfonodais cervicais
 
 Botão **Linfonodos** (TC de pescoço; em outros exames, pelo botão **Aplicações**): **Mapa dos níveis linfonodais (IA)**. A série de TC do quadro ativo vai para o TotalSegmentator, que acha os marcos; o Ipê monta o mapa dos níveis I a VII, direito e esquerdo, pelas regras de imagem do estadiamento:

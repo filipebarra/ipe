@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.23 — Synthetic 1 mm T1 (SynthSR)
+- **Indices ▸ Create a synthetic 1 mm T1 from this series (AI, SynthSR)…**: a 2D head series (any contrast and
+  thickness) becomes an isotropic 1 mm T1 series in the same patient position, for MPR, guided measurements (MRPI)
+  and the automatic indices in studies without a 3D T1. Also in the browser AI tab and in Settings ▸ CAD/AI.
+- It is a **synthetic image**: meant for measuring anatomy, not for looking for lesions (the program warns and
+  writes it in the header). It stays on this computer only.
+- No TensorFlow: the SynthSR network was rewritten in PyTorch and reads the original weights (53 MB, downloaded once).
+
 ## 0.100.22 — Linux: installing segmentation on an older system
 - The segmentation installer looks for **Python 3.10 or newer** (Ubuntu 20.04 ships 3.8, and pip could not find
   TotalSegmentator); if there is none, it downloads its own Python without touching the system one. An environment

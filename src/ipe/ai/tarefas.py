@@ -199,6 +199,7 @@ MARCAS = (
     ("medidas · TotalSegmentator", "coluna"),
     ("Cefalometria", "cefalometria"),
     ("· SynthSeg", "índices do crânio"),
+    ("· SynthSR", "T1 sintético"),
     ("Níveis linfonodais", "níveis linfonodais"),
     ("· sem implante", "implante"),
     ("· TotalSegmentator", "segmentação"),

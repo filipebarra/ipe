@@ -145,10 +145,24 @@ CREDITOS: tuple[Credito, ...] = (
             "https://github.com/BBillot/SynthSeg", onde="modelo",
             citacao="Billot B, et al. SynthSeg: Segmentation of brain MRI scans of any contrast and resolution "
                     "without retraining. Medical Image Analysis. 2023;86:102789."),
+    Credito("SynthSR", "T1 sintético de 1 mm a partir de uma série 2D do crânio, para o MPR e os índices quando "
+            "não há T1 3D (rede reescrita em PyTorch no Ipê, com os pesos originais da versão 1.0)", "Apache-2.0",
+            "https://github.com/BBillot/SynthSR", onde="modelo",
+            citacao="Iglesias JE, et al. Joint super-resolution and synthesis of 1 mm isotropic MP-RAGE volumes "
+                    "from clinical MRI exams with scans of different orientation, resolution and contrast. "
+                    "NeuroImage. 2021;237:118206. Iglesias JE, et al. SynthSR: A public AI tool to turn "
+                    "heterogeneous clinical brain scans into high-resolution T1-weighted images for 3D "
+                    "morphometry. Science Advances. 2023;9(5):eadd3607."),
     Credito("DIPY", "a versão em PyTorch do SynthSeg, no ambiente da segmentação", "BSD-3-Clause",
             "https://dipy.org", onde="segmentação", modulos=("dipy",),
             citacao="Garyfallidis E, et al. Dipy, a library for the analysis of diffusion MRI data. "
                     "Frontiers in Neuroinformatics. 2014;8:8."),
+    Credito("h5py", "leitura dos pesos originais do SynthSR (arquivo HDF5 do Keras), no ambiente da segmentação",
+            "BSD-3-Clause", "https://www.h5py.org", onde="segmentação", modulos=("h5py",)),
+    Credito("SciPy", "reamostragem a 1 mm antes do SynthSR, no ambiente da segmentação", "BSD-3-Clause",
+            "https://scipy.org", onde="segmentação", modulos=("scipy",),
+            citacao="Virtanen P, et al. SciPy 1.0: fundamental algorithms for scientific computing in Python. "
+                    "Nature Methods. 2020;17:261-272."),
     Credito("NiBabel", "troca de volumes (NIfTI) com o ambiente da segmentação", "MIT", "https://nipy.org/nibabel",
             onde="segmentação", modulos=("nibabel",)),
     Credito("Classificador de densidade da NYU", "categoria de densidade mamária (BI-RADS a–d)", "BSD-2-Clause",

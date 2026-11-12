@@ -57,5 +57,7 @@ done
 # SynthSeg pela DIPY (encéfalo: Evans, 3º ventrículo, ângulo calosal, hipocampos)
 "$VENV/bin/python" -m pip install "dipy>=1.12"
 DIPY_HOME="$BASE/pesos/dipy" "$VENV/bin/python" -c "from dipy.data import get_fnames; print(get_fnames(name='synthseg_torch_weights'))"
+# SynthSR (0.100.23): T1 sintético de 1 mm; pesos originais (53 MB). Se falhar, o programa baixa no primeiro uso.
+"$VENV/bin/python" -c "import os,sys,urllib.request as u; d=os.path.join(sys.argv[1],'pesos','synthsr'); os.makedirs(d,exist_ok=True); a=os.path.join(d,'SynthSR_v10_210712.h5'); os.path.getsize(a) if os.path.isfile(a) and os.path.getsize(a)>50000000 else u.urlretrieve('https://github.com/BBillot/SynthSR/raw/main/models/SynthSR_v10_210712.h5',a); print('SynthSR ok')" "$BASE" || echo "SynthSR: o modelo nao baixou agora; o programa tenta de novo no primeiro uso."
 "$VENV/bin/python" -c "import torch, totalsegmentator, dipy; print('ok', torch.__version__, dipy.__version__)"
 echo "Pronto: $BASE"

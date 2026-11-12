@@ -166,6 +166,10 @@ set "DIPY_HOME=%BASE%\pesos\dipy"
 "%PY%" -c "from dipy.data import get_fnames; print(get_fnames(name='synthseg_torch_weights'))"
 if errorlevel 1 ( echo [ERRO] !M_ERRO_SYNTHSEG! & goto :fim )
 
+echo [extra] !M_SYNTHSR!
+"%PY%" -c "import os,sys,urllib.request as u; d=os.path.join(sys.argv[1],'pesos','synthsr'); os.makedirs(d,exist_ok=True); a=os.path.join(d,'SynthSR_v10_210712.h5'); os.path.getsize(a) if os.path.isfile(a) and os.path.getsize(a)>50000000 else u.urlretrieve('https://github.com/BBillot/SynthSR/raw/main/models/SynthSR_v10_210712.h5',a); print('SynthSR ok')" "%BASE%"
+if errorlevel 1 echo [aviso] !M_AVISO_SYNTHSR!
+
 echo.
 echo !M_CONFERINDO!
 "%PY%" -c "import torch, totalsegmentator; from importlib.metadata import version; import dipy; print('PyTorch', torch.__version__, '- TotalSegmentator', version('TotalSegmentator'), '- DIPY', dipy.__version__)"
@@ -313,6 +317,8 @@ set "M_MODELOS=Modelos: orgaos abdominais (TC e RM), segmentos do figado, coluna
 set "M_ERRO_MODELO=Falha baixando o modelo"
 set "M_SYNTHSEG=SynthSeg (encefalo: Evans, 3o ventriculo, angulo calosal, hipocampos), pela DIPY..."
 set "M_ERRO_DIPY=Falha instalando a DIPY."
+set "M_SYNTHSR=SynthSR (T1 sintetico de 1 mm), modelo de 53 MB..."
+set "M_AVISO_SYNTHSR=O modelo do SynthSR nao baixou agora; o programa tenta de novo no primeiro uso."
 set "M_ERRO_SYNTHSEG=Falha baixando os pesos do SynthSeg."
 set "M_CONFERINDO=Conferindo..."
 set "M_ERRO_FINAL=O ambiente nao abriu."
@@ -363,6 +369,8 @@ set "M_MODELOS=Models: abdominal organs (CT and MR), liver segments, spine (vert
 set "M_ERRO_MODELO=Failed to download the model"
 set "M_SYNTHSEG=SynthSeg (brain: Evans, 3rd ventricle, callosal angle, hippocampi), through DIPY..."
 set "M_ERRO_DIPY=Failed to install DIPY."
+set "M_SYNTHSR=SynthSR (synthetic 1 mm T1), 53 MB model..."
+set "M_AVISO_SYNTHSR=The SynthSR model was not downloaded now; the program tries again on first use."
 set "M_ERRO_SYNTHSEG=Failed to download the SynthSeg weights."
 set "M_CONFERINDO=Checking..."
 set "M_ERRO_FINAL=The environment did not start."
@@ -413,6 +421,8 @@ set "M_MODELOS=Modelos: organos abdominales (TC y RM), segmentos del higado, col
 set "M_ERRO_MODELO=Fallo al descargar el modelo"
 set "M_SYNTHSEG=SynthSeg (encefalo: Evans, 3er ventriculo, angulo calloso, hipocampos), por DIPY..."
 set "M_ERRO_DIPY=Fallo al instalar DIPY."
+set "M_SYNTHSR=SynthSR (T1 sintetico de 1 mm), modelo de 53 MB..."
+set "M_AVISO_SYNTHSR=El modelo de SynthSR no se descargo ahora; el programa lo intenta de nuevo en el primer uso."
 set "M_ERRO_SYNTHSEG=Fallo al descargar los pesos de SynthSeg."
 set "M_CONFERINDO=Comprobando..."
 set "M_ERRO_FINAL=El entorno no abrio."

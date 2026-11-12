@@ -56,6 +56,8 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [PyTorch](https://pytorch.org) | a biblioteca de redes neurais da segmentação | BSD-3-Clause |
 | [MONAI](https://monai.io) | o SegResNet do glioma (BraTS) — parte captante, necrose e edema (modelo extra) | Apache-2.0 |
 | [DIPY](https://dipy.org) | a versão em PyTorch do SynthSeg, no ambiente da segmentação | BSD-3-Clause |
+| [h5py](https://www.h5py.org) | leitura dos pesos originais do SynthSR (arquivo HDF5 do Keras), no ambiente da segmentação | BSD-3-Clause |
+| [SciPy](https://scipy.org) | reamostragem a 1 mm antes do SynthSR, no ambiente da segmentação | BSD-3-Clause |
 | [NiBabel](https://nipy.org/nibabel) | troca de volumes (NIfTI) com o ambiente da segmentação | MIT |
 
 ## Modelo de IA, baixado à parte
@@ -66,6 +68,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [MedSAM2](https://github.com/bowang-lab/MedSAM2) | segmentar qualquer lesão por uma caixa, propagada aos cortes vizinhos (modelo extra) | Apache-2.0 (código); CC BY-SA 4.0 (pesos) |
 | [autoPET II (nnU-Net)](https://zenodo.org/records/8362371) | lesões ávidas no PET-FDG, para o MTV e a TLG (modelo extra) | conferir no registro do Zenodo 8362371 (nnU-Net: Apache-2.0) |
 | [SynthSeg](https://github.com/BBillot/SynthSeg) | segmentação do encéfalo em RM de qualquer contraste e resolução e em TC — índices do crânio (Evans, 3º ventrículo, ângulo calosal) e volumes dos hipocampos | Apache-2.0 |
+| [SynthSR](https://github.com/BBillot/SynthSR) | T1 sintético de 1 mm a partir de uma série 2D do crânio, para o MPR e os índices quando não há T1 3D (rede reescrita em PyTorch no Ipê, com os pesos originais da versão 1.0) | Apache-2.0 |
 | [Classificador de densidade da NYU](https://github.com/nyukat/breast_density_classifier) | categoria de densidade mamária (BI-RADS a–d) | BSD-2-Clause |
 
 ## Só para gerar o instalador
@@ -94,7 +97,9 @@ Os autores destas ferramentas pedem que trabalhos que as usam citem:
 - **autoPET II (nnU-Net):** Isensee F, et al. Look Ma, no code: fine tuning nnU-Net for the AutoPET II challenge by only adjusting its JSON plans. arXiv 2309.13747; 2023.
 - **MONAI:** Myronenko A. 3D MRI brain tumor segmentation using autoencoder regularization. BrainLes (MICCAI) 2018.
 - **SynthSeg:** Billot B, et al. SynthSeg: Segmentation of brain MRI scans of any contrast and resolution without retraining. Medical Image Analysis. 2023;86:102789.
+- **SynthSR:** Iglesias JE, et al. Joint super-resolution and synthesis of 1 mm isotropic MP-RAGE volumes from clinical MRI exams with scans of different orientation, resolution and contrast. NeuroImage. 2021;237:118206. Iglesias JE, et al. SynthSR: A public AI tool to turn heterogeneous clinical brain scans into high-resolution T1-weighted images for 3D morphometry. Science Advances. 2023;9(5):eadd3607.
 - **DIPY:** Garyfallidis E, et al. Dipy, a library for the analysis of diffusion MRI data. Frontiers in Neuroinformatics. 2014;8:8.
+- **SciPy:** Virtanen P, et al. SciPy 1.0: fundamental algorithms for scientific computing in Python. Nature Methods. 2020;17:261-272.
 - **Classificador de densidade da NYU:** Wu N, et al. Breast density classification with deep convolutional neural networks. ICASSP 2018.
 
 ## Inspiração
