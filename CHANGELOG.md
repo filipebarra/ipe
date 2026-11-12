@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.27 — A instalação das IAs numa janela, com o andamento e os erros
+- **Instalar a segmentação** e **Instalar os modelos extras** rodam numa janela do Ipê: passo atual, tempo, a saída
+  inteira com os erros em vermelho e, no fim, o veredito conferido (instalado, com erros ou não instalado). Copiar
+  tudo, Salvar e o registro em `instalacao_ia.log`. Não trava o programa.
+- Quando o programa fecha sozinho por erro de uma biblioteca, fica o rastro em `queda.log`, na pasta dos logs.
+
 ## 0.100.26 — Medula e canal: área e compressão por nível (TotalSpineSeg)
 - Botão **Medula** na RM da coluna: segmenta a medula, o canal, os discos e as vértebras e mede em cada disco, no
   plano perpendicular à medula, a área, o AP, o transverso, a razão de compressão, o canal, o MSCC e o MCC. Cada

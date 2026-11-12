@@ -6529,7 +6529,26 @@
   "sem medidas",
   "trocar a SEG da medula anterior",
   "· TotalSpineSeg",
-  "Área da medula"
+  "Área da medula",
+  "A instalação ainda está rodando.",
+  "Abrir a pasta do log",
+  "Copiar tudo",
+  "Esconder",
+  "Esconder (continua instalando)",
+  "IPE_DIAG desconhecido:",
+  "Instalando… (pode continuar usando o programa)",
+  "Instalar a segmentação (TotalSegmentator)",
+  "Instalar os modelos extras de IA",
+  "Interromper",
+  "Interromper a instalação? O que já foi baixado fica; rodar de novo continua de onde parou na maior parte dos passos.",
+  "Linhas de erro:",
+  "Salvar a saída da instalação",
+  "Texto (*.txt)",
+  "\\[ERRO\\]|\\[ERROR\\]|^ERROR[: ]|^Traceback \\(most recent call last\\)|No matching distribution|os error \\d+|Errno \\d+|^\\s*\\w*Error: ",
+  "\\[aviso\\]|^WARNING[: ]|DEPRECATION",
+  "^\\s*(\\[\\d+/\\d+\\]|\\[extra\\]|\\[[A-Za-zÀ-ÿ0-9 ]+\\]|===|Collecting |Downloading |Installing collected|Successfully installed|baixando|extraindo|criando)",
+  "color: #ff7b72;",
+  "o ambiente da segmentação não foi criado"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8291,6 +8310,19 @@
   "razão de compressão {}",
   "{} discos medidos ({} a {})",
   "{}: {}. Instale em Configurações ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS, FLAMeS, medula)… — uma vez, com internet.",
-  "área de {} mm²"
+  "área de {} mm²",
+  "Instalado sem erros em {}.",
+  "Instalando… {}:{} (pode continuar usando o programa)",
+  "Interrompido depois de {}. Nada garante que ficou instalado.",
+  "NÃO ficou instalado ({}): {}. Veja os erros abaixo.",
+  "NÃO ficou instalado ({}). Veja os erros abaixo.",
+  "Não consegui salvar: {}",
+  "Terminou em {}, e o que foi conferido está instalado, mas houve {} linha(s) de erro: leia abaixo.",
+  "[ERRO] Não consegui rodar o instalador: {}",
+  "color: {};",
+  "não consegui conferir: {}",
+  "{} linha(s) de erro (em vermelho no texto). Use Copiar tudo para mandar a saída inteira.",
+  "{} linha(s) de erro até agora. A última: {}",
+  "{} min {} s"
  ]
 }

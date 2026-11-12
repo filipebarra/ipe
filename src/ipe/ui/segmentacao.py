@@ -85,23 +85,6 @@ def tem_visual_cpp(plataforma: str | None = None) -> bool:
     return (sistema / "vcruntime140_1.dll").is_file() and (sistema / "msvcp140.dll").is_file()
 
 
-def _comando_do_mac(cmd: list, env: dict | None = None) -> Path:
-    """macOS: o Terminal não recebe argumentos; abre um arquivo .command. Grava um, temporário, com o comando
-    (e as variáveis que o instalador precisa) e devolve o caminho."""
-    import shlex
-    import tempfile
-    linhas = ["#!/bin/bash"]
-    for k in ("IPE_LANG", "IPE_PESOS", "PYTHONIOENCODING"):
-        v = (env or os.environ).get(k)
-        if v:
-            linhas.append(f"export {k}={shlex.quote(str(v))}")
-    linhas.append(" ".join(shlex.quote(str(c)) for c in cmd))
-    arq = Path(tempfile.mkdtemp(prefix="ipe_")) / "instalar.command"
-    arq.write_text("\n".join(linhas) + "\n", encoding="utf-8")
-    arq.chmod(0o755)
-    return arq
-
-
 def abrir_instalador(janela, perguntar: bool = True) -> bool:
     """Abre o instalador numa janela própria (ele mostra o andamento e pede para fechar no fim).
     O programa não precisa ser reiniciado: o menu passa a funcionar quando o ambiente existir."""
@@ -125,27 +108,20 @@ def abrir_instalador(janela, perguntar: bool = True) -> bool:
         if QMessageBox.question(janela, "Instalar a segmentação", texto + "\n\nAbrir o instalador agora?") \
                 != QMessageBox.Yes:
             return False
-    try:
-        from ipe.core import i18n
-        os.environ["IPE_LANG"] = i18n.current()        # 0.100.13: o instalador fala o idioma do Ipê
-        if sys.platform == "win32":
-            os.startfile(str(arq))                       # noqa: S606 - janela de console própria
-        elif sys.platform == "darwin":                   # 0.100.24: o Terminal do macOS roda um .command
-            from ipe.core.runtime import ambiente_do_sistema
-            subprocess.Popen(["open", "-a", "Terminal", str(_comando_do_mac(["bash", str(arq)]))],
-                             env=ambiente_do_sistema())
-        else:
-            for term in (["x-terminal-emulator", "-e"], ["gnome-terminal", "--"], ["xterm", "-e"]):
-                if shutil.which(term[0]):
-                    from ipe.core.runtime import ambiente_do_sistema
-                    subprocess.Popen([*term, "bash", str(arq)], env=ambiente_do_sistema())
-                    break
-            else:
-                QMessageBox.information(janela, "Instalar a segmentação", f"Rode num terminal:\n\nbash {arq}")
-                return False
-    except OSError as e:
-        QMessageBox.warning(janela, "Instalar a segmentação", f"Não consegui abrir o instalador: {e}\n\n{arq}")
-        return False
+    from ipe.core import i18n
+    from ipe.core.runtime import ambiente_do_sistema
+    from ipe.ui import instalador_janela as IJ
+    idioma = i18n.current()
+    os.environ["IPE_LANG"] = idioma                    # 0.100.13: o instalador fala o idioma do Ipê
+    env = ambiente_do_sistema()
+    env["IPE_LANG"] = idioma
+    cmd = ["cmd", "/c", str(arq)] if sys.platform == "win32" else ["bash", str(arq)]
+
+    def conferir():
+        ok = TS.instalado(None)
+        return ok, ("" if ok else "o ambiente da segmentação não foi criado")
+    # 0.100.27: a instalação roda dentro de uma janela do Ipê, com o andamento, os erros e o veredito no fim
+    IJ.abrir("segmentacao", "Instalar a segmentação (TotalSegmentator)", cmd, env, conferir, janela)
     return True
 
 
@@ -175,22 +151,14 @@ def abrir_instalador_extras(janela, modelos=(), settings=None, perguntar: bool =
     env["PYTHONIOENCODING"] = "utf-8"
     for k in ("PYTHONPATH", "PYTHONHOME"):
         env.pop(k, None)
-    try:
-        if sys.platform == "win32":
-            subprocess.Popen(cmd, env=env, creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0x10))
-        elif sys.platform == "darwin":
-            subprocess.Popen(["open", "-a", "Terminal", str(_comando_do_mac(cmd, env))], env=env)
-        else:
-            for term in (["x-terminal-emulator", "-e"], ["gnome-terminal", "--"], ["xterm", "-e"]):
-                if shutil.which(term[0]):
-                    subprocess.Popen([*term, *cmd], env=env)
-                    break
-            else:
-                QMessageBox.information(janela, "Modelos extras", "Rode num terminal:\n\n" + " ".join(cmd))
-                return False
-    except OSError as e:
-        QMessageBox.warning(janela, "Modelos extras", f"Não consegui abrir o instalador: {e}")
-        return False
+    from ipe.ui import instalador_janela as IJ
+    pedidos = [m for m in modelos if m in EX.MODELOS] or list(EX.MODELOS)
+
+    def conferir():
+        faltas = [f"{EX.NOMES[m]}: {EX.prontidao(m, settings).falta}" for m in pedidos
+                  if not EX.prontidao(m, settings).pronto]
+        return (not faltas), "; ".join(faltas)
+    IJ.abrir("extras", "Instalar os modelos extras de IA", [*cmd, "--sem-pausa"], env, conferir, janela)
     return True
 
 

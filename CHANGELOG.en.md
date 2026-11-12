@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.27 — AI installation in a window, with progress and errors
+- **Install segmentation** and **Install the extra models** run in an Ipê window: current step, elapsed time, the
+  whole output with errors in red and, at the end, a verified verdict (installed, with errors, or not installed).
+  Copy all, Save and a record in `instalacao_ia.log`. It does not block the program.
+- When the program closes by itself because of a library error, a trace is left in `queda.log`, in the logs folder.
+
 ## 0.100.26 — Spinal cord and canal: area and compression per level (TotalSpineSeg)
 - **Spinal cord** button on spine MRI: segments the cord, canal, discs and vertebrae and measures at each disc, in
   the plane perpendicular to the cord, the area, AP, transverse, compression ratio, canal, MSCC and MCC. Each level

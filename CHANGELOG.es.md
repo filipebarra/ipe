@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.27 — La instalación de las IA en una ventana, con el avance y los errores
+- **Instalar la segmentación** e **Instalar los modelos extra** se ejecutan en una ventana de Ipê: paso actual,
+  tiempo, la salida completa con los errores en rojo y, al final, el veredicto verificado (instalado, con errores o
+  no instalado). Copiar todo, Guardar y el registro en `instalacao_ia.log`. No bloquea el programa.
+- Cuando el programa se cierra solo por un error de una biblioteca, queda el rastro en `queda.log`, en la carpeta
+  de registros.
+
 ## 0.100.26 — Médula y canal: área y compresión por nivel (TotalSpineSeg)
 - Botón **Médula** en la RM de columna: segmenta la médula, el canal, los discos y las vértebras y mide en cada
   disco, en el plano perpendicular a la médula, el área, el AP, el transverso, la razón de compresión, el canal, el
