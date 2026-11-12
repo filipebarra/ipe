@@ -80,17 +80,24 @@ def na_janela(win, app) -> None:
         marca("importar_terminou", estudos=len(estudos), esperas=n)
         QTimer.singleShot(1500, abrir_exame)
 
-    def abrir_exame():
+    def abrir_exame(k: int = 0, abertos=None):
+        abertos = [] if abertos is None else abertos
         try:
             estudos = win.repo.search_studies()
-            abertos = []
-            for st in estudos[: int(os.environ.get("IPE_DIAG_ABRIR", "3"))]:
-                r = win.handle_external({"study_uid": st.study_uid})
-                abertos.append(f"{st.modalities}:{r}")
-            marca("exames_abertos", abertos=abertos)
         except Exception as e:  # noqa: BLE001
+            estudos = []
             marca("exames_erro", erro=repr(e))
-        QTimer.singleShot(int(float(os.environ.get("IPE_DIAG_VER", "8")) * 1000), modo)
+        if k >= min(len(estudos), int(os.environ.get("IPE_DIAG_ABRIR", "3"))):
+            marca("exames_abertos", abertos=abertos)
+            return QTimer.singleShot(int(float(os.environ.get("IPE_DIAG_VER", "8")) * 1000), modo)
+        st = estudos[k]
+        marca(f"abrindo_{k}", exame=f"{st.modalities} {st.description}")
+        try:
+            r = win.handle_external({"study_uid": st.study_uid})
+        except Exception as e:  # noqa: BLE001
+            r = repr(e)
+        abertos.append(f"{st.modalities}:{r}")
+        QTimer.singleShot(2500, lambda: abrir_exame(k + 1, abertos))
 
     def modo():
         from ipe.ui.modo_de_uso import ModoDeUsoDialog
@@ -116,6 +123,12 @@ def na_janela(win, app) -> None:
         QTimer.singleShot(int(float(os.environ.get("IPE_DIAG_DIGITAR", "12")) * 1000), fim)
         dlg.exec()
 
+    try:                                    # se o roteiro empacar, de 40 em 40 s fica escrito onde cada linha está
+        import faulthandler
+        na_janela._pilhas = open(d / "onde_esta.log", "w", encoding="utf-8")      # noqa: SIM115
+        faulthandler.dump_traceback_later(40, repeat=True, file=na_janela._pilhas)
+    except Exception:  # noqa: BLE001
+        pass
     marca("janela_aberta", plataforma=app.platformName())
     QTimer.singleShot(3000, importar)
 

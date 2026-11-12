@@ -17,9 +17,10 @@ else
   vivo() { kill -0 $P 2>/dev/null; }
 fi
 digitou=0; foto=0
-for i in $(seq 1 150); do
+for i in $(seq 1 90); do
   sleep 2
   n=$(ls "$D"/etapa_* 2>/dev/null | wc -l | tr -d ' ')
+  if [ $((i % 20)) = 0 ]; then screencapture -x "$D/tela-t$i.png" 2>/dev/null || true; fi
   if [ "$n" != "$foto" ]; then screencapture -x "$D/tela-$n.png" 2>/dev/null || true; foto=$n; fi
   if [ -f "$D/digite.txt" ] && [ $digitou = 0 ]; then
     sleep 2
@@ -32,7 +33,9 @@ for i in $(seq 1 150); do
   if ls "$D"/etapa_*_fim.txt >/dev/null 2>&1; then echo "[$nome] ROTEIRO COMPLETO"; break; fi
   if ! vivo; then echo "[$nome] O PROGRAMA FECHOU SOZINHO (etapas feitas: $n)"; break; fi
 done
+screencapture -x "$D/tela-final.png" 2>/dev/null || true
 sleep 3
+echo "--- [$nome] onde está (se empacou)"; tail -60 "$D/onde_esta.log" 2>/dev/null
 echo "--- [$nome] resultado"; cat "$D/resultado.json" 2>/dev/null; echo
 echo "--- [$nome] saída"; tail -40 "$D/saida.log" 2>/dev/null; tail -40 "$D/erro.log" 2>/dev/null
 echo "--- [$nome] queda.log"; tail -120 "$HOME/Library/Logs/DicomViewer/queda.log" 2>/dev/null
