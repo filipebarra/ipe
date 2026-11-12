@@ -4,12 +4,12 @@
 #   bash tools/diag_roteiro.sh <nome> <comando…>      (comando "ABRIR_APP" = open dist/Ipe.app, como o usuário)
 nome="$1"; shift
 D="$PWD/diag/$nome"; mkdir -p "$D"
-export IPE_DIAG_JANELA=1 IPE_DIAG_DIR="$D" IPE_DIAG_PASTA="$PWD/amostras" IPE_DIAG_DIGITAR=16 IPE_DIAG_VER=10 IPE_DIAG_ABRIR=6
+export IPE_DIAG_JANELA=1 IPE_DIAG_DIR="$D" IPE_DIAG_PASTA="$PWD/amostras" IPE_DIAG_DIGITAR=16 IPE_DIAG_VER=10 IPE_DIAG_ABRIR=40
 : > "$HOME/Library/Logs/DicomViewer/queda.log" 2>/dev/null || true
 if [ "$1" = "ABRIR_APP" ]; then
   open -n dist/Ipe.app --stdout "$D/saida.log" --stderr "$D/erro.log" \
     --env IPE_DIAG_JANELA=1 --env IPE_DIAG_DIR="$D" --env IPE_DIAG_PASTA="$IPE_DIAG_PASTA" \
-    --env IPE_DIAG_DIGITAR=16 --env IPE_DIAG_VER=10 --env IPE_DIAG_ABRIR=6
+    --env IPE_DIAG_DIGITAR=16 --env IPE_DIAG_VER=10 --env IPE_DIAG_ABRIR=40
   vivo() { pgrep -f "Ipe.app/Contents/MacOS/Ipe" >/dev/null; }
 else
   "$@" > "$D/saida.log" 2>&1 &
@@ -17,7 +17,7 @@ else
   vivo() { kill -0 $P 2>/dev/null; }
 fi
 digitou=0; foto=0
-for i in $(seq 1 90); do
+for i in $(seq 1 150); do
   sleep 2
   n=$(ls "$D"/etapa_* 2>/dev/null | wc -l | tr -d ' ')
   if [ $((i % 20)) = 0 ]; then screencapture -x "$D/tela-t$i.png" 2>/dev/null || true; fi
