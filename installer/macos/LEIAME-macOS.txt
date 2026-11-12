@@ -15,6 +15,10 @@ Qual arquivo
 Onde ficam os dados
   ~/Library/Application Support/DicomViewer   (banco, configurações e exames)
 
+Corrigido na 0.100.28
+  - Não dava para digitar no programa (o app estava marcado como "só de fundo" e não aparecia no Dock).
+  - Quando o programa fechar sozinho, mande o arquivo ~/Library/Logs/DicomViewer/queda.log.
+
 O que ainda não foi feito para o Mac (este pacote é para ver o que funciona)
   - Atalhos continuam com Ctrl; o botão do meio do mouse não existe no trackpad.
   - Links ipe:// ainda não abrem o programa.

@@ -3,6 +3,10 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.28 — macOS: o teclado chega ao programa
+- No pacote de teste do macOS não dava para digitar (por exemplo, o endereço do servidor): o app estava marcado como
+  "só de fundo", sem ícone no Dock. Corrigido; o Ipê passa a aparecer no Dock e a receber o teclado.
+
 ## 0.100.27 — A instalação das IAs numa janela, com o andamento e os erros
 - **Instalar a segmentação** e **Instalar os modelos extras** rodam numa janela do Ipê: passo atual, tempo, a saída
   inteira com os erros em vermelho e, no fim, o veredito conferido (instalado, com erros ou não instalado). Copiar

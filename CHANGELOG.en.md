@@ -3,6 +3,10 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.28 — macOS: the keyboard reaches the program
+- In the macOS test package typing did not work (for example, the server address): the app was flagged as
+  "background only", with no Dock icon. Fixed; Ipê now shows in the Dock and receives the keyboard.
+
 ## 0.100.27 — AI installation in a window, with progress and errors
 - **Install segmentation** and **Install the extra models** run in an Ipê window: current step, elapsed time, the
   whole output with errors in red and, at the end, a verified verdict (installed, with errors, or not installed).
