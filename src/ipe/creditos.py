@@ -140,6 +140,11 @@ CREDITOS: tuple[Credito, ...] = (
             "https://monai.io", onde="segmentação", modulos=("monai",),
             citacao="Myronenko A. 3D MRI brain tumor segmentation using autoencoder regularization. BrainLes "
                     "(MICCAI) 2018."),
+    Credito("TotalSpineSeg", "medula, canal, discos e vértebras na RM da coluna — área e índices de compressão por "
+            "nível (modelo extra, num ambiente próprio)", "LGPL-3.0", "https://github.com/neuropoly/totalspineseg",
+            onde="modelo",
+            citacao="Warszawer Y, Molinier N, Valošek J, et al. TotalSpineSeg: Robust Spine Segmentation with "
+                    "Landmark-Based Labeling in MRI. arXiv 2411.09344 (2024)."),
     Credito("FLAMeS", "lesões de substância branca no FLAIR — número, volume e regiões (modelo extra, nnU-Net)",
             "CC BY 4.0", "https://zenodo.org/records/17955359", onde="modelo",
             citacao="Dereskewicz E, La Rosa F, et al. FLAMeS: A Robust Deep Learning Model for Automated Multiple "

@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.26 — Medula e canal: área e compressão por nível (TotalSpineSeg)
+- Botão **Medula** na RM da coluna: segmenta a medula, o canal, os discos e as vértebras e mede em cada disco, no
+  plano perpendicular à medula, a área, o AP, o transverso, a razão de compressão, o canal, o MSCC e o MCC. Cada
+  nível é um achado para conferir, com frase para o laudo. Também na aba IA do navegador.
+- É um modelo extra (TotalSpineSeg), instalado num ambiente próprio para não mexer no TotalSegmentator: Configurações
+  ▸ CAD/IA ▸ Instalar os modelos extras. Pede uns 8 GB de memória livres.
+
 ## 0.100.25 — Lesões de substância branca no FLAIR (FLAMeS)
 - Botão **Lesões SB** na RM de crânio: marca as lesões hiperintensas no FLAIR e dá o número, o volume total e a
   contagem por região (periventricular, justacortical, infratentorial, profunda), com a comparação com o exame

@@ -497,7 +497,7 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
 # ================================================================== modelos extras (0.99.83)
 # MedSAM2 (caixa → máscara 3D), autoPET (lesões no PET-FDG) e BraTS (glioma). Os pesos ficam em
 # IPE_PESOS (…/segmentacao/pesos), baixados pelo instalar_modelos_extras. Nada do Ipê é importado aqui.
-ESPECIAIS = ("medsam2", "autopet", "brats", "synthsr", "flames")
+ESPECIAIS = ("medsam2", "autopet", "brats", "synthsr", "flames", "totalspineseg")
 
 
 def _pesos() -> Path:
@@ -737,6 +737,65 @@ def _sim_flames(vol, cerebro):
     return ((vol >= 3000) & dentro).astype(np.uint8), {1: "lesao_flair"}
 
 
+# ------------------------------------------------------------------ TotalSpineSeg (0.100.26): medula e canal
+def _python_da_medula() -> Path:
+    """O TotalSpineSeg mora num ambiente só dele (…/segmentacao/venv_medula): ele grava um treinador dentro do
+    nnU-Net e depende de versões próprias de bibliotecas — no ambiente comum, quebraria o TotalSegmentator."""
+    base = _pesos().parent / "venv_medula"
+    for c in (base / "Scripts" / "python.exe", base / "bin" / "python"):
+        if c.is_file():
+            return c
+    raise RuntimeError(f"falta o ambiente do TotalSpineSeg em {base}: rode o instalar_modelos_extras (medula)")
+
+
+def _totalspineseg(vol, job: dict, d: Path):
+    """Série → rótulos do TotalSpineSeg (medula 1, canal 2, vértebras 11–50, discos 63–100), na grade da série."""
+    import subprocess
+
+    import nibabel as nib
+    import numpy as np
+    py = _python_da_medula()
+    ent, sai = d / "tss_in", d / "tss_out"
+    ent.mkdir(exist_ok=True)
+    afim = np.asarray(job["affine"], float)
+    nib.save(nib.Nifti1Image(np.ascontiguousarray(vol.transpose(2, 1, 0)).astype(np.float32), afim),
+             str(ent / "serie.nii.gz"))
+    dados = _pesos() / "totalspineseg"
+    dados.mkdir(parents=True, exist_ok=True)
+    # --no-stalling: sem ele, no Linux, o segundo passo travou para sempre no teste (processo-filho parado, 0% de CPU)
+    etapa("TotalSpineSeg: medula, canal, discos e vértebras (na primeira vez baixa o modelo, 2 GB)")
+    cmd = [str(py), "-c", "from totalspineseg.inference import main; main()", str(ent), str(sai),
+           "--data-dir", str(dados), "--device", "cpu", "--quiet", "--no-stalling", "--keep-only", "step2_output",
+           "--max-workers", "2", "--max-workers-nnunet", "1"]
+    env = dict(os.environ)
+    for k in ("PYTHONPATH", "PYTHONHOME", "nnUNet_raw", "nnUNet_preprocessed", "nnUNet_results"):
+        env.pop(k, None)
+    r = subprocess.run(cmd, capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
+    achados = sorted((sai / "step2_output").glob("*.nii*")) if (sai / "step2_output").is_dir() else []
+    if r.returncode != 0 or not achados:
+        fim = ((r.stderr or "") + (r.stdout or "")).strip().splitlines()[-6:]
+        raise RuntimeError("o TotalSpineSeg não terminou: " + " | ".join(fim)[-900:])
+    for z in (dados / "nnUNet" / "exports").glob("*.zip"):          # os .zip baixados já foram extraídos (2 GB)
+        try:
+            z.unlink()
+        except OSError:
+            pass
+    img = nib.load(str(achados[0]))
+    lab = np.asarray(img.dataobj)
+    if lab.shape != vol.shape[::-1]:
+        raise RuntimeError(f"o TotalSpineSeg devolveu outra grade ({lab.shape} × {vol.shape[::-1]})")
+    lab = np.ascontiguousarray(np.rint(lab).astype(np.uint8).transpose(2, 1, 0))
+    nomes = {1: "spinal_cord", 2: "spinal_canal"}
+    return lab, {int(k): nomes.get(int(k), f"rotulo_{int(k)}") for k in np.unique(lab) if k}
+
+
+def _sim_totalspineseg(vol):
+    """Simulado: o valor do voxel é 1000 + rótulo do TotalSpineSeg."""
+    import numpy as np
+    lab = np.where(vol >= 1000, np.clip(vol - 1000, 0, 255), 0).astype(np.uint8)
+    return lab, {int(k): f"rotulo_{int(k)}" for k in np.unique(lab) if k}
+
+
 def _versao_especial(especiais: list) -> str:
     from importlib.metadata import version
     nomes = []
@@ -744,6 +803,9 @@ def _versao_especial(especiais: list) -> str:
         n = t["nome"]
         if n == "synthsr":
             nomes.append("SynthSR 1.0")
+            continue
+        if n == "totalspineseg":
+            nomes.append("TotalSpineSeg")
             continue
         if n == "flames":
             try:
@@ -776,6 +838,8 @@ def rodar_especial(nome: str, vol, d: Path, job: dict, t: dict, simular: bool, a
     if nome == "flames":                                    # 0.100.25: FLAIR sem crânio pela máscara do SynthSeg
         cerebro = _encefalo_do_synthseg(anteriores)
         return _sim_flames(vol, cerebro) if simular else _flames(vol, job, cerebro)
+    if nome == "totalspineseg":                             # 0.100.26: medula, canal, discos e vértebras
+        return _sim_totalspineseg(vol) if simular else _totalspineseg(vol, job, d)
     if nome == "synthsr":                                   # 0.100.23: sai uma imagem, não uma máscara
         import numpy as np
         afim = np.asarray(job["affine"], float)

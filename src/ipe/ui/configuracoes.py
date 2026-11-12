@@ -52,7 +52,7 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         ("Índices do crânio (SynthSeg)…", lambda w: w.abrir_cad_ia("Índices do crânio"), ""),
         ("Níveis linfonodais…", lambda w: w.abrir_cad_ia("Níveis linfonodais"), ""),
         ("Instalar a segmentação de órgãos (TotalSegmentator)…", "f:instalar_segmentacao", "configure"),
-        ("Instalar os modelos extras (MedSAM2, autoPET, BraTS, FLAMeS)…", "f:instalar_modelos_extras", "configure"),
+        ("Instalar os modelos extras (MedSAM2, autoPET, BraTS, FLAMeS, medula)…", "f:instalar_modelos_extras", "configure"),
     ]),
     ("Laudos", [
         ("Prioridade, subespecialidade e prazos (SLA)…", "f:abrir_config_sla", "users"),

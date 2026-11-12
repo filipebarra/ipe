@@ -164,7 +164,8 @@ def abrir_instalador_extras(janela, modelos=(), settings=None, perguntar: bool =
                  "• MedSAM2 — segmentar qualquer lesão por uma caixa (156 MB);\n"
                  "• autoPET — lesões no PET-FDG, para o volume metabólico (MTV) e a TLG (o modelo do Zenodo);\n"
                  "• BraTS — glioma na RM: captante, necrose e edema (19 MB);\n"
-                 "• FLAMeS — lesões de substância branca no FLAIR: número, volume e regiões (2,4 GB).\n\n"
+                 "• FLAMeS — lesões de substância branca no FLAIR: número, volume e regiões (2,4 GB);\n"
+                 "• Medula — TotalSpineSeg num ambiente próprio: medula, canal e níveis da coluna (cerca de 3 GB).\n\n"
                  "Agora:\n" + EX.texto_prontidao(settings) + "\n\nAbrir o instalador?")
         if QMessageBox.question(janela, "Modelos extras", texto) != QMessageBox.Yes:
             return False

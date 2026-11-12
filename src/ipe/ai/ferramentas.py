@@ -27,6 +27,7 @@ GENERICAS = {
     "brats": "ipe.ai.brats",                    # 0.99.83 (modelo extra)
     "aorta": "ipe.ai.aorta",                    # 0.99.90: linha central + planos perpendiculares
     "calcio": "ipe.ai.calcio",                  # 0.99.89: Agatston + órgãos do TotalSegmentator
+    "medula": "ipe.ai.medula",                  # 0.100.26: medula e canal por nível (TotalSpineSeg, modelo extra)
     "flames": "ipe.ai.flames",                  # 0.100.25: lesões de substância branca no FLAIR (modelo extra)
     "synthsr": "ipe.ai.synthsr",                # 0.100.23: T1 sintético de 1 mm (imagem, sem achados)
     "carga_pet": "ipe.ai.carga_pet",            # 0.99.88: limiar + órgãos do TotalSegmentator (FDG/PSMA/DOTA)

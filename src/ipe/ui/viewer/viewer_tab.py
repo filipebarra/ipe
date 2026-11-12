@@ -1298,6 +1298,8 @@ class ViewerTab(OncoMixin, QWidget):
                  "Glioma na RM — BraTS (IA)", "BraTS"),
                 ("flames", "Achar as lesões de substância branca no FLAIR deste exame (IA)…",
                  "Lesões de substância branca no FLAIR — FLAMeS (IA)", "Lesões SB"),
+                ("medula", "Medir a medula e o canal por nível (área, AP, MSCC) nesta série (IA)…",
+                 "Medula e canal: área e compressão por nível (IA)", "Medula"),
                 ("aorta", "Medir o diâmetro da aorta por segmento (perpendicular ao eixo) nesta TC…",
                  "Aorta: diâmetro por segmento (IA)", "Aorta"),
                 ("calcio", "Medir o escore de cálcio coronariano (Agatston) nesta TC sem contraste…",

@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.26 — Spinal cord and canal: area and compression per level (TotalSpineSeg)
+- **Spinal cord** button on spine MRI: segments the cord, canal, discs and vertebrae and measures at each disc, in
+  the plane perpendicular to the cord, the area, AP, transverse, compression ratio, canal, MSCC and MCC. Each level
+  is a finding to review, with a sentence for the report. Also in the browser AI tab.
+- It is an extra model (TotalSpineSeg), installed in its own environment so TotalSegmentator is not touched:
+  Settings ▸ CAD/AI ▸ Install the extra models. It needs about 8 GB of free memory.
+
 ## 0.100.25 — White matter lesions on FLAIR (FLAMeS)
 - **WM lesions** button on head MRI: marks the hyperintense lesions on FLAIR and gives the count, total volume and
   count per region (periventricular, juxtacortical, infratentorial, deep), compared with the previous study. A

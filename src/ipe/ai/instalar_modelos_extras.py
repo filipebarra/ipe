@@ -3,7 +3,7 @@
 Roda com o **Python do ambiente da segmentação** (o mesmo do TotalSegmentator), numa janela própria, aberta
 pelo programa em Configurações ▸ CAD/IA ▸ Instalar os modelos extras… Não importa nada do Ipê.
 
-    python instalar_modelos_extras.py [medsam2] [autopet] [brats] [flames]      (sem nada = todos)
+    python instalar_modelos_extras.py [medsam2] [autopet] [brats] [flames] [medula]      (sem nada = todos)
 
 O que baixa (uma vez; depois funciona sem internet):
 
@@ -11,6 +11,8 @@ O que baixa (uma vez; depois funciona sem internet):
   MedSAM2_latest.pt (156 MB, Hugging Face wanglab/MedSAM2, CC BY-SA 4.0);
 - autoPET: o modelo nnU-Net do autoPET II (DKFZ; Zenodo, registro 8362371), extraído em pesos/autopet;
 - FLAMeS: o modelo nnU-Net das lesões no FLAIR (Zenodo, registro 17955359, CC BY 4.0), só o fold 0, em pesos/flames;
+- medula: o TotalSpineSeg (NeuroPoly, LGPL-3.0) num ambiente próprio, venv_medula; o modelo (2 GB) baixa no
+  primeiro uso, para pesos/totalspineseg;
 - BraTS: o MONAI e os pesos do bundle brats_mri_segmentation (19 MB, Hugging Face MONAI, Apache-2.0).
 """
 from __future__ import annotations
@@ -147,7 +149,36 @@ def flames() -> None:
     print("  FLAMeS ok", flush=True)
 
 
-PASSOS = {"medsam2": medsam2, "autopet": autopet, "brats": brats, "flames": flames}
+def medula() -> None:
+    """0.100.26: TotalSpineSeg (medula, canal, discos e vértebras; LGPL-3.0) num ambiente SÓ dele.
+
+    Ele copia um treinador para dentro do nnU-Net e depende do auglab, que hoje só funciona com o kornia 0.8.1
+    (com o 0.9 o import quebra). No ambiente comum isso derrubaria o TotalSegmentator; por isso `venv_medula`."""
+    print("\n[Medula] TotalSpineSeg num ambiente próprio (PyTorch de CPU + pacote; o modelo de 2 GB baixa no "
+          "primeiro uso)", flush=True)
+    base = pasta_pesos().parent / "venv_medula"
+    py = base / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    if not py.is_file():
+        print("  criando o ambiente em", base, flush=True)
+        r = subprocess.run([sys.executable, "-m", "venv", str(base)])
+        if r.returncode != 0 or not py.is_file():
+            raise RuntimeError("não consegui criar o ambiente (venv)")
+
+    def pip_m(*args: str) -> None:
+        print("  pip install", " ".join(args), flush=True)
+        if subprocess.run([str(py), "-m", "pip", "install", *args]).returncode != 0:
+            raise RuntimeError("o pip falhou (veja as mensagens acima)")
+    pip_m("--upgrade", "pip")
+    if sys.platform == "darwin":
+        pip_m("torch")
+    else:
+        pip_m("torch", "--index-url", "https://download.pytorch.org/whl/cpu")
+    pip_m("totalspineseg[nnunetv2]", "kornia==0.8.1")
+    subprocess.run([str(py), "-c", "import totalspineseg, nnunetv2; from auglab.transforms.gpu.transforms import "
+                    "AugTransformsGPU; print('  TotalSpineSeg ok')"], check=True)
+
+
+PASSOS = {"medsam2": medsam2, "autopet": autopet, "brats": brats, "flames": flames, "medula": medula}
 
 
 def main(argv: list[str]) -> int:

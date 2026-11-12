@@ -712,6 +712,7 @@ const T: Trad = {
   "o T1 sintético é para a RM do crânio": ["the synthetic T1 is for head MRI", "el T1 sintético es para la RM de cráneo"],
   "Lesões de substância branca no FLAIR (IA, FLAMeS)": ["White matter lesions on FLAIR (AI, FLAMeS)", "Lesiones de sustancia blanca en FLAIR (IA, FLAMeS)"],
   "não achei um FLAIR (T2) neste exame": ["no (T2) FLAIR found in this study", "no se halló un FLAIR (T2) en este estudio"],
+  "Medula e canal: área e compressão por nível (IA, TotalSpineSeg)": ["Cord and canal: area and compression per level (AI, TotalSpineSeg)", "Médula y canal: área y compresión por nivel (IA, TotalSpineSeg)"],
   "Apagar medida": ["Delete measurement", "Borrar medida"],
   "Apaga a medida selecionada (clique nela antes)": ["Deletes the selected measurement (click it first)", "Borra la medida seleccionada (haga clic en ella antes)"],
   "Clique numa medida para selecioná-la antes de apagar.": ["Click a measurement to select it before deleting.", "Haga clic en una medida para seleccionarla antes de borrar."],

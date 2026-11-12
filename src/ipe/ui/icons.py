@@ -424,7 +424,7 @@ def _draw(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por ícone
 _APPS_IA = {"app_nodulos": True, "app_enfisema": True, "app_composicao": True, "app_figado": True,
             "app_orgaos": True, "app_genant": True, "app_linfonodos": True, "app_cefalometria": True,
             "app_indices": True, "app_difusao": False, "app_figado_lesoes": True,
-            "app_autopet": True, "app_brats": True, "app_flames": True, "app_carga_pet": True, "app_calcio": True, "app_aorta": True}
+            "app_autopet": True, "app_brats": True, "app_flames": True, "app_medula": True, "app_carga_pet": True, "app_calcio": True, "app_aorta": True}
 
 
 def _pulmoes(p: QPainter) -> None:
@@ -595,6 +595,15 @@ def _draw_app(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por aplic
         p.drawEllipse(QRectF(38, 22, 12, 12))
         p.setBrush(QColor(250, 220, 60))
         p.drawEllipse(QRectF(42, 26, 5, 5))
+    elif name == "app_medula":          # canal em corte axial com a medula achatada no meio
+        p.setPen(_pen(FG, 3.5))
+        p.drawEllipse(QRectF(8, 12, 48, 40))
+        p.setPen(Qt.NoPen)
+        p.setBrush(ACCENT)
+        p.drawEllipse(QRectF(18, 25, 28, 14))
+        p.setPen(_pen(FG, 2.5))
+        p.drawLine(P(32, 6), P(32, 20))
+        p.drawLine(P(32, 44), P(32, 58))
     elif name == "app_flames":          # encéfalo com focos ao redor dos ventrículos
         p.setPen(_pen(FG, 3.5))
         p.drawEllipse(QRectF(6, 8, 52, 46))

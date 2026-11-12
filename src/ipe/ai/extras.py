@@ -22,13 +22,15 @@ from pathlib import Path
 
 import numpy as np
 
-MODELOS = ("medsam2", "autopet", "brats", "flames")
+MODELOS = ("medsam2", "autopet", "brats", "flames", "medula")
 NOMES = {"medsam2": "MedSAM2 (segmentar pela caixa)", "autopet": "autoPET (lesões no PET-FDG)",
-         "brats": "BraTS (glioma na RM)", "flames": "FLAMeS (lesões no FLAIR)"}
+         "brats": "BraTS (glioma na RM)", "flames": "FLAMeS (lesões no FLAIR)",
+         "medula": "TotalSpineSeg (medula e canal)"}
 CREDITOS = {
     "medsam2": "MedSAM2 — Ma J. et al., arXiv 2504.03600 (2025); código Apache-2.0, pesos CC BY-SA 4.0",
     "autopet": "nnU-Net autoPET II — Isensee F. et al., arXiv 2309.13747 (2023); nnU-Net Apache-2.0",
     "brats": "MONAI brats_mri_segmentation (SegResNet, Myronenko 2018); Apache-2.0",
+    "medula": "TotalSpineSeg — Warszawer Y., Molinier N. et al., arXiv 2411.09344 (2024); LGPL-3.0",
     "flames": "FLAMeS — Dereskewicz E., La Rosa F. et al., J Neuroimaging 2025;35(5):e70085; pesos CC BY 4.0",
 }
 
@@ -85,6 +87,13 @@ def prontidao(modelo: str, settings=None) -> Prontidao:
         pasta = p / "flames"
         if not (pasta.is_dir() and any(pasta.rglob("fold_0/checkpoint_final.pth"))):
             return Prontidao(modelo, False, "faltam os pesos do FLAMeS (2,4 GB)")
+    elif modelo == "medula":
+        base = TS.pasta_base() / "venv_medula"
+        if not ((base / "Scripts" / "python.exe").is_file() or (base / "bin" / "python").is_file()):
+            return Prontidao(modelo, False, "falta o ambiente do TotalSpineSeg")
+        sps = [base / "Lib" / "site-packages", *sorted((base / "lib").glob("python3*/site-packages"))]
+        if not any((sp / "totalspineseg").is_dir() for sp in sps):
+            return Prontidao(modelo, False, "falta o pacote do TotalSpineSeg")
     else:
         return Prontidao(modelo, False, "modelo desconhecido")
     return Prontidao(modelo, True)
@@ -103,7 +112,7 @@ def motivo(modelo: str, settings=None) -> str:
     if pr.pronto:
         return ""
     return (f"{NOMES[modelo]}: {pr.falta}. Instale em Configurações ▸ Instalar os modelos extras (MedSAM2, autoPET, "
-            f"BraTS, FLAMeS)… — uma vez, com internet.")
+            f"BraTS, FLAMeS, medula)… — uma vez, com internet.")
 
 
 # ------------------------------------------------------------------ outra série na grade desta
