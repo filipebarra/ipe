@@ -11,7 +11,8 @@ const CHAVE = "ipe.web.janelas";
 const CANAL = "ipe-web-janelas";
 export const MAX_JANELAS = 3;
 
-export type Recado = { tipo: "abrir"; study: string } | { tipo: "fechar" } | { tipo: "sair" } | { tipo: "aberto"; study: string; janela: number };
+export type Recado = { tipo: "abrir"; study: string } | { tipo: "fechar" } | { tipo: "sair" } | { tipo: "aberto"; study: string; janela: number }
+  | { tipo: "ato"; study: string; janela: number; ato: unknown };
 
 let canal: BroadcastChannel | null = null;
 export function canalJanelas(): BroadcastChannel | null {

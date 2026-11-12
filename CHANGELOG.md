@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.20 — Navegador: lista com filtros rápidos e prévia; janelas ligadas
+- **Lista**: filtros de um clique (período, modalidade, situação do laudo e da IA), selos de IA e de laudo em cada
+  exame, e a **prévia** do exame selecionado à direita (séries, IA, laudo, anteriores) antes de abrir.
+- **Janelas ligadas**: rolagem, janela/nível e zoom de uma janela de visualização seguem nas outras (no exame
+  anterior, pelos mesmos milímetros).
+
 ## 0.100.19 — Navegador: aparência do usuário, modo leitura e configuração de monitores
 - **Aparência**: séries à esquerda, embaixo ou em cima; botões em cima ou numa coluna à esquerda; **modo leitura**
   (só as imagens, tecla F). O painel da direita vem recolhido. Guardado no navegador.

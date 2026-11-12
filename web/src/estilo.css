@@ -558,3 +558,44 @@ html.cel { font-size: 15px; }
 .painel-monitores .dica { color: var(--suave); font-size: 12px; }
 .menu.painel:has(.painel-monitores) { width: auto; }
 .paciente.anterior-de span { color: #f2c04f; }
+
+/* ================================================================ 0.100.20: lista com filtros rápidos e prévia */
+.telalista { display: flex; gap: 0; padding: 0; align-items: stretch; overflow: hidden; min-height: 0; }
+.telalista .lista-esq { flex: 1 1 auto; min-width: 0; padding: 12px 14px; overflow: auto; }
+.filtros-rapidos { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 6px; }
+.pilulas { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pilulas .rot { width: 86px; flex: none; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--suave); }
+.pilulas .pil { border-radius: 999px; padding: 3px 12px; height: 28px; font-size: 13px; }
+.pilulas .pil[aria-pressed="true"] { background: var(--acento); border-color: var(--acento); color: #111; font-weight: 600; }
+.pilulas .outro-periodo { display: inline-flex; gap: 6px; }
+.pilulas .outro-periodo[hidden] { display: none; }
+.pilulas .outro-periodo input { height: 28px; }
+.contagem-lista { color: var(--suave); font-size: 12px; min-height: 16px; }
+table.lista tr.sel td { background: rgba(224, 165, 38, 0.14); }
+table.lista tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--acento); }
+table.lista .selo-ia, table.lista .selo-laudo { font-style: normal; font-size: 10px; font-weight: 700; border-radius: 6px; padding: 0 5px; margin-left: 6px;
+  background: #d9c2ff; color: #1a1030; vertical-align: 1px; }
+table.lista .selo-ia.revisar { background: #ba8cff; }
+table.lista .selo-laudo.rascunho { background: #3a3f48; color: #e6e8eb; }
+table.lista .selo-laudo.assinado { background: #2f6f46; color: #e9ffe9; }
+.previa { flex: 0 0 420px; max-width: 38vw; background: #16191d; border-left: 1px solid var(--borda); padding: 14px 16px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px; }
+.previa[hidden] { display: none; }
+.previa .previa-cabeca strong { font-size: 17px; }
+.previa .suave { color: var(--suave); font-size: 13px; }
+.previa-series { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.previa-series figure { margin: 0; position: relative; min-width: 0; }
+.previa-series img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #000; border: 1px solid var(--borda); border-radius: 6px; display: block; }
+.previa-series figcaption { font-size: 11px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.previa-series .selo-ia { position: absolute; top: 4px; left: 4px; font-style: normal; font-size: 10px; font-weight: 700; background: #ba8cff; color: #1a1030;
+  border-radius: 6px; padding: 0 4px; }
+.previa .a-revisar { color: #e3b341; }
+.previa .trecho { color: var(--suave); font-size: 13px; margin-top: 2px; }
+.previa-anteriores { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.previa-acoes { margin-top: auto; padding-top: 10px; display: flex; gap: 8px; }
+.previa-acoes .primario { padding: 8px 16px; font-weight: 600; }
+.cel .telalista { display: block; padding: 8px; }
+.cel .telalista .lista-esq { padding: 0; overflow: visible; }
+.cel .pilulas .rot { width: 100%; }
+.cel .previa { display: none; }
+@media (max-width: 1100px) { .previa { flex-basis: 320px; } .previa-series { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

@@ -8622,5 +8622,6 @@
  "achado não encontrado: {}": "hallazgo no encontrado: {}",
  "número desconhecido: {}": "número desconocido: {}",
  "{} {}: {} (navegador)": "{} {}: {} (navegador)",
- "{}: não é número ({})": "{}: no es un número ({})"
+ "{}: não é número ({})": "{}: no es un número ({})",
+ "exame não encontrado": "estudio no encontrado"
 }

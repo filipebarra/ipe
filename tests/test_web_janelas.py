@@ -58,6 +58,32 @@ def test_lista_numa_janela_e_exame_em_duas(servidor):
         assert s1[0] and s2[0]            # (o fantoma só tem duas séries: as duas janelas mostram as mesmas)
         assert j1.title().endswith("1") and j2.title().endswith("2")
         assert j2.locator(".quadro").count() == 1 and j1.locator(".quadro").count() == 2      # o layout de cada janela
+        # 0.100.20: janelas ligadas — rolar, janela e zoom numa janela seguem para a outra
+        idx = "() => window.__ipeGrade.viewport(0).getCurrentImageIdIndex()"
+        j2.locator(".tira .serie").first.click()            # (a Janela 2 começou na série seguinte: põe a mesma da 1)
+        for _ in range(60):
+            if j2.evaluate("() => window.__ipeGrade.viewport(0).getImageIds().length") > 1:
+                break
+            j2.wait_for_timeout(100)
+        j1.wait_for_timeout(800)
+        j1.evaluate("() => window.__ipeGrade.viewport(0).setImageIdIndex(7)")
+        for _ in range(60):
+            if j2.evaluate(idx) == 7:
+                break
+            j2.wait_for_timeout(100)
+        assert j2.evaluate(idx) == 7
+        j1.evaluate("() => { const v = window.__ipeGrade.viewport(0); v.setProperties({voiRange: {lower: -100, upper: 300}}); v.render(); }")
+        for _ in range(60):
+            if j2.evaluate("() => Math.round(window.__ipeGrade.viewport(0).getProperties().voiRange.upper)") == 300:
+                break
+            j2.wait_for_timeout(100)
+        assert j2.evaluate("() => Math.round(window.__ipeGrade.viewport(0).getProperties().voiRange.lower)") == -100
+        # desligando na segunda janela, ela para de seguir
+        j2.click("nav.barra button[aria-label^='Ligar as janelas']")
+        j1.evaluate("() => window.__ipeGrade.viewport(0).setImageIdIndex(12)")
+        j1.wait_for_timeout(1200)
+        assert j2.evaluate(idx) == 7
+        j2.click("nav.barra button[aria-label^='Ligar as janelas']")
         # fechar o exame numa janela fecha nas duas: ficam à espera, sem fechar
         j1.click("header button.sair")
         assert _esperar(lambda: j1.locator(".espera").count() == 1 and j2.locator(".espera").count() == 1)

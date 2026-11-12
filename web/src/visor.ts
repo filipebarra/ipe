@@ -262,6 +262,10 @@ function indiceMaisPerto(vp: Types.IStackViewport, p: Types.Point3): number | nu
   return csUtils.getClosestStackImageIndexForPoint(p, vp);
 }
 
+/** 0.100.20: um ato do médico que segue para as outras janelas de visualização */
+export type Sinc = { tipo: "pos"; ponto: number[]; normal: number[]; delta: number }
+  | { tipo: "voi"; lower: number; upper: number; modalidade: string } | { tipo: "zoom"; zoom: number };
+
 function ordem(m: DicomJson): number {
   const ipp = m["00200032"]?.Value as number[] | undefined;
   const iop = m["00200037"]?.Value as number[] | undefined;
@@ -524,6 +528,10 @@ export class Grade {
         q.el.addEventListener(ev, () => this.escreverTextos(q));
       }
       q.el.addEventListener(Enums.Events.IMAGE_RENDERED, () => this.aoDesenhar(q));
+      // 0.100.20: o que o médico faz no quadro ativo segue para as outras janelas de visualização
+      q.el.addEventListener(Enums.Events.STACK_NEW_IMAGE, () => this.contar(q, "pos"));
+      q.el.addEventListener(Enums.Events.VOI_MODIFIED, () => this.contar(q, "voi"));
+      q.el.addEventListener(Enums.Events.CAMERA_MODIFIED, () => this.contar(q, "zoom"));
     }
     this.configurarMip();
     this.sincronizar();
@@ -646,6 +654,79 @@ export class Grade {
     };
     window.addEventListener("mousemove", mover, true);
     window.addEventListener("mouseup", soltar, true);
+  }
+
+  // ---------------------------------------------------------------- 0.100.20: janelas ligadas (sincronizadas)
+  /** Chamado quando o médico rola, janela ou amplia no quadro ativo (não quando a mudança veio de outra janela). */
+  aoAto: ((m: Sinc) => void) | null = null;
+  private mudoAte = 0;
+  private ultimaPos: number[] | null = null;
+  private ultimoZoom = 0;
+  private pendentes = new Set<string>();
+
+  private planoDe(vp: Types.IStackViewport): { ipp: number[]; n: number[] } | null {
+    const m = META.get(vp.getCurrentImageId() || "");
+    const ipp = (m?.["00200032"]?.Value as number[] | undefined)?.map(Number);
+    const o = (m?.["00200037"]?.Value as number[] | undefined)?.map(Number);
+    if (!ipp || !o || ipp.length !== 3 || o.length !== 6) return null;
+    return { ipp, n: [o[1] * o[5] - o[2] * o[4], o[2] * o[3] - o[0] * o[5], o[0] * o[4] - o[1] * o[3]] };
+  }
+
+  private contar(q: Quadro, tipo: "pos" | "voi" | "zoom"): void {
+    if (!this.aoAto || q !== this.quadros[this.ativo] || q.tipo !== "pilha" || performance.now() < this.mudoAte) return;
+    if (this.pendentes.has(tipo)) return;
+    this.pendentes.add(tipo);
+    requestAnimationFrame(() => {
+      this.pendentes.delete(tipo);
+      const vp = motor?.getViewport(q.id) as Types.IStackViewport | undefined;
+      if (!vp?.getCurrentImageId() || !this.aoAto || performance.now() < this.mudoAte) return;
+      if (tipo === "pos") {
+        const p = this.planoDe(vp);
+        if (!p) return;
+        const antes = this.ultimaPos;
+        this.ultimaPos = p.ipp;
+        const delta = antes ? (p.ipp[0] - antes[0]) * p.n[0] + (p.ipp[1] - antes[1]) * p.n[1] + (p.ipp[2] - antes[2]) * p.n[2] : 0;
+        this.aoAto({ tipo: "pos", ponto: p.ipp, normal: p.n, delta });
+      } else if (tipo === "voi") {
+        const v = vp.getProperties().voiRange;
+        if (v) this.aoAto({ tipo: "voi", lower: v.lower, upper: v.upper, modalidade: q.serie?.modalidade || "" });
+      } else {
+        const z = vp.getZoom();
+        if (Math.abs(z - this.ultimoZoom) < 1e-4) return;
+        this.ultimoZoom = z;
+        this.aoAto({ tipo: "zoom", zoom: z });
+      }
+    });
+  }
+
+  /** O ato de outra janela, aplicado aqui: aos quadros de corte no mesmo plano (rolagem), da mesma modalidade
+   *  (janela) e a todos (zoom). `mesmoExame`: vai pela posição no paciente; noutro exame (o anterior), anda os
+   *  mesmos milímetros a partir de onde cada quadro está — alinhe uma vez com as janelas desligadas. */
+  aplicarAto(m: Sinc, mesmoExame: boolean): void {
+    this.mudoAte = performance.now() + 400;
+    for (const x of this.quadros) {
+      if (x.tipo !== "pilha") continue;
+      const vp = motor?.getViewport(x.id) as Types.IStackViewport | undefined;
+      if (!vp?.getCurrentImageId()) continue;
+      if (m.tipo === "pos") {
+        const p = this.planoDe(vp);
+        if (!p || Math.abs(p.n[0] * m.normal[0] + p.n[1] * m.normal[1] + p.n[2] * m.normal[2]) < 0.9) continue;
+        const sinal = p.n[0] * m.normal[0] + p.n[1] * m.normal[1] + p.n[2] * m.normal[2] < 0 ? -1 : 1;
+        const alvo = mesmoExame ? m.ponto
+          : [p.ipp[0] + p.n[0] * m.delta * sinal, p.ipp[1] + p.n[1] * m.delta * sinal, p.ipp[2] + p.n[2] * m.delta * sinal];
+        if (!mesmoExame && !m.delta) continue;
+        const k = indiceMaisPerto(vp, alvo as Types.Point3);
+        if (k !== null && k >= 0 && k !== vp.getCurrentImageIdIndex()) void vp.setImageIdIndex(k);
+        if (x === this.quadros[this.ativo]) this.ultimaPos = null;
+      } else if (m.tipo === "voi") {
+        if ((x.serie?.modalidade || "") !== m.modalidade) continue;
+        vp.setProperties({ voiRange: { lower: m.lower, upper: m.upper } });
+        vp.render();
+      } else {
+        vp.setZoom(m.zoom);
+        vp.render();
+      }
+    }
   }
 
   /** Leva cada quadro de corte (menos `exceto`) ao corte mais perto do ponto, se o ponto cair na pilha dele. */

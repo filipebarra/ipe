@@ -25,6 +25,7 @@ import { PainelFilme } from "./filme";
 import {
   Grade, TIPO_ARRASTO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
   ARRANJO_PET_PADRAO, type ConteudoPet, type VistaPet,
+  type Sinc,
 } from "./visor";
 
 const app = document.getElementById("app")!;
@@ -228,7 +229,16 @@ consultaToque.addEventListener?.("change", marcarAparelho);
 // ------------------------------------------------------------------ lista
 /** 0.100.15: a busca da lista volta quando o exame é fechado (nesta aba do navegador) */
 const CHAVE_BUSCA = "ipe.web.busca";
-type Busca = { texto: string; de: string; ate: string; mod: string; ultimo?: string };
+type Busca = { texto: string; de: string; ate: string; mod: string; ultimo?: string; periodo?: string; situacao?: string };
+type Situacao = { laudo: string; achados: number; revisar: number };
+type Previa = { study: string; paciente: string; id: string; idade: string; sexo: string; data: string; descricao: string; acesso: string;
+  series: { uid: string; numero: number; modalidade: string; descricao: string; imagens: number; ia: boolean }[];
+  ia: { ferramentas: string[]; contagem: Record<string, number> };
+  laudo: { estado: string; quando: string; quem: string; trecho: string } | null;
+  anteriores: { uid: string; data: string; descricao: string; modalidades: string }[] };
+function diaIso(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 function lerBusca(): Busca | null {
   try { const v = sessionStorage.getItem(CHAVE_BUSCA); return v ? (JSON.parse(v) as Busca) : null; } catch { return null; }
 }
@@ -267,7 +277,7 @@ async function telaLista(): Promise<void> {
   };
   rotuloMon();
   bMon.onclick = () => abrirPainel(JAN.painelMonitores(rotuloMon), bMon, tr("Monitores e janelas"));
-  const form = el("form", { class: "filtros" }, busca, de, ate, mod, el("button", { type: "submit" }, tr("Buscar")), bMon);
+  const form = el("form", { class: "filtros" }, busca, el("button", { type: "submit" }, tr("Buscar")), bMon);
   const antes = lerBusca();
   if (antes) {
     busca.value = antes.texto || "";
@@ -275,8 +285,106 @@ async function telaLista(): Promise<void> {
     ate.value = antes.ate || "";
     mod.value = antes.mod || "";
   }
+  // 0.100.20: filtros rápidos — período, modalidade e situação, um clique cada
+  let periodo = antes?.periodo ?? (antes?.de || antes?.ate ? "outro" : "tudo");
+  let situacao = antes?.situacao ?? "";
+  let situacoes: Record<string, Situacao> = {};
+  const pilulas = (rotulo: string, opcoes: [string, string][], atual: () => string, escolher: (v: string) => void, ...extra: Node[]) => {
+    const grupo = el("div", { class: "pilulas", role: "group", "aria-label": tr(rotulo) }, el("span", { class: "rot" }, tr(rotulo)));
+    const bs = opcoes.map(([v, nome]) => {
+      const b = el("button", { type: "button", class: "pil", "data-valor": v }, tr(nome)) as HTMLButtonElement;
+      b.onclick = () => { escolher(v); marcar(); };
+      return b;
+    });
+    const marcar = () => bs.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.valor === atual())));
+    marcar();
+    grupo.append(...bs, ...extra);
+    return { grupo, marcar };
+  };
+  const datas = el("span", { class: "outro-periodo" }, de, ate);
+  const aplicarPeriodo = () => {
+    const hoje = new Date();
+    const menos = (n: number) => { const d = new Date(hoje); d.setDate(d.getDate() - n); return diaIso(d); };
+    if (periodo === "hoje") { de.value = ate.value = diaIso(hoje); }
+    else if (periodo === "ontem") { de.value = ate.value = menos(1); }
+    else if (periodo === "7") { de.value = menos(6); ate.value = diaIso(hoje); }
+    else if (periodo === "30") { de.value = menos(29); ate.value = diaIso(hoje); }
+    else if (periodo === "tudo") { de.value = ate.value = ""; }
+    datas.hidden = periodo !== "outro";
+  };
+  aplicarPeriodo();
+  de.onchange = ate.onchange = () => void procurar();
+  const pPeriodo = pilulas("Período", [["hoje", "Hoje"], ["ontem", "Ontem"], ["7", "7 dias"], ["30", "30 dias"], ["tudo", "Tudo"], ["outro", "Outro período…"]],
+    () => periodo, (v) => { periodo = v; aplicarPeriodo(); if (v !== "outro" || de.value || ate.value) void procurar(); }, datas);
+  const pMod = pilulas("Modalidade", [["", "Todas"], ...["CT", "MR", "MG", "US", "PT", "CR", "DX", "NM", "XA"].map((m) => [m, m] as [string, string])],
+    () => mod.value, (v) => { mod.value = v; void procurar(); });
+  const pSit = pilulas("Situação", [["", "Todos"], ["sem", "Sem laudo"], ["draft", "Rascunho"], ["final", "Assinado"], ["ia", "Com IA para revisar"]],
+    () => situacao, (v) => { situacao = v; guardar(); desenhar(); });
+  const rapidos = el("div", { class: "filtros-rapidos" }, pPeriodo.grupo, pMod.grupo, pSit.grupo);
+  const contagem = el("div", { class: "contagem-lista" });
+  const guardar = (ultimo = lerBusca()?.ultimo) =>
+    gravarBusca({ texto: busca.value, de: de.value, ate: ate.value, mod: mod.value, ultimo, periodo, situacao });
+  // 0.100.20: a prévia do exame selecionado, à direita (um clique seleciona; dois abrem)
+  const previa = el("aside", { class: "previa", "aria-label": tr("Exame selecionado") });
+  previa.hidden = true;
+  let selecionado = "";
+  const mostrarPrevia = async (uid: string) => {
+    selecionado = uid;
+    corpo.querySelectorAll("tr.sel").forEach((x) => x.classList.remove("sel"));
+    corpo.querySelector(`tr[data-uid="${uid}"]`)?.classList.add("sel");
+    if (celular()) return;
+    previa.hidden = false;
+    previa.replaceChildren(el("div", { class: "dica" }, tr("Carregando…")));
+    let p: Previa;
+    try {
+      const r = await API.pedir(`${location.origin}/api/web/lista/previa?study=${encodeURIComponent(uid)}`);
+      if (!r.ok) throw new Error(String(r.status));
+      p = (await r.json()) as Previa;
+    } catch {
+      if (selecionado === uid) previa.replaceChildren(el("div", { class: "dica" }, tr("Não foi possível ler o exame.")));
+      return;
+    }
+    if (selecionado !== uid) return;
+    const minis = el("div", { class: "previa-series" });
+    for (const se of p.series.slice(0, 12)) {
+      const img = el("img", { alt: "" }) as HTMLImageElement;
+      void API.miniatura(uid, se.uid).then((u) => { if (u) img.src = u; }).catch(() => undefined);
+      minis.append(el("figure", { title: `${se.numero} · ${se.modalidade} · ${se.descricao} · ${se.imagens} ${tr("im")}` }, img,
+        ...(se.ia ? [el("em", { class: "selo-ia" }, "IA")] : []),
+        el("figcaption", {}, `${se.numero || "–"} · ${se.descricao || se.modalidade}`)));
+    }
+    const c = p.ia.contagem;
+    const totalAch = Object.values(c).reduce((a, b) => a + b, 0);
+    const linhaIA = p.ia.ferramentas.length || totalAch
+      ? el("div", {}, p.ia.ferramentas.map((f) => tr(f)).join(" · "),
+        ...(totalAch ? [el("div", { class: c.sugerido ? "a-revisar" : "" },
+          `${totalAch} ${tr("achado(s)")}: ${c.sugerido || 0} ${tr("sugerido(s)")}, ${(c.confirmado || 0) + (c.corrigido || 0)} ${tr("revisado(s)")}`)] : []))
+      : el("div", { class: "dica" }, tr("Nenhuma IA neste exame."));
+    const estados: Record<string, string> = { draft: "Rascunho", final: "Assinado", amended: "Retificado" };
+    const linhaLaudo = p.laudo
+      ? el("div", {}, el("b", {}, tr(estados[p.laudo.estado] || p.laudo.estado)), ` · ${p.laudo.quando}${p.laudo.quem ? ` · ${p.laudo.quem}` : ""}`,
+        el("div", { class: "trecho" }, p.laudo.trecho))
+      : el("div", { class: "dica" }, tr("Sem laudo."));
+    const ants = el("div", { class: "previa-anteriores" });
+    for (const a of p.anteriores) {
+      const b = el("button", { type: "button", class: "link", title: tr("Abrir este exame") }, `${dataBr(a.data)} · ${a.descricao || a.modalidades}`);
+      b.onclick = () => abrir(a.uid);
+      ants.append(b);
+    }
+    if (!p.anteriores.length) ants.append(el("div", { class: "dica" }, tr("Nenhum.")));
+    const bAbrir = el("button", { type: "button", class: "primario" }, tr("Abrir o exame")) as HTMLButtonElement;
+    bAbrir.onclick = () => abrir(uid);
+    previa.replaceChildren(
+      el("div", { class: "previa-cabeca" }, el("strong", {}, p.paciente),
+        el("div", { class: "suave" }, [p.id, p.idade, p.descricao, dataBr(p.data)].filter(Boolean).join(" · "))),
+      el("div", { class: "titulo-painel" }, `${tr("Séries")} (${p.series.length})`), minis,
+      el("div", { class: "titulo-painel" }, tr("IA neste exame")), linhaIA,
+      el("div", { class: "titulo-painel" }, tr("Laudo")), linhaLaudo,
+      el("div", { class: "titulo-painel" }, tr("Exames anteriores")), ants,
+      el("div", { class: "previa-acoes" }, bAbrir));
+  };
   const abrir = (uid: string) => {
-    gravarBusca({ texto: busca.value, de: de.value, ate: ate.value, mod: mod.value, ultimo: uid });
+    guardar(uid);
     const n = celular() ? 0 : JAN.quantasJanelas();
     if (!n) { location.hash = `#/exame/${uid}`; return; }
     // 0.100.18: a lista continua aqui; o exame abre nas janelas de visualização (uma por monitor)
@@ -310,7 +418,8 @@ async function telaLista(): Promise<void> {
     return el("th", { class: c.num ? "num" : "" }, b);
   });
   const tabela = el("table", { class: "lista" }, el("thead", {}, el("tr", {}, ...titulos)), corpo);
-  app.replaceChildren(cabecalho(), el("main", { class: "telalista" }, form, estado, tabela), tarja());
+  app.replaceChildren(cabecalho(), el("main", { class: "telalista" },
+    el("div", { class: "lista-esq" }, form, rapidos, contagem, estado, tabela), previa), tarja());
   const desenhar = () => {
     const col = COLUNAS.find((c) => c.nome === ordem.col)!;
     titulos.forEach((th, i) => {
@@ -325,15 +434,32 @@ async function telaLista(): Promise<void> {
       return (ordem.desc ? -c : c) || a.i - b.i;
     });
     corpo.replaceChildren();
+    const passa = (uid: string) => {
+      const st = situacoes[uid];
+      if (!situacao) return true;
+      if (!st) return false;
+      return situacao === "sem" ? !st.laudo : situacao === "draft" ? st.laudo === "draft"
+        : situacao === "final" ? !!st.laudo && st.laudo !== "draft" : st.revisar > 0;
+    };
+    let mostrados = 0;
     for (const { r } of ordenadas) {
       const uid = API.texto(r, "0020000D");
+      if (!passa(uid)) continue;
+      mostrados++;
       const tr_ = el("tr", { tabindex: 0, "data-uid": uid },
-        el("td", {}, dataBr(API.texto(r, "00080020"))), el("td", {}, API.texto(r, "00100010")),
+        el("td", {}, dataBr(API.texto(r, "00080020"))),
+        el("td", {}, API.texto(r, "00100010"),
+          ...(situacoes[uid]?.achados ? [el("em", { class: `selo-ia${situacoes[uid].revisar ? " revisar" : ""}`,
+            title: situacoes[uid].revisar ? `${situacoes[uid].revisar} ${tr("achado(s) de IA para revisar")}` : tr("Achados de IA revisados") }, "IA")] : []),
+          ...(situacoes[uid]?.laudo ? [el("em", { class: `selo-laudo ${situacoes[uid].laudo === "draft" ? "rascunho" : "assinado"}`,
+            title: tr(situacoes[uid].laudo === "draft" ? "Laudo em rascunho" : "Laudo assinado") }, tr(situacoes[uid].laudo === "draft" ? "R" : "L"))] : [])),
         el("td", {}, API.texto(r, "00100020")), el("td", {}, API.texto(r, "00081030")),
         el("td", {}, ((r["00080061"]?.Value as string[]) || []).join(", ")),
         el("td", { class: "num" }, API.texto(r, "00201208")));
       tr_.ondblclick = () => abrir(uid);
-      tr_.onclick = () => { if (toque() || celular()) abrir(uid); };       // no toque não há duplo clique
+      tr_.onclick = () => { if (toque() || celular()) abrir(uid); else void mostrarPrevia(uid); };   // no toque não há duplo clique
+      tr_.onfocus = () => { if (!celular() && selecionado !== uid && document.activeElement === tr_ && teclou) void mostrarPrevia(uid); };
+      if (uid === selecionado) tr_.classList.add("sel");
       for (const [i, c] of [...tr_.children].entries()) c.setAttribute("data-col", tr(COLUNAS[i].nome));
       tr_.onkeydown = (e) => { if ((e as KeyboardEvent).key === "Enter") abrir(uid); };
       if (antes?.ultimo === uid) tr_.classList.add("ultimo");      // o exame que estava aberto
@@ -341,7 +467,18 @@ async function telaLista(): Promise<void> {
     }
     const ult = corpo.querySelector<HTMLElement>("tr.ultimo");
     if (ult) { ult.scrollIntoView({ block: "center" }); ult.focus({ preventScroll: true }); }
+    contagem.textContent = linhas.length ? `${mostrados} ${tr(mostrados === 1 ? "exame" : "exames")}${mostrados < linhas.length ? ` ${tr("de")} ${linhas.length}` : ""}` : "";
+    estado.textContent = linhas.length && !mostrados ? tr("Nenhum exame com esta situação.") : (linhas.length ? "" : estado.textContent);
   };
+  // as setas andam pela lista e a prévia acompanha
+  let teclou = false;
+  corpo.addEventListener("keydown", (e) => {
+    const k = (e as KeyboardEvent).key;
+    if (k !== "ArrowDown" && k !== "ArrowUp") return;
+    const atual = document.activeElement as HTMLElement | null;
+    const alvo = (k === "ArrowDown" ? atual?.nextElementSibling : atual?.previousElementSibling) as HTMLElement | null;
+    if (alvo) { e.preventDefault(); teclou = true; alvo.focus(); teclou = false; }
+  });
   const procurar = async () => {
     estado.textContent = tr("Carregando…");
     corpo.replaceChildren();
@@ -352,10 +489,21 @@ async function telaLista(): Promise<void> {
     if (d1 || d2) q.set("StudyDate", `${d1}-${d2}`);
     if (mod.value) q.set("ModalitiesInStudy", mod.value);
     q.set("limit", "300");
-    gravarBusca({ texto: busca.value, de: de.value, ate: ate.value, mod: mod.value, ultimo: lerBusca()?.ultimo });
+    guardar();
+    pMod.marcar();
     linhas = await API.qido(`/studies?${q}`);
     estado.textContent = linhas.length ? "" : tr("Nenhum exame encontrado.");
+    situacoes = {};
     desenhar();
+    // a situação (laudo, IA) chega em seguida: os selos e o filtro de situação
+    if (linhas.length) {
+      try {
+        const r = await API.pedir(`${location.origin}/api/web/lista/situacoes`, { method: "POST",
+          headers: { "Content-Type": "application/json" }, body: JSON.stringify({ studies: linhas.map((x) => API.texto(x, "0020000D")) }) });
+        if (r.ok) { situacoes = ((await r.json()) as { estudos: Record<string, Situacao> }).estudos; desenhar(); }
+      } catch { /* sem a situação: a lista continua */ }
+    }
+    if (antes?.ultimo && !selecionado && !celular() && linhas.some((x) => API.texto(x, "0020000D") === antes.ultimo)) void mostrarPrevia(antes.ultimo);
   };
   form.onsubmit = (e) => { e.preventDefault(); void procurar(); };
   if (!antes?.ultimo) busca.focus();
@@ -637,6 +785,10 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   const trilhoEsq = el("div", { class: "trilho" }, botaoIcone("Abrir o painel de séries", "M9 6l6 6-6 6"));
   const trilhoDir = el("div", { class: "trilho" }, botaoIcone("Abrir o painel de ferramentas", "M15 6l-6 6 6 6"));
   // 0.100.19: a aparência é do usuário — onde ficam as séries e os botões, e o modo leitura
+  // 0.100.20: janelas ligadas — rolar, janela e zoom desta janela seguem para as outras janelas de visualização
+  const bLigar = botaoIcone("Ligar as janelas: rolagem, janela e zoom juntos nas janelas de visualização", "M9 15l6-6M10 6l2-2a4 4 0 0 1 6 6l-2 2M14 18l-2 2a4 4 0 0 1-6-6l2-2");
+  bLigar.hidden = !janela;
+  if (!janela) bLigar.style.display = "none";
   const bLeitura = botaoIcone("Modo leitura (só as imagens) — tecla F", "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5");
   const bAparencia = botaoIcone("Aparência: posição das séries e dos botões", "M4 5h16v14H4zM9 5v14M4 10h5");
   const bGavetaEsq = botaoIcone("Séries", "M4 5h16v4H4zM4 11h16v4H4zM4 17h16v2H4z");
@@ -647,7 +799,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     el("div", { class: "grupo" }, bPet, bDin, bSeg, bCine, bCineMenu),
     el("div", { class: "grupo" }, bInverter, bRestaurar, bOverlay, bOverlayMenu),
     el("div", { class: "grupo" }, bLaudo, bEnviar, bIA),
-    el("div", { class: "grupo" }, bLeitura, bAparencia));
+    el("div", { class: "grupo" }, bLigar, bLeitura, bAparencia));
 
   // ---------------------------------------------------------------- painéis
   const tira = el("aside", { class: "tira", "aria-label": tr("Séries") },
@@ -758,6 +910,20 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   grade.aviso = (m: string) => { aviso.textContent = m; };
   (window as unknown as Record<string, unknown>).__ipeGrade = grade; // para os testes de ponta a ponta
   const g = grade;
+  if (janela) {
+    let ligadas = lerPreferencia("janelasLigadas", true);
+    const marcarLigar = () => bLigar.classList.toggle("ligado", ligadas);
+    marcarLigar();
+    bLigar.onclick = () => { ligadas = !ligadas; gravarPreferencia("janelasLigadas", ligadas); marcarLigar(); };
+    g.aoAto = (ato) => { if (ligadas) JAN.canalJanelas()?.postMessage({ tipo: "ato", study, janela, ato } satisfies JAN.Recado); };
+    const ouvirAto = (e: MessageEvent) => {
+      if (grade !== g) { JAN.canalJanelas()?.removeEventListener("message", ouvirAto); return; }
+      const m = e.data as JAN.Recado;
+      if (m.tipo !== "ato" || !ligadas || m.janela === janela) return;
+      g.aplicarAto(m.ato as Sinc, m.study === study);
+    };
+    JAN.canalJanelas()?.addEventListener("message", ouvirAto);
+  }
   // 0.100.2: o overlay (CAD/IA, GSPS, RTSTRUCT, SEG nas pilhas, textos, medidas, linhas de referência)
   const ov = new Overlay(g, study, () => {
     bOverlay.setAttribute("aria-pressed", String(ov.ligado));

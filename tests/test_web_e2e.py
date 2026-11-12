@@ -110,7 +110,7 @@ def test_login_lista_exame_e_quadros(servidor):
         pg.click("button:has-text('Buscar')")
         assert _esperar(lambda: pg.locator("table.lista tbody tr").count() == 3)
         pg.fill("#busca", "")
-        pg.select_option("select[title=Modalidade]", "CT")
+        pg.click(".pilulas[aria-label='Modalidade'] button[data-valor='CT']")      # 0.100.20: filtros rápidos
         pg.click("button:has-text('Buscar')")
         assert _esperar(lambda: all("CT" in t for t in pg.locator("table.lista tbody tr td:nth-child(5)").all_inner_texts()))
         # abrir a TC
@@ -148,8 +148,8 @@ def test_login_lista_exame_e_quadros(servidor):
         icone(pg, 'Voltar à lista')
         pg.wait_for_selector("table.lista tbody tr")
         # 0.100.15: a busca anterior (modalidade CT) volta com a lista; a mamografia pede todas
-        assert pg.input_value("select[title=Modalidade]") == "CT"
-        pg.select_option("select[title=Modalidade]", "")
+        assert pg.get_attribute(".pilulas[aria-label='Modalidade'] button[data-valor='CT']", "aria-pressed") == "true"
+        pg.click(".pilulas[aria-label='Modalidade'] button[data-valor='']")
         pg.fill("#busca", "JLS")
         pg.click("button:has-text('Buscar')")
         assert _esperar(lambda: pg.locator("table.lista tbody tr").count() == 1)

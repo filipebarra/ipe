@@ -31,7 +31,7 @@ export function cabecalhos(): Record<string, string> {
   return h;
 }
 
-async function pedir(url: string, init: RequestInit = {}): Promise<Response> {
+export async function pedir(url: string, init: RequestInit = {}): Promise<Response> {
   const r = await fetch(url, { ...init, headers: { ...cabecalhos(), ...(init.headers || {}) }, cache: "no-store" });
   if (r.status === 401 && token) {
     token = "";

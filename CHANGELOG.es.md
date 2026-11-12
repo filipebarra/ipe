@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.20 — Navegador: lista con filtros rápidos y vista previa; ventanas vinculadas
+- **Lista**: filtros de un clic (período, modalidad, situación del informe y de la IA), sellos de IA y de informe en
+  cada estudio, y la **vista previa** del estudio seleccionado a la derecha (series, IA, informe, anteriores).
+- **Ventanas vinculadas**: el desplazamiento, la ventana/nivel y el zoom de una ventana de visualización siguen en
+  las demás (en el estudio anterior, por los mismos milímetros).
+
 ## 0.100.19 — Navegador: apariencia del usuario, modo lectura y configuración de monitores
 - **Apariencia**: series a la izquierda, abajo o arriba; botones arriba o en una columna a la izquierda; **modo
   lectura** (solo imágenes, tecla F). El panel derecho viene plegado. Guardado en el navegador.

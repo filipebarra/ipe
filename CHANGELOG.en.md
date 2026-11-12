@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.20 — Browser: list with quick filters and preview; linked windows
+- **List**: one-click filters (period, modality, report and AI status), AI and report badges on each study, and a
+  **preview** of the selected study on the right (series, AI, report, priors) before opening it.
+- **Linked windows**: scrolling, window/level and zoom in one viewer window follow in the others (in the prior
+  study, by the same millimetres).
+
 ## 0.100.19 — Browser: user-chosen appearance, reading mode and monitor setup
 - **Appearance**: series on the left, at the bottom or at the top; buttons at the top or in a left column; **reading
   mode** (images only, F key). The right panel starts collapsed. Saved in the browser.

@@ -606,6 +606,20 @@ class _Handler(BaseHTTPRequestHandler):
             except (RuntimeError, TimeoutError) as e:
                 return self._error(503, str(e))
             return self._json(200, r, raw=True)
+        if path in ("/api/web/lista/situacoes", "/api/web/lista/previa"):   # 0.100.20: lista com prévia e filtros
+            from ipe.central import lista_web as LW
+            try:
+                if method == "POST" and path.endswith("situacoes"):
+                    r = LW.situacoes(c, s, json.loads(self._body() or b"{}"))
+                elif method == "GET" and path.endswith("previa"):
+                    r = LW.previa(c, s, parse_qs(parts.query))
+                else:
+                    return self._error(405, "método")
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            return self._json(200, r, raw=True)
         if path in ("/api/web/achados", "/api/web/achados/revisar"):      # 0.100.16: revisar achados de IA
             from ipe.central import achados_web as AW
             try:

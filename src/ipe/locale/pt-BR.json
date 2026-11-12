@@ -6407,7 +6407,8 @@
   "· Ipe",
   "· MedSAM2",
   "registrar a revisão do achado",
-  "seu perfil não permite revisar achados de IA (report)"
+  "seu perfil não permite revisar achados de IA (report)",
+  "exame não encontrado"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

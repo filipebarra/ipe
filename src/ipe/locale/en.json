@@ -8622,5 +8622,6 @@
  "achado não encontrado: {}": "finding not found: {}",
  "número desconhecido: {}": "unknown number: {}",
  "{} {}: {} (navegador)": "{} {}: {} (browser)",
- "{}: não é número ({})": "{}: not a number ({})"
+ "{}: não é número ({})": "{}: not a number ({})",
+ "exame não encontrado": "study not found"
 }
