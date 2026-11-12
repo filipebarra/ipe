@@ -211,6 +211,9 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
                         "MTV, TLG, regiões e, no PSMA, miTNM e miPSMA"),
     Aplicacao("brats", "BraTS", frozenset({"MR"}), ((frozenset({"cranio"}), frozenset()),),
               descricao="Glioma na RM (IA, modelo extra): volumes da parte captante, necrose e edema"),
+    Aplicacao("flames", "Lesões no FLAIR", frozenset({"MR"}), ((frozenset({"cranio"}), frozenset()),),
+              descricao="Lesões de substância branca no FLAIR (IA, modelo extra): número, volume e regiões, com a "
+                        "comparação com o exame anterior"),
     Aplicacao("difusao", "Difusão", frozenset({"MR"}), ((frozenset(), frozenset({"difusao"})),),
               descricao="Mapa ADC dos valores de b, DWI sintética e ADC numa ROI (qualquer RM)"),
     Aplicacao("abdome", "Órgãos abdominais", frozenset({"CT", "MR"}),

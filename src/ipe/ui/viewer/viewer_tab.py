@@ -1296,6 +1296,8 @@ class ViewerTab(OncoMixin, QWidget):
                  "Lesões no PET-FDG: MTV e TLG (IA)", "autoPET"),
                 ("brats", "Segmentar o glioma (captante, necrose, edema) nesta RM (IA)…",
                  "Glioma na RM — BraTS (IA)", "BraTS"),
+                ("flames", "Achar as lesões de substância branca no FLAIR deste exame (IA)…",
+                 "Lesões de substância branca no FLAIR — FLAMeS (IA)", "Lesões SB"),
                 ("aorta", "Medir o diâmetro da aorta por segmento (perpendicular ao eixo) nesta TC…",
                  "Aorta: diâmetro por segmento (IA)", "Aorta"),
                 ("calcio", "Medir o escore de cálcio coronariano (Agatston) nesta TC sem contraste…",
@@ -6001,6 +6003,19 @@ class ViewerTab(OncoMixin, QWidget):
                 alvo = vp
                 self.load_series_into(vp, serie)
             vp = alvo
+        if tipo == "flames":                    # 0.100.25: roda no FLAIR do exame, esteja ou não no quadro
+            from ipe.ai import flames as FL
+            linha = self._series_row(getattr(vp, "series_uid", "") or "")
+            if linha is None or not FL.e_flair(linha.description or ""):
+                serie, motivo = FL.escolher_serie(self.repo, vp.study_uid or self.study_uid, self.settings)
+                if not serie:
+                    QMessageBox.information(self, FL.TITULO, f"Lesões no FLAIR: {motivo}.")
+                    return None
+                alvo = next((v for v in self.viewports if v.series_uid == serie and v.frames), None)
+                if alvo is None:
+                    alvo = vp
+                    self.load_series_into(vp, serie)
+                vp = alvo
         return self.segmentar_orgaos(vp, simular=simular, tipo=tipo)
 
     def ferramenta_ia_botao(self, tipo: str):

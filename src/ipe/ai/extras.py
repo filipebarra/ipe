@@ -22,13 +22,14 @@ from pathlib import Path
 
 import numpy as np
 
-MODELOS = ("medsam2", "autopet", "brats")
+MODELOS = ("medsam2", "autopet", "brats", "flames")
 NOMES = {"medsam2": "MedSAM2 (segmentar pela caixa)", "autopet": "autoPET (lesões no PET-FDG)",
-         "brats": "BraTS (glioma na RM)"}
+         "brats": "BraTS (glioma na RM)", "flames": "FLAMeS (lesões no FLAIR)"}
 CREDITOS = {
     "medsam2": "MedSAM2 — Ma J. et al., arXiv 2504.03600 (2025); código Apache-2.0, pesos CC BY-SA 4.0",
     "autopet": "nnU-Net autoPET II — Isensee F. et al., arXiv 2309.13747 (2023); nnU-Net Apache-2.0",
     "brats": "MONAI brats_mri_segmentation (SegResNet, Myronenko 2018); Apache-2.0",
+    "flames": "FLAMeS — Dereskewicz E., La Rosa F. et al., J Neuroimaging 2025;35(5):e70085; pesos CC BY 4.0",
 }
 
 
@@ -76,6 +77,14 @@ def prontidao(modelo: str, settings=None) -> Prontidao:
             return Prontidao(modelo, False, "falta o MONAI")
         if not (p / "brats" / "model.pt").is_file():
             return Prontidao(modelo, False, "faltam os pesos do BraTS (19 MB)")
+    elif modelo == "flames":
+        if not _pacote("nnunetv2"):
+            return Prontidao(modelo, False, "falta o nnU-Net")
+        if not _pacote("dipy"):
+            return Prontidao(modelo, False, "falta a DIPY (SynthSeg): rode de novo o instalar_segmentacao")
+        pasta = p / "flames"
+        if not (pasta.is_dir() and any(pasta.rglob("fold_0/checkpoint_final.pth"))):
+            return Prontidao(modelo, False, "faltam os pesos do FLAMeS (2,4 GB)")
     else:
         return Prontidao(modelo, False, "modelo desconhecido")
     return Prontidao(modelo, True)
@@ -94,7 +103,7 @@ def motivo(modelo: str, settings=None) -> str:
     if pr.pronto:
         return ""
     return (f"{NOMES[modelo]}: {pr.falta}. Instale em Configurações ▸ Instalar os modelos extras (MedSAM2, autoPET, "
-            f"BraTS)… — uma vez, com internet.")
+            f"BraTS, FLAMeS)… — uma vez, com internet.")
 
 
 # ------------------------------------------------------------------ outra série na grade desta

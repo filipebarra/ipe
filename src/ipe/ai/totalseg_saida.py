@@ -212,11 +212,16 @@ def gravar(trabalho: "TS.Trabalho", res: "TS.Resultado", db, storage_root) -> di
     return out
 
 
-def _caminho_do_sop(db, study_uid: str, sop: str) -> str:
+def _caminho_do_sop(db, study_uid: str, sop: str, descricao: str | None = None) -> str:
+    """`descricao` (0.100.25): a série da ferramenta que não leva as marcas "só locais" (BraTS, autoPET, FLAMeS) —
+    sem isso o caminho voltava vazio e a máscara só aparecia ao reabrir o exame."""
     from ipe.db.repository import Repository
     repo = Repository(db)
     for se in repo.series_for_study(study_uid):
-        if not any(m in (se.description or "") for m in TS.MARCAS_IA):
+        if descricao is not None:
+            if (se.description or "") != descricao:
+                continue
+        elif not any(m in (se.description or "") for m in TS.MARCAS_IA):
             continue
         for inst in repo.instances_for_series(se.series_uid):
             if inst.get("sop_uid") == sop:

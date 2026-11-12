@@ -140,6 +140,10 @@ CREDITOS: tuple[Credito, ...] = (
             "https://monai.io", onde="segmentação", modulos=("monai",),
             citacao="Myronenko A. 3D MRI brain tumor segmentation using autoencoder regularization. BrainLes "
                     "(MICCAI) 2018."),
+    Credito("FLAMeS", "lesões de substância branca no FLAIR — número, volume e regiões (modelo extra, nnU-Net)",
+            "CC BY 4.0", "https://zenodo.org/records/17955359", onde="modelo",
+            citacao="Dereskewicz E, La Rosa F, et al. FLAMeS: A Robust Deep Learning Model for Automated Multiple "
+                    "Sclerosis Lesion Segmentation. Journal of Neuroimaging. 2025;35(5):e70085."),
     Credito("SynthSeg", "segmentação do encéfalo em RM de qualquer contraste e resolução e em TC — índices do "
             "crânio (Evans, 3º ventrículo, ângulo calosal) e volumes dos hipocampos", "Apache-2.0",
             "https://github.com/BBillot/SynthSeg", onde="modelo",

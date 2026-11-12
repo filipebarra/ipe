@@ -67,6 +67,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [PaddleOCR (modelos)](https://github.com/PaddlePaddle/PaddleOCR) | os modelos de leitura de texto que o RapidOCR usa | Apache-2.0 |
 | [MedSAM2](https://github.com/bowang-lab/MedSAM2) | segmentar qualquer lesão por uma caixa, propagada aos cortes vizinhos (modelo extra) | Apache-2.0 (código); CC BY-SA 4.0 (pesos) |
 | [autoPET II (nnU-Net)](https://zenodo.org/records/8362371) | lesões ávidas no PET-FDG, para o MTV e a TLG (modelo extra) | conferir no registro do Zenodo 8362371 (nnU-Net: Apache-2.0) |
+| [FLAMeS](https://zenodo.org/records/17955359) | lesões de substância branca no FLAIR — número, volume e regiões (modelo extra, nnU-Net) | CC BY 4.0 |
 | [SynthSeg](https://github.com/BBillot/SynthSeg) | segmentação do encéfalo em RM de qualquer contraste e resolução e em TC — índices do crânio (Evans, 3º ventrículo, ângulo calosal) e volumes dos hipocampos | Apache-2.0 |
 | [SynthSR](https://github.com/BBillot/SynthSR) | T1 sintético de 1 mm a partir de uma série 2D do crânio, para o MPR e os índices quando não há T1 3D (rede reescrita em PyTorch no Ipê, com os pesos originais da versão 1.0) | Apache-2.0 |
 | [Classificador de densidade da NYU](https://github.com/nyukat/breast_density_classifier) | categoria de densidade mamária (BI-RADS a–d) | BSD-2-Clause |
@@ -96,6 +97,7 @@ Os autores destas ferramentas pedem que trabalhos que as usam citem:
 - **MedSAM2:** Ma J, et al. MedSAM2: Segment Anything in 3D Medical Images and Videos. arXiv 2504.03600; 2025.
 - **autoPET II (nnU-Net):** Isensee F, et al. Look Ma, no code: fine tuning nnU-Net for the AutoPET II challenge by only adjusting its JSON plans. arXiv 2309.13747; 2023.
 - **MONAI:** Myronenko A. 3D MRI brain tumor segmentation using autoencoder regularization. BrainLes (MICCAI) 2018.
+- **FLAMeS:** Dereskewicz E, La Rosa F, et al. FLAMeS: A Robust Deep Learning Model for Automated Multiple Sclerosis Lesion Segmentation. Journal of Neuroimaging. 2025;35(5):e70085.
 - **SynthSeg:** Billot B, et al. SynthSeg: Segmentation of brain MRI scans of any contrast and resolution without retraining. Medical Image Analysis. 2023;86:102789.
 - **SynthSR:** Iglesias JE, et al. Joint super-resolution and synthesis of 1 mm isotropic MP-RAGE volumes from clinical MRI exams with scans of different orientation, resolution and contrast. NeuroImage. 2021;237:118206. Iglesias JE, et al. SynthSR: A public AI tool to turn heterogeneous clinical brain scans into high-resolution T1-weighted images for 3D morphometry. Science Advances. 2023;9(5):eadd3607.
 - **DIPY:** Garyfallidis E, et al. Dipy, a library for the analysis of diffusion MRI data. Frontiers in Neuroinformatics. 2014;8:8.

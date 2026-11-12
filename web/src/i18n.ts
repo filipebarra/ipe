@@ -710,6 +710,8 @@ const T: Trad = {
   "T1 sintético de 1 mm (IA, SynthSR)": ["Synthetic 1 mm T1 (AI, SynthSR)", "T1 sintético de 1 mm (IA, SynthSR)"],
   "o exame já tem uma série fina (até 1,5 mm): o T1 sintético não é necessário": ["the study already has a thin series (up to 1.5 mm): the synthetic T1 is not needed", "el estudio ya tiene una serie fina (hasta 1,5 mm): el T1 sintético no es necesario"],
   "o T1 sintético é para a RM do crânio": ["the synthetic T1 is for head MRI", "el T1 sintético es para la RM de cráneo"],
+  "Lesões de substância branca no FLAIR (IA, FLAMeS)": ["White matter lesions on FLAIR (AI, FLAMeS)", "Lesiones de sustancia blanca en FLAIR (IA, FLAMeS)"],
+  "não achei um FLAIR (T2) neste exame": ["no (T2) FLAIR found in this study", "no se halló un FLAIR (T2) en este estudio"],
   "Apagar medida": ["Delete measurement", "Borrar medida"],
   "Apaga a medida selecionada (clique nela antes)": ["Deletes the selected measurement (click it first)", "Borra la medida seleccionada (haga clic en ella antes)"],
   "Clique numa medida para selecioná-la antes de apagar.": ["Click a measurement to select it before deleting.", "Haga clic en una medida para seleccionarla antes de borrar."],

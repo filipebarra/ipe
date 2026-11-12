@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.25 — White matter lesions on FLAIR (FLAMeS)
+- **WM lesions** button on head MRI: marks the hyperintense lesions on FLAIR and gives the count, total volume and
+  count per region (periventricular, juxtacortical, infratentorial, deep), compared with the previous study. A
+  finding to review, a sentence for the report and the lesions coloured by region. Also in the browser AI tab.
+- It is an extra model (FLAMeS, 2.4 GB): install it in Settings ▸ CAD/AI ▸ Install the extra models.
+- BraTS and autoPET: the mask now shows in the study right after the run, without reopening it.
+
 ## 0.100.24 — macOS: test package
 - First Ipê package for **macOS** (Ipe.app in a .dmg, for Apple silicon and for Intel), built separately and not in
   the release yet. Not signed by Apple: on first launch, right-click ▸ Open.

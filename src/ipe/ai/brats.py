@@ -264,7 +264,7 @@ def gravar(t, res: Resultado, versao: str, db, storage_root, repo=None, settings
             r = Importer(db, Path(storage_root), copy_to_storage=True, origin="import").import_paths([tmp])
             out["series"] += sorted(getattr(r, "new_series", None) or [])
             out["seg_sop"] = str(ds.SOPInstanceUID)
-            out["seg_path"] = _caminho_do_sop(db, t.study_uid, out["seg_sop"])
+            out["seg_path"] = _caminho_do_sop(db, t.study_uid, out["seg_sop"], DESC_SEG)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
     out["achados"] = repo.gravar_achados(t.study_uid, FERRAMENTA, itens_para_o_banco(res, t, versao))

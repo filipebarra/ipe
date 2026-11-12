@@ -424,7 +424,8 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
             continue
         if t.get("neuro"):
             # fantoma do SynthSeg (0.99.17): HU = 1000 + rótulo do FreeSurfer
-            lab = np.where(vol >= 1000, np.clip(vol - 1000, 0, 255), 0).astype(np.uint8)
+            # (0.100.25: 3000 + rótulo = lesão do FLAMeS dentro daquela estrutura)
+            lab = np.where(vol >= 1000, np.clip((vol - 1000) % 2000, 0, 255), 0).astype(np.uint8)
             saida[nome] = (lab, {int(k): NOMES_SYNTHSEG.get(int(k), str(k)) for k in np.unique(lab) if k})
             continue
         if t.get("cefalo"):
@@ -496,7 +497,7 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
 # ================================================================== modelos extras (0.99.83)
 # MedSAM2 (caixa → máscara 3D), autoPET (lesões no PET-FDG) e BraTS (glioma). Os pesos ficam em
 # IPE_PESOS (…/segmentacao/pesos), baixados pelo instalar_modelos_extras. Nada do Ipê é importado aqui.
-ESPECIAIS = ("medsam2", "autopet", "brats", "synthsr")
+ESPECIAIS = ("medsam2", "autopet", "brats", "synthsr", "flames")
 
 
 def _pesos() -> Path:
@@ -681,6 +682,61 @@ def _sim_brats(vol, canais: dict, job: dict, cerebro=None):
     return lab, {1: "necrose", 2: "edema", 3: "captante"}
 
 
+# ------------------------------------------------------------------ FLAMeS (0.100.25): lesões no FLAIR
+#: rótulo do SynthSeg para o líquor de fora do encéfalo (o FLAMeS quer o FLAIR sem crânio e sem esse líquor)
+SYNTHSEG_LIQUOR = 24
+
+
+def _flames_pasta():
+    """A pasta do modelo nnU-Net do FLAMeS (a que tem plans.json e fold_0/checkpoint_final.pth)."""
+    raiz = _pesos() / "flames"
+    achados = sorted(p.parent.parent for p in raiz.rglob("fold_0/checkpoint_final.pth")) if raiz.is_dir() else []
+    if not achados:
+        raise RuntimeError(f"faltam os pesos do FLAMeS em {raiz}: rode o instalar_modelos_extras")
+    return ([p for p in achados if "3d_fullres" in p.name] or achados)[0]
+
+
+def _encefalo_do_synthseg(anteriores: dict):
+    """A máscara do encéfalo (sem o líquor de fora) da tarefa synthseg da mesma rodada, ou None."""
+    import numpy as np
+    par = anteriores.get("synthseg")
+    if par is None:
+        return None
+    lab = np.asarray(par[0])
+    return (lab > 0) & (lab != SYNTHSEG_LIQUOR)
+
+
+def _flames(vol, job: dict, cerebro):
+    """FLAIR sem o crânio → lesões de substância branca (nnU-Net do FLAMeS, um fold, CPU)."""
+    import numpy as np
+    import torch
+    from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
+    if cerebro is None or not cerebro.any():
+        raise RuntimeError("o encéfalo não foi segmentado (SynthSeg): o FLAMeS precisa do FLAIR sem o crânio")
+    etapa("FLAMeS: carregando o modelo")
+    pred = nnUNetPredictor(tile_step_size=0.5, use_gaussian=True, use_mirroring=False,
+                           device=torch.device("cpu"), verbose=False, allow_tqdm=False)
+    pred.initialize_from_trained_model_folder(str(_flames_pasta()), use_folds=(0,),
+                                              checkpoint_name="checkpoint_final.pth")
+    kk, jj, ii = np.nonzero(cerebro)                         # só a caixa do encéfalo: menos janelas na CPU
+    a, b, c = max(0, kk.min() - 2), max(0, jj.min() - 2), max(0, ii.min() - 2)
+    fat = (slice(a, kk.max() + 3), slice(b, jj.max() + 3), slice(c, ii.max() + 3))
+    img = np.where(cerebro[fat], vol[fat], 0).astype(np.float32)[None]
+    props = {"spacing": [float(x) for x in job["espacamento"]]}
+    etapa("FLAMeS: procurando as lesões")
+    seg = np.asarray(pred.predict_single_npy_array(img, props, None, None, False), np.uint8)
+    lab = np.zeros(vol.shape, np.uint8)
+    lab[fat] = (seg > 0) & cerebro[fat]
+    return lab, {1: "lesao_flair"}
+
+
+def _sim_flames(vol, cerebro):
+    """Simulado: voxels com 3000 ou mais dentro do encéfalo."""
+    import numpy as np
+    dentro = cerebro if cerebro is not None else np.ones(vol.shape, bool)
+    return ((vol >= 3000) & dentro).astype(np.uint8), {1: "lesao_flair"}
+
+
 def _versao_especial(especiais: list) -> str:
     from importlib.metadata import version
     nomes = []
@@ -688,6 +744,12 @@ def _versao_especial(especiais: list) -> str:
         n = t["nome"]
         if n == "synthsr":
             nomes.append("SynthSR 1.0")
+            continue
+        if n == "flames":
+            try:
+                nomes.append(f"FLAMeS (nnunetv2 {version('nnunetv2')})")
+            except Exception:  # noqa: BLE001
+                nomes.append("FLAMeS")
             continue
         pacote = {"medsam2": "MedSAM2", "autopet": "nnunetv2", "brats": "monai"}.get(n, n)
         try:
@@ -711,6 +773,9 @@ def rodar_especial(nome: str, vol, d: Path, job: dict, t: dict, simular: bool, a
                 import numpy as np
                 cerebro = np.isin(lab, ids)
         return (_sim_brats if simular else _brats)(vol, canais, job, cerebro)
+    if nome == "flames":                                    # 0.100.25: FLAIR sem crânio pela máscara do SynthSeg
+        cerebro = _encefalo_do_synthseg(anteriores)
+        return _sim_flames(vol, cerebro) if simular else _flames(vol, job, cerebro)
     if nome == "synthsr":                                   # 0.100.23: sai uma imagem, não uma máscara
         import numpy as np
         afim = np.asarray(job["affine"], float)
@@ -785,6 +850,7 @@ def main(pasta: str) -> int:
                     resultado["tarefas"][nome] = {"classes": {str(k): v for k, v in classes.items()},
                                                   "segundos": round(time.time() - t0, 1),
                                                   "afim_1mm": np.asarray(afim_1mm, float).tolist()}
+                    feitos[nome] = (lab, classes)           # 0.100.25: o FLAMeS usa o encéfalo daqui
                     continue
                 kw = dict(task=nome, ml=True, device=job.get("device", "cpu"), quiet=False,
                           nr_thr_resamp=1, nr_thr_saving=1)

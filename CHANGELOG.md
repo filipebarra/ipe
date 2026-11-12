@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.25 — Lesões de substância branca no FLAIR (FLAMeS)
+- Botão **Lesões SB** na RM de crânio: marca as lesões hiperintensas no FLAIR e dá o número, o volume total e a
+  contagem por região (periventricular, justacortical, infratentorial, profunda), com a comparação com o exame
+  anterior. Achado para conferir, frase para o laudo e as lesões coloridas por região. Também na aba IA do navegador.
+- É um modelo extra (FLAMeS, 2,4 GB): instalar em Configurações ▸ CAD/IA ▸ Instalar os modelos extras.
+- BraTS e autoPET: a máscara agora aparece no exame logo depois de rodar, sem precisar reabrir.
+
 ## 0.100.24 — macOS: pacote de teste
 - Primeiro pacote do Ipê para **macOS** (Ipe.app num .dmg, para chip Apple e para Intel), gerado à parte e ainda fora
   do release. Sem assinatura da Apple: na primeira vez, abrir com o botão direito ▸ Abrir.

@@ -136,6 +136,7 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("carga_pet.auto", "Carga tumoral no PET (FDG/PSMA/DOTA)", "Medidas"),
     ("pet.maximo", "Ir ao SUV máximo perto do cursor", "Medidas"),
     ("brats.auto", "Glioma na RM — BraTS (IA)", "Medidas"),
+    ("flames.auto", "Lesões de substância branca no FLAIR — FLAMeS (IA)", "Medidas"),
     ("achados.abrir", "Achados de IA: revisar, confirmar, descartar", "Medidas"),
     ("estruturas.abrir", "Estruturas: editar máscaras (SEG / RTSTRUCT)", "Medidas"),
 ]

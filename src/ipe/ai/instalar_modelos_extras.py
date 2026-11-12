@@ -3,13 +3,14 @@
 Roda com o **Python do ambiente da segmentação** (o mesmo do TotalSegmentator), numa janela própria, aberta
 pelo programa em Configurações ▸ CAD/IA ▸ Instalar os modelos extras… Não importa nada do Ipê.
 
-    python instalar_modelos_extras.py [medsam2] [autopet] [brats]      (sem nada = os três)
+    python instalar_modelos_extras.py [medsam2] [autopet] [brats] [flames]      (sem nada = todos)
 
 O que baixa (uma vez; depois funciona sem internet):
 
 - MedSAM2: o pacote do GitHub (bowang-lab/MedSAM2, Apache-2.0), sem compilar CUDA, e os pesos
   MedSAM2_latest.pt (156 MB, Hugging Face wanglab/MedSAM2, CC BY-SA 4.0);
 - autoPET: o modelo nnU-Net do autoPET II (DKFZ; Zenodo, registro 8362371), extraído em pesos/autopet;
+- FLAMeS: o modelo nnU-Net das lesões no FLAIR (Zenodo, registro 17955359, CC BY 4.0), só o fold 0, em pesos/flames;
 - BraTS: o MONAI e os pesos do bundle brats_mri_segmentation (19 MB, Hugging Face MONAI, Apache-2.0).
 """
 from __future__ import annotations
@@ -26,6 +27,7 @@ from pathlib import Path
 URL_MEDSAM2_CODIGO = "https://github.com/bowang-lab/MedSAM2/archive/refs/heads/main.zip"
 URL_MEDSAM2_PESOS = "https://huggingface.co/wanglab/MedSAM2/resolve/main/MedSAM2_latest.pt"
 ZENODO_AUTOPET = "https://zenodo.org/api/records/8362371"
+ZENODO_FLAMES = "https://zenodo.org/api/records/17955359"
 URL_BRATS = "https://huggingface.co/MONAI/brats_mri_segmentation/resolve/main/models/model.pt"
 AGENTE = "Ipe-instalador-de-modelos"
 
@@ -115,7 +117,37 @@ def brats() -> None:
     subprocess.run([sys.executable, "-c", "import monai; print('  MONAI', monai.__version__, 'ok')"], check=True)
 
 
-PASSOS = {"medsam2": medsam2, "autopet": autopet, "brats": brats}
+def flames() -> None:
+    """0.100.25: FLAMeS (lesões de substância branca no FLAIR) — nnU-Net do Zenodo, CC BY 4.0, 2,4 GB."""
+    print("\n[FLAMeS] modelo nnU-Net das lesões no FLAIR (Zenodo, 2,4 GB)", flush=True)
+    raiz = pasta_pesos() / "flames"
+    if raiz.is_dir() and any(raiz.rglob("fold_0/checkpoint_final.pth")):
+        print("  já instalado", flush=True)
+        return
+    req = urllib.request.Request(ZENODO_FLAMES, headers={"User-Agent": AGENTE, "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        rec = json.loads(r.read().decode("utf-8"))
+    zips = [((f.get("key") or f.get("filename") or ""), (f.get("links") or {}).get("self")
+             or (f.get("links") or {}).get("download"), int(f.get("size") or 0)) for f in rec.get("files", [])]
+    zips = [z for z in zips if z[0].lower().endswith(".zip") and z[1]]
+    if not zips:
+        raise RuntimeError("o registro do Zenodo não tem o .zip do modelo")
+    nome, url, tam = max(zips, key=lambda z: z[2])
+    zipf = baixar(url, raiz / "_baixado" / nome, f"{nome} ({tam // (1024 * 1024)} MB)" if tam else nome)
+    print("  extraindo (só o fold 0: o Ipê roda um fold, em CPU)…", flush=True)
+    with zipfile.ZipFile(zipf) as z:
+        for m in z.namelist():
+            partes = m.replace("\\", "/").split("/")
+            if any(p.startswith("fold_") and p != "fold_0" for p in partes):
+                continue                                    # os outros folds (~2 GB) não são usados
+            z.extract(m, raiz)
+    shutil.rmtree(raiz / "_baixado", ignore_errors=True)
+    if not any(raiz.rglob("fold_0/checkpoint_final.pth")):
+        raise RuntimeError("o .zip não tinha o fold_0/checkpoint_final.pth esperado")
+    print("  FLAMeS ok", flush=True)
+
+
+PASSOS = {"medsam2": medsam2, "autopet": autopet, "brats": brats, "flames": flames}
 
 
 def main(argv: list[str]) -> int:
