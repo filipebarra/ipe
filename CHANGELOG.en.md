@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.19 — Browser: user-chosen appearance, reading mode and monitor setup
+- **Appearance**: series on the left, at the bottom or at the top; buttons at the top or in a left column; **reading
+  mode** (images only, F key). The right panel starts collapsed. Saved in the browser.
+- **Monitors**: a setup saved in the browser, as in Ipê — the order of the windows, what each one shows (the study or
+  the prior study), and each one's layout and monitor.
+
 ## 0.100.18 — Browser: multiple windows (one per monitor), phone and tablet
 - **Viewer windows**: the list in one window and studies in 1, 2 or 3 separate windows, one per monitor, for any study.
   The windows stay open waiting for the next study and remember their position; in mammography the 2nd window is the

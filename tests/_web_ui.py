@@ -36,6 +36,8 @@ def espessura(pg, mm: int | None = None, projecao: str | None = None) -> None:
 
 
 def aba(pg, nome: str) -> None:
+    if not pg.locator(".lateral").is_visible():           # 0.100.19: o painel da direita vem recolhido
+        pg.click("button[aria-label='Abrir o painel de ferramentas']")
     pg.click(f".abas button[data-aba='{nome}']")
     time.sleep(0.05)
 

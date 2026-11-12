@@ -148,6 +148,7 @@ def test_pelo_navegador(servidor):
             pg = b.new_page(viewport={"width": 1500, "height": 950})
             pg.on("pageerror", lambda e: erros.append(str(e)))
             pg.goto(f"http://127.0.0.1:{srv.port}/web/")
+            pg.evaluate("() => localStorage.setItem('ipe.web.painelDir', 'true')")   # 0.100.19: o painel da direita vem recolhido
             pg.fill("#usuario", usuario)
             pg.fill("#senha", senha)
             pg.click("button[type=submit]")

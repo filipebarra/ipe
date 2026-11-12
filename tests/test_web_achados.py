@@ -109,6 +109,7 @@ def test_revisar_no_navegador_e_mandar_ao_laudo(servidor):
         pg = b.new_page(viewport={"width": 1500, "height": 950})
         pg.on("pageerror", lambda e: erros.append(str(e)))
         pg.goto(f"http://127.0.0.1:{srv.port}/web/")
+        pg.evaluate("() => localStorage.setItem('ipe.web.painelDir', 'true')")   # 0.100.19: o painel da direita vem recolhido
         pg.fill("#usuario", "res")              # o residente: sem pedir IA, mas revisa (a aba aparece só com a revisão)
         pg.fill("#senha", "resid123")
         pg.click("button[type=submit]")

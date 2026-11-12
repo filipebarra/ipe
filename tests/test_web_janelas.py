@@ -24,7 +24,16 @@ def test_lista_numa_janela_e_exame_em_duas(servidor):
         pg.fill("#senha", "admin123")
         pg.click("button[type=submit]")
         pg.wait_for_selector("table.lista tbody tr")
-        pg.select_option("select.janelas", "2")
+        # 0.100.19: o painel Monitores — janelas separadas; Janela 1 e 2 em uso, a 3 não; layout 1×1 na Janela 2
+        pg.click("button.janelas")
+        pg.select_option(".painel-monitores select[aria-label='Onde os exames abrem']", "1")
+        assert pg.input_value(".painel-monitores select[aria-label='Apresenta: Janela 2']") == "off"   # de início, uma janela
+        pg.select_option(".painel-monitores select[aria-label='Apresenta: Janela 2']", "viewer")
+        pg.select_option(".painel-monitores select[aria-label='Layout: Janela 2']", "1,1")
+        assert "posição fica guardada" in pg.inner_text(".painel-monitores") or pg.locator(".painel-monitores button:has-text('Detectar')").count() == 1
+        pg.keyboard.press("Escape")
+        pg.mouse.click(700, 600)
+        assert "2 janelas" in pg.inner_text("button.janelas")
         pg.locator("table.lista tbody tr").first.dblclick()
         # (o `ctx.pages` é consultado a cada volta: os eventos do Playwright só andam dentro das chamadas dele)
         for _ in range(100):
@@ -48,6 +57,7 @@ def test_lista_numa_janela_e_exame_em_duas(servidor):
         s2 = j2.evaluate("() => window.__ipeGrade.quadros.map(q => q.serie && q.serie.series)")
         assert s1[0] and s2[0]            # (o fantoma só tem duas séries: as duas janelas mostram as mesmas)
         assert j1.title().endswith("1") and j2.title().endswith("2")
+        assert j2.locator(".quadro").count() == 1 and j1.locator(".quadro").count() == 2      # o layout de cada janela
         # fechar o exame numa janela fecha nas duas: ficam à espera, sem fechar
         j1.click("header button.sair")
         assert _esperar(lambda: j1.locator(".espera").count() == 1 and j2.locator(".espera").count() == 1)

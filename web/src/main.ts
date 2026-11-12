@@ -156,6 +156,7 @@ async function entrouNaSegunda(): Promise<void> {
 }
 
 function cabecalho(...extra: Node[]): HTMLElement {
+  app.classList.remove("leitura");
   const quem = config?.usuario.full_name || config?.usuario.username || "";
   // 0.100.5: com um exame aberto, "Sair" fecha o exame e volta à lista; na lista, sai do Ipê Web
   const noExame = /^#\/(exame|mg)\//.test(location.hash);
@@ -258,8 +259,15 @@ async function telaLista(): Promise<void> {
     ...MODALIDADES.map((m) => el("option", { value: m }, m || tr("Todas")))) as HTMLSelectElement;
   const corpo = el("tbody");
   const estado = el("div", { class: "estado" });
-  const form = el("form", { class: "filtros" }, busca, de, ate, mod, el("button", { type: "submit" }, tr("Buscar")),
-    JAN.seletorDeJanelas(() => undefined));
+  // 0.100.19: monitores e janelas (onde os exames abrem, a ordem, o que cada janela apresenta)
+  const bMon = el("button", { type: "button", class: "janelas" }) as HTMLButtonElement;
+  const rotuloMon = () => {
+    const n = JAN.quantasJanelas();
+    bMon.textContent = n ? `${tr("Monitores")}: ${n} ${tr(n === 1 ? "janela" : "janelas")}` : `${tr("Monitores")}…`;
+  };
+  rotuloMon();
+  bMon.onclick = () => abrirPainel(JAN.painelMonitores(rotuloMon), bMon, tr("Monitores e janelas"));
+  const form = el("form", { class: "filtros" }, busca, de, ate, mod, el("button", { type: "submit" }, tr("Buscar")), bMon);
   const antes = lerBusca();
   if (antes) {
     busca.value = antes.texto || "";
@@ -464,7 +472,7 @@ function seta(): SVGSVGElement {
   return s;
 }
 
-async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0): Promise<void> {
+async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe = ""): Promise<void> {
   if (janela) document.title = `${tr("Ipê Web")} — ${tr("visualização")} ${janela}`;
   pararDisponiveis();
   mg?.encerrar();
@@ -494,13 +502,23 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0): Promise<vo
   void API.avisarAbertura(study);
   const nomePac = API.texto(estudo, "00100010");
   const idPac = API.texto(estudo, "00100020");
+  // 0.100.19: a janela de comparação mostra o exame anterior mais recente do paciente (se houver)
+  const confJanela = janela ? JAN.configDaJanela(janela) : null;
+  if (confJanela?.papel === "compare" && !anteriorDe && idPac) {
+    const data = API.texto(estudo, "00080020");
+    const outros = (await API.qido(`/studies?PatientID=${encodeURIComponent(idPac)}&limit=50`).catch(() => []))
+      .filter((x) => API.texto(x, "00100020") === idPac && API.texto(x, "0020000D") !== study && API.texto(x, "00080020") <= data)
+      .sort((a, b) => API.texto(b, "00080020").localeCompare(API.texto(a, "00080020")));
+    if (outros.length) return telaExame(API.texto(outros[0], "0020000D"), 1, janela, study);
+  }
   const paciente = `${nomePac}  ${idPac}\n${dataBr(API.texto(estudo, "00080020"))}  ${API.texto(estudo, "00081030")}`;
 
   // ---------------------------------------------------------------- barra de ícones
   const aviso = el("div", { class: "estado", role: "status" });
   const voltar = botaoIcone("Voltar à lista", IC.voltar, { onclick: () => voltarALista() });
   const chip = el("div", { class: "paciente" }, el("strong", {}, nomePac),
-    el("span", {}, `${idPac} · ${API.texto(estudo, "00081030")} · ${dataBr(API.texto(estudo, "00080020"))}`));
+    el("span", {}, `${anteriorDe ? `${tr("ANTERIOR")} · ` : ""}${idPac} · ${API.texto(estudo, "00081030")} · ${dataBr(API.texto(estudo, "00080020"))}`));
+  if (anteriorDe) chip.classList.add("anterior-de");
 
   // ferramentas que vão para um botão do mouse (com famílias: o ícone mostra a escolhida; a setinha troca)
   type Grupo = { nome: string; membros: Ferramenta[] };
@@ -618,6 +636,9 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0): Promise<vo
   const bPainelDir = botaoIcone("Recolher o painel de ferramentas", "M9 6l6 6-6 6", { class: "ic recolher" });
   const trilhoEsq = el("div", { class: "trilho" }, botaoIcone("Abrir o painel de séries", "M9 6l6 6-6 6"));
   const trilhoDir = el("div", { class: "trilho" }, botaoIcone("Abrir o painel de ferramentas", "M15 6l-6 6 6 6"));
+  // 0.100.19: a aparência é do usuário — onde ficam as séries e os botões, e o modo leitura
+  const bLeitura = botaoIcone("Modo leitura (só as imagens) — tecla F", "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5");
+  const bAparencia = botaoIcone("Aparência: posição das séries e dos botões", "M4 5h16v14H4zM9 5v14M4 10h5");
   const bGavetaEsq = botaoIcone("Séries", "M4 5h16v4H4zM4 11h16v4H4zM4 17h16v2H4z");
   const bGavetaDir = botaoIcone("Painel de ferramentas", "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M16 4v4M10 10v4M18 16v4");
   const nav = el("nav", { class: "barra", "aria-label": tr("Ferramentas") },
@@ -625,7 +646,8 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0): Promise<vo
     el("div", { class: "grupo" }, bLayout, bMpr, bEspessura, bObliquo, bGirar),
     el("div", { class: "grupo" }, bPet, bDin, bSeg, bCine, bCineMenu),
     el("div", { class: "grupo" }, bInverter, bRestaurar, bOverlay, bOverlayMenu),
-    el("div", { class: "grupo" }, bLaudo, bEnviar, bIA));
+    el("div", { class: "grupo" }, bLaudo, bEnviar, bIA),
+    el("div", { class: "grupo" }, bLeitura, bAparencia));
 
   // ---------------------------------------------------------------- painéis
   const tira = el("aside", { class: "tira", "aria-label": tr("Séries") },
@@ -657,10 +679,56 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0): Promise<vo
   const rodape = el("footer", { class: "rodape" }, geral, cargaCurta, bCarga, bEnvios, bTarefasIA, rodapeBotoes,
     el("span", { class: "tarja-rodape" }, tr("Não destinado a uso diagnóstico")));
   const area = el("div", { class: "area" }, telas, aviso, painelCarga);
-  app.replaceChildren(cabecalho(chip, nav), el("main", { class: "telaexame" }, trilhoEsq, tira, area, lateral, trilhoDir), rodape);
+  const cabeca = cabecalho(chip, nav);
+  const principal = el("main", { class: "telaexame" }, trilhoEsq, tira, area, lateral, trilhoDir);
+  app.replaceChildren(cabeca, principal, rodape);
+  // ---------------------------------------------------------------- 0.100.19: aparência
+  type PosSeries = "esquerda" | "embaixo" | "cima";
+  type PosBarra = "cima" | "esquerda";
+  let posSeries = lerPreferencia<PosSeries>("posSeries", "esquerda");
+  let posBarra = lerPreferencia<PosBarra>("posBarra", "cima");
+  const aplicarAparencia = () => {
+    const c = celular();                       // no celular o layout é o do celular
+    app.classList.toggle("series-embaixo", !c && posSeries === "embaixo");
+    app.classList.toggle("series-cima", !c && posSeries === "cima");
+    app.classList.toggle("barra-esquerda", !c && posBarra === "esquerda");
+    if (!c && posBarra === "esquerda") { if (nav.parentElement !== principal) principal.prepend(nav); }
+    else if (nav.parentElement !== cabeca) chip.after(nav);
+    requestAnimationFrame(() => grade?.redimensionar());
+  };
+  aplicarAparencia();
+  consultaCel.addEventListener?.("change", aplicarAparencia);
+  const leitura = (ligar: boolean) => {
+    app.classList.toggle("leitura", ligar);
+    bLeitura.classList.toggle("ligado", ligar);
+    requestAnimationFrame(() => grade?.redimensionar());
+  };
+  bLeitura.onclick = () => leitura(!app.classList.contains("leitura"));
+  const sairLeitura = el("button", { type: "button", class: "sair-leitura", title: tr("Sair do modo leitura (Esc ou F)") }, tr("Sair do modo leitura")) as HTMLButtonElement;
+  sairLeitura.onclick = () => leitura(false);
+  area.append(sairLeitura);
+  const teclaLeitura = (e: KeyboardEvent) => {
+    if (grade !== g) { window.removeEventListener("keydown", teclaLeitura); return; }
+    const alvo = e.target as HTMLElement | null;
+    if (alvo && (alvo.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName))) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === "f" || e.key === "F") { e.preventDefault(); leitura(!app.classList.contains("leitura")); }
+    else if (e.key === "Escape" && app.classList.contains("leitura")) leitura(false);
+  };
+  window.addEventListener("keydown", teclaLeitura);
+  bAparencia.onclick = () => {
+    const serie = (v: PosSeries, r: string): ItemMenu => ({ rotulo: tr(r), marcado: posSeries === v,
+      acao: () => { posSeries = v; gravarPreferencia("posSeries", v); aplicarAparencia(); } });
+    const barra = (v: PosBarra, r: string): ItemMenu => ({ rotulo: tr(r), marcado: posBarra === v,
+      acao: () => { posBarra = v; gravarPreferencia("posBarra", v); aplicarAparencia(); } });
+    abrirMenu([{ titulo: tr("Séries") }, serie("esquerda", "À esquerda"), serie("embaixo", "Embaixo"), serie("cima", "Em cima"),
+      { separador: true }, { titulo: tr("Botões (ferramentas)") }, barra("cima", "Em cima"), barra("esquerda", "À esquerda"),
+      { separador: true }, { rotulo: tr("Modo leitura (só as imagens)"), dica: "F", marcado: app.classList.contains("leitura"),
+        acao: () => leitura(!app.classList.contains("leitura")) }], 0, 0, tr("Aparência"), bAparencia);
+  };
 
   const esqAberto = lerPreferencia("painelEsq", true);
-  const dirAberto = lerPreferencia("painelDir", true);
+  const dirAberto = lerPreferencia("painelDir", false);        // 0.100.19: recolhido por padrão
   const ajustarPaineis = (esq: boolean, dir: boolean) => {
     if (celular() && esq && dir) { if (tira.hidden) dir = false; else esq = false; }   // uma gaveta por vez
     tira.hidden = !esq;
@@ -811,7 +879,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0): Promise<vo
     const usadas = new Set(g.quadros.map((q) => q.serie?.series).filter(Boolean));
     let resto = series.map((s) => API.texto(s, "0020000E")).filter((u) => !usadas.has(u));
     // 0.100.18: a 2ª e a 3ª janela de visualização começam nas séries seguintes às da janela anterior
-    const pulo = janela > 1 ? (janela - 1) * l * c : 0;
+    const pulo = janela > 1 && !anteriorDe ? (JAN.janelasAtivas().slice(0, janela - 1).filter((j) => j.papel === "viewer").length) * l * c : 0;
     if (pulo && resto.length > pulo) resto = [...resto.slice(pulo), ...resto.slice(0, pulo)];
     livres.forEach((i, k) => { if (resto[k]) void mostrarNoAtivo(resto[k], i); });
   };
@@ -1354,7 +1422,8 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0): Promise<vo
   aplicarBotoes({ esq: validos(salvos.esq) ? salvos.esq : (toque() ? "rolar" : "janela"), meio: validos(salvos.meio) ? salvos.meio : "mover",
     dir: validos(salvos.dir) ? salvos.dir : "zoom" });
   atualizarMarcas();
-  const inicial: [number, number] = series.length >= 2 && !celular() ? [1, 2] : [1, 1];
+  const inicial: [number, number] = confJanela?.layout && !celular() ? confJanela.layout
+    : series.length >= 2 && !celular() ? [1, 2] : [1, 1];
   // 0.99.98 (W4): exame de mamografia abre no protocolo do Ipê (uma ou duas telas)
   const dadosMg = await API.mamografia(study).catch(() => null);
   if (grade !== g) return;

@@ -18,6 +18,7 @@ pytestmark = pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_di
 
 def _abrir(pg, srv):
     pg.goto(f"http://127.0.0.1:{srv.port}/web/")
+    pg.evaluate("() => localStorage.setItem('ipe.web.painelDir', 'true')")     # 0.100.19: vem recolhido; estes testes o usam aberto
     pg.fill("#usuario", "admin")
     pg.fill("#senha", "admin123")
     pg.click("button[type=submit]")

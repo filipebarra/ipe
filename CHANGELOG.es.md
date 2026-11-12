@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.19 — Navegador: apariencia del usuario, modo lectura y configuración de monitores
+- **Apariencia**: series a la izquierda, abajo o arriba; botones arriba o en una columna a la izquierda; **modo
+  lectura** (solo imágenes, tecla F). El panel derecho viene plegado. Guardado en el navegador.
+- **Monitores**: configuración guardada en el navegador, como en el Ipê — el orden de las ventanas, qué presenta cada
+  una (el estudio o el estudio anterior), y el diseño y el monitor de cada una.
+
 ## 0.100.18 — Navegador: varias ventanas (una por monitor), móvil y tableta
 - **Ventanas de visualización**: la lista en una ventana y los estudios en 1, 2 o 3 ventanas separadas, una por
   monitor, para cualquier estudio. Las ventanas quedan abiertas esperando el siguiente estudio y recuerdan su posición;

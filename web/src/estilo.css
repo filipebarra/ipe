@@ -492,3 +492,69 @@ html.cel { font-size: 15px; }
 .espera { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--suave); text-align: center; padding: 24px; }
 .espera strong { color: var(--acento); font-size: 22px; }
 .espera .dica { font-size: 13px; }
+
+/* ================================================================ 0.100.19: aparência escolhida pelo usuário */
+/* séries embaixo ou em cima: uma faixa horizontal que rola de lado */
+.series-embaixo .telaexame, .series-cima .telaexame { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(0, 1fr) auto; }
+.series-cima .telaexame { grid-template-rows: auto minmax(0, 1fr); }
+.series-embaixo .telaexame > .barra, .series-cima .telaexame > .barra { grid-column: 1; grid-row: 1 / 3; }
+.series-embaixo .area, .series-cima .area { grid-column: 2; }
+.series-embaixo .lateral, .series-cima .lateral { grid-column: 3; width: 300px; }
+.series-embaixo .trilho:last-child, .series-cima .trilho:last-child { grid-column: 4; }
+.series-embaixo .area, .series-embaixo .lateral, .series-embaixo .trilho:last-child { grid-row: 1; }
+.series-cima .area, .series-cima .lateral, .series-cima .trilho:last-child { grid-row: 2; }
+.series-embaixo .tira, .series-embaixo .trilho:first-of-type { grid-column: 2 / 5; grid-row: 2; }
+.series-cima .tira, .series-cima .trilho:first-of-type { grid-column: 2 / 5; grid-row: 1; }
+.series-embaixo .tira, .series-cima .tira { width: auto; flex-direction: row; align-items: stretch; gap: 8px; padding: 6px 10px;
+  overflow-x: auto; overflow-y: hidden; border-right: 0; border-top: 1px solid var(--borda); }
+.series-cima .tira { border-top: 0; border-bottom: 1px solid var(--borda); }
+.series-embaixo .tira > .dica, .series-cima .tira > .dica { display: none; }
+.series-embaixo .tira .titulo-painel, .series-cima .tira .titulo-painel { writing-mode: vertical-rl; transform: rotate(180deg);
+  padding: 0 2px; flex: none; text-align: center; }
+.series-embaixo .tira .titulo-painel.com-botao, .series-cima .tira .titulo-painel.com-botao { writing-mode: horizontal-tb;
+  transform: none; flex-direction: column; justify-content: flex-start; gap: 4px; }
+.series-embaixo .tira .titulo-painel.com-botao span, .series-cima .tira .titulo-painel.com-botao span { display: none; }
+.series-embaixo .tira .series, .series-cima .tira .series, .series-embaixo .anteriores, .series-cima .anteriores { flex-direction: row; flex: none; }
+.series-embaixo .tira .serie, .series-cima .tira .serie { width: 190px; flex: none; }
+.series-embaixo .anterior, .series-cima .anterior { height: auto; flex-direction: column; justify-content: center; min-width: 130px; }
+.series-embaixo .trilho:first-of-type, .series-cima .trilho:first-of-type { flex: none; height: 30px; padding: 0 8px; justify-content: flex-start;
+  align-items: center; border: 0; border-top: 1px solid var(--borda); }
+.series-embaixo .trilho:first-of-type button.ic, .series-cima .trilho:first-of-type button.ic { height: 24px; transform: rotate(-90deg); }
+.series-embaixo .tira button.recolher svg, .series-cima .tira button.recolher svg { transform: rotate(-90deg); }
+
+/* botões numa coluna à esquerda: a imagem ganha a altura da barra */
+.barra-esquerda header { min-height: 36px; }
+.barra-esquerda .telaexame > .barra { flex: 0 0 52px; flex-direction: column; flex-wrap: nowrap; align-items: center; gap: 0;
+  overflow-y: auto; overflow-x: hidden; background: var(--painel); border-right: 1px solid var(--borda); padding: 4px 0;
+  scrollbar-width: none; }
+.barra-esquerda .telaexame > .barra::-webkit-scrollbar { display: none; }
+.barra-esquerda .telaexame > .barra .grupo { flex-direction: column; padding: 4px 0; border-right: 0; border-bottom: 1px solid var(--borda);
+  width: 100%; align-items: center; flex: none; }
+.barra-esquerda .telaexame > .barra .grupo:last-child { border-bottom: 0; }
+.barra-esquerda .telaexame > .barra .grupo > div { display: flex; flex-direction: column; align-items: center; }
+.barra-esquerda .telaexame > .barra button.ic.estreito { min-width: 38px; height: 12px; margin: -4px 0 0; padding: 0; }
+.barra-esquerda .telaexame > .barra button.ic .caret { position: absolute; right: 2px; bottom: 6px; }
+
+/* modo leitura: só as imagens */
+.leitura > header, .leitura > .rodape, .leitura .tira, .leitura .lateral, .leitura .trilho, .leitura .telaexame > .barra,
+.leitura .area > .estado, .leitura .painel-laudo { display: none !important; }
+.leitura .telaexame { display: flex; }
+.sair-leitura { display: none; position: absolute; top: 6px; right: 8px; z-index: 6; opacity: 0.25; font-size: 12px;
+  background: rgba(26, 29, 34, 0.9); }
+.sair-leitura:hover, .sair-leitura:focus-visible { opacity: 1; }
+.leitura .sair-leitura { display: block; }
+
+/* 0.100.19: monitores e janelas */
+.filtros button.janelas { margin-left: auto; }
+.cel .filtros button.janelas { display: none; }
+.painel-monitores { display: flex; flex-direction: column; gap: 10px; width: min(720px, 92vw); padding: 4px; }
+.painel-monitores .tabela-monitores { display: grid; grid-template-columns: auto 1.2fr 0.6fr 1.6fr; gap: 6px 8px; align-items: center; }
+.painel-monitores .th { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--suave); }
+.painel-monitores .ordem { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.painel-monitores .ordem button { background: transparent; border: 0; padding: 0 3px; color: var(--suave); }
+.painel-monitores .ordem button:disabled { opacity: 0.25; }
+.painel-monitores select { min-width: 0; width: 100%; }
+.painel-monitores .dica { color: var(--suave); font-size: 12px; }
+.menu.painel:has(.painel-monitores) { width: auto; }
+.paciente.anterior-de span { color: #f2c04f; }

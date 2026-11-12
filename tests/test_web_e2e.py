@@ -94,6 +94,7 @@ def test_login_lista_exame_e_quadros(servidor):
         pg = b.new_page(viewport={"width": 1400, "height": 850})
         pg.on("pageerror", lambda e: erros.append(str(e)))
         pg.goto(f"http://127.0.0.1:{srv.port}/web/")
+        pg.evaluate("() => localStorage.setItem('ipe.web.painelDir', 'true')")   # 0.100.19: o painel da direita vem recolhido
         # senha errada: a mensagem, sem a janela de senha do navegador
         pg.fill("#usuario", "admin")
         pg.fill("#senha", "errada")
