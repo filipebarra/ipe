@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.21 — Browser: reference line and dragging between windows
+- With linked windows, the slice of one window shows in the others as a (dashed) **reference line**, on viewports of
+  another plane of the same study.
+- **Drag a series** from one window's strip and drop it on a viewport of another window, even from another study.
+
 ## 0.100.20 — Browser: list with quick filters and preview; linked windows
 - **List**: one-click filters (period, modality, report and AI status), AI and report badges on each study, and a
   **preview** of the selected study on the right (series, AI, report, priors) before opening it.

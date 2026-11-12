@@ -23,7 +23,7 @@ import { AbaIA, TarefasIA } from "./ia";
 import * as JAN from "./janelas";
 import { PainelFilme } from "./filme";
 import {
-  Grade, TIPO_ARRASTO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
+  Grade, TIPO_ARRASTO, TIPO_ARRASTO_ESTUDO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
   ARRANJO_PET_PADRAO, type ConteudoPet, type VistaPet,
   type Sinc,
 } from "./visor";
@@ -914,7 +914,12 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     let ligadas = lerPreferencia("janelasLigadas", true);
     const marcarLigar = () => bLigar.classList.toggle("ligado", ligadas);
     marcarLigar();
-    bLigar.onclick = () => { ligadas = !ligadas; gravarPreferencia("janelasLigadas", ligadas); marcarLigar(); };
+    bLigar.onclick = () => {
+      ligadas = !ligadas;
+      gravarPreferencia("janelasLigadas", ligadas);
+      marcarLigar();
+      if (!ligadas) g.porLinhaDeFora(null);
+    };
     g.aoAto = (ato) => { if (ligadas) JAN.canalJanelas()?.postMessage({ tipo: "ato", study, janela, ato } satisfies JAN.Recado); };
     const ouvirAto = (e: MessageEvent) => {
       if (grade !== g) { JAN.canalJanelas()?.removeEventListener("message", ouvirAto); return; }
@@ -955,18 +960,18 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   };
   (window as unknown as Record<string, unknown>).__ipeDisp = d; // testes
   const carregadas = new Map<string, Promise<Awaited<ReturnType<typeof carregarSerie>>>>();
-  const pegar = (uid: string) => {
+  const pegar = (uid: string, estudo = study) => {       // (0.100.21: `estudo` — série arrastada de outra janela, de outro exame)
     if (!carregadas.has(uid)) {
-      carregadas.set(uid, carregarSerie(study, uid).then((s) => {
+      carregadas.set(uid, carregarSerie(estudo, uid).then((s) => {
         if (s && disp === d) d.conhecer(uid, s.imageIds);
         return s;
       }));
     }
     return carregadas.get(uid)!;
   };
-  const mostrarNoAtivo = async (uid: string, i = g.ativo, daTira = false) => {
+  const mostrarNoAtivo = async (uid: string, i = g.ativo, daTira = false, estudo = study) => {
     aviso.textContent = tr("Carregando…");
-    const s = await pegar(uid);
+    const s = await pegar(uid, estudo || study).catch(() => null);
     if (!s) {
       aviso.textContent = tr("Esta série não tem imagens que o navegador mostre.");
       return;
@@ -989,6 +994,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     item.onclick = () => void mostrarNoAtivo(uid, g.ativo, true);
     item.ondragstart = (e) => {
       e.dataTransfer?.setData(TIPO_ARRASTO, uid);
+      e.dataTransfer?.setData(TIPO_ARRASTO_ESTUDO, study);       // para soltar noutra janela de visualização
       if (e.dataTransfer) e.dataTransfer.effectAllowed = "copy";
     };
     barras.set(uid, { item, barra, texto });
@@ -1038,7 +1044,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
       anteriores.append(b);
     }
   })();
-  g.aoSoltar = (uid, i) => void mostrarNoAtivo(uid, i);
+  g.aoSoltar = (uid, i, estudo) => void mostrarNoAtivo(uid, i, false, estudo);
   const montar = (l: number, c: number) => {
     g.montar(l, c);
     const livres = g.quadros.map((q, i) => (q.serie ? -1 : i)).filter((i) => i >= 0);

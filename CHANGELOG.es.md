@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.21 — Navegador: línea de referencia y arrastre entre ventanas
+- Con las ventanas vinculadas, el corte de una ventana aparece en las demás como **línea de referencia**
+  (discontinua), en los cuadros de otro plano del mismo estudio.
+- **Arrastrar una serie** de la tira de una ventana y soltarla en un cuadro de otra ventana, incluso de otro estudio.
+
 ## 0.100.20 — Navegador: lista con filtros rápidos y vista previa; ventanas vinculadas
 - **Lista**: filtros de un clic (período, modalidad, situación del informe y de la IA), sellos de IA y de informe en
   cada estudio, y la **vista previa** del estudio seleccionado a la derecha (series, IA, informe, anteriores).

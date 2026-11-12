@@ -78,6 +78,38 @@ def test_lista_numa_janela_e_exame_em_duas(servidor):
                 break
             j2.wait_for_timeout(100)
         assert j2.evaluate("() => Math.round(window.__ipeGrade.viewport(0).getProperties().voiRange.lower)") == -100
+        # 0.100.21: linha de referência entre janelas — com a Janela 2 no SCOUT (outro plano), o corte da Janela 1
+        # aparece nela como uma linha tracejada; na mesma série (planos paralelos) não há linha
+        linha = "() => [...document.querySelectorAll('canvas.linha-fora')].some(c => c.dataset.linha === '1')"
+        assert not j2.evaluate(linha)
+        j2.locator(".tira .serie").nth(1).click()
+        for _ in range(60):
+            if j2.evaluate("() => window.__ipeGrade.viewport(0).getImageIds().length") == 1:
+                break
+            j2.wait_for_timeout(100)
+        j1.evaluate("() => window.__ipeGrade.viewport(0).setImageIdIndex(9)")
+        for _ in range(60):
+            if j2.evaluate(linha):
+                break
+            j2.wait_for_timeout(100)
+        assert j2.evaluate(linha)
+        # arrastar uma série da tira da Janela 1 e soltar num quadro da Janela 2 (o exame vai junto no arrasto)
+        dados = j1.evaluate("""() => { const dt = new DataTransfer();
+            document.querySelector('.tira .serie').dispatchEvent(new DragEvent('dragstart', {dataTransfer: dt, bubbles: true}));
+            return Object.fromEntries(dt.types.map(t => [t, dt.getData(t)])); }""")
+        assert dados["application/x-ipe-estudo"] and dados["application/x-ipe-serie"]
+        j2.evaluate("""(d) => { const dt = new DataTransfer(); for (const [k, v] of Object.entries(d)) dt.setData(k, v);
+            document.querySelector('.grade > *').dispatchEvent(new DragEvent('drop', {dataTransfer: dt, bubbles: true, cancelable: true})); }""", dados)
+        for _ in range(80):
+            if j2.evaluate("() => window.__ipeGrade.viewport(0).getImageIds().length") > 1:
+                break
+            j2.wait_for_timeout(100)
+        assert j2.evaluate("() => window.__ipeGrade.quadros[0].serie.series") == dados["application/x-ipe-serie"]
+        j1.evaluate("() => window.__ipeGrade.viewport(0).setImageIdIndex(7)")
+        for _ in range(60):
+            if j2.evaluate(idx) == 7:
+                break
+            j2.wait_for_timeout(100)
         # desligando na segunda janela, ela para de seguir
         j2.click("nav.barra button[aria-label^='Ligar as janelas']")
         j1.evaluate("() => window.__ipeGrade.viewport(0).setImageIdIndex(12)")

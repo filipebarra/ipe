@@ -96,6 +96,8 @@ const TG_MIP = "ipe-mip";
 export const LIMITE_VOLUME = 1.5 * 1024 ** 3;
 /** o tipo do arrasto da tira de séries (o valor é o SeriesInstanceUID) */
 export const TIPO_ARRASTO = "application/x-ipe-serie";
+/** 0.100.21: o exame da série arrastada (para soltar numa janela de visualização de outro exame) */
+export const TIPO_ARRASTO_ESTUDO = "application/x-ipe-estudo";
 let iniciado = false;
 let motor: RenderingEngine | null = null;
 
@@ -263,7 +265,7 @@ function indiceMaisPerto(vp: Types.IStackViewport, p: Types.Point3): number | nu
 }
 
 /** 0.100.20: um ato do médico que segue para as outras janelas de visualização */
-export type Sinc = { tipo: "pos"; ponto: number[]; normal: number[]; delta: number }
+export type Sinc = { tipo: "pos"; ponto: number[]; normal: number[]; delta: number; cantos?: number[][] | null }
   | { tipo: "voi"; lower: number; upper: number; modalidade: string } | { tipo: "zoom"; zoom: number };
 
 function ordem(m: DicomJson): number {
@@ -422,7 +424,7 @@ export class Grade {
   aoDesenhar: (q: Quadro) => void = () => {};
   aviso: (msg: string) => void = () => {};
   /** soltaram uma série (arrastada da tira) no quadro i */
-  aoSoltar: (series: string, i: number) => void = () => {};
+  aoSoltar: (series: string, i: number, estudo: string) => void = () => {};
   /** clicou e soltou o botão direito sem arrastar no quadro i: o menu da imagem (x, y na página) */
   aoMenu: (i: number, x: number, y: number, el: HTMLDivElement) => void = () => {};
   private direito: { x: number; y: number; i: number; el: HTMLDivElement } | null = null;
@@ -486,7 +488,7 @@ export class Grade {
         if (!uid) return;
         e.preventDefault();
         this.ativar(i);
-        this.aoSoltar(uid, i);
+        this.aoSoltar(uid, i, e.dataTransfer?.getData(TIPO_ARRASTO_ESTUDO) || "");
       });
       this.raiz.append(cel);
       const id = `q${i}`;
@@ -532,6 +534,7 @@ export class Grade {
       q.el.addEventListener(Enums.Events.STACK_NEW_IMAGE, () => this.contar(q, "pos"));
       q.el.addEventListener(Enums.Events.VOI_MODIFIED, () => this.contar(q, "voi"));
       q.el.addEventListener(Enums.Events.CAMERA_MODIFIED, () => this.contar(q, "zoom"));
+      q.el.addEventListener(Enums.Events.IMAGE_RENDERED, () => this.desenharLinhaDeFora(q));
     }
     this.configurarMip();
     this.sincronizar();
@@ -686,7 +689,7 @@ export class Grade {
         const antes = this.ultimaPos;
         this.ultimaPos = p.ipp;
         const delta = antes ? (p.ipp[0] - antes[0]) * p.n[0] + (p.ipp[1] - antes[1]) * p.n[1] + (p.ipp[2] - antes[2]) * p.n[2] : 0;
-        this.aoAto({ tipo: "pos", ponto: p.ipp, normal: p.n, delta });
+        this.aoAto({ tipo: "pos", ponto: p.ipp, normal: p.n, delta, cantos: this.cantosDe(vp) });
       } else if (tipo === "voi") {
         const v = vp.getProperties().voiRange;
         if (v) this.aoAto({ tipo: "voi", lower: v.lower, upper: v.upper, modalidade: q.serie?.modalidade || "" });
@@ -699,11 +702,87 @@ export class Grade {
     });
   }
 
+  // ---------------------------------------------------------------- 0.100.21: linha de referência entre janelas
+  /** Os quatro cantos (mm, paciente) do corte mostrado. */
+  private cantosDe(vp: Types.IStackViewport): number[][] | null {
+    const m = META.get(vp.getCurrentImageId() || "");
+    const ipp = (m?.["00200032"]?.Value as number[] | undefined)?.map(Number);
+    const o = (m?.["00200037"]?.Value as number[] | undefined)?.map(Number);
+    const esp = (m?.["00280030"]?.Value as number[] | undefined)?.map(Number);
+    const lin = Number(m?.["00280010"]?.Value?.[0]), col = Number(m?.["00280011"]?.Value?.[0]);
+    if (!ipp || !o || !esp || ipp.length !== 3 || o.length !== 6 || esp.length < 2 || !(lin > 0) || !(col > 0)) return null;
+    const w = col * esp[1], h = lin * esp[0];
+    const soma = (a: number[], b: number[], k: number) => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k];
+    const r = o.slice(0, 3), c = o.slice(3, 6);
+    const b = soma(ipp, r, w);
+    return [ipp, b, soma(b, c, h), soma(ipp, c, h)];
+  }
+
+  /** O corte que a outra janela mostra (os quatro cantos), ou nulo para apagar a linha. */
+  private linhaDeFora: number[][] | null = null;
+
+  porLinhaDeFora(cantos: number[][] | null): void {
+    this.linhaDeFora = cantos;
+    for (const q of this.quadros) this.desenharLinhaDeFora(q);
+  }
+
+  /** A linha onde o corte da outra janela cruza o corte deste quadro (tracejada, azul-clara). */
+  private desenharLinhaDeFora(q: Quadro): void {
+    const pai = q.el.parentElement;
+    if (!pai) return;
+    let c = pai.querySelector<HTMLCanvasElement>("canvas.linha-fora");
+    const vp = q.tipo === "pilha" ? (motor?.getViewport(q.id) as Types.IStackViewport | undefined) : undefined;
+    const p = vp?.getCurrentImageId() ? this.planoDe(vp) : null;
+    if (!this.linhaDeFora || !vp || !p) { if (c) { c.width = c.width; c.dataset.linha = "0"; } return; }
+    if (!c) {
+      c = document.createElement("canvas");
+      c.className = "linha-fora";
+      c.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2";
+      pai.append(c);
+    }
+    const dpr = window.devicePixelRatio || 1;
+    const w = q.el.clientWidth, h = q.el.clientHeight;
+    c.width = Math.round(w * dpr);
+    c.height = Math.round(h * dpr);
+    c.dataset.linha = "0";
+    // planos paralelos (a mesma série, ou outra no mesmo plano) não se cruzam: sem linha
+    const L = this.linhaDeFora;
+    const u = [L[1][0] - L[0][0], L[1][1] - L[0][1], L[1][2] - L[0][2]], v = [L[3][0] - L[0][0], L[3][1] - L[0][1], L[3][2] - L[0][2]];
+    const nf = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+    const tam = Math.hypot(nf[0], nf[1], nf[2]) || 1;
+    if (Math.abs((nf[0] * p.n[0] + nf[1] * p.n[1] + nf[2] * p.n[2]) / tam) > 0.9) return;
+    const d = this.linhaDeFora.map((k) => (k[0] - p.ipp[0]) * p.n[0] + (k[1] - p.ipp[1]) * p.n[1] + (k[2] - p.ipp[2]) * p.n[2]);
+    const pontos: number[][] = [];
+    for (let i = 0; i < 4; i++) {
+      const j = (i + 1) % 4;
+      if (d[i] === 0) { pontos.push(this.linhaDeFora[i]); continue; }
+      if (d[i] * d[j] < 0) {
+        const t = d[i] / (d[i] - d[j]);
+        const a = this.linhaDeFora[i], b = this.linhaDeFora[j];
+        pontos.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]);
+      }
+    }
+    if (pontos.length < 2) return;                    // paralelos, ou o corte de lá não passa por este
+    const ctx = c.getContext("2d");
+    if (!ctx) return;
+    const a = vp.worldToCanvas(pontos[0] as Types.Point3), b = vp.worldToCanvas(pontos[1] as Types.Point3);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.strokeStyle = "#4fd1ff";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([8, 5]);
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.stroke();
+    c.dataset.linha = "1";
+  }
+
   /** O ato de outra janela, aplicado aqui: aos quadros de corte no mesmo plano (rolagem), da mesma modalidade
    *  (janela) e a todos (zoom). `mesmoExame`: vai pela posição no paciente; noutro exame (o anterior), anda os
    *  mesmos milímetros a partir de onde cada quadro está — alinhe uma vez com as janelas desligadas. */
   aplicarAto(m: Sinc, mesmoExame: boolean): void {
     this.mudoAte = performance.now() + 400;
+    if (m.tipo === "pos") this.porLinhaDeFora(mesmoExame ? m.cantos ?? null : null);
     for (const x of this.quadros) {
       if (x.tipo !== "pilha") continue;
       const vp = motor?.getViewport(x.id) as Types.IStackViewport | undefined;

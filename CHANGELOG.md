@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.21 — Navegador: linha de referência e arrasto entre janelas
+- Com as janelas ligadas, o corte de uma janela aparece nas outras como **linha de referência** (tracejada), nos
+  quadros de outro plano do mesmo exame.
+- **Arrastar uma série** da tira de uma janela e soltar num quadro de outra janela, mesmo de outro exame.
+
 ## 0.100.20 — Navegador: lista com filtros rápidos e prévia; janelas ligadas
 - **Lista**: filtros de um clique (período, modalidade, situação do laudo e da IA), selos de IA e de laudo em cada
   exame, e a **prévia** do exame selecionado à direita (séries, IA, laudo, anteriores) antes de abrir.
