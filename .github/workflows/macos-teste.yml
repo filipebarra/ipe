@@ -4,6 +4,11 @@ name: macOS (teste)
 
 on:
   workflow_dispatch:
+    inputs:
+      publicar:
+        description: "Anexar os .dmg ao release desta versão (v<versão>), em vez do rascunho"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -77,15 +82,24 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v5
       - uses: actions/download-artifact@v7
         with:
           path: pacotes
-      - name: Rascunho (não publicado; só o dono do repositório vê)
+      - name: Guardar (rascunho) ou anexar ao release da versão
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           ls -la pacotes/*/
-          N="macos-teste-${{ github.run_number }}"
-          gh release create "$N" pacotes/*/*.dmg --repo "$GITHUB_REPOSITORY" --draft --target "$GITHUB_SHA" \
-            --title "macOS (teste, não publicado) $N" \
-            --notes "Pacote de teste do Ipê para macOS. Rascunho: não publicar. arm64 = chip Apple; x86_64 = Intel."
+          V=$(python3 -c "import re;print(re.search(r'__version__ = \"(.+?)\"', open('src/ipe/__init__.py').read()).group(1))")
+          if [ "${{ inputs.publicar }}" = "true" ]; then
+            mkdir pub
+            for f in pacotes/*/*.dmg; do cp "$f" "pub/$(basename "$f" | sed 's/-TESTE//')"; done
+            ls -la pub
+            gh release upload "v$V" pub/*.dmg --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            N="macos-teste-${{ github.run_number }}"
+            gh release create "$N" pacotes/*/*.dmg --repo "$GITHUB_REPOSITORY" --draft --target "$GITHUB_SHA" \
+              --title "macOS (teste, não publicado) $N" \
+              --notes "Pacote de teste do Ipê para macOS. Rascunho: não publicar. arm64 = chip Apple; x86_64 = Intel."
+          fi
