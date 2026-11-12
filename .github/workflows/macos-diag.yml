@@ -1,0 +1,62 @@
+# Diagnóstico no macOS (0.100.27): roda o Ipê do código-fonte num Mac do GitHub, COM tela (cocoa), tira fotos da
+# tela e junta os logs. Só exames sintéticos. Não publica nada: o resultado sai no log da execução e num rascunho.
+name: macOS (diagnóstico)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diag:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Bibliotecas
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[ia]"
+      - name: Preparar (idioma, modo, exames de teste)
+        run: |
+          mkdir -p diag
+          python -m ipe set-language pt-BR || true
+          python -m ipe set-mode single || true
+          python -m ipe sample "$PWD/amostras" | tail -3
+          du -sh amostras; find amostras -type f | wc -l
+      - name: A) Teclado no Modo de uso (cliente)
+        run: |
+          IPE_DIAG=teclado IPE_DIAG_SEGUNDOS=20 IPE_DIAG_SAIDA="$PWD/diag/teclado.json" python -m ipe > diag/teclado.log 2>&1 &
+          sleep 9
+          screencapture -x diag/teclado-antes.png || true
+          osascript -e 'tell application "System Events" to keystroke "http://10.0.0.5:8043"' 2> diag/osascript.log || true
+          sleep 3
+          screencapture -x diag/teclado-depois.png || true
+          wait || true
+          cat diag/teclado.json || true; cat diag/osascript.log; tail -20 diag/teclado.log
+      - name: B) Importar pela janela e ver se continua de pé
+        run: |
+          python -X faulthandler -m ipe open "$PWD/amostras" > diag/importar.log 2>&1 & P=$!
+          for t in 10 25 45 75; do
+            sleep $((t > 10 ? 20 : 10))
+            screencapture -x diag/importar-$t.png || true
+            if ! kill -0 $P 2>/dev/null; then echo "FECHOU SOZINHO antes de ${t}s"; break; fi
+          done
+          if kill -0 $P 2>/dev/null; then echo "DE_PE"; kill $P; fi
+          echo "--- saída"; tail -60 diag/importar.log
+          echo "--- queda.log"; cat "$HOME/Library/Logs/DicomViewer/queda.log" 2>/dev/null | tail -80
+          echo "--- log do programa"; tail -40 "$HOME/Library/Logs/DicomViewer/dicomviewer.log" 2>/dev/null
+          echo "--- relatórios do sistema"; ls -la "$HOME/Library/Logs/DiagnosticReports/" 2>/dev/null | tail -5
+          for f in "$HOME"/Library/Logs/DiagnosticReports/*ython*; do [ -f "$f" ] && head -120 "$f" && cp "$f" diag/; done 2>/dev/null || true
+          cp "$HOME/Library/Logs/DicomViewer/"*.log diag/ 2>/dev/null || true
+      - name: Guardar (rascunho, não publicado)
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd diag && zip -q -r ../diag-macos.zip . && cd ..
+          gh release create "macos-diag-${{ github.run_number }}" diag-macos.zip --repo "$GITHUB_REPOSITORY" --draft \
+            --target "$GITHUB_SHA" --title "macOS diagnóstico ${{ github.run_number }} (não publicado)" --notes "Fotos da tela e logs do teste automático no macOS. Só exames sintéticos."

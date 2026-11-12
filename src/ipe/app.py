@@ -238,6 +238,20 @@ def _warn_if_admin() -> None:
         pass
 
 
+def _vigiar_quedas(pasta) -> None:
+    """0.100.27: quando o programa cai por erro de uma biblioteca nativa (o "fechou sozinho"), o Python não chega a
+    registrar nada. O faulthandler escreve onde cada linha de execução estava, em `queda.log`, na pasta dos logs."""
+    try:
+        import faulthandler
+        arq = open(pasta / "queda.log", "a", encoding="utf-8")       # noqa: SIM115 - fica aberto até o fim
+        arq.write(f"\n=== {APP_NAME} iniciado em {__import__('datetime').datetime.now():%Y-%m-%d %H:%M:%S} ===\n")
+        arq.flush()
+        faulthandler.enable(file=arq, all_threads=True)
+        _vigiar_quedas.arquivo = arq
+    except Exception:  # noqa: BLE001
+        log.debug("faulthandler", exc_info=True)
+
+
 def open_main_window(paths, settings):
     """Login (banco local ou servidor central) e janela principal. None = cancelado."""
     from ipe.auth.backend import LocalAuth
@@ -279,6 +293,9 @@ def open_main_window(paths, settings):
 
 
 def run_gui(external: dict | None = None, minimized: bool = False) -> int:
+    if os.environ.get("IPE_DIAG"):                   # 0.100.27: diagnóstico automático (workflow do macOS)
+        from ipe import diag
+        return diag.rodar(os.environ["IPE_DIAG"])
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     try:
@@ -346,6 +363,7 @@ def run_gui(external: dict | None = None, minimized: bool = False) -> int:
 
     paths = get_paths()
     setup_logging(paths.logs)
+    _vigiar_quedas(paths.logs)
     _install_excepthook()
     _warn_if_admin()
     settings = Settings(paths.settings_file)
