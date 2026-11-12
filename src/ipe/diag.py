@@ -49,6 +49,77 @@ def teclado() -> int:
     return app.exec()
 
 
+def na_janela(win, app) -> None:
+    """IPE_DIAG_JANELA=1: na janela de verdade — importa IPE_DIAG_PASTA pela tela, abre o primeiro exame no
+    visualizador, abre Configurações ▸ Modo de uso (cliente) e espera a digitação. Cada etapa deixa um arquivo em
+    IPE_DIAG_DIR (etapa_*.txt); no fim, resultado.json. Quem testa digita quando aparecer `digite.txt`."""
+    from PySide6.QtCore import QTimer
+    d = Path(os.environ.get("IPE_DIAG_DIR") or tempfile.mkdtemp(prefix="ipe_diag_"))
+    d.mkdir(parents=True, exist_ok=True)
+    res: dict = {"etapas": []}
+
+    def marca(nome: str, **extra) -> None:
+        res["etapas"].append(nome)
+        res.update(extra)
+        (d / f"etapa_{len(res['etapas']):02d}_{nome}.txt").write_text(json.dumps(extra, ensure_ascii=False, default=str))
+        (d / "resultado.json").write_text(json.dumps(res, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+        print("DIAG", nome, extra, flush=True)
+
+    def importar():
+        pasta = os.environ.get("IPE_DIAG_PASTA")
+        if not pasta:
+            return abrir_exame()
+        marca("importar_comecou")
+        win.start_import([Path(pasta)])
+        esperar_importacao(0)
+
+    def esperar_importacao(n: int):
+        if getattr(win, "_import_thread", None) is not None and n < 600:
+            return QTimer.singleShot(500, lambda: esperar_importacao(n + 1))
+        estudos = win.repo.search_studies()
+        marca("importar_terminou", estudos=len(estudos), esperas=n)
+        QTimer.singleShot(1500, abrir_exame)
+
+    def abrir_exame():
+        try:
+            estudos = win.repo.search_studies()
+            abertos = []
+            for st in estudos[: int(os.environ.get("IPE_DIAG_ABRIR", "3"))]:
+                r = win.handle_external({"study_uid": st.study_uid})
+                abertos.append(f"{st.modalities}:{r}")
+            marca("exames_abertos", abertos=abertos)
+        except Exception as e:  # noqa: BLE001
+            marca("exames_erro", erro=repr(e))
+        QTimer.singleShot(int(float(os.environ.get("IPE_DIAG_VER", "8")) * 1000), modo)
+
+    def modo():
+        from ipe.ui.modo_de_uso import ModoDeUsoDialog
+        dlg = ModoDeUsoDialog(win.settings, win.repo, getattr(win, "auth", None), win)
+        dlg.radios["cliente"].setChecked(True)
+
+        def pronto():
+            if os.environ.get("IPE_DIAG_FOCO", "1") == "1":
+                dlg.e_url.setFocus()
+            fw = app.focusWidget()
+            marca("digite", foco=type(fw).__name__ if fw else None, foco_e_o_campo=fw is dlg.e_url,
+                  janela_ativa=type(app.activeWindow()).__name__ if app.activeWindow() else None,
+                  estado=str(app.applicationState()))
+            (d / "digite.txt").write_text("agora")
+
+        def fim():
+            fw = app.focusWidget()
+            marca("fim", texto=dlg.e_url.text(), foco=type(fw).__name__ if fw else None,
+                  foco_e_o_campo=fw is dlg.e_url)
+            dlg.reject()
+            QTimer.singleShot(500, app.quit)
+        QTimer.singleShot(1500, pronto)
+        QTimer.singleShot(int(float(os.environ.get("IPE_DIAG_DIGITAR", "12")) * 1000), fim)
+        dlg.exec()
+
+    marca("janela_aberta", plataforma=app.platformName())
+    QTimer.singleShot(3000, importar)
+
+
 def rodar(qual: str) -> int:
     if qual == "teclado":
         return teclado()

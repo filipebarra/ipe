@@ -428,4 +428,7 @@ def run_gui(external: dict | None = None, minimized: bool = False) -> int:
     from ipe.core import runtime as _R
     log.info("Ipê %s (%s) — dados em %s", __version__,
              "empacotado" if _R.frozen() else "código", paths.data)
+    if os.environ.get("IPE_DIAG_JANELA"):            # 0.100.27: roteiro automático na janela de verdade
+        from ipe import diag
+        diag.na_janela(win, app)
     return app.exec()
