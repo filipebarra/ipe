@@ -54,3 +54,24 @@ def app_command(*args: str) -> str:
         partes += ["-m", "ipe"]
     partes += list(args)
     return " ".join(partes)
+
+
+def ambiente_do_sistema(env: dict | None = None) -> dict:
+    """0.100.22: ambiente para rodar programas de fora (terminal, xdg-open, o Python da segmentação).
+    No pacote do Linux, o PyInstaller põe as bibliotecas do Ipê no LD_LIBRARY_PATH; um programa do
+    sistema herdava isso e carregava a glib do pacote ("undefined symbol: g_once_init_leave_pointer"
+    ao abrir o gnome-terminal). Devolve uma cópia com o valor original (LD_LIBRARY_PATH_ORIG) de volta."""
+    import os
+    e = dict(os.environ if env is None else env)
+    if not frozen() or sys.platform == "win32":
+        return e
+    for k in ("LD_LIBRARY_PATH", "LD_PRELOAD"):
+        orig = e.pop(k + "_ORIG", None)
+        if orig:
+            e[k] = orig
+        else:
+            e.pop(k, None)
+    for k in ("QT_PLUGIN_PATH", "QML2_IMPORT_PATH", "QT_QPA_PLATFORM_PLUGIN_PATH", "GI_TYPELIB_PATH",
+              "GIO_MODULE_DIR", "GSETTINGS_SCHEMA_DIR", "GTK_PATH", "GDK_PIXBUF_MODULE_FILE", "PYTHONPATH", "PYTHONHOME"):
+        e.pop(k, None)
+    return e

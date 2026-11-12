@@ -116,7 +116,8 @@ def abrir_instalador(janela, perguntar: bool = True) -> bool:
         else:
             for term in (["x-terminal-emulator", "-e"], ["gnome-terminal", "--"], ["xterm", "-e"]):
                 if shutil.which(term[0]):
-                    subprocess.Popen([*term, "bash", str(arq)])
+                    from ipe.core.runtime import ambiente_do_sistema
+                    subprocess.Popen([*term, "bash", str(arq)], env=ambiente_do_sistema())
                     break
             else:
                 QMessageBox.information(janela, "Instalar a segmentação", f"Rode num terminal:\n\nbash {arq}")
@@ -145,7 +146,8 @@ def abrir_instalador_extras(janela, modelos=(), settings=None, perguntar: bool =
                  "Agora:\n" + EX.texto_prontidao(settings) + "\n\nAbrir o instalador?")
         if QMessageBox.question(janela, "Modelos extras", texto) != QMessageBox.Yes:
             return False
-    env = dict(os.environ)
+    from ipe.core.runtime import ambiente_do_sistema
+    env = ambiente_do_sistema()
     env["IPE_PESOS"] = str(EX.pasta_pesos())
     env["PYTHONIOENCODING"] = "utf-8"
     for k in ("PYTHONPATH", "PYTHONHOME"):

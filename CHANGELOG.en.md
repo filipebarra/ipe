@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.22 — Linux: installing segmentation on an older system
+- The segmentation installer looks for **Python 3.10 or newer** (Ubuntu 20.04 ships 3.8, and pip could not find
+  TotalSegmentator); if there is none, it downloads its own Python without touching the system one. An environment
+  built with an old Python is rebuilt.
+- In the Linux package, the **installer terminal did not open** (gnome-terminal: "undefined symbol"): external
+  programs no longer inherit Ipê's libraries.
+
 ## 0.100.21 — Browser: reference line and dragging between windows
 - With linked windows, the slice of one window shows in the others as a (dashed) **reference line**, on viewports of
   another plane of the same study.

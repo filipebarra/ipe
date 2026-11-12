@@ -55,3 +55,27 @@ def test_mensagem_montada_em_paragrafos_se_traduz():
         assert out.startswith("Organ segmentation") and out.endswith("Open the installer now?")
     finally:
         i18n.load(i18n.BASE_LANG)
+
+
+def test_linux_escolhe_python_novo_e_ambiente_limpo(monkeypatch):
+    """0.100.22: no Ubuntu 20.04 o python3 é o 3.8 e o pip não achava o TotalSegmentator>=2.18; e o
+    gnome-terminal aberto pelo pacote herdava as bibliotecas do Ipê e não abria."""
+    import subprocess
+    import sys
+    from pathlib import Path
+    sh = Path(__file__).resolve().parents[1] / "instalar_segmentacao.sh"
+    t = sh.read_text(encoding="utf-8")
+    assert subprocess.run(["bash", "-n", str(sh)]).returncode == 0
+    assert "(3, 10) <= sys.version_info[:2]" in t and "uv" in t and "python3.12" in t
+    assert t.index("serve()") < t.index('pip install --upgrade pip')
+    assert 'rm -rf "$VENV"' in t                       # o ambiente feito com Python velho é refeito
+    from ipe.core import runtime
+    env = {"LD_LIBRARY_PATH": "/opt/ipe/_internal", "LD_LIBRARY_PATH_ORIG": "/usr/local/lib",
+           "QT_PLUGIN_PATH": "/opt/ipe/_internal/qt", "HOME": "/home/x"}
+    assert runtime.ambiente_do_sistema(env) == env     # do código-fonte: nada muda
+    monkeypatch.setattr(runtime, "frozen", lambda: True)
+    monkeypatch.setattr(sys, "platform", "linux")
+    limpo = runtime.ambiente_do_sistema(env)
+    assert limpo == {"LD_LIBRARY_PATH": "/usr/local/lib", "HOME": "/home/x"}
+    del env["LD_LIBRARY_PATH_ORIG"]
+    assert "LD_LIBRARY_PATH" not in runtime.ambiente_do_sistema(env)

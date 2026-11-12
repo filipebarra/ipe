@@ -350,8 +350,8 @@ class Trabalho:
             py = python_do_ambiente(self.settings)
             if py is None:
                 raise Falhou(motivo_nao_instalado())
-        import os
-        env = dict(os.environ)
+        from ipe.core.runtime import ambiente_do_sistema
+        env = ambiente_do_sistema()      # 0.100.22: sem as bibliotecas do pacote no caminho (Linux)
         env["TOTALSEG_HOME_DIR"] = str(pasta_base() / "pesos")
         env["DIPY_HOME"] = str(pasta_base() / "pesos" / "dipy")          # SynthSeg (0.99.17)
         env["IPE_PESOS"] = str(pasta_base() / "pesos")                    # MedSAM2, autoPET, BraTS (0.99.83)
