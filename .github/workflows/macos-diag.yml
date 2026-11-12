@@ -13,6 +13,10 @@ on:
         description: "Runner (macos-15, macos-26…)"
         type: string
         default: macos-15
+      fuzz:
+        description: "Mutações por par (imagem, decodificador); 0 = roteiro da janela em vez do fuzz"
+        type: string
+        default: "0"
 
 permissions:
   contents: write
@@ -29,7 +33,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[ia]" "pyinstaller>=6.0"
+      - name: Decodificadores com arquivos estragados (processo morto = defeito)
+        if: ${{ inputs.fuzz != '0' }}
+        run: |
+          mkdir -p diag
+          python -m pip list 2>/dev/null | grep -i "gdcm\|jpeg\|pydicom\|pillow\|numpy" | tee diag/versoes.txt
+          sw_vers | tee -a diag/versoes.txt
+          python tools/diag_fuzz.py "${{ inputs.fuzz }}" "$PWD/diag/fuzz" 2>&1 | tee diag/fuzz.log
+          rm -rf diag/fuzz/imagens
       - name: Preparar (idioma, modo, exames de teste, comprimidos)
+        if: ${{ inputs.fuzz == '0' }}
         run: |
           mkdir -p diag
           python -m ipe set-language pt-BR || true
@@ -38,10 +51,11 @@ jobs:
           python tools/diag_comprimir.py "$PWD/amostras" "$PWD/amostras/comprimidos" 12
           find amostras -type f | wc -l
       - name: Roteiro na janela, do código-fonte
+        if: ${{ inputs.fuzz == '0' }}
         run: |
           bash tools/diag_roteiro.sh fonte python -m ipe
       - name: Empacotar
-        if: ${{ inputs.empacotado }}
+        if: ${{ inputs.empacotado && inputs.fuzz == '0' }}
         run: |
           mkdir ipe.iconset
           for t in 16 32 128 256 512; do
@@ -51,7 +65,7 @@ jobs:
           iconutil -c icns ipe.iconset -o installer/ipe.icns
           python -m PyInstaller --noconfirm --clean --workpath build-pyi --distpath dist installer/ipe.spec > diag/pyinstaller.log 2>&1 || (tail -40 diag/pyinstaller.log; exit 1)
       - name: Roteiro na janela, empacotado (aberto como o usuário abre)
-        if: ${{ inputs.empacotado }}
+        if: ${{ inputs.empacotado && inputs.fuzz == '0' }}
         run: |
           rm -rf "$HOME/Library/Application Support/DicomViewer/dicomviewer.sqlite" "$HOME/Library/Application Support/DicomViewer/Storage"
           bash tools/diag_roteiro.sh app ABRIR_APP
