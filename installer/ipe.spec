@@ -143,6 +143,12 @@ if _sys.platform == "darwin":
             "CFBundleName": "Ipe",
             "CFBundleDisplayName": "Ipê",
             "CFBundleShortVersionString": versao(),
+            # 0.100.28: o pacote tem também o ipe-cli (de console), e por causa dele o PyInstaller marcava o app
+            # inteiro como "só de fundo" (LSBackgroundOnly): sem ícone no Dock, nunca virava o aplicativo ativo e o
+            # teclado não chegava — não dava para digitar o endereço do servidor. Visto no Mac do GitHub em 12/11/2026.
+            "LSBackgroundOnly": False,
+            "LSUIElement": False,
+            "CFBundleExecutable": "Ipe",
             "NSHighResolutionCapable": True,
             "NSRequiresAquaSystemAppearance": False,
             "LSMinimumSystemVersion": "12.0",

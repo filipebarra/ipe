@@ -36,6 +36,7 @@ done
 screencapture -x "$D/tela-final.png" 2>/dev/null || true
 sleep 3
 echo "--- [$nome] onde está (se empacou)"; tail -60 "$D/onde_esta.log" 2>/dev/null
+if [ -d dist/Ipe.app ]; then echo "--- Info.plist"; plutil -p dist/Ipe.app/Contents/Info.plist | grep -i "background\|UIElement\|Executable\|PackageType"; fi
 echo "--- [$nome] resultado"; cat "$D/resultado.json" 2>/dev/null; echo
 echo "--- [$nome] saída"; tail -40 "$D/saida.log" 2>/dev/null; tail -40 "$D/erro.log" 2>/dev/null
 echo "--- [$nome] queda.log"; tail -120 "$HOME/Library/Logs/DicomViewer/queda.log" 2>/dev/null
