@@ -1,6 +1,6 @@
 """Tecido fibroglandular (FGT) e realce de fundo (BPE) da RM de mama (0.100.7).
 
-O que faltava na linha da dinâmica (`claude/rm-mama-dinamica.md`, item 1): a máscara da mama (0.55) corta a
+O que faltava na linha da dinâmica (`docs/projeto/rm-mama-dinamica.md`, item 1): a máscara da mama (0.55) corta a
 parede torácica, mas mantém gordura, pele, vasos e o músculo peitoral — o realce de fundo medido nela servia para
 comparar o mesmo serviço ao longo do tempo, não para virar categoria. Aqui a gordura sai.
 

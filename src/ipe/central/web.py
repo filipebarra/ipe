@@ -1,4 +1,4 @@
-"""Visualizador web do servidor central (0.99.91, fase W0 do `plano-visualizador-web`).
+"""Visualizador web do servidor central (0.99.91, fase W0 do `docs/projeto/plano-visualizador-web.md`).
 
 O site (TypeScript + Cornerstone3D, construído de `web/` para `ipe/web_dist`) é servido em `/web`. Aqui ficam as
 peças do lado do servidor que o site precisa e o DICOMweb de antes não tinha:

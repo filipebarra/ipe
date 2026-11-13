@@ -1,6 +1,6 @@
 # Ipê Web — o visualizador do servidor central
 
-Fontes do visualizador no navegador (0.99.91 em diante; plano em `plano-visualizador-web.md`).
+Fontes do visualizador no navegador (0.99.91 em diante; plano em `docs/projeto/plano-visualizador-web.md`).
 O site construído fica em `src/ipe/web_dist/` e vai junto com o Ipê: quem instala não precisa de Node.
 
 Para construir de novo (só quem mexe no site):

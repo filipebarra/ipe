@@ -1,7 +1,7 @@
 """Módulos que se ligam e desligam (0.84) — primeira etapa do plano de módulos.
 
 Pedido dele (0.36): separar o programa em módulos (MN, RM, MG, impressão…) e escolher o que usar.
-Esta etapa é o "caminho 1" do plano (`claude/plano-modulos.md`): **um pacote só**, módulos ligados
+Esta etapa é o "caminho 1" do plano (`docs/projeto/plano-modulos.md`): **um pacote só**, módulos ligados
 ou desligados em Preferências ▸ Módulos. Não economiza disco; tira da tela e para os serviços do que
 não se usa.
 

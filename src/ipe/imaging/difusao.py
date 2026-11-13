@@ -1,7 +1,7 @@
 """Difusão na RM (0.99.37): mapa ADC, DWI sintética e medidas por ROI, em qualquer RM.
 
 Pedido dele: *"crie a difusão de RM para todas as RM, não apenas as mama"* (itens M1, M2, M5 e M12 do
-plano da AW, em `claude/ideias-aw-server.md`).
+plano da AW, em `docs/projeto/ideias-aw-server.md`).
 
 **O que o acervo dele mostrou antes de escrever o cálculo** (16 séries de difusão, cinco aparelhos
 GE: Signa HDxt, SIGNA Pioneer, Creator, Voyager e Optima MR450w):

@@ -1,6 +1,6 @@
 """Estruturas editáveis: máscaras 3D com nome, cor e volume, e as ferramentas para corrigi-las (0.99.40).
 
-Item F2 do plano da AW (`claude/ideias-aw-server.md`): o Ipê já **cria** máscaras (crescimento de região,
+Item F2 do plano da AW (`docs/projeto/ideias-aw-server.md`): o Ipê já **cria** máscaras (crescimento de região,
 captura da lesão na dinâmica, TotalSegmentator, SynthSeg) e já **lê** SEG e RTSTRUCT, mas não deixava
 **corrigir** nem **organizar**. Aqui:
 

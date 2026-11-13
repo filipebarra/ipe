@@ -1,6 +1,6 @@
 """Os modelos extras (0.99.83): MedSAM2, autoPET e BraTS — onde ficam, se estão prontos e como instalar.
 
-Pedido dele (06/11/2026): "faça então as etapas 1 a 5" da lista do MedMLX (`claude/pesquisa-medmlx.md`).
+Pedido dele (06/11/2026): "faça então as etapas 1 a 5" da lista do MedMLX (`docs/projeto/pesquisa-medmlx.md`).
 Os três rodam no **mesmo ambiente** da segmentação (`…/segmentacao/venv`, com PyTorch de CPU), pelo mesmo
 trabalhador (`totalseg_worker.py`, tarefas especiais). O que cada um precisa a mais é instalado uma vez
 pelo `instalar_modelos_extras` (programa `ai/instalar_modelos_extras.py`, que roda com o Python do

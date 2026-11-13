@@ -30,7 +30,7 @@ COLORMAPS: dict[str, tuple[str, list[tuple[float, tuple[int, int, int]]]]] = {
     # menos saturados que num arco-íris comum.
     #
     # Os pontos vêm da **medição dos pixels de uma faixa da própria GE**, amostrada pelo usuário
-    # (ver `claude/andamento.md`); a primeira versão que escrevi aqui era chute meu, e era outra
+    # (ver `docs/projeto/principios-e-decisoes.md`); a primeira versão que escrevi aqui era chute meu, e era outra
     # escala. Ressalva que fica: a amostra não mostra o extremo direito inteiro — na AW o fim pode
     # continuar até laranja forte/vermelho, então a última faixa é a parte menos firme da tabela.
     "puh_thalium": ("Tálio PUH (GE AW)", [(0.00, (0, 0, 12)), (0.06, (0, 0, 107)),

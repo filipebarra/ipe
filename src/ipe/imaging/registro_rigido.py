@@ -1,6 +1,6 @@
 """Registro rígido em 3D — rotação e translação (6 graus de liberdade) — entre dois volumes (0.99.38).
 
-Item F1 do plano da AW (`claude/ideias-aw-server.md`): a base do seguimento (exame atual × anterior),
+Item F1 do plano da AW (`docs/projeto/ideias-aw-server.md`): a base do seguimento (exame atual × anterior),
 de clonar ROI entre exames e da correção de movimento. Até a 0.99.37 o Ipê só fazia **translação**
 (`imaging/register.py`, correlação de fase): cabeça girada entre dois exames ficava desalinhada.
 
