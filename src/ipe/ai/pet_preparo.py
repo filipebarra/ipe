@@ -1,4 +1,4 @@
-"""Sessão preparada do PET/CT (0.100.33; backlog PET/CT, item 6).
+"""Sessão preparada do PET/CT (0.100.32; backlog PET/CT, item 6).
 
 Quando a carga tumoral roda (na chegada do exame ou pelo botão Carga), o exame fica pronto para a leitura:
 

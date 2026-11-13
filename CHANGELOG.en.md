@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.33 — Segment from a box (MedSAM2) could not build the model
+- **Segment from a box (MedSAM2)** stopped with "Cannot find primary config 'configs/sam2.1_hiera_t512.yaml'": the
+  MedSAM2 package is installed without the model configuration file. Ipê now ships that file and puts it in place
+  when it is missing — **no need to reinstall** the extra models. The installation now also checks the model
+  configuration, not only that the package exists.
+
 ## 0.100.32 — macOS: Mac keys, system links with aliases, self-installing update and package in the release; PET/CT prepared session
 - **Mac keys:** shortcuts already worked with ⌘ (Qt swaps them); now the texts too — tooltips, menus and messages
   show ⌘ and ⌥ instead of Ctrl and Alt.

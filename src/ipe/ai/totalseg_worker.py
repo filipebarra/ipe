@@ -526,6 +526,29 @@ def _maior_ilha_tocando(m, k_ref: int):
     return out
 
 
+CONFIG_MEDSAM2 = "sam2.1_hiera_t512.yaml"
+
+
+def _config_do_medsam2(pasta_sam2=None, origem=None) -> str:
+    """0.100.33: o MedSAM2 instalado pelo pip vem **sem** a pasta `sam2/configs` (o pacote não declara os .yaml), e
+    o modelo não montava: "Cannot find primary config 'configs/sam2.1_hiera_t512.yaml'". O Ipê traz a sua cópia do
+    arquivo e a põe no lugar quando falta. Devolve o nome que o `build_sam2…` espera."""
+    import shutil
+    from pathlib import Path
+    if pasta_sam2 is None:
+        import importlib.util
+        spec = importlib.util.find_spec("sam2")
+        pasta_sam2 = Path(list(spec.submodule_search_locations)[0])
+    alvo = Path(pasta_sam2) / "configs" / CONFIG_MEDSAM2
+    if not alvo.is_file():
+        origem = Path(origem) if origem else Path(__file__).with_name("medsam2_" + CONFIG_MEDSAM2)
+        if not origem.is_file():
+            raise RuntimeError(f"falta a configuração do MedSAM2 ({alvo}) e a cópia do Ipê ({origem}) não foi achada")
+        alvo.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(origem, alvo)
+    return "configs/" + CONFIG_MEDSAM2
+
+
 def _medsam2(vol, t: dict):
     """Caixa num corte → máscara 3D, propagada para cima e para baixo (vídeo do SAM2)."""
     import numpy as np
@@ -549,7 +572,7 @@ def _medsam2(vol, t: dict):
     if not ckpt.is_file():
         raise RuntimeError(f"faltam os pesos do MedSAM2 ({ckpt}): rode o instalar_modelos_extras")
     etapa("MedSAM2: carregando o modelo")
-    pred = build_sam2_video_predictor_npz("configs/sam2.1_hiera_t512.yaml", str(ckpt), device="cpu")
+    pred = build_sam2_video_predictor_npz(_config_do_medsam2(), str(ckpt), device="cpu")
     caixa = np.array([x0, y0, x1, y1], np.float32)
     mask = np.zeros((k1 - k0, ny, nx), bool)
     with torch.inference_mode():

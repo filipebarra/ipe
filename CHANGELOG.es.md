@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.33 — Segmentar por la caja (MedSAM2) no montaba el modelo
+- **Segmentar por la caja (MedSAM2)** se detenía con "Cannot find primary config 'configs/sam2.1_hiera_t512.yaml'":
+  el paquete de MedSAM2 se instala sin el archivo de configuración del modelo. Ipê trae ahora ese archivo y lo
+  coloca cuando falta — **no hace falta reinstalar** los modelos extra. La instalación también comprueba la
+  configuración del modelo, y no solo que el paquete exista.
+
 ## 0.100.32 — macOS: teclas del Mac, enlaces del sistema con alias, actualización que instala y paquete en el release; PET/CT con sesión preparada
 - **Teclas del Mac:** los atajos ya valían con ⌘ (Qt los cambia solo); ahora los textos también — ayudas, menús y
   avisos muestran ⌘ y ⌥ en lugar de Ctrl y Alt.

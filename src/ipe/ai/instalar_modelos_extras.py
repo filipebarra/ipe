@@ -78,8 +78,25 @@ def medsam2() -> None:
     alvo = pasta_pesos() / "medsam2" / "MedSAM2_latest.pt"
     if not alvo.is_file():
         baixar(URL_MEDSAM2_PESOS, alvo, "MedSAM2_latest.pt (156 MB)")
-    subprocess.run([sys.executable, "-c", "from sam2.build_sam import build_sam2_video_predictor_npz; "
-                    "print('  MedSAM2 ok')"], check=True)
+    # 0.100.33: o pacote instalado vem sem os .yaml de sam2/configs — o Ipê põe a cópia dele, e a conferência
+    # passa a montar a configuração do modelo de verdade (antes só importava o pacote, e o erro aparecia no uso)
+    origem = Path(__file__).with_name("medsam2_sam2.1_hiera_t512.yaml")
+    subprocess.run([sys.executable, "-c",
+                    "import sys, shutil, importlib.util\n"
+                    "from pathlib import Path\n"
+                    "alvo = Path(list(importlib.util.find_spec('sam2').submodule_search_locations)[0]) / 'configs' "
+                    "/ 'sam2.1_hiera_t512.yaml'\n"
+                    "origem = Path(sys.argv[1])\n"
+                    "if not alvo.is_file():\n"
+                    "    alvo.parent.mkdir(parents=True, exist_ok=True)\n"
+                    "    shutil.copyfile(origem, alvo)\n"
+                    "    print('  configuracao do modelo copiada para', alvo)\n"
+                    "import sam2\n"
+                    "from hydra import compose\n"
+                    "from sam2.build_sam import build_sam2_video_predictor_npz\n"
+                    "c = compose(config_name='configs/sam2.1_hiera_t512.yaml')\n"
+                    "assert c.model.image_encoder and c.model.memory_attention, 'configuracao incompleta'\n"
+                    "print('  MedSAM2 ok')", str(origem)], check=True)
 
 
 def autopet() -> None:
