@@ -4537,9 +4537,16 @@ class ViewerTab(BarraMixin, OncoMixin, QWidget):
         except Exception:  # noqa: BLE001
             vivo = painel is not None
         if not vivo:
-            if etapa == "ini":
-                self.status_message.emit("Pincel: abra o painel Estruturas (3D ▸ Estruturas) para escolher o que pintar.")
-            return
+            # 0.100.40: o pincel abre o painel sozinho (antes mandava procurar um menu "3D ▸ Estruturas" que não
+            # existia com esse nome); a estrutura nova é criada pelo próprio painel no primeiro traço
+            if etapa != "ini":
+                return
+            painel = self.abrir_estruturas(vp)
+            if painel.grade is None:
+                self.status_message.emit("Pincel: este quadro não tem uma série de cortes (TC, RM, PET); as "
+                                         "estruturas são desenhadas sobre uma.")
+                return
+            self.status_message.emit("Pincel: painel Estruturas aberto; pintando numa estrutura nova.")
         painel.pincel(vp, u, v, etapa)
 
     def abrir_difusao(self):

@@ -1011,6 +1011,15 @@ class BarraMixin:
         self.anot_menu.addSeparator()
         self.anot_menu.addAction(self._act("view.annot_next", "Anotações: próximo nível",
                                            self.proximo_nivel_de_anotacao))
+        # 0.100.40: a letra das anotações (os dados dos cantos) maior ou menor, sem ir às Preferências
+        self.anot_menu.addSeparator()
+        self.letra_info = QAction("", self)
+        self.letra_info.setEnabled(False)
+        self.anot_menu.addAction(self.letra_info)
+        self.anot_menu.addAction(self._act("view.letra_maior", "Letra maior", lambda: self.mudar_letra(+1)))
+        self.anot_menu.addAction(self._act("view.letra_menor", "Letra menor", lambda: self.mudar_letra(-1)))
+        self.anot_menu.addAction(self._act("view.letra_normal", "Letra no tamanho normal", lambda: self.mudar_letra(0)))
+        self.anot_menu.addSeparator()
         cfg = QAction("Escolher o que cada nível mostra…", self)
         cfg.triggered.connect(lambda: self.preferences_requested.emit("Anotações"))
         self.anot_menu.addAction(cfg)
@@ -1409,6 +1418,34 @@ class BarraMixin:
             v.update()
         self.status_message.emit(f"Anotações: {AN.NOME_DO_NIVEL[nivel]}")
 
+    LETRA_PASSO, LETRA_MIN, LETRA_MAX = 0.1, 0.6, 2.5
+
+    def mudar_letra(self, sentido: int) -> float:
+        """Letra das anotações (os dados dos cantos: paciente, série, janela, FOV) maior (+1), menor (−1) ou no
+        tamanho normal (0). É a mesma escolha de Preferências ▸ Geral ▸ "Letra das informações nos cantos", e vale
+        para todas as janelas. Devolve a escala nova."""
+        chave = "viewer.overlay_font_scale"
+        try:
+            atual = float(self.settings.get(chave, 1.0) or 1.0)
+        except (TypeError, ValueError):
+            atual = 1.0
+        nova = 1.0 if sentido == 0 else atual + sentido * self.LETRA_PASSO
+        nova = round(max(self.LETRA_MIN, min(self.LETRA_MAX, nova)), 2)
+        self.settings.set(chave, nova)
+        try:
+            self.settings.save()
+        except Exception:  # noqa: BLE001 - não gravar não pode impedir de trocar na tela
+            log.debug("não gravei a letra das anotações", exc_info=True)
+        from ipe.ui.viewer import anotacoes as AN
+        self.anotacoes_mudaram.emit(AN.nivel_atual(self.settings))      # as outras janelas redesenham
+        self.reflect_anotacoes()
+        pct = round(nova * 100)
+        if sentido and nova in (self.LETRA_MIN, self.LETRA_MAX):
+            self.status_message.emit(f"Letra das anotações: {pct}% (limite)")
+        else:
+            self.status_message.emit(f"Letra das anotações: {pct}%")
+        return nova
+
     def proximo_nivel_de_anotacao(self) -> None:
         from ipe.ui.viewer import anotacoes as AN
         self.set_anotacoes(AN.proximo(AN.nivel_atual(self.settings)))
@@ -1422,6 +1459,13 @@ class BarraMixin:
         for chave, a in self.anot_actions.items():
             a.setChecked(chave == nivel)
         self.anot_button_action.setText(f"Anot.: {AN.NOME_DO_NIVEL[nivel]}")
+        info = getattr(self, "letra_info", None)
+        if info is not None:
+            try:
+                escala = float(self.settings.get("viewer.overlay_font_scale", 1.0) or 1.0)
+            except (TypeError, ValueError):
+                escala = 1.0
+            info.setText(f"Letra das anotações: {round(escala * 100)}%")
         for v in self.viewports:
             v.update()
 

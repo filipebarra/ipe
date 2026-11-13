@@ -229,6 +229,7 @@ A coluna *tecla* abaixo é sugestão: quase toda a lista de atalhos vem de fábr
 - Arrastar uma miniatura da tira para um quadro põe aquela série ali.
 - **Selo IA (0.100.14)**: a miniatura ganha um selo lilás **IA** no canto de cima quando a série é resultado de uma IA (SEG, tabelas, imagens de conferência) ou foi analisada por uma (a série de onde saiu a SEG). Passe o mouse para ver quais ferramentas. No navegador, o mesmo selo aparece na tira de séries.
 - O canto inferior direito do quadro diz o plano (clicável), a fase da dinâmica, a janela e o FOV.
+- **Letra das anotações (0.100.40)**: na setinha do botão **Anot.**, *Letra maior*, *Letra menor* (de 10 em 10%, de 60 a 250%) e *Letra no tamanho normal* mudam o texto dos cantos (paciente, série, janela, FOV) em todas as janelas; o menu mostra o tamanho em uso. As três ações podem ganhar tecla em Configurações ▸ Visualizador ▸ Atalhos. É o mesmo ajuste de *Letra das informações nos cantos*, nas configurações, onde fica também a letra das medidas.
 - **Zoom digitado**: duplo clique no "Zoom N%" do canto abre o menu — *Ajustar à janela*, *1 pixel da imagem = 1 pixel da tela (1:1)*, 50 a 400% e **Digitar o zoom…** (aceita `150`, `150%`, `2x`, `1:1` e `2:1`). O número é o mesmo do canto: 100% é a imagem ajustada ao quadro.
 - **Cortes não mostrados**: rolando depressa (roda, arrasto, Shift), a imagem anda vários cortes entre duas pinturas da tela e os do meio nunca aparecem. Quando isso acontece, ao lado da barra de posição aparece por um segundo e meio, em âmbar, "N corte(s) não mostrado(s)". Ir a um corte (clique na barra, duplo clique no número da imagem, sincronia) não avisa.
 
@@ -1747,7 +1748,7 @@ Clicar no botão mostra ou oculta todos. A escolha fica guardada por tipo: se vo
 
 ## Estruturas: editar máscaras (SEG / RTSTRUCT)
 
-Botão **3D** ▸ *Estruturas: editar máscaras* (ou o menu do botão **CAD/IA**). Abre uma janela, ao lado do visualizador, para **corrigir e organizar** as máscaras do exame — a lesão que a segmentação 3D ou a captura da dinâmica pegou com um vaso junto, o órgão que a IA contornou mal — e gravá-las no exame.
+Na setinha ▾ do botão **3D** ▸ *Estruturas: editar máscaras* (ou na do botão **CAD/IA**) — ou simplesmente comece a pintar com a ferramenta **Pincel** (*Ferramenta do botão esquerdo ▸ Desenhar ▸ Pincel*): o painel abre sozinho, com uma estrutura nova. Abre uma janela, ao lado do visualizador, para **corrigir e organizar** as máscaras do exame — a lesão que a segmentação 3D ou a captura da dinâmica pegou com um vaso junto, o órgão que a IA contornou mal — e gravá-las no exame.
 
 ![O painel Estruturas: a lista, o pincel, os limites da edição e as correções (crescer, encolher, buracos, interpolar).](estruturas_painel.png){60}
 

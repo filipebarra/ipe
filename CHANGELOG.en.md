@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.40 — Annotation text size on the toolbar; the brush opens Structures
+- **Larger or smaller annotation text without going to settings**: in the **Annot.** button's arrow, *Larger text*,
+  *Smaller text* (in 10% steps, from 60 to 250%) and *Normal text size*, for the corner text (patient, series, window,
+  FOV), in every window. The menu shows the size in use, and the three actions can get keys in the shortcuts.
+- **The brush opens the Structures panel by itself**: before, painting without the panel open told you to look for a
+  "3D ▸ Structures" menu that did not exist under that name. Now the panel opens on the viewport's series and the
+  stroke already paints into a new structure. On a viewport without a slice series (mammography, X-ray), the status
+  bar says why it does not paint.
+
 ## 0.100.39 — Code organization (no change in use)
 - **The viewer toolbar got its own file** (`ui/viewer/barra.py`). `viewer_tab.py` had 6,600 lines; the toolbar, the
   per-modality buttons, the AI button, the mouse buttons and the annotation level (about 1,400 lines) moved there,

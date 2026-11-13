@@ -9012,5 +9012,16 @@
  "amostras num pedido só: o servidor não atende; uma série de cada vez": "amostras num pedido só: o servidor não atende; uma série de cada vez",
  "aquecer a etapa da mamografia": "aquecer a etapa da mamografia",
  "metadados em disco": "metadados em disco",
- "o servidor fechou a conexão no meio de uma imagem": "the server closed the connection in the middle of an image"
+ "o servidor fechou a conexão no meio de uma imagem": "the server closed the connection in the middle of an image",
+ "Anotações: letra maior": "Annotations: larger text",
+ "Anotações: letra menor": "Annotations: smaller text",
+ "Anotações: letra no tamanho normal": "Annotations: normal text size",
+ "Letra maior": "Larger text",
+ "Letra menor": "Smaller text",
+ "Letra no tamanho normal": "Normal text size",
+ "Pincel: este quadro não tem uma série de cortes (TC, RM, PET); as estruturas são desenhadas sobre uma.": "Brush: this viewport has no slice series (CT, MR, PET); structures are drawn on one.",
+ "Pincel: painel Estruturas aberto; pintando numa estrutura nova.": "Brush: Structures panel opened; painting a new structure.",
+ "não gravei a letra das anotações": "não gravei a letra das anotações",
+ "Letra das anotações: {}%": "Annotation text: {}%",
+ "Letra das anotações: {}% (limite)": "Annotation text: {}% (limit)"
 }

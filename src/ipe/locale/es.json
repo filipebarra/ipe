@@ -9012,5 +9012,16 @@
  "amostras num pedido só: o servidor não atende; uma série de cada vez": "amostras num pedido só: o servidor não atende; uma série de cada vez",
  "aquecer a etapa da mamografia": "aquecer a etapa da mamografia",
  "metadados em disco": "metadados em disco",
- "o servidor fechou a conexão no meio de uma imagem": "el servidor cerró la conexión en medio de una imagen"
+ "o servidor fechou a conexão no meio de uma imagem": "el servidor cerró la conexión en medio de una imagen",
+ "Anotações: letra maior": "Anotaciones: letra más grande",
+ "Anotações: letra menor": "Anotaciones: letra más pequeña",
+ "Anotações: letra no tamanho normal": "Anotaciones: letra de tamaño normal",
+ "Letra maior": "Letra más grande",
+ "Letra menor": "Letra más pequeña",
+ "Letra no tamanho normal": "Letra de tamaño normal",
+ "Pincel: este quadro não tem uma série de cortes (TC, RM, PET); as estruturas são desenhadas sobre uma.": "Pincel: este cuadro no tiene una serie de cortes (TC, RM, PET); las estructuras se dibujan sobre una.",
+ "Pincel: painel Estruturas aberto; pintando numa estrutura nova.": "Pincel: panel Estructuras abierto; pintando en una estructura nueva.",
+ "não gravei a letra das anotações": "não gravei a letra das anotações",
+ "Letra das anotações: {}%": "Letra de las anotaciones: {}%",
+ "Letra das anotações: {}% (limite)": "Letra de las anotaciones: {}% (límite)"
 }

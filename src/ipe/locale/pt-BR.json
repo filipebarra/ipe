@@ -6676,7 +6676,16 @@
   "amostras num pedido só: o servidor não atende; uma série de cada vez",
   "aquecer a etapa da mamografia",
   "metadados em disco",
-  "o servidor fechou a conexão no meio de uma imagem"
+  "o servidor fechou a conexão no meio de uma imagem",
+  "Anotações: letra maior",
+  "Anotações: letra menor",
+  "Anotações: letra no tamanho normal",
+  "Letra maior",
+  "Letra menor",
+  "Letra no tamanho normal",
+  "Pincel: este quadro não tem uma série de cortes (TC, RM, PET); as estruturas são desenhadas sobre uma.",
+  "Pincel: painel Estruturas aberto; pintando numa estrutura nova.",
+  "não gravei a letra das anotações"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8518,6 +8527,8 @@
   "{} (pelo servidor)",
   "{} (pelo servidor): ",
   "{} (pelo servidor, para {}): {}",
-  "{} — no banco do servidor"
+  "{} — no banco do servidor",
+  "Letra das anotações: {}%",
+  "Letra das anotações: {}% (limite)"
  ]
 }

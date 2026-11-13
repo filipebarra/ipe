@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.40 — Letra de las anotaciones en la barra; el pincel abre Estructuras
+- **Letra de las anotaciones más grande o más pequeña sin ir a la configuración**: en la flecha del botón **Anot.**,
+  *Letra más grande*, *Letra más pequeña* (de 10 en 10 %, de 60 a 250 %) y *Letra de tamaño normal*, para el texto
+  de las esquinas (paciente, serie, ventana, FOV), en todas las ventanas. El menú muestra el tamaño en uso, y las tres
+  acciones pueden tener tecla en los atajos.
+- **El pincel abre el panel Estructuras solo**: antes, pintar sin el panel abierto mandaba buscar un menú
+  "3D ▸ Estructuras" que no existía con ese nombre. Ahora el panel se abre en la serie del cuadro y el trazo ya pinta
+  en una estructura nueva. En un cuadro sin serie de cortes (mamografía, rayos X), la barra de estado dice por qué no
+  pinta.
+
 ## 0.100.39 — Organización del código (sin cambios de uso)
 - **La barra de herramientas del visor tiene su propio archivo** (`ui/viewer/barra.py`). `viewer_tab.py` tenía 6600
   líneas; la barra, los botones por modalidad, el botón IA, los botones del mouse y el nivel de anotación (unas 1400
