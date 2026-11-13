@@ -4685,6 +4685,20 @@ class ViewerTab(OncoMixin, QWidget):
                                  "Fusão ▸ Ir ao SUV máximo procura o máximo perto do cursor.")
         return True
 
+    def abrir_sessao_preparada(self) -> bool:
+        """0.100.33: o PET/CT com a carga tumoral feita (a sessão preparada) abre direto na Leitura PET — se foi ele
+        que montou o exame (sem protocolo de exibição, escolha de séries ou divisão entre monitores)."""
+        from ipe.ai import pet_preparo as PP
+        if not PP.config(self.settings, PP.CHAVE_ABRIR) or not self.estado_pode():
+            return False
+        if getattr(self, "_arranjo_de_protocolo", False):
+            return False
+        mods = {(s.modality or "").upper() for s in self.series}
+        if "PT" not in mods or not PP.preparado(self.repo, self.study_uid):
+            return False
+        QTimer.singleShot(0, self.leitura_pet)
+        return True
+
     def ir_ao_maximo(self, raio_mm: float = 15.0) -> np.ndarray | None:
         """Leva o cursor 3D e os cortes ao voxel de maior SUV numa esfera em volta do cursor (ou do centro do
         corte do quadro PET, sem cursor). É o "K" da AW — sem atalho de fábrica; o atalho fica a critério dele."""

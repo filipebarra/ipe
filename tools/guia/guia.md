@@ -1525,6 +1525,16 @@ No botão **Fusão** dos exames de PET/CT:
 - **Leitura PET: fusão, PET e MIP girando…** monta três quadros: a TC com o PET fundido, o PET sozinho e o MIP do PET em 3D, invertido e girando. **Clique num foco do MIP** para levar os cortes dos outros quadros até ele. O PET corrigido por atenuação é preferido ao NAC.
 - **Ir ao SUV máximo perto do cursor (3 cm)** procura o voxel mais ávido numa esfera de 3 cm em volta do cursor de referência e leva os cortes até ele; a barra de status diz o SUV. Útil para cravar o SUVmáx de uma lesão sem caçar o pixel à mão.
 
+## Sessão preparada do PET/CT (0.100.32)
+
+Quando a carga tumoral roda — sozinha na chegada do exame (Configurações ▸ CAD/IA ▸ Carga tumoral ▸ *Fazer automaticamente*) ou pelo botão **Carga** — o exame fica pronto para a leitura:
+
+- **Referências medidas.** O fígado (esfera de 3 cm no lobo direito) e o mediastino (esfera de 1 cm na aorta descendente, achada pelo TotalSegmentator) ficam guardados onde a janela **PET…** guarda as medidas à mão: o limiar do PERCIST, o Deauville e a comparação do fígado com o exame anterior já abrem prontos. Uma referência que você mediu à mão nunca é trocada.
+- **Registro com o PET/CT anterior.** A TC é registrada (rotação e translação) com a TC do PET/CT anterior mais recente do paciente. Ao abrir o anterior num quadro ao lado (botão Anteriores), os dois já rolam juntos. Um registro que já existe entre os dois exames não é trocado, e um registro de qualidade fraca não é guardado (o aviso aparece na mensagem).
+- **Abre na Leitura PET.** O exame preparado, ainda sem um estado de análise guardado, abre com a TC fundida, o PET e o MIP girando. Se você já deixou o exame de outro jeito, vale o seu.
+
+As duas opções ficam em Configurações ▸ CAD/IA ▸ Carga tumoral: *Sessão preparada…* e *Abrir o exame preparado na Leitura PET*. O registro usa até 60 s.
+
 ## Carga tumoral no PET: FDG, PSMA e DOTA (0.99.88)
 
 Botão **Carga** (ou Aplicações ▸ Carga tumoral) num PET/CT. O TotalSegmentator acha os órgãos e os ossos na TC do exame (e, no PSMA, as glândulas salivares); os órgãos são levados à grade do PET. No PET, tudo acima do limiar do traçador que não está num órgão de captação fisiológica (dilatado 1 voxel) vira um **foco**:

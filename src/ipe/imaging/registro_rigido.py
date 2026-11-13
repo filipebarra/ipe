@@ -212,6 +212,7 @@ def registrar(vol_a, vol_b, metrica: str = "ncc", inicio=None, tempo_max: float 
     p_inicio = p.copy()
     f = ncc if metrica == "ncc" else informacao_mutua
     valor_inicial = None
+    atual = None
     total = len(niveis)
     for nivel, passo_mm in enumerate(niveis):
         pts, passo = _grade(vol_a, passo_mm)
@@ -219,8 +220,9 @@ def registrar(vol_a, vol_b, metrica: str = "ncc", inicio=None, tempo_max: float 
         limiar = np.nanpercentile(va, 20) if np.isfinite(va).any() else 0.0
         dentro = np.isfinite(va) & (va > limiar)
         if dentro.sum() < 200:
-            avisos.append("pouca imagem em comum para registrar")
-            break
+            # 0.100.33: volume pequeno — a grade grossa tem poucos pontos, a fina pode ter o bastante. (Antes parava
+            # aqui e, se era a primeira resolução, a função quebrava sem resultado.)
+            continue
         pts_d, va_d = pts[dentro], va[dentro]
 
         def custo(params):
@@ -259,6 +261,9 @@ def registrar(vol_a, vol_b, metrica: str = "ncc", inicio=None, tempo_max: float 
         valor_inicial = custo(p_inicio)
     except Exception:  # noqa: BLE001  (nenhuma resolução chegou a rodar)
         pass
+    if atual is None:                    # nenhuma resolução teve imagem em comum
+        avisos.append("pouca imagem em comum para registrar")
+        atual = -1.0 if metrica == "ncc" else 1.0
     return Resultado(M, tuple(float(x) for x in p), centro, metrica, float(atual),
                      float(valor_inicial if valor_inicial is not None else atual), time.monotonic() - t0, avisos)
 

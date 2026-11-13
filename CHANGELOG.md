@@ -3,7 +3,7 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
-## 0.100.32 — macOS: teclas do Mac, links do sistema com apelidos, atualização que instala e pacote no release
+## 0.100.32 — macOS: teclas do Mac, links do sistema com apelidos, atualização que instala e pacote no release; PET/CT com sessão preparada
 - **Teclas do Mac:** os atalhos já valiam com ⌘ (o Qt troca sozinho); agora os textos também — dicas, menus e avisos
   mostram ⌘ e ⌥ no lugar de Ctrl e Alt.
 - **Links:** no macOS, `ipe://` e `dicomviewer://` abrem o Ipê (ou vão para o que já está aberto).
@@ -13,6 +13,10 @@
 - **Atualização no macOS:** Procurar atualizações baixa o `.dmg` da arquitetura certa (antes oferecia o pacote do
   Linux), troca o aplicativo e abre de novo. Onde não dá para trocar sozinho, o `.dmg` abre para trocar à mão.
 - Os pacotes do macOS (chip Apple e Intel) passam a sair junto com o release.
+- **PET/CT — sessão preparada:** junto com a carga tumoral (na chegada do exame ou pelo botão Carga) ficam guardadas
+  as referências do fígado e do mediastino (PERCIST/Deauville) e o registro com o PET/CT anterior; o exame
+  preparado abre na Leitura PET. O que foi feito à mão não é trocado. Opções em Configurações ▸ CAD/IA.
+- Registro entre exames: um volume pequeno demais para a primeira resolução não derruba mais o registro.
 
 ## 0.100.31 — macOS: procurar atualizações (e todo HTTPS) volta a funcionar
 - No pacote do macOS, **Procurar atualizações** falhava com "certificate verify failed": o programa não achava os

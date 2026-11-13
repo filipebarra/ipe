@@ -104,10 +104,19 @@ PADROES = {
     CHAVE_SUV_FDG: 0.0,                  # 0 = PERCIST pelo fígado
     CHAVE_SUV_PSMA: 3.0,
     CHAVE_MIN_ML: MIN_ML,
+    "carga_pet.preparar": True,          # 0.100.33: sessão preparada (ai/pet_preparo.py)
+    "carga_pet.abrir_leitura": True,
 }
 OPCOES = ((CHAVE_SUV_FDG, "Limiar no FDG:", 0, 20, " SUV", "0 = PERCIST (1,5 × fígado + 2 DP); outro valor = SUV fixo"),
           (CHAVE_SUV_PSMA, "Limiar no PSMA:", 0, 20, " SUV", "O qPSMA usa SUV 3"),
           (CHAVE_MIN_ML, "Menor foco:", 0.05, 10, " mL", "Focos menores ficam de fora (ruído)"))
+CAIXAS = (("carga_pet.preparar", "Sessão preparada: guardar as referências (fígado e mediastino) e registrar com "
+           "o PET/CT anterior",
+           "Junto com a carga tumoral: as referências do PERCIST/Deauville ficam medidas (a janela PET… já abre com "
+           "elas) e a TC é registrada com a do PET/CT anterior do paciente — ao abrir o anterior ao lado, os dois "
+           "rolam juntos. Referência medida à mão e registro que já existe não são trocados."),
+          ("carga_pet.abrir_leitura", "Abrir o exame preparado na Leitura PET (TC com fusão, PET e MIP girando)",
+           "Vale para o exame com a carga tumoral feita e ainda sem um estado de análise guardado."))
 PERFIL = {"modalidades": CHAVE_MODALIDADES, "exame_contem": CHAVE_EXAME_CONTEM, "prior_ct": CHAVE_PRIOR_CT,
           "prior_mr": CHAVE_PRIOR_CT, "espessura": CHAVE_ESPESSURA, "min_cortes": CHAVE_MIN_CORTES,
           "excluir": _FORA_CT}
@@ -291,6 +300,7 @@ class Resultado:
     versao: str = ""
     series_uid: str = ""
     calculado: bool = False
+    preparo: object = None                              # 0.100.33: pet_preparo.Preparo (referências e registro)
 
     @property
     def mitnm(self) -> str:
@@ -498,6 +508,11 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
         res.avisos.append("sem o fígado para o PERCIST: limiar SUV 2,5")
     res.avisos.append("limiar e máscaras automáticos: conferir cada foco — inflamação, músculo, gordura marrom e "
                       "intestino podem entrar; descartar nos Achados tira o foco do total do laudo")
+    # 0.100.33: sessão preparada — referências do PERCIST/Deauville e registro com o PET/CT anterior
+    from ipe.ai import pet_preparo as PP
+    if PP.config(settings, PP.CHAVE_PREPARAR):
+        res.preparo = PP.preparar(t, res, org, suv, settings)
+        res.avisos += [a for a in res.preparo.avisos if a.startswith("registro")]
     return res
 
 
@@ -624,6 +639,12 @@ def gravar(t, res: Resultado, versao: str, db, storage_root, repo=None, settings
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
     out["achados"] = repo.gravar_achados(t.study_uid, FERRAMENTA, itens_para_o_banco(res, t, versao))
+    if res.preparo is not None:                         # 0.100.33: sessão preparada
+        from ipe.ai import pet_preparo as PP
+        try:
+            out["preparo"] = PP.gravar(repo, t.study_uid, res.preparo)
+        except Exception:  # noqa: BLE001
+            log.exception("sessão preparada: gravar")
     return out
 
 
@@ -642,6 +663,11 @@ def resumo(res: Resultado) -> str:
     return s + (f"; {res.mitnm}" if res.mitnm else "")
 
 
+def _texto_do_preparo(res: Resultado) -> str:
+    from ipe.ai import pet_preparo as PP
+    return PP.texto(res.preparo)
+
+
 def n_itens(res: Resultado) -> int:
     return (1 + min(len(res.lesoes), MAX_ACHADOS)) if res.fator else 0
 
@@ -650,6 +676,9 @@ def mensagem(res: Resultado, minutos: float) -> str:
     msg = (f"Carga tumoral pronta em {minutos:.1f} min — {resumo(res)}. Cada foco está em Aplicações ▸ Achados de "
            f"IA: descarte a captação fisiológica que sobrou e o total do laudo acompanha; a máscara está na série "
            f"“{DESC_SEG}”.")
+    prep = _texto_do_preparo(res)
+    if prep:
+        msg += "\n\n" + prep
     avisos = [a for a in res.avisos if not a.startswith("limiar e máscaras")]
     if avisos:
         msg += "\n\nConfira: " + "; ".join(avisos) + "."

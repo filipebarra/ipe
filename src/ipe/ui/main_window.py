@@ -2082,10 +2082,16 @@ class MainWindow(QMainWindow):
             self._privacy_restore.append(tab)   # volta a mostrar quando a reunião acabar
         else:
             CR.marca("janela")
+            reaberto = False
             try:                               # 0.99.58: reabrir como ele deixou
-                tab.restaurar_estado_ao_abrir()
+                reaberto = bool(tab.restaurar_estado_ao_abrir())
             except Exception:  # noqa: BLE001
                 log.exception("restaurar o estado da análise")
+            if not reaberto:                   # 0.100.33: o PET/CT preparado abre na Leitura PET
+                try:
+                    tab.abrir_sessao_preparada()
+                except Exception:  # noqa: BLE001
+                    log.exception("abrir a sessão preparada do PET")
             CR.marca("estado")
         return tab
 

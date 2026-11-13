@@ -6562,7 +6562,21 @@
   "link não é ipe:// nem dicomviewer:// (nem um apelido configurado)",
   "on open location u\n\ttry\n\t\tset p to offset of \":\" in u\n\t\tset resto to text (p + 1) thru -1 of u\n\t\tdo shell script \"/usr/bin/open \" & quoted form of (\"ipe:\" & resto)\n\tend try\nend open location\n",
   "osacompile falhou",
-  "osirix, horos"
+  "osirix, horos",
+  "Abrir o exame preparado na Leitura PET (TC com fusão, PET e MIP girando)",
+  "Junto com a carga tumoral: as referências do PERCIST/Deauville ficam medidas (a janela PET… já abre com elas) e a TC é registrada com a do PET/CT anterior do paciente — ao abrir o anterior ao lado, os dois rolam juntos. Referência medida à mão e registro que já existe não são trocados.",
+  "Sessão preparada: guardar as referências (fígado e mediastino) e registrar com o PET/CT anterior",
+  "Vale para o exame com a carga tumoral feita e ainda sem um estado de análise guardado.",
+  "abrir a sessão preparada do PET",
+  "referência do fígado não medida",
+  "referência do mediastino não medida",
+  "registro com o anterior fraco: não guardado",
+  "registro com o anterior interrompido",
+  "sessão preparada: gravar",
+  "sessão preparada: referências",
+  "sessão preparada: registro",
+  "fígado e mediastino",
+  "mediastino"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8347,6 +8361,13 @@
   "Não deu para trocar o aplicativo: {}\n\n{}",
   "Não foi possível registrar os apelidos do link: {}",
   "methodName não aceito: {}",
-  "{}:// ({})"
+  "{}:// ({})",
+  "referências: {}",
+  "registro com o anterior: {}",
+  "Sessão preparada: referências de {}; registrado com o exame de {} ({}).",
+  "Sessão preparada: registrado com o exame de {} ({}).",
+  "Sessão preparada: referências de {}; o registro com o exame de {} já existia.",
+  "Sessão preparada: o registro com o exame de {} já existia.",
+  "Sessão preparada: referências de {}."
  ]
 }

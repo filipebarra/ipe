@@ -182,6 +182,13 @@ class CadIaTab(QWidget):
             sp.setToolTip(dica)
             w["opcoes"][chave] = sp
             f.addRow(rotulo, sp)
+        w["caixas"] = {}                                # 0.100.33: opções de sim/não da ferramenta (`CAIXAS`)
+        for chave, rotulo, dica in getattr(mod, "CAIXAS", ()):
+            cx = QCheckBox(rotulo)
+            cx.setChecked(bool(cfg(chave)))
+            cx.setToolTip(dica)
+            w["caixas"][chave] = cx
+            f.addRow("", cx)
         w["dest"] = _lista_de_nos(self.repo, cfg(mod.CHAVE_DESTINOS))
         w["dest"].setToolTip("A série de resultado vai para os nós marcados depois de feita.")
         f.addRow("Depois de fazer, enviar para:", w["dest"])
@@ -198,6 +205,8 @@ class CadIaTab(QWidget):
             s.set(mod.CHAVE_ESPESSURA, round(w["esp"].value(), 2))
             s.set(mod.CHAVE_MIN_CORTES, w["min"].value())
             s.set(mod.CHAVE_DESTINOS, _marcados(w["dest"]))
+            for chave, cx in w.get("caixas", {}).items():
+                s.set(chave, cx.isChecked())
             for chave, sp in w["opcoes"].items():
                 s.set(chave, round(sp.value(), 2))
 

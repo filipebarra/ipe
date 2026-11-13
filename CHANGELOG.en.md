@@ -3,7 +3,7 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
-## 0.100.32 — macOS: Mac keys, system links with aliases, self-installing update and package in the release
+## 0.100.32 — macOS: Mac keys, system links with aliases, self-installing update and package in the release; PET/CT prepared session
 - **Mac keys:** shortcuts already worked with ⌘ (Qt swaps them); now the texts too — tooltips, menus and messages
   show ⌘ and ⌥ instead of Ctrl and Alt.
 - **Links:** on macOS, `ipe://` and `dicomviewer://` open Ipê (or go to the one already open).
@@ -14,6 +14,10 @@ The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG
   package), replaces the application and opens it again. Where it cannot be replaced automatically, the `.dmg`
   opens so you can replace it by hand.
 - The macOS packages (Apple silicon and Intel) are now built together with the release.
+- **PET/CT — prepared session:** together with the tumour burden (on arrival or with the Burden button) the liver
+  and mediastinum references (PERCIST/Deauville) and the registration with the previous PET/CT are stored; the
+  prepared study opens in PET Reading. Anything done by hand is not replaced. Options in Settings ▸ CAD/AI.
+- Registration between studies: a volume too small for the first resolution no longer breaks the registration.
 
 ## 0.100.31 — macOS: checking for updates (and all HTTPS) works again
 - In the macOS package, **Check for updates** failed with "certificate verify failed": the program could not find
