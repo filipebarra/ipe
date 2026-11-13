@@ -49,11 +49,17 @@ def test_so_o_exame_aberto_e_baixado_em_lotes(central, tmp_path, monkeypatch):  
         lotes.append(len(list(paths_)) if not isinstance(paths_, list) else len(paths_))
         return imp(self, paths_, *a, **k)
     monkeypatch.setattr(scanner.Importer, "import_paths", contar)
+    # 0.100.38: o resto vem com as colunas prontas do servidor e entra direto, lote a lote, sem reler o arquivo
+    diretos = []
+    gravar = cr.local.gravar_instancias_prontas
+    monkeypatch.setattr(cr.local, "gravar_instancias_prontas",
+                        lambda linhas: (diretos.append(len(linhas)), gravar(linhas))[1])
     primeiro = threading.Event()
     n = cr.download(uid, primeiro_lote=primeiro)
     assert primeiro.is_set() and n == sum(remotas.values())
-    assert len(lotes) > 1                                   # chegou em mais de um lote
-    assert lotes[0] == len(remotas)                         # o primeiro: uma imagem de cada série
+    assert len(diretos) > 1 and max(diretos) <= 2           # chegou em mais de um lote
+    assert lotes == [len(remotas)]                          # o primeiro: uma imagem de cada série, pelo importador
+    assert not any((cr.storage / ".chegando").rglob("*.dcm"))   # nada sobrou na pasta de passagem
     assert {s.series_uid: s.num_images for s in cr.local.series_for_study(uid)} == remotas
     assert len(cr.local.search_studies(limit=100)) == 1     # só o exame pedido
     assert original is cr.local.db
@@ -71,7 +77,7 @@ def test_abre_antes_de_terminar_e_vai_crescendo(central, tmp_path, monkeypatch):
     retrieve = cr.client.retrieve
 
     def devagar(study_uid, dest, series_uid=None, progress=None, sop_uid=None, **kw):
-        if not sop_uid:
+        if not sop_uid and not kw.get("amostras"):
             solta.wait(20)
         return retrieve(study_uid, dest, series_uid, progress=progress, sop_uid=sop_uid, **kw)
     monkeypatch.setattr(cr.client, "retrieve", devagar)

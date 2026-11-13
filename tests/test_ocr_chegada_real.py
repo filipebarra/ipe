@@ -94,10 +94,11 @@ def test_filme_chega_e_o_ocr_de_verdade_identifica_e_encaminha(estacao, onde):
     assert (j["patient_id"], j["id_source"], j["status"]) == ("FANT001", "ocr", "sent")
     # a modalidade é a do exame feito **até** a chegada; os fantomas são de hoje às 10:15, então
     # antes dessa hora o exame "ainda não aconteceu" e a modalidade fica vazia (como deve)
-    from datetime import datetime
-    mg = next(e for e in repo.search_studies() if e.patient_id == "FANT001" and "MG" in (e.modalities or ""))
-    feito = datetime.strptime(mg.study_date + mg.study_time[:6], "%Y%m%d%H%M%S") <= datetime.now()
-    assert j["modality"] == ("MG" if feito else "")
+    # 0.100.38: a modalidade é a do exame mais recente do paciente feito até a chegada (printing/modalidade; testada
+    # à parte). Os fantomas têm exames de várias modalidades em horas diferentes do dia, então qual vem depende da
+    # hora em que o teste roda — aqui basta ser a de um exame dele
+    mods = {m for e in repo.search_studies() if e.patient_id == "FANT001" for m in (e.modalities or "").split("\\")}
+    assert j["modality"] == "" or set(j["modality"].split("\\")) <= mods, (j["modality"], mods)
 
 
 def test_aparelho_sem_cadastro_identifica_mas_diz_por_que_parou(estacao):

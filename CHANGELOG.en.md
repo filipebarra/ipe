@@ -3,6 +3,22 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.38 — Faster opening and downloading (Ipê, client mode and Ipê Web)
+- **Client-mode download ~3× faster** (720 CT slices: from 2.9 s to 0.8 s as measured): the server sends each
+  image's database fields along with it, and the client writes the file straight into place and the database in
+  batches, without re-reading or writing twice. The **first image** arrives sooner: one sample of every series comes
+  in a single request.
+- **The connection to the server stays open** between requests (before, a new connection for every call).
+- **Server ~4× lighter per image for Ipê Web** (from 220 to 930 images/s as measured): permissions and "who can see
+  this study" are kept for a few seconds (a change made on the server applies at once); an image whose transfer copy
+  is ready is served without opening the original; series metadata is kept on disk and prepared for recent studies.
+- **Small server responses no longer wait**: on an open connection (the browser), every small response waited for
+  the network acknowledgement — 40 ms on Linux, up to 200 ms with a Windows client.
+- **Opening from the local database**: JPEG-LS and HTJ2K decoded in parallel without blocking the screen (MRI: from
+  1.1–1.3 s to 0.4–0.6 s); **mammography** with the views decoded together and nipple alignment ~15× faster (from
+  2.2 s to 0.7–0.8 s on two cores).
+- **Import ~2× faster** (database writes in batches).
+
 ## 0.100.37 — PACS through the server (client and Ipê Web), AI button and diffusion in every MRI
 - **Search and download from the PACS through the central server.** On the server, each query node can be marked
   *Share with clients*. The Ipê client now sees that node in the PACS search (and in the priors search) as *Name

@@ -6672,7 +6672,11 @@
   "o servidor não aceitou o download",
   "o servidor não compartilha mais este nó",
   "o servidor respondeu",
-  "salvar a escolha da barra de IA"
+  "salvar a escolha da barra de IA",
+  "amostras num pedido só: o servidor não atende; uma série de cada vez",
+  "aquecer a etapa da mamografia",
+  "metadados em disco",
+  "o servidor fechou a conexão no meio de uma imagem"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

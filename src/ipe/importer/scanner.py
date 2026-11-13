@@ -157,11 +157,14 @@ def iter_candidate_files(paths: Iterable[Path]) -> Iterator[Path]:
 
 class Importer:
     def __init__(self, db: Database, storage_root: Path, copy_to_storage: bool = True,
-                 origin: str = "import"):
+                 origin: str = "import", mover: bool = False):
         self.db = db
         self.storage = Path(storage_root)
         self.copy = copy_to_storage
         self.origin = origin          # import, received, retrieved, prefetch
+        #: 0.100.38: o arquivo é **movido** para o armazenamento (o cache do modo cliente: o que chegou da rede
+        #: já está no mesmo disco, numa pasta de passagem — copiar e apagar gravava cada imagem duas vezes)
+        self.mover = mover
         self._cancel = False
 
     def cancel(self) -> None:
@@ -195,16 +198,30 @@ class Importer:
             total = len(files)
             with self.db.session() as s:
                 cache = _Cache(s, self.origin)
-                for n, f in enumerate(files, 1):
+                n = 0
+                # 0.100.38: em lotes — os cabeçalhos do lote são lidos, **uma** consulta diz quais imagens já estão
+                # no banco e **um** comando grava as novas (antes: uma consulta e uma gravação por imagem, o que
+                # no PostgreSQL eram duas idas e voltas ao servidor do banco para cada corte)
+                for ini in range(0, total, batch_size):
                     if self._cancel:
                         log.info("Importação cancelada pelo usuário")
                         break
-                    copy = self.copy or any(str(f).startswith(t) for t in force_copy)
-                    self._import_one(s, cache, f, copy, result)
-                    if n % batch_size == 0:
-                        s.commit()
-                    if progress and (n % 5 == 0 or n == total):
-                        progress(n, total, str(f))
+                    lote = files[ini:ini + batch_size]
+                    lidos = [(f, self._ler_cabecalho(f, result)) for f in lote]
+                    cache.conferir_no_banco([_s(ds, "SOPInstanceUID") for _f2, ds in lidos if ds is not None])
+                    for f, ds in lidos:
+                        n += 1
+                        if self._cancel:
+                            log.info("Importação cancelada pelo usuário")
+                            break
+                        if ds is not None:
+                            copy = self.copy or any(str(f).startswith(t) for t in force_copy)
+                            self._import_one(s, cache, f, copy, result, ds)
+                        if progress and (n % 5 == 0 or n == total):
+                            progress(n, total, str(f))
+                    cache.gravar_instancias()
+                    s.commit()
+                cache.gravar_instancias()
                 s.commit()
                 self._refresh_modalities(s, result.new_studies)
         finally:
@@ -214,9 +231,10 @@ class Importer:
         return result
 
     # ----------------------------------------------------------------------
-    def _import_one(self, s, cache: "_Cache", f: Path, copy: bool, r: ImportResult) -> None:
+    def _ler_cabecalho(self, f: Path, r: ImportResult):
+        """O cabeçalho do arquivo, ou None (não é DICOM, ou não deu para ler — já contado em `r`)."""
         try:
-            ds = pydicom.dcmread(f, stop_before_pixels=True, force=False)
+            return pydicom.dcmread(f, stop_before_pixels=True, force=False)
         except InvalidDicomError:
             # arquivos antigos/de CD às vezes vêm sem o cabeçalho "DICM":
             # tenta ler assim mesmo e só aceita se tiver os UIDs obrigatórios
@@ -224,17 +242,25 @@ class Importer:
                 ds = pydicom.dcmread(f, stop_before_pixels=True, force=True)
                 if "SOPInstanceUID" not in ds:
                     r.not_dicom += 1
-                    return
+                    return None
+                return ds
             except Exception:  # noqa: BLE001
                 r.not_dicom += 1
-                return
+                return None
         except (EOFError, IsADirectoryError, PermissionError):
             r.not_dicom += 1
-            return
+            return None
         except Exception as e:  # noqa: BLE001
             r.errors += 1
             r.error_files.append(f"{f}: {e}")
-            return
+            return None
+
+    def _import_one(self, s, cache: "_Cache", f: Path, copy: bool, r: ImportResult, ds=None) -> None:
+        if ds is None:
+            ds = self._ler_cabecalho(f, r)
+            if ds is None:
+                return
+            cache.conferir_no_banco([_s(ds, "SOPInstanceUID")])
 
         sop_class = _s(ds, "SOPClassUID") or _s(getattr(ds, "file_meta", {}), "MediaStorageSOPClassUID")
         sop_uid = _s(ds, "SOPInstanceUID")
@@ -243,17 +269,27 @@ class Importer:
         if sop_class == DICOMDIR_CLASS or not (sop_uid and study_uid and series_uid):
             r.not_dicom += 1
             return
-        if sop_uid in cache.known_sops or s.scalar(select(Instance.id).where(Instance.sop_uid == sop_uid)):
+        if sop_uid in cache.known_sops:
             r.duplicates += 1
             r.studies.add(study_uid)
             return
 
         # --- arquivo
         if copy:
-            dest = self.storage / safe_name(study_uid) / safe_name(series_uid) / f"{safe_name(sop_uid)}.dcm"
+            pasta = self.storage / safe_name(study_uid) / safe_name(series_uid)
+            dest = pasta / f"{safe_name(sop_uid)}.dcm"
             try:
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                if f.resolve() != dest.resolve():
+                if pasta not in cache.pastas:
+                    pasta.mkdir(parents=True, exist_ok=True)
+                    cache.pastas.add(pasta)
+                if os.path.abspath(f) == os.path.abspath(dest):
+                    pass                                    # já está no lugar
+                elif self.mover:
+                    try:
+                        os.replace(f, dest)                 # mesmo disco: só troca o nome
+                    except OSError:
+                        shutil.copy2(f, dest)               # outro disco: copia (quem chamou apaga o original)
+                elif f.resolve() != dest.resolve():
                     shutil.copy2(f, dest)
             except OSError as e:
                 r.errors += 1
@@ -263,14 +299,23 @@ class Importer:
         else:
             file_path, in_storage = f.resolve(), False
 
-        patient = cache.patient(ds)
-        study = cache.study(ds, patient, r)
-        series = cache.series(ds, study, r)
+        series = cache.series_map.get(series_uid)
+        if series is None:                       # a 1ª imagem da série neste lote: paciente, exame e série
+            patient = cache.patient(ds)
+            study = cache.study(ds, patient, r)
+            series = cache.series(ds, study, r)
+        else:
+            r.new_studies.add(study_uid)
+            r.new_series.add(series_uid)
         ts = ""
         if getattr(ds, "file_meta", None) is not None:
             ts = _s(ds.file_meta, "TransferSyntaxUID")
-        s.add(Instance(
-            sop_uid=sop_uid, sop_class_uid=sop_class, series=series,
+        try:
+            tamanho = os.path.getsize(file_path)
+        except OSError:
+            tamanho = 0
+        cache.instancias.append((series, dict(
+            sop_uid=sop_uid, sop_class_uid=sop_class,
             instance_number=_i(ds, "InstanceNumber"),
             file_path=str(file_path), in_storage=in_storage, transfer_syntax=ts,
             rows=_i(ds, "Rows"), columns=_i(ds, "Columns"),
@@ -279,8 +324,8 @@ class Importer:
             image_orientation=_s(ds, "ImageOrientationPatient"),
             slice_location=_f(ds, "SliceLocation"),
             acquisition_time=_s(ds, "AcquisitionTime") or _s(ds, "ContentTime"),
-            file_size=file_path.stat().st_size if file_path.exists() else 0,
-        ))
+            file_size=tamanho,
+        )))
         cache.known_sops.add(sop_uid)
         if is_workstation_capture(ds, sop_class):
             # não trava o exame (locked): marcar sozinho não é o usuário dizendo "guarde isto"
@@ -308,7 +353,33 @@ class _Cache:
         self.patients: dict[tuple, Patient] = {}
         self.studies: dict[str, Study] = {}
         self.series_map: dict[str, Series] = {}
-        self.known_sops: set[str] = set()
+        self.known_sops: set[str] = set()      # as que já estão no banco e as que este lote vai gravar
+        self.conferidos: set[str] = set()
+        self.instancias: list[tuple] = []      # (série, colunas) à espera de gravar_instancias
+        self.pastas: set[Path] = set()         # pastas do armazenamento já criadas
+
+    def conferir_no_banco(self, sop_uids: list[str]) -> None:
+        """Uma consulta para o lote: quais destas imagens já estão no banco (entram em `known_sops`)."""
+        novos = [u for u in dict.fromkeys(sop_uids) if u and u not in self.conferidos]
+        for i in range(0, len(novos), 500):
+            parte = novos[i:i + 500]
+            self.known_sops.update(self.s.scalars(select(Instance.sop_uid).where(Instance.sop_uid.in_(parte))))
+        self.conferidos.update(novos)
+
+    def gravar_instancias(self) -> None:
+        """Grava de uma vez as imagens do lote. Outra importação pode ter gravado a mesma imagem nesse meio
+        tempo (o exame chegando por dois caminhos): no PostgreSQL a repetida é ignorada, sem derrubar o lote."""
+        if not self.instancias:
+            return
+        self.s.flush()                         # paciente, exame e série ganham o número
+        linhas = [dict(cols, series_fk=se.id) for se, cols in self.instancias]
+        self.instancias = []
+        if self.s.get_bind().dialect.name == "postgresql":
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
+            self.s.execute(pg_insert(Instance).on_conflict_do_nothing(index_elements=["sop_uid"]), linhas)
+        else:
+            from sqlalchemy import insert
+            self.s.execute(insert(Instance), linhas)
 
     def patient(self, ds) -> Patient:
         key = (_s(ds, "PatientID"), _s(ds, "IssuerOfPatientID"),

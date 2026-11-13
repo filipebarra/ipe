@@ -52,9 +52,13 @@ CREDITOS: tuple[Credito, ...] = (
             "https://github.com/pydicom/pylibjpeg-openjpeg", pacotes=("pylibjpeg-openjpeg",)),
     Credito("pyjpegls", "gravação em JPEG-LS (CharLS) na compressão sem perda", "MIT (CharLS: BSD-3-Clause)",
             "https://github.com/pydicom/pyjpegls", pacotes=("pyjpegls",), modulos=("jpeg_ls",)),
-    Credito("imagecodecs (OpenJPH)", "HTJ2K sem perda na cópia de envio do visualizador web: menos bytes na rede e "
-            "carga progressiva no navegador", "BSD-3-Clause (OpenJPH: BSD-2-Clause)",
+    Credito("imagecodecs (OpenJPH, CharLS)", "HTJ2K sem perda na cópia de envio do visualizador web e do modo cliente "
+            "(menos bytes na rede, carga progressiva no navegador) e a leitura das imagens em HTJ2K e JPEG-LS no "
+            "visualizador, em paralelo", "BSD-3-Clause (OpenJPH: BSD-2-Clause; CharLS: BSD-3-Clause)",
             "https://github.com/cgohlke/imagecodecs", pacotes=("imagecodecs",), modulos=("imagecodecs",)),
+    Credito("OpenCV", "regiões conectadas das máscaras (o contorno da mama, as segmentações num corte); vem com o "
+            "leitor de texto das folhas de impressão", "Apache-2.0", "https://opencv.org",
+            pacotes=("opencv-python", "opencv-python-headless"), modulos=("cv2",)),
     Credito("certifi", "certificados das autoridades (lista da Mozilla) para o HTTPS onde o sistema não os entrega",
             "MPL-2.0", "https://github.com/certifi/python-certifi", pacotes=("certifi",), modulos=("certifi",)),
     Credito("NumPy", "todas as contas com as imagens (janela, MPR, 3D, mapas, medidas)", "BSD-3-Clause",
@@ -178,7 +182,8 @@ CREDITOS: tuple[Credito, ...] = (
                     "Frontiers in Neuroinformatics. 2014;8:8."),
     Credito("h5py", "leitura dos pesos originais do SynthSR (arquivo HDF5 do Keras), no ambiente da segmentação",
             "BSD-3-Clause", "https://www.h5py.org", onde="segmentação", modulos=("h5py",)),
-    Credito("SciPy", "reamostragem a 1 mm antes do SynthSR, no ambiente da segmentação", "BSD-3-Clause",
+    Credito("SciPy", "reamostragem a 1 mm antes do SynthSR, no ambiente da segmentação; regiões conectadas em "
+            "volume, quando instalado", "BSD-3-Clause",
             "https://scipy.org", onde="segmentação", modulos=("scipy",),
             citacao="Virtanen P, et al. SciPy 1.0: fundamental algorithms for scientific computing in Python. "
                     "Nature Methods. 2020;17:261-272."),

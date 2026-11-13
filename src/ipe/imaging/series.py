@@ -32,6 +32,9 @@ class Frame:
     # quadros virtuais (MPR) trazem a função que gera a imagem
     provider: Callable[[int], "FrameImage"] | None = field(default=None, repr=False, compare=False)
     series_uid: str = ""
+    #: 0.100.38: quantos quadros o arquivo tem, pelo banco (0 = não se sabe: o arquivo diz). Com isso a leitura
+    #: não abre o cabeçalho de cada imagem só para saber se é multiframe.
+    n_frames: int = field(default=0, compare=False)
 
     @property
     def is_virtual(self) -> bool:
@@ -97,11 +100,13 @@ def build_frames(instances: list[dict], series_uid: str = "") -> list[Frame]:
     for inst in instances:
         pos = _vec(inst.get("position", ""), 3)
         ori = _vec(inst.get("orientation", ""), 6)
-        for k in range(max(1, int(inst.get("frames") or 1))):
+        n = max(1, int(inst.get("frames") or 1))
+        for k in range(n):
             frames.append(Frame(inst["path"], k, inst["sop_uid"],
                                 int(inst.get("instance_number") or 0), pos, ori,
                                 inst.get("acquisition_time", ""),
-                                series_uid=series_uid or inst.get("series_uid", "")))
+                                series_uid=series_uid or inst.get("series_uid", ""),
+                                n_frames=n if inst.get("frames") else 0))
     return sort_frames(frames)
 
 
@@ -149,7 +154,7 @@ def _escala(ds) -> tuple[tuple[float, float] | None, str, tuple]:
 
 def read_frame(frame: Frame) -> FrameImage:
     arr = None
-    if frame.frame_index > 0 or _is_multiframe(frame.path):
+    if frame.frame_index > 0 or frame.n_frames > 1 or (frame.n_frames == 0 and _is_multiframe(frame.path)):
         # multiframe (tomossíntese, cine…): decodifica só o quadro pedido, sem ler o arquivo todo
         try:
             from pydicom.pixels import pixel_array
@@ -162,6 +167,8 @@ def read_frame(frame: Frame) -> FrameImage:
         ds = pydicom.dcmread(frame.path, force=True)
         _ensure_transfer_syntax(ds)
         arr = _htj2k_rapido(ds)
+        if arr is None:
+            arr = _jpegls_rapido(ds)
     if arr is None:
         plug = decodificador_preferido(_ts_de(ds))
         if plug:
@@ -363,6 +370,35 @@ def _htj2k_rapido(ds):
         return None
 
 
+JPEGLS = {"1.2.840.10008.1.2.4.80", "1.2.840.10008.1.2.4.81"}
+
+
+def _jpegls_rapido(ds):
+    """0.100.38: o quadro único em JPEG-LS, monocromático, pelo imagecodecs (o mesmo CharLS, a mesma imagem) —
+    ele **solta a trava do Python** enquanto decodifica: as linhas que adiantam a leitura da série trabalham de
+    verdade em paralelo e não seguram a tela (o pyjpegls decodificava um quadro de cada vez, com a tela esperando).
+    None para o caminho de sempre (cor, multiframe, com sinal em menos de 16 bits)."""
+    if _ts_de(ds) not in JPEGLS or int(ds.get("NumberOfFrames", 1) or 1) != 1 \
+            or int(ds.get("SamplesPerPixel", 1) or 1) != 1 or "PixelData" not in ds:
+        return None
+    try:
+        aloc, guard = int(ds.BitsAllocated), int(ds.get("BitsStored", ds.BitsAllocated))
+        sinal = int(ds.get("PixelRepresentation", 0) or 0) == 1
+        if aloc not in (8, 16) or (sinal and guard != aloc):
+            return None
+        import imagecodecs
+        from pydicom.encaps import generate_frames
+        dados = next(generate_frames(ds.PixelData, number_of_frames=1))
+        arr = np.asarray(imagecodecs.jpegls_decode(dados))
+        if arr.shape != (int(ds.Rows), int(ds.Columns)) or arr.dtype.itemsize * 8 != aloc:
+            return None
+        if sinal:
+            arr = arr.view(arr.dtype.str.replace("u", "i"))
+        return arr
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def decodificador_preferido(ts: str) -> str | None:
     if ts not in _PREFERIDOS:
         return None
@@ -385,7 +421,7 @@ def preaquecer() -> None:
         for ts in (JPEGLSLossless, JPEG2000Lossless, JPEG2000, JPEGBaseline8Bit, JPEGLossless, RLELossless):
             get_decoder(ts).available_plugins
             decodificador_preferido(str(ts))
-        for mod in ("jpeg_ls", "openjpeg", "libjpeg"):
+        for mod in ("jpeg_ls", "openjpeg", "libjpeg", "imagecodecs"):
             try:
                 __import__(mod)
             except Exception:  # noqa: BLE001
@@ -462,6 +498,27 @@ class FrameCache:
         img = read_frame(frame)
         self.put(key, img)
         return img
+
+    def aquecer(self, frames: list[Frame], linhas: int = 0) -> None:
+        """0.100.38: decodifica **em paralelo** os quadros que ainda não estão no cache e só volta quando todos
+        estão (ou falharam — aí quem pedir depois vê o erro de sempre). Para o que vai aparecer junto na tela: as
+        quatro incidências da mamografia, um quadro de cada série do protocolo. Os decodificadores do
+        imagecodecs soltam a trava do Python, então isto usa os núcleos de verdade."""
+        unicos = {(f.path, f.frame_index): f for f in frames if f is not None and f.provider is None}
+        faltam = [f for f in unicos.values() if not self.contains(f)]
+        if len(faltam) < 2:
+            return
+        import os
+        from concurrent.futures import ThreadPoolExecutor
+        n = linhas or min(len(faltam), max(2, (os.cpu_count() or 2)))
+
+        def um(f: Frame) -> None:
+            try:
+                self.get(f)
+            except Exception:  # noqa: BLE001
+                log.debug("aquecer %s", f.path, exc_info=True)
+        with ThreadPoolExecutor(max_workers=n, thread_name_prefix="ipe-aquecer") as ex:
+            list(ex.map(um, faltam))
 
     def contains(self, frame: Frame) -> bool:
         if frame.provider is not None:

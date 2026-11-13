@@ -9008,5 +9008,9 @@
  "{} (pelo servidor)": "{} (through the server)",
  "{} (pelo servidor): ": "{} (through the server): ",
  "{} (pelo servidor, para {}): {}": "{} (through the server, for {}): {}",
- "{} — no banco do servidor": "{} — in the server's database"
+ "{} — no banco do servidor": "{} — in the server's database",
+ "amostras num pedido só: o servidor não atende; uma série de cada vez": "amostras num pedido só: o servidor não atende; uma série de cada vez",
+ "aquecer a etapa da mamografia": "aquecer a etapa da mamografia",
+ "metadados em disco": "metadados em disco",
+ "o servidor fechou a conexão no meio de uma imagem": "the server closed the connection in the middle of an image"
 }

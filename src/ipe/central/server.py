@@ -25,7 +25,6 @@ from urllib.parse import parse_qs, unquote, urlsplit
 
 from ipe import APP_ASCII, APP_NAME, __version__
 from ipe.auth.backend import AuthError, LocalAuth
-from ipe.auth.permissions import permissions_for
 from ipe.auth.session import UserSession
 from ipe.central import codec, dicomweb as DW
 from ipe.central.rpc import POR_EXAME, POR_LISTA, RPC_METHODS, SERVER_STORAGE_ARG
@@ -82,23 +81,25 @@ class CentralServer:
         if dias > 0:
             def varrer(repo=self.repo):
                 import time as _t
-                espera = 20
+                espera, volta = 20, 0
                 while True:
                     for _ in range(espera):
                         _t.sleep(1)
                         if self._httpd is None:
                             return
                     try:
-                        envio.varrer_recentes(repo, dias)
+                        # 0.100.38: os exames de hoje e de ontem a cada 2 min (o que acabou de chegar fica pronto
+                        # antes de ser aberto); os dos últimos `dias`, de 30 em 30 min, como antes
+                        envio.varrer_recentes(repo, dias if volta % 15 == 0 else min(dias, 1))
                     except Exception:  # noqa: BLE001
                         log.exception("cópias de envio dos exames recentes")
-                    espera = 1800
+                    espera, volta = 120, volta + 1
             threading.Thread(target=varrer, name="ipe-envio-recentes", daemon=True).start()
         server = self
 
         class Handler(_Handler):
             central = server
-        httpd = ThreadingHTTPServer((self.host, self.port), Handler)
+        httpd = _Servidor((self.host, self.port), Handler)
         httpd.daemon_threads = True
         if self.certfile:
             ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -114,6 +115,7 @@ class CentralServer:
         if self._httpd is not None:
             self._httpd.shutdown()
             self._httpd.server_close()
+            self._httpd.fechar_abertas()
             self._httpd = None
 
     def serve_forever(self) -> None:
@@ -157,7 +159,7 @@ class CentralServer:
                 self.tokens[tok] = (item[0], time.time())
                 s = item[0]
             # permissões atualizadas (o admin pode ter mudado o perfil)
-            s.perms = permissions_for(s.role, self.repo)
+            s.perms = self._permissoes(s.role)
             return s
         if h.startswith("Basic "):
             try:
@@ -166,6 +168,19 @@ class CentralServer:
             except (AuthError, ValueError):
                 return None
         return None
+
+    #: por quanto tempo o servidor guarda as permissões dos perfis e "quem vê este exame" (0.100.38). Mudança
+    #: feita neste processo vale na hora (repository.MUDANCAS); feita por outro processo, em até este tempo.
+    GUARDA_S = 5.0
+
+    def _permissoes(self, role: str) -> set:
+        from ipe.db.repository import MUDANCAS
+        agora = time.monotonic()
+        g = self.__dict__.get("_perfis")
+        if g is None or g[0] != MUDANCAS["config"] or agora - g[1] > self.GUARDA_S:
+            from ipe.auth.permissions import role_permissions
+            g = self._perfis = (MUDANCAS["config"], agora, role_permissions(self.repo))
+        return set(g[2].get(role, set()))
 
     def logout(self, headers) -> None:
         h = headers.get("Authorization", "") or ""
@@ -312,11 +327,24 @@ class CentralServer:
     def pode_ver(self, s: UserSession, study_uid: str) -> bool:
         """O dono, quem ele escolheu, o compartilhado — e o administrador (decisão dele)."""
         from ipe.auth import visibilidade as V
+        from ipe.db.repository import MUDANCAS
         v = self._visao(s)
         if v is None or v.admin:
             return True
+        # 0.100.38: guardado por alguns segundos — o navegador pede um quadro de cada vez, e cada pedido fazia
+        # esta consulta ao banco
+        agora = time.monotonic()
+        g = self.__dict__.setdefault("_pode_ver", {})
+        chave = (s.username, s.role, study_uid)
+        it = g.get(chave)
+        if it is not None and it[0] == MUDANCAS["escopo"] and agora - it[1] <= self.GUARDA_S:
+            return it[2]
         info = self.repo.study_info(study_uid)
-        return info is None or V.visivel(info, v)
+        pode = info is None or V.visivel(info, v)
+        if len(g) > 2000:
+            g.clear()
+        g[chave] = (MUDANCAS["escopo"], agora, pode)
+        return pode
 
     def mudar_banco(self, s: UserSession, study_uids, dono: str = "", visivel_para: str = "") -> int:
         """As mesmas regras do botão direito ▸ Banco: o dono mexe no que é dele; tirar do compartilhado
@@ -396,9 +424,59 @@ _RUIDO: bytes | None = None
 #: 0.100.18: erros relatados pelo navegador, por endereço (no máximo 20 por minuto)
 _ERROS_WEB: dict[str, list[float]] = {}
 
+class _Servidor(ThreadingHTTPServer):
+    """0.100.38: as conexões ficam abertas entre pedidos — então desligar o servidor também fecha as que estão
+    abertas (senão, uma conexão guardada por um cliente continuaria sendo atendida pelo servidor já desligado)."""
+
+    def __init__(self, *a, **k):
+        self._abertas: set = set()
+        self._trava_abertas = threading.Lock()
+        super().__init__(*a, **k)
+
+    def get_request(self):
+        sock, endereco = super().get_request()
+        with self._trava_abertas:
+            self._abertas.add(sock)
+        return sock, endereco
+
+    def shutdown_request(self, request) -> None:
+        with self._trava_abertas:
+            self._abertas.discard(request)
+        super().shutdown_request(request)
+
+    def fechar_abertas(self) -> None:
+        with self._trava_abertas:
+            abertas, self._abertas = list(self._abertas), set()
+        for sock in abertas:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
+                sock.close()
+            except OSError:
+                pass
+    def handle_error(self, request, client_address) -> None:
+        """O cliente fechar a conexão (a janela fechou, o download foi cancelado) não é erro do servidor: vai para
+        o registro detalhado, sem a pilha na saída de erros."""
+        import sys
+        e = sys.exc_info()[1]
+        if isinstance(e, (ConnectionError, TimeoutError)):
+            log.debug("conexão com %s encerrada: %s", client_address[0], e)
+            return
+        log.exception("HTTP: erro atendendo %s", client_address[0])
+
+
 class _Handler(BaseHTTPRequestHandler):
     central: CentralServer = None          # definido na subclasse
     protocol_version = "HTTP/1.1"
+    #: 0.100.38: os programas clientes agora deixam a conexão aberta entre os pedidos; a que ficar parada por 5 min
+    #: (o computador do cliente dormiu, a rede caiu) é fechada, para não prender uma linha do servidor para sempre
+    timeout = 300
+    #: 0.100.38: sem o algoritmo de Nagle. O cabeçalho e o corpo da resposta saem em duas gravações; numa conexão
+    #: que fica aberta, o sistema segurava o corpo pequeno (uma resposta de RPC, um JSON do site) até o outro lado
+    #: confirmar o cabeçalho — e a confirmação atrasada custa 40 ms no Linux e até 200 ms no Windows, por pedido.
+    disable_nagle_algorithm = True
     server_version = f"{APP_ASCII}/{__version__}"
 
     def log_message(self, fmt, *args) -> None:  # noqa: D401
@@ -428,7 +506,28 @@ class _Handler(BaseHTTPRequestHandler):
 
     def _body(self) -> bytes:
         n = int(self.headers.get("Content-Length") or 0)
+        self._corpo_lido = True
         return self.rfile.read(n) if n else b""
+
+    def _sobra_do_corpo(self) -> None:
+        """0.100.38: a conexão fica aberta para o próximo pedido — se este foi respondido sem o corpo ser lido (sem
+        login, sem permissão, rota errada), o que sobrou dele seria lido como o começo do pedido seguinte. Corpo
+        pequeno é lido e jogado fora; grande, a conexão é fechada."""
+        if getattr(self, "_corpo_lido", False):
+            return
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except (TypeError, ValueError):
+            n = 0
+        if n <= 0:
+            return
+        if n > 4 << 20:
+            self.close_connection = True
+            return
+        try:
+            self.rfile.read(n)
+        except OSError:
+            self.close_connection = True
 
     def _auth(self) -> UserSession | None:
         try:
@@ -458,13 +557,16 @@ class _Handler(BaseHTTPRequestHandler):
             self._error(500, str(e))
 
     def do_POST(self) -> None:  # noqa: N802
+        self._corpo_lido = False
         try:
             self._route("POST")
         except (BrokenPipeError, ConnectionResetError):
-            pass
+            self.close_connection = True
         except Exception as e:  # noqa: BLE001
             log.exception("HTTP POST")
             self._error(500, str(e))
+        finally:
+            self._sobra_do_corpo()
 
     def _route(self, method: str) -> None:
         parts = urlsplit(self.path)
@@ -815,6 +917,7 @@ class _Handler(BaseHTTPRequestHandler):
             try:
                 arq = tmp / "pacote"
                 with open(arq, "wb") as f:                   # em pedaços: o instalador tem centenas de MB
+                    self._corpo_lido = True
                     falta = n
                     while falta > 0:
                         bloco = self.rfile.read(min(falta, 1 << 20))
@@ -918,8 +1021,12 @@ class _Handler(BaseHTTPRequestHandler):
                 return
             try:
                 numeros = [int(x) for x in seg[7].split(",") if x.strip()]
-                with envio.atendendo():
-                    partes = WEB.quadros_para_web(caminho, numeros)
+                # 0.100.38: com a cópia de envio pronta, ela sai direto do cache — sem abrir o arquivo original
+                # (antes, o original inteiro era lido e interpretado a cada quadro, mesmo com a cópia pronta)
+                partes = envio.quadros_prontos(caminho, numeros)
+                if partes is None:
+                    with envio.atendendo():
+                        partes = WEB.quadros_para_web(caminho, numeros)
             except (ValueError, IndexError) as e:
                 return self._error(400, str(e))
             boundary = DW.new_boundary()
@@ -928,7 +1035,24 @@ class _Handler(BaseHTTPRequestHandler):
                               extra=cache)
         # WADO-RS
         files: list[str] = []
-        if len(seg) == 2 and seg[0] == "studies":
+        metas: dict | None = None
+        # 0.100.38: o Ipê cliente pede as colunas de cada imagem junto (cabeçalho da parte): ele grava no cache
+        # sem reler o arquivo. E pede de uma vez a imagem do meio de cada série (…/amostras), para abrir o exame.
+        direto = bool(self.headers.get("X-Ipe-Cliente"))
+        linhas = None
+        if len(seg) == 3 and seg[0] == "studies" and seg[2] == "amostras":
+            quais = [u for u in (q.get("series") or [""])[0].split(",") if u]
+            por_serie: dict[str, list] = {}
+            for ln in c.repo.instancias_para_envio(seg[1], quais or None):
+                por_serie.setdefault(ln["series_uid"], []).append(ln)
+            linhas = [v[len(v) // 2] for v in por_serie.values() if v]
+        elif direto and len(seg) == 2 and seg[0] == "studies":
+            linhas = c.repo.instancias_para_envio(seg[1])
+        elif direto and len(seg) == 4 and seg[0] == "studies" and seg[2] == "series":
+            linhas = c.repo.instancias_para_envio(seg[1], [seg[3]])
+        elif direto and len(seg) == 6 and seg[4] == "instances":
+            linhas = c.repo.instancias_para_envio(seg[1], [seg[3]], seg[5])
+        elif len(seg) == 2 and seg[0] == "studies":
             files = c.repo.files_for_study(seg[1])
         elif len(seg) == 4 and seg[0] == "studies" and seg[2] == "series":
             files = c.repo.files_for_study(seg[1], [seg[3]])
@@ -936,7 +1060,12 @@ class _Handler(BaseHTTPRequestHandler):
             files = [i["path"] for i in c.repo.instances_for_series(seg[3]) if i["sop_uid"] == seg[5]]
         else:
             return self._error(404, "rota DICOMweb desconhecida")
-        files = [f for f in files if f and Path(f).exists()]
+        if linhas is not None:
+            linhas = [ln for ln in linhas if ln["file_path"] and Path(ln["file_path"]).exists()]
+            files = [ln["file_path"] for ln in linhas]
+            metas = {ln["file_path"]: {k: v for k, v in ln.items() if k != "file_path"} for ln in linhas}
+        else:
+            files = [f for f in files if f and Path(f).exists()]
         if not files:
             return self._error(404, "nada encontrado")
         boundary = DW.new_boundary()
@@ -968,11 +1097,25 @@ class _Handler(BaseHTTPRequestHandler):
                             caminho = fut.result()
                         else:
                             caminho = f
-                        for chunk in DW.multipart_iter([caminho], boundary, final=False):
+                        m = None
+                        if metas is not None:                 # a sintaxe do que vai, não a do acervo
+                            m = dict(metas[f], transfer_syntax=envio.HTJ2K_RPCL) if caminho != f else metas[f]
+                            m = {str(caminho): m}
+                        for chunk in DW.multipart_iter([caminho], boundary, final=False, metas=m):
                             mandar(chunk)
             finally:
                 ex.shutdown(wait=False, cancel_futures=True)
             mandar(f"--{boundary}--\r\n".encode("ascii"))
+            self.wfile.write(b"0\r\n\r\n")
+            return
+        if metas is not None:                                 # o tamanho muda com os cabeçalhos: em pedaços
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Transfer-Encoding", "chunked")
+            self.end_headers()
+            for chunk in DW.multipart_iter(files, boundary, metas=metas):
+                if chunk:
+                    self.wfile.write(f"{len(chunk):X}\r\n".encode("ascii") + chunk + b"\r\n")
             self.wfile.write(b"0\r\n\r\n")
             return
         total = _multipart_length(files, boundary)

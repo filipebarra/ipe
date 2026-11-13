@@ -68,6 +68,28 @@ def etag(caminho: str, quadros: str = "1") -> str:
         return ""
 
 
+def quadros_prontos(caminho: str, numeros: list[int]) -> list[tuple[bytes, str]] | None:
+    """Os quadros pedidos, das cópias de envio já feitas — sem abrir o arquivo original. None se falta alguma (aí
+    vale o caminho completo, `web.quadros_para_web`, que lê o original e faz a cópia)."""
+    qual = codec()
+    if not qual or _pasta is None or not numeros:
+        return None
+    ext, ts = (".jph", HTJ2K_RPCL) if qual == "htj2k" else (".jls", JPEG_LS)
+    out = []
+    try:
+        st = os.stat(caminho)
+        base = hashlib.sha1(f"{VERSAO}|{caminho}|{st.st_mtime_ns}|{st.st_size}".encode()).hexdigest()
+        for n in numeros:
+            if n < 1:
+                return None
+            chave = f"{base}_{n}"
+            with open(_pasta / chave[:2] / (chave + ext), "rb") as fh:
+                out.append((fh.read(), ts))
+    except OSError:
+        return None
+    return out
+
+
 def _monocromatico(ds) -> bool:
     return int(getattr(ds, "SamplesPerPixel", 1) or 1) == 1 and int(getattr(ds, "BitsAllocated", 16)) in (8, 16)
 
@@ -235,7 +257,24 @@ def varrer_recentes(repo, dias: int) -> int:
             preparar_serie([f for f in repo.files_for_study(r.study_uid) if f])
         except Exception:  # noqa: BLE001
             log.debug("cópias de envio de %s", r.study_uid, exc_info=True)
+    _preparar_metadados(repo, [r.study_uid for r in estudos])
     return len(estudos)
+
+
+def _preparar_metadados(repo, estudos: list[str]) -> None:
+    """0.100.38: os metadados que o navegador pede ao abrir (o JSON de cada série) dos exames recentes ficam
+    prontos em disco, numa linha de fundo que espera os pedidos — abrir um exame recente no navegador não
+    espera a leitura dos cabeçalhos."""
+    def trabalho():
+        from ipe.central import web as WEB
+        for uid in estudos:
+            try:
+                for se in repo.series_for_study(uid):
+                    _esperar_folga()
+                    WEB.metadados_prontos(repo, uid, se.series_uid, "/dicomweb", guardar=False)
+            except Exception:  # noqa: BLE001
+                log.debug("metadados de %s", uid, exc_info=True)
+    threading.Thread(target=trabalho, name="ipe-meta-recentes", daemon=True).start()
 
 
 # ------------------------------------------------------------------ o arquivo inteiro em HTJ2K (0.100.0)

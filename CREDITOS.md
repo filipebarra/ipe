@@ -18,7 +18,8 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [pylibjpeg-libjpeg](https://github.com/pydicom/pylibjpeg-libjpeg) | JPEG e JPEG-LS (biblioteca libjpeg de Thomas Richter) | GPL-3.0 |
 | [pylibjpeg-openjpeg](https://github.com/pydicom/pylibjpeg-openjpeg) | JPEG 2000 (OpenJPEG) | MIT (OpenJPEG: BSD-2-Clause) |
 | [pyjpegls](https://github.com/pydicom/pyjpegls) | gravação em JPEG-LS (CharLS) na compressão sem perda | MIT (CharLS: BSD-3-Clause) |
-| [imagecodecs (OpenJPH)](https://github.com/cgohlke/imagecodecs) | HTJ2K sem perda na cópia de envio do visualizador web: menos bytes na rede e carga progressiva no navegador | BSD-3-Clause (OpenJPH: BSD-2-Clause) |
+| [imagecodecs (OpenJPH, CharLS)](https://github.com/cgohlke/imagecodecs) | HTJ2K sem perda na cópia de envio do visualizador web e do modo cliente (menos bytes na rede, carga progressiva no navegador) e a leitura das imagens em HTJ2K e JPEG-LS no visualizador, em paralelo | BSD-3-Clause (OpenJPH: BSD-2-Clause; CharLS: BSD-3-Clause) |
+| [OpenCV](https://opencv.org) | regiões conectadas das máscaras (o contorno da mama, as segmentações num corte); vem com o leitor de texto das folhas de impressão | Apache-2.0 |
 | [certifi](https://github.com/certifi/python-certifi) | certificados das autoridades (lista da Mozilla) para o HTTPS onde o sistema não os entrega | MPL-2.0 |
 | [NumPy](https://numpy.org) | todas as contas com as imagens (janela, MPR, 3D, mapas, medidas) | BSD-3-Clause |
 | [psycopg 3](https://www.psycopg.org/psycopg3/) | a conexão com o PostgreSQL, o banco de dados do Ipê (o pacote binário traz a libpq do PostgreSQL, licença PostgreSQL) | LGPL-3.0 |
@@ -61,7 +62,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [MONAI](https://monai.io) | o SegResNet do glioma (BraTS) — parte captante, necrose e edema (modelo extra) | Apache-2.0 |
 | [DIPY](https://dipy.org) | a versão em PyTorch do SynthSeg, no ambiente da segmentação | BSD-3-Clause |
 | [h5py](https://www.h5py.org) | leitura dos pesos originais do SynthSR (arquivo HDF5 do Keras), no ambiente da segmentação | BSD-3-Clause |
-| [SciPy](https://scipy.org) | reamostragem a 1 mm antes do SynthSR, no ambiente da segmentação | BSD-3-Clause |
+| [SciPy](https://scipy.org) | reamostragem a 1 mm antes do SynthSR, no ambiente da segmentação; regiões conectadas em volume, quando instalado | BSD-3-Clause |
 | [NiBabel](https://nipy.org/nibabel) | troca de volumes (NIfTI) com o ambiente da segmentação | MIT |
 
 ## Modelo de IA, baixado à parte

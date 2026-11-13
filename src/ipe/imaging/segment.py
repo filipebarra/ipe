@@ -142,11 +142,33 @@ def tres_eixos(pontos_mm: np.ndarray, voxel_mm) -> tuple[float, float, float]:
     return (eixos[0], eixos[1], eixos[2])
 
 
+def _componente_rapida(inside: np.ndarray, seed: tuple[int, int, int]) -> np.ndarray | None:
+    """0.100.38: a mesma componente conectada (6 vizinhos; num corte só, 4), rotulada de uma vez pelo OpenCV
+    (num corte) ou pelo SciPy (em volume), quando estão instalados. A dilatação passo a passo levava ~0,15 s
+    numa máscara de mamografia (um passo por pixel de raio) — e a abertura da mamografia chama isto duas vezes
+    por imagem. None = sem essas bibliotecas: fica a dilatação."""
+    try:
+        if inside.dtype != bool:
+            return None
+        if inside.shape[0] == 1:
+            import cv2
+            _n, rot = cv2.connectedComponents(np.ascontiguousarray(inside[0]).view(np.uint8), connectivity=4)
+            return (rot == rot[seed[1], seed[2]])[None]
+        from scipy import ndimage
+        rot, _n = ndimage.label(inside)                      # a estrutura padrão é a de 6 vizinhos
+        return rot == rot[seed]
+    except Exception:  # noqa: BLE001 - biblioteca ausente ou entrada inesperada
+        return None
+
+
 def _grow(inside: np.ndarray, seed: tuple[int, int, int], max_iter: int = 100000) -> np.ndarray:
     """Componente conectada (6 vizinhos) de `inside` que contém a semente. Dilatação restrita à caixa."""
     reg = np.zeros_like(inside)
     if not inside[seed]:
         return reg
+    rapida = _componente_rapida(inside, seed)
+    if rapida is not None:
+        return rapida
     reg[seed] = True
     nz, ny, nx = inside.shape
     k0, k1, j0, j1, i0, i1 = seed[0], seed[0] + 1, seed[1], seed[1] + 1, seed[2], seed[2] + 1

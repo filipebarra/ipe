@@ -136,6 +136,12 @@ def _no_banco(st, banco: str, visao) -> bool:
     return not st.dono or st.dono.lower() == eu or eu in outros
 
 
+#: 0.100.38: contadores do que mudou neste processo (perfis/permissões e o banco dos exames). O servidor central
+#: guarda por alguns segundos as permissões e "quem vê este exame" — conferidos a cada pedido de imagem, eram duas
+#: consultas ao banco por quadro — e joga fora o guardado quando um destes números muda.
+MUDANCAS = {"config": 0, "escopo": 0}
+
+
 class Repository:
     def __init__(self, db: Database):
         self.db = db
@@ -454,6 +460,7 @@ class Repository:
         """Move exames entre os bancos: "" = compartilhado; um usuário = banco pessoal dele. Só a marca
         muda — os arquivos continuam no mesmo lugar."""
         n = 0
+        MUDANCAS["escopo"] += 1
         with self.db.session() as s:
             for st in s.scalars(select(Study).where(Study.study_uid.in_(list(study_uids)))):
                 st.dono, st.visivel_para = (dono or "").strip(), (visivel_para or "").strip()
@@ -516,6 +523,7 @@ class Repository:
 
     def transferir_banco(self, de: str, para: str = "") -> int:
         """O banco pessoal inteiro de `de` passa para `para` ("" = compartilhado)."""
+        MUDANCAS["escopo"] += 1
         with self.db.session() as s:
             n = 0
             for st in s.scalars(select(Study).where(func.lower(Study.dono) == de.strip().lower())):
@@ -553,14 +561,18 @@ class Repository:
             return list(s.scalars(q))
 
     def instances_for_series(self, series_uid: str) -> list[dict]:
+        # 0.100.38: só as colunas usadas (sem montar um objeto do banco por imagem): abrir um exame chama isto
+        # uma vez por série, e numa série de centenas de cortes era a consulta mais cara da abertura
         with self.db.session() as s:
-            q = (select(Instance).join(Series).where(Series.series_uid == series_uid))
+            q = (select(Instance.sop_uid, Instance.file_path, Instance.instance_number, Instance.image_position,
+                        Instance.image_orientation, Instance.slice_location, Instance.number_of_frames,
+                        Instance.acquisition_time, Instance.transfer_syntax)
+                 .join(Series, Instance.series_fk == Series.id).where(Series.series_uid == series_uid)
+                 .order_by(Instance.id))
             return [{
-                "sop_uid": i.sop_uid, "path": i.file_path, "instance_number": i.instance_number,
-                "position": i.image_position, "orientation": i.image_orientation,
-                "slice_location": i.slice_location, "frames": i.number_of_frames,
-                "acquisition_time": i.acquisition_time,
-            } for i in s.scalars(q)]
+                "sop_uid": r[0], "path": r[1], "instance_number": r[2], "position": r[3], "orientation": r[4],
+                "slice_location": r[5], "frames": r[6], "acquisition_time": r[7], "ts": r[8],
+            } for r in s.execute(q)]
 
     def series_meta(self, series_uid: str) -> dict | None:
         with self.db.session() as s:
@@ -2140,6 +2152,7 @@ class Repository:
 
     def set_app_setting(self, key: str, value) -> None:
         import json
+        MUDANCAS["config"] += 1
         with self.db.session() as s:
             a = s.get(AppSetting, key)
             if a is None:
@@ -2628,6 +2641,60 @@ class Repository:
             if series_uids:
                 q = q.where(Series.series_uid.in_(list(series_uids)))
             return list(s.scalars(q))
+
+    #: 0.100.38: as colunas de uma imagem que o cliente do servidor central grava no cache sem reler o arquivo
+    COLUNAS_DE_ENVIO = ("sop_uid", "sop_class_uid", "instance_number", "transfer_syntax", "rows", "columns",
+                        "number_of_frames", "image_position", "image_orientation", "slice_location",
+                        "acquisition_time")
+
+    def instancias_para_envio(self, study_uid: str, series_uids: list[str] | None = None,
+                              sop_uid: str = "") -> list[dict]:
+        """As imagens do exame (ou das séries, ou uma só) com o caminho, a série e as colunas de cada uma, na
+        ordem do número da imagem dentro de cada série."""
+        with self.db.session() as s:
+            q = (select(Instance, Series.series_uid).join(Series, Instance.series_fk == Series.id)
+                 .join(Study, Series.study_fk == Study.id).where(Study.study_uid == study_uid)
+                 .order_by(Series.series_number, Series.id, Instance.instance_number, Instance.id))
+            if series_uids:
+                q = q.where(Series.series_uid.in_(list(series_uids)))
+            if sop_uid:
+                q = q.where(Instance.sop_uid == sop_uid)
+            out = []
+            for i, suid in s.execute(q):
+                d = {c: getattr(i, c) for c in self.COLUNAS_DE_ENVIO}
+                d["file_path"], d["series_uid"] = i.file_path, suid
+                out.append(d)
+            return out
+
+    def gravar_instancias_prontas(self, linhas: list[dict]) -> int:
+        """Grava no banco imagens cujas colunas já vieram prontas (do servidor central) e cujo arquivo já está no
+        lugar. A série tem que existir (senão a linha fica de fora e volta na lista do que não entrou — quem chama
+        importa o arquivo pelo caminho de sempre). Imagem repetida é ignorada. Devolve as linhas que ficaram de
+        fora."""
+        if not linhas:
+            return []
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+        with self.db.session() as s:
+            uids = sorted({ln["series_uid"] for ln in linhas})
+            ids = dict(s.execute(select(Series.series_uid, Series.id).where(Series.series_uid.in_(uids))).all())
+            prontas, fora = [], []
+            for ln in linhas:
+                fk = ids.get(ln["series_uid"])
+                if fk is None or not ln.get("sop_uid"):
+                    fora.append(ln)
+                    continue
+                d = {c: ln.get(c) for c in self.COLUNAS_DE_ENVIO}
+                d.update(series_fk=fk, file_path=str(ln["file_path"]), in_storage=True,
+                         file_size=int(ln.get("file_size") or 0),
+                         instance_number=int(d.get("instance_number") or 0), rows=int(d.get("rows") or 0),
+                         columns=int(d.get("columns") or 0), number_of_frames=int(d.get("number_of_frames") or 1))
+                for c in ("sop_class_uid", "transfer_syntax", "image_position", "image_orientation",
+                          "acquisition_time"):
+                    d[c] = d.get(c) or ""
+                prontas.append(d)
+            if prontas:
+                s.execute(pg_insert(Instance).on_conflict_do_nothing(index_elements=["sop_uid"]), prontas)
+            return fora
 
     # ------------------------------------------------------- anteriores
     def other_studies_same_patient(self, study_uid: str) -> list[StudyRow]:

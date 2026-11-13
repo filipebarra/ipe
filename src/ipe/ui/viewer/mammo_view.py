@@ -87,6 +87,7 @@ class MgSession:
         deslocamento = sum(q["cols"] for q in quadros[:indice])
         rows, cols = max(1, int(meu["rows"])), max(1, int(meu["cols"]))
         celulas = list(meu["cells"])
+        self._aquecer(celulas[:rows * cols])
         t.set_layout(rows, cols)
         used: dict[int, set] = {}
         for k in range(rows * cols):
@@ -130,6 +131,27 @@ class MgSession:
             t._activate(t.viewports[0])
         t.update_reference_lines()
         t._sync_mg_bar()
+
+    def _aquecer(self, celulas: list) -> None:
+        """0.100.38: as imagens da etapa são decodificadas em paralelo antes de os quadros serem montados (uma
+        mamografia leva ~0,15 s para decodificar; as quatro, uma atrás da outra, eram a maior parte da espera)."""
+        try:
+            usados: dict[int, set] = {}
+            quadros = []
+            for code in celulas:
+                cell = M.parse_code(code) if code else None
+                if cell is None:
+                    continue
+                im = M.pick_image(self.images(cell.prior), cell, usados.setdefault(cell.prior, set()))
+                if im is None:
+                    continue
+                usados[cell.prior].add(im.sop_uid)
+                frames, start, _rng = self.cell_frames(im, cell)
+                if frames:
+                    quadros.append(frames[min(max(0, int(start or 0)), len(frames) - 1)])
+            self.tab.cache.aquecer(quadros)
+        except Exception:  # noqa: BLE001 - adiantar é só para ganhar tempo: o caminho de sempre continua valendo
+            log.debug("aquecer a etapa da mamografia", exc_info=True)
 
     def enquadrar(self, st: dict | None = None, so_pendentes: bool = False) -> str:
         """Enquadra os quadros da etapa. Devolve o modo aplicado (para a barra de estado).

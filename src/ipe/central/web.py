@@ -179,9 +179,26 @@ def metadados_da_serie(repo, study_uid: str, series_uid: str, base_url: str) -> 
     return [d for d in res if d is not None]
 
 
-def metadados_prontos(repo, study_uid: str, series_uid: str, base_url: str) -> tuple[bytes, bytes] | None:
+VERSAO_META = 1          # muda quando o JSON dos metadados muda de formato: o guardado em disco deixa de valer
+
+
+def _meta_em_disco(chave: tuple, assin: str) -> Path | None:
+    """Onde fica guardado o JSON (gzip) dos metadados desta série, com estes arquivos. None sem a pasta do cache."""
+    import hashlib
+
+    from ipe.central import envio
+    pasta = envio.pasta()
+    if pasta is None:
+        return None
+    h = hashlib.sha1(f"{VERSAO_META}|{'|'.join(chave)}|{assin}".encode()).hexdigest()
+    return pasta / "meta" / h[:2] / f"{h}.json.gz"
+
+
+def metadados_prontos(repo, study_uid: str, series_uid: str, base_url: str,
+                      guardar: bool = True) -> tuple[bytes, bytes] | None:
     """(json, json em gzip) da série — do guardado quando os arquivos não mudaram. None se não há nada.
-    Dois pedidos da mesma série ao mesmo tempo leem uma vez só."""
+    Dois pedidos da mesma série ao mesmo tempo leem uma vez só. `guardar=False`: só deixa pronto em disco (a
+    preparação dos exames recentes), sem ocupar a memória."""
     import gzip
     chave = (study_uid, series_uid, base_url)
     while True:
@@ -200,11 +217,35 @@ def metadados_prontos(repo, study_uid: str, series_uid: str, base_url: str) -> t
             ev.wait(120)
             continue
         try:
-            meta = metadados_da_serie(repo, study_uid, series_uid, base_url)
-            if not meta:
-                return None
-            corpo = json.dumps(meta).encode()
-            gz = gzip.compress(corpo, 5)
+            # 0.100.38: o que já foi montado uma vez fica também em disco (CacheWeb/meta): depois de o servidor
+            # reiniciar, ou para um exame que saiu da memória, a série sai sem reler os cabeçalhos — e os exames
+            # recentes ficam prontos em segundo plano (envio.varrer_recentes)
+            disco = _meta_em_disco(chave, assin)
+            gz = None
+            if not guardar and disco is not None and disco.exists():
+                return b"", b""                      # já está pronto em disco: nada a fazer
+            if disco is not None:
+                try:
+                    gz = disco.read_bytes()
+                    corpo = gzip.decompress(gz)
+                except (OSError, EOFError, gzip.BadGzipFile):
+                    gz = None
+            if gz is None:
+                meta = metadados_da_serie(repo, study_uid, series_uid, base_url)
+                if not meta:
+                    return None
+                corpo = json.dumps(meta).encode()
+                gz = gzip.compress(corpo, 5)
+                if disco is not None:
+                    try:
+                        disco.parent.mkdir(parents=True, exist_ok=True)
+                        tmp = disco.with_suffix(f".{threading.get_ident()}.tmp")
+                        tmp.write_bytes(gz)
+                        os.replace(tmp, disco)
+                    except OSError:
+                        log.debug("metadados em disco", exc_info=True)
+            if not guardar:
+                return corpo, gz
             with _META_TRAVA:
                 _META[chave] = (assin, corpo, gz)
                 if len(_META) > 300:

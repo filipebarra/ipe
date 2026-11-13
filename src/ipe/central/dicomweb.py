@@ -3,6 +3,7 @@ corpo multipart/related do WADO-RS/STOW-RS."""
 
 from __future__ import annotations
 
+import os
 import secrets
 from pathlib import Path
 
@@ -50,11 +51,19 @@ def new_boundary() -> str:
     return "dv" + secrets.token_hex(12)
 
 
-def multipart_iter(paths: list[str | Path], boundary: str, chunk: int = 1 << 20, final: bool = True):
+META = "X-Ipe-Meta"       # 0.100.38: as colunas da imagem (JSON), para o cliente gravar sem reler o arquivo
+
+
+def multipart_iter(paths: list[str | Path], boundary: str, chunk: int = 1 << 20, final: bool = True,
+                   metas: dict | None = None):
     """Gera o corpo multipart/related (application/dicom) lendo os arquivos em pedaços. `final=False` não fecha
-    o corpo (quem chama manda o fim depois)."""
+    o corpo (quem chama manda o fim depois). `metas`: caminho -> dicionário que vai no cabeçalho da parte."""
+    import json
     for p in paths:
-        yield (f"--{boundary}\r\nContent-Type: application/dicom\r\n"
+        extra = ""
+        if metas and metas.get(str(p)) is not None:
+            extra = f"{META}: {json.dumps(metas[str(p)], ensure_ascii=True, separators=(',', ':'))}\r\n"
+        yield (f"--{boundary}\r\nContent-Type: application/dicom\r\n{extra}"
                f"Content-Length: {Path(p).stat().st_size}\r\n\r\n").encode("ascii")
         with open(p, "rb") as fh:
             while True:
@@ -93,10 +102,38 @@ class MultipartReader:
     """Lê um multipart/related de um fluxo (resposta HTTP) e grava cada parte num arquivo,
     sem guardar tudo na memória."""
 
-    def __init__(self, stream, boundary: str, dest: Path, progress=None):
+    def __init__(self, stream, boundary: str, dest: Path, progress=None, destino=None):
+        """`destino(meta, n) -> Path | None` (0.100.38): onde gravar a parte n, pelo que veio no cabeçalho
+        X-Ipe-Meta dela (None = o lugar de sempre, `dest/NNNNNN.dcm`). `self.metas[i]` é o cabeçalho da parte i."""
         self.stream, self.dest, self.progress = stream, Path(dest), progress
         self.delim = b"\r\n--" + boundary.encode("ascii")
         self.first = b"--" + boundary.encode("ascii")
+        self.destino = destino
+        self.metas: list[dict | None] = []
+
+    @staticmethod
+    def _cabecalhos(head: bytes) -> dict:
+        out = {}
+        for linha in head.split(b"\r\n"):
+            k, sep, v = linha.partition(b":")
+            if sep:
+                out[k.strip().lower().decode("latin-1")] = v.strip().decode("latin-1")
+        return out
+
+    def _ler_exato(self, buf: bytes, n: int, fh) -> bytes:
+        """Grava em fh exatamente n bytes (do que já está em buf e do fluxo); devolve o que sobrou em buf."""
+        if len(buf) >= n:
+            fh.write(buf[:n])
+            return buf[n:]
+        fh.write(buf)
+        falta = n - len(buf)
+        while falta > 0:
+            more = self.stream.read(min(falta, 1 << 20))
+            if not more:
+                raise EOFError("o servidor fechou a conexão no meio de uma imagem")
+            fh.write(more)
+            falta -= len(more)
+        return b""
 
     def run(self) -> list[Path]:
         self.dest.mkdir(parents=True, exist_ok=True)
@@ -118,7 +155,45 @@ class MultipartReader:
             head, buf = buf.split(b"\r\n\r\n", 1)
             if head.startswith(b"--"):
                 return files
-            path = self.dest / f"{len(files):06d}.dcm"
+            cab = self._cabecalhos(head)
+            meta = None
+            if cab.get("x-ipe-meta"):
+                try:
+                    import json
+                    meta = json.loads(cab["x-ipe-meta"])
+                except ValueError:
+                    meta = None
+            path = (self.destino(meta, len(files)) if self.destino is not None and meta is not None else None) \
+                or self.dest / f"{len(files):06d}.dcm"
+            self.metas.append(meta)
+            tamanho = int(cab["content-length"]) if cab.get("content-length", "").isdigit() else -1
+            if tamanho >= 0:
+                # 0.100.38: com o tamanho da parte, lê direto os bytes dela (sem procurar o delimitador em cada bloco)
+                parcial = Path(str(path) + ".parte")
+                try:
+                    with open(parcial, "wb") as fh:
+                        buf = self._ler_exato(buf, tamanho, fh)
+                    os.replace(parcial, path)
+                except BaseException:
+                    try:
+                        parcial.unlink()
+                    except OSError:
+                        pass
+                    raise
+                while len(buf) < len(self.delim) + 2:
+                    more = self.stream.read(65536)
+                    if not more:
+                        break
+                    buf += more
+                files.append(path)
+                if self.progress:
+                    self.progress(len(files))
+                if not buf.startswith(self.delim):
+                    return files                       # fim inesperado: o que chegou inteiro fica
+                buf = buf[len(self.delim):]
+                if buf.startswith(b"--"):
+                    return files
+                continue
             with open(path, "wb") as fh:
                 while True:
                     i = buf.find(self.delim)

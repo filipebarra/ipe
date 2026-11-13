@@ -179,3 +179,18 @@ def _link_sem_perguntar(monkeypatch):
     testes de chamada por link aceitam; os de segurança trocam isto explicitamente."""
     from ipe.ui.main_window import MainWindow
     monkeypatch.setattr(MainWindow, "perguntar_link", lambda self, args, o_que: True)
+
+
+@pytest.fixture(autouse=True)
+def _caches_do_servidor_limpos():
+    """0.100.38: os caches do servidor central são por UID de série/exame, e os exames de exemplo têm os mesmos UIDs
+    em todos os testes — sem limpar, um teste recebia caminhos e metadados do anterior."""
+    yield
+    try:
+        from ipe.central import web as WEB
+        with WEB.CAMINHOS._lock:
+            WEB.CAMINHOS._d.clear()
+        with WEB._META_TRAVA:
+            WEB._META.clear()
+    except Exception:  # noqa: BLE001
+        pass

@@ -3,6 +3,21 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.38 — Abrir e baixar mais rápido (Ipê, modo cliente e Ipê Web)
+- **Download no modo cliente ~3× mais rápido** (720 cortes de TC: de 2,9 s para 0,8 s na medição): o servidor manda
+  junto os dados de cada imagem, e o cliente grava o arquivo direto no lugar e o banco em lotes, sem reler nem gravar
+  duas vezes. A **primeira imagem** chega antes: a amostra de todas as séries vem num pedido só.
+- **A conexão com o servidor fica aberta** entre os pedidos (antes, uma conexão nova a cada chamada).
+- **Servidor ~4× mais leve por imagem no Ipê Web** (de 220 para 930 imagens/s na medição): permissões e "quem vê este
+  exame" guardados por segundos (mudança feita no servidor vale na hora); a imagem com a cópia de envio pronta sai sem
+  abrir o original; os metadados das séries ficam em disco e prontos para os exames recentes.
+- **Respostas pequenas do servidor sem espera**: numa conexão aberta (o navegador), cada resposta pequena esperava a
+  confirmação da rede — 40 ms no Linux, até 200 ms com cliente Windows.
+- **Abrir do banco local**: JPEG-LS e HTJ2K decodificados em paralelo, sem segurar a tela (RM: de 1,1–1,3 s para
+  0,4–0,6 s); **mamografia** com as incidências decodificadas juntas e o alinhamento pelo mamilo ~15× mais rápido (de
+  2,2 s para 0,7–0,8 s em dois núcleos).
+- **Importação ~2× mais rápida** (gravação no banco em lotes).
+
 ## 0.100.37 — PACS pelo servidor (cliente e Ipê Web), botão IA e difusão em toda RM
 - **Buscar e baixar do PACS pelo servidor central.** No servidor, cada nó de busca pode ser marcado *Compartilhar
   com os clientes*. O Ipê cliente passa a ver esse nó na busca do PACS (e na de anteriores) como *Nome (pelo

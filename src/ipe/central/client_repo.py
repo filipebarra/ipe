@@ -5,10 +5,10 @@ imagens-chave, listas, filmes, usuários, registro de acesso); os arquivos ficam
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 import tempfile
 import threading
-from datetime import datetime
 from pathlib import Path
 
 from ipe.central.remote import RemoteClient, RemoteError
@@ -49,6 +49,17 @@ class ClientRepository:
         self.ultimo_download: dict = {}
         self.on_abrir_exame = None           # 0.100.1: callback() — o sinal da rede mede a cada exame aberto
         self.on_vazao = None                 # callback(Mbit/s) — a vazão medida no próprio download
+        self._limpar_passagem()
+
+    def _limpar_passagem(self) -> None:
+        """Pastas de passagem de downloads que não terminaram (o programa fechou no meio), com mais de um dia."""
+        import time
+        try:
+            for p in (self.storage / ".chegando").iterdir():
+                if p.is_dir() and time.time() - p.stat().st_mtime > 86400:
+                    shutil.rmtree(p, ignore_errors=True)
+        except OSError:
+            pass
 
     # ------------------------------------------------------------------ roteamento
     def __getattr__(self, name: str):
@@ -166,6 +177,8 @@ class ClientRepository:
     LOTE_SEGUNDOS = 1.5
     #: 0.100.0: quantas séries baixam ao mesmo tempo (cada uma numa conexão)
     CONEXOES = 2
+    #: 0.100.38: o servidor manda as colunas de cada imagem e o cliente grava direto no cache, sem reler o arquivo
+    DIRETO = True
 
     def rede_htj2k(self) -> bool:
         """0.100.0: pedir os pixels em HTJ2K sem perda (2 a 4× menos bytes na rede). O acervo do servidor não muda."""
@@ -228,36 +241,76 @@ class ClientRepository:
                   "baixando": [], "fila": list(faltam), "erros": []}
         self.ultimo_download = estado           # 0.100.1: o relato do download (o que falhou e por quê)
         self._andamentos[study_uid] = estado
-        tmp = Path(tempfile.mkdtemp(prefix="dv_cache_"))
+        # 0.100.38: o que chega fica numa pasta de passagem **dentro do cache** (o mesmo disco): entrar no
+        # armazenamento é só trocar o nome do arquivo, sem gravar a imagem pela segunda vez
+        try:
+            passagem = self.storage / ".chegando"
+            passagem.mkdir(parents=True, exist_ok=True)
+            tmp = Path(tempfile.mkdtemp(prefix="dv_", dir=passagem))
+        except OSError:
+            tmp = Path(tempfile.mkdtemp(prefix="dv_cache_"))
         recebidos = {"n": 0}
         trava = threading.Lock()
         fila_imp: queue.Queue = queue.Queue()
         erro_imp: list = []
 
+        from ipe.importer.scanner import safe_name
+        pasta_do_exame = self.storage / safe_name(study_uid)
+        pastas_feitas: set = set()
+
+        def lugar_no_cache(meta, _n):
+            """0.100.38: a imagem que vem com as colunas dela (servidor 0.100.38+) é gravada direto no lugar
+            definitivo do cache; as outras, na pasta de passagem (e entram pelo importador de sempre)."""
+            if not meta or not meta.get("sop_uid") or not meta.get("series_uid"):
+                return None
+            pasta = pasta_do_exame / safe_name(meta["series_uid"])
+            if pasta not in pastas_feitas:
+                pasta.mkdir(parents=True, exist_ok=True)
+                pastas_feitas.add(pasta)
+            return pasta / f"{safe_name(meta['sop_uid'])}.dcm"
+
         def importador():
-            imp = Importer(self.local.db, self.storage)
+            imp = Importer(self.local.db, self.storage, mover=True)
             while True:
-                arquivos = fila_imp.get()
-                if arquivos is None:
+                lote = fila_imp.get()
+                if lote is None:
                     return
+                # cada item: caminho (entra pelo importador, que lê o cabeçalho) ou (caminho, colunas) — já
+                # no lugar, só falta a linha no banco
+                soltos = [x for x in lote if not isinstance(x, tuple)]
+                prontos = [x for x in lote if isinstance(x, tuple)]
                 try:
-                    r = imp.import_paths(arquivos)
-                    if r.new_series:
-                        try:
-                            generate_thumbnails(self.local, r.new_series)
-                        except Exception:  # noqa: BLE001
-                            log.exception("miniaturas do cache")
+                    if prontos:
+                        linhas = []
+                        for caminho, meta in prontos:
+                            try:
+                                tam = os.path.getsize(caminho)
+                            except OSError:
+                                continue
+                            linhas.append(dict(meta, file_path=str(caminho), file_size=tam))
+                        fora = self.local.gravar_instancias_prontas(linhas)
+                        # a série ainda não existe no cache: o importador cria (paciente, exame, série) pelo arquivo
+                        soltos_do_lugar = [Path(ln["file_path"]) for ln in fora]
+                    else:
+                        soltos_do_lugar = []
+                    if soltos or soltos_do_lugar:
+                        r = imp.import_paths(soltos + soltos_do_lugar)
+                        if r.new_series:
+                            try:
+                                generate_thumbnails(self.local, r.new_series)
+                            except Exception:  # noqa: BLE001
+                                log.exception("miniaturas do cache")
                 except Exception as e:  # noqa: BLE001
                     log.exception("importar no cache")
                     erro_imp.append(e)
                     estado["erros"].append(f"importar: {type(e).__name__}: {e}")
                 finally:
-                    for f in arquivos:
+                    for f in soltos:                      # o que sobrou na pasta de passagem
                         try:
                             Path(f).unlink()
                         except OSError:
                             pass
-                if primeiro_lote is not None and self.is_cached(study_uid):
+                if primeiro_lote is not None and not primeiro_lote.is_set() and self.is_cached(study_uid):
                     primeiro_lote.set()
 
         th_imp = threading.Thread(target=importador, name="ipe-importar-cache", daemon=True)
@@ -267,6 +320,16 @@ class ClientRepository:
             pasta = tmp / se.series_uid
             ja = {"feitos": 0, "quando": time.monotonic()}
             base = int(local.get(se.series_uid, 0))
+            no_lugar: dict[int, tuple] = {}              # nº da parte -> (caminho definitivo, colunas)
+
+            def lugar(meta, n):
+                p = lugar_no_cache(meta, n)
+                if p is not None:
+                    no_lugar[n] = (p, meta)
+                return p
+
+            def itens(a: int, b: int) -> list:
+                return [no_lugar.pop(i, None) or pasta / f"{i:06d}.dcm" for i in range(a, b)]
 
             def chegou(n):
                 with trava:
@@ -278,25 +341,22 @@ class ClientRepository:
                 if progress:
                     progress(feito, total)
                 if n - ja["feitos"] >= self.LOTE_IMAGENS or time.monotonic() - ja["quando"] >= self.LOTE_SEGUNDOS:
-                    lote = [pasta / f"{i:06d}.dcm" for i in range(ja["feitos"], n)]
-                    try:
-                        ja["bytes"] = ja.get("bytes", 0) + sum(f.stat().st_size for f in lote)
-                    except OSError:
-                        pass
+                    lote = itens(ja["feitos"], n)
                     ja["feitos"], ja["quando"] = n, time.monotonic()
                     fila_imp.put(lote)
 
             t_ini = time.monotonic()
-            files = self.client.retrieve(study_uid, pasta, se.series_uid, progress=chegou, htj2k=htj2k)
+            files = self.client.retrieve(study_uid, pasta, se.series_uid, progress=chegou, htj2k=htj2k,
+                                         destino=lugar if self.DIRETO else None)
             dt = time.monotonic() - t_ini
             if self.on_vazao is not None and dt >= 0.5:
                 try:
-                    nbytes = sum(f.stat().st_size for f in files[ja["feitos"]:]) + ja.get("bytes", 0)
+                    nbytes = sum(os.path.getsize(f) for f in files)
                     if nbytes >= 4 << 20:                       # só séries grandes dão uma medida que presta
                         self.on_vazao(nbytes * 8 / dt / 1e6 * max(1, len(estado["baixando"])))
                 except Exception:  # noqa: BLE001
                     pass
-            fila_imp.put([pasta / f"{i:06d}.dcm" for i in range(ja["feitos"], len(files))])
+            fila_imp.put(itens(ja["feitos"], len(files)))
             return len(files)
 
         def trabalhador():
@@ -324,7 +384,22 @@ class ClientRepository:
                 # todas as séries na tira e o protocolo de exibição monta os quadros como sempre; o
                 # resto de cada série vai chegando e a aba acrescenta
                 amostras = []
-                for se in faltam:
+                sem_nada = [se for se in faltam if not local.get(se.series_uid, 0)]
+                um_pedido = False
+                if sem_nada and self.DIRETO and not (cancel and cancel()):
+                    # 0.100.38: a imagem do meio de todas as séries num pedido só (antes: dois pedidos por série,
+                    # um atrás do outro — numa RM de 20 séries, 40 idas e voltas antes de o exame abrir)
+                    try:
+                        amostras = self.client.retrieve(study_uid, tmp / "amostras", htj2k=htj2k,
+                                                        amostras=[se.series_uid for se in sem_nada])
+                        um_pedido = True
+                        with self._baixar_lock:
+                            for se in sem_nada:
+                                c = estado["series"][se.series_uid]
+                                c[0] = max(c[0], 1)
+                    except Exception:  # noqa: BLE001 - servidor de versão anterior: uma série de cada vez
+                        log.info("amostras num pedido só: o servidor não atende; uma série de cada vez")
+                for se in ([] if um_pedido else faltam):
                     if cancel and cancel():
                         break
                     if local.get(se.series_uid, 0):
@@ -343,6 +418,9 @@ class ClientRepository:
                         log.debug("amostra da série %s", se.series_uid, exc_info=True)
                 if amostras:
                     fila_imp.put(amostras)
+                    # 0.100.38: as amostras entram no cache (e o exame abre) antes de o resto começar a chegar —
+                    # senão a rede e a gravação do resto disputam o processador com elas e a 1ª imagem demora mais
+                    primeiro_lote.wait(10)
             from concurrent.futures import ThreadPoolExecutor
             with ThreadPoolExecutor(max_workers=max(1, self.CONEXOES), thread_name_prefix="ipe-baixar-serie") as ex:
                 for f in [ex.submit(trabalhador) for _ in range(max(1, self.CONEXOES))]:

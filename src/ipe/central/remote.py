@@ -1,11 +1,21 @@
-"""Cliente HTTP do servidor central (biblioteca padrão: urllib)."""
+"""Cliente HTTP do servidor central (biblioteca padrão).
+
+0.100.38: as conexões ficam **abertas** entre um pedido e outro (HTTP/1.1 keep-alive, `http.client`). Antes, cada
+pedido abria uma conexão nova — e, em https, refazia o aperto de mãos do TLS: abrir um exame no modo cliente faz umas
+vinte chamadas ao servidor, e cada uma pagava isso. Com um proxy configurado no sistema para o endereço do servidor,
+continua pelo `urllib` (que sabe falar com o proxy), como antes.
+"""
 
 from __future__ import annotations
 
+import http.client
 import json
 import logging
 import ssl
+import threading
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -22,7 +32,40 @@ class Unauthorized(RemoteError):
     pass
 
 
+class _Resposta:
+    """A resposta de um pedido numa conexão que fica aberta: lida até o fim, a conexão volta para a reserva."""
+
+    def __init__(self, cliente: "RemoteClient", conexao, resposta):
+        self._cliente, self._conexao, self._r = cliente, conexao, resposta
+        self.headers = resposta.headers
+        self.status = resposta.status
+
+    def read(self, n: int | None = None) -> bytes:
+        return self._r.read() if n is None else self._r.read(n)
+
+    def close(self) -> None:
+        c, self._conexao = self._conexao, None
+        if c is None:
+            return
+        if self._r.isclosed() and not self._r.will_close:
+            self._cliente._devolver(c)              # lida inteira: a conexão serve para o próximo pedido
+        else:
+            try:
+                c.close()
+            except OSError:
+                pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+
 class RemoteClient:
+    RESERVA = 6                 # conexões abertas guardadas para o próximo pedido
+    PARADA_MAX = 90.0           # segundos: conexão parada há mais que isso não é reaproveitada
+
     def __init__(self, url: str, verify_tls: bool = True, timeout: float = 30.0, ca_pem: str = ""):
         self.url = url.rstrip("/")
         if "://" not in self.url:
@@ -39,13 +82,112 @@ class RemoteClient:
             self._ctx = ssl.create_default_context()
             self._ctx.check_hostname = False
             self._ctx.verify_mode = ssl.CERT_NONE
+        self._reserva: list[tuple] = []          # (conexão, quando ficou parada)
+        self._trava = threading.Lock()
+        self._por_proxy = self._tem_proxy()
 
     # ------------------------------------------------------------------ HTTP
-    def _open(self, path: str, data: bytes | None = None, headers: dict | None = None,
+    def _tem_proxy(self) -> bool:
+        try:
+            u = urllib.parse.urlsplit(self.url)
+            return bool(urllib.request.getproxies().get(u.scheme)) and not urllib.request.proxy_bypass(u.hostname or "")
+        except Exception:  # noqa: BLE001
+            return False
+
+    def _nova_conexao(self, timeout: float):
+        u = urllib.parse.urlsplit(self.url)
+        if u.scheme == "https":
+            return http.client.HTTPSConnection(u.hostname, u.port or 443, timeout=timeout,
+                                               context=self._ctx or ssl.create_default_context())
+        return http.client.HTTPConnection(u.hostname, u.port or 80, timeout=timeout)
+
+    def _pegar(self, timeout: float):
+        """(conexão, reaproveitada?)"""
+        agora = time.monotonic()
+        with self._trava:
+            while self._reserva:
+                c, quando = self._reserva.pop()
+                if agora - quando <= self.PARADA_MAX and c.sock is not None:
+                    try:
+                        c.sock.settimeout(timeout)
+                    except OSError:
+                        continue
+                    return c, True
+                try:
+                    c.close()
+                except OSError:
+                    pass
+        return self._nova_conexao(timeout), False
+
+    def _devolver(self, c) -> None:
+        with self._trava:
+            if len(self._reserva) < self.RESERVA:
+                self._reserva.append((c, time.monotonic()))
+                return
+        try:
+            c.close()
+        except OSError:
+            pass
+
+    def fechar_conexoes(self) -> None:
+        with self._trava:
+            reserva, self._reserva = self._reserva, []
+        for c, _q in reserva:
+            try:
+                c.close()
+            except OSError:
+                pass
+
+    def _open(self, path: str, data=None, headers: dict | None = None,
               method: str | None = None, timeout: float | None = None):
         h = dict(headers or {})
         if self.token:
             h["Authorization"] = f"Bearer {self.token}"
+        if self._por_proxy:
+            return self._open_urllib(path, data, h, method, timeout)
+        base = urllib.parse.urlsplit(self.url).path.rstrip("/")
+        metodo = method or ("POST" if data is not None else "GET")
+        corpo_relivel = data is None or isinstance(data, (bytes, bytearray))
+        ultima = None
+        for tentativa in (0, 1):
+            c, reaproveitada = self._pegar(timeout or self.timeout)
+            try:
+                c.request(metodo, base + path, body=data, headers=h)
+                r = c.getresponse()
+            except (http.client.RemoteDisconnected, ConnectionResetError, BrokenPipeError,
+                    ConnectionAbortedError, http.client.CannotSendRequest, http.client.BadStatusLine) as e:
+                # a conexão guardada foi fechada do outro lado (o servidor reiniciou): uma nova, uma vez
+                try:
+                    c.close()
+                except OSError:
+                    pass
+                ultima = e
+                if reaproveitada and tentativa == 0 and corpo_relivel:
+                    continue
+                raise RemoteError(f"Servidor central inacessível ({self.url}): {e}") from None
+            except (OSError, http.client.HTTPException) as e:
+                try:
+                    c.close()
+                except OSError:
+                    pass
+                raise RemoteError(f"Servidor central inacessível ({self.url}): {getattr(e, 'reason', e)}") from None
+            if r.status >= 400:
+                try:
+                    bruto = r.read()
+                except (OSError, http.client.HTTPException):
+                    bruto = b""
+                _Resposta(self, c, r).close()
+                try:
+                    msg = json.loads(bruto or b"{}").get("error", "")
+                except (ValueError, AttributeError):
+                    msg = ""
+                if r.status == 401:
+                    raise Unauthorized(msg or "login necessário")
+                raise RemoteError(msg or f"HTTP {r.status}")
+            return _Resposta(self, c, r)
+        raise RemoteError(f"Servidor central inacessível ({self.url}): {ultima}")
+
+    def _open_urllib(self, path: str, data, h: dict, method: str | None, timeout: float | None):
         req = urllib.request.Request(self.url + path, data=data, headers=h, method=method)
         try:
             return urllib.request.urlopen(req, timeout=timeout or self.timeout, context=self._ctx)
@@ -207,22 +349,41 @@ class RemoteClient:
         return self._retry(call)
 
     def retrieve(self, study_uid: str, dest: Path, series_uid: str | None = None, progress=None,
-                 sop_uid: str | None = None, htj2k: bool = False) -> list[Path]:
+                 sop_uid: str | None = None, htj2k: bool = False, destino=None, metas: list | None = None,
+                 amostras: list[str] | bool = False) -> list[Path]:
         """WADO-RS: baixa o estudo (ou uma série, ou uma imagem) para `dest`, arquivo por arquivo.
-        `htj2k`: pede os pixels em HTJ2K sem perda (0.100.0); o servidor manda o original se não ganha nada."""
+        `htj2k`: pede os pixels em HTJ2K sem perda (0.100.0); o servidor manda o original se não ganha nada.
+        0.100.38: `destino(meta, n)` diz onde gravar cada imagem pelas colunas que o servidor manda junto (e
+        `metas` recebe as de cada uma, na ordem dos arquivos devolvidos); `amostras` (True ou as séries) pede só
+        a imagem do meio de cada série, num pedido só."""
         path = f"/dicomweb/studies/{study_uid}" + (f"/series/{series_uid}" if series_uid else "")
         if series_uid and sop_uid:
             path += f"/instances/{sop_uid}"
+        if amostras:
+            path = f"/dicomweb/studies/{study_uid}/amostras"
+            if isinstance(amostras, (list, tuple)):
+                path += "?series=" + ",".join(amostras)
         aceita = 'multipart/related; type="application/dicom"'
         if htj2k:
             aceita += "; transfer-syntax=1.2.840.10008.1.2.4.202"
+        h = {"Accept": aceita}
+        if destino is not None or metas is not None:
+            h["X-Ipe-Cliente"] = "2"
 
         def call():
-            r = self._open(path, headers={"Accept": aceita},
-                           timeout=max(self.timeout, 120))
+            r = self._open(path, headers=h, timeout=max(self.timeout, 120))
             try:
                 boundary = DW.boundary_of(r.headers.get("Content-Type", ""))
-                return DW.MultipartReader(r, boundary, dest, progress).run()
+                leitor = DW.MultipartReader(r, boundary, dest, progress, destino)
+                try:
+                    arquivos = leitor.run()
+                    for _ in range(4):                  # o fim do corpo: lido, a conexão serve para o próximo pedido
+                        if not r.read(65536):
+                            break
+                    return arquivos
+                finally:
+                    if metas is not None:
+                        metas[:] = leitor.metas
             finally:
                 r.close()
         return self._retry(call)

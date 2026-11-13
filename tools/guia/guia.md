@@ -30,6 +30,16 @@ Menu **Arquivo**: **Importar pasta…** (Ctrl+I), **Importar arquivos…** e **I
 
 > **Copiar ou referenciar?** Em Configurações ▸ Banco de dados ▸ Importação, a caixa *Copiar os arquivos para o armazenamento do programa* decide se o DICOM é copiado para a pasta do programa ou apenas referenciado onde está. Desmarcada, o programa nunca escreve no arquivo original — e nunca o apaga.
 
+## Abrir o exame mais rápido (0.100.38)
+
+Ao abrir um exame do banco deste computador:
+
+- As imagens em **JPEG-LS** (a compressão sem perda do acervo) e em HTJ2K são decodificadas **em paralelo**, pelos vários núcleos do processador, sem segurar a tela enquanto a série é adiantada. Na medição, a RM de 12 séries abriu em 0,4–0,6 s (antes, 1,1–1,3 s).
+- Na **mamografia**, as quatro incidências são decodificadas ao mesmo tempo, e o alinhamento pelo mamilo ficou cerca de quinze vezes mais rápido: 0,7–0,8 s até a primeira imagem (antes, 2,2 s), num computador de dois núcleos — com mais núcleos, menos.
+- **Importar** (pasta, CD, o que chega pela rede) grava no banco em lotes: cerca de duas vezes mais rápido.
+
+O registro continua dizendo, a cada abertura, onde foi o tempo (a linha *Abertura (…): primeira imagem em … s*).
+
 ## Onde ficam os dados
 
 Menu **Ajuda ▸ Abrir pasta de dados** mostra onde estão o banco (a pasta `postgres`), as imagens copiadas (Storage), as configurações (settings.json) e os registros (logs). Pela linha de comando, `ipe-cli info` imprime os mesmos caminhos.
@@ -1048,6 +1058,15 @@ No servidor sem janela, o mesmo pela linha de comando: `ipe banco status`, `ipe 
 **Quanto já chegou de cada série (0.100.0).** Enquanto o exame baixa, a miniatura de cada série na tira mostra *34/120 im* com uma barra embaixo: azul e com ⬇ na que está chegando agora, verde nas que esperam a vez (passe o mouse: a posição na fila). O quadro mostra **⬇ 34/120** embaixo do número da imagem até a série dele terminar. **Pôr uma série num quadro** (clicar ou arrastar) passa ela para a frente da fila. Duas séries baixam ao mesmo tempo, e o que chega entra no banco sem parar a rede. Se alguma série não baixar inteira, a barra de status diz quantas imagens faltaram e por quê; e o servidor guarda no registro de acesso (ações *cliente_entrou* e *cliente_download*) a versão de cada cliente e o que cada download fez (0.100.1).
 
 **Sinal da rede (0.100.1).** No cliente, a barra de status mostra a rede até o servidor: **barras** de 0 a 4 (como as do celular), a **ida e volta** em milissegundos e a **vazão** em Mbit/s — por exemplo *3 ms · 870 Mbit/s*. Vale o pior dos dois: quatro barras pedem menos de 10 ms e 300 Mbit/s ou mais; três, menos de 30 ms e 80 Mbit/s; duas, menos de 80 ms e 20 Mbit/s. O programa mede ao abrir (com um teste de 2 MB) e a cada exame aberto (só a ida e volta, para não disputar a rede com o download; a vazão passa a ser a do próprio download). Clique nas barras para medir de novo; *sem conexão*, em vermelho, quando o servidor não responde.
+
+**Mais rápido para abrir e para baixar (0.100.38).** Servidor e clientes na 0.100.38 ou mais nova:
+
+- **O download do cliente** ficou cerca de três vezes mais rápido na medição (720 cortes de TC: de 2,9 s para 0,8 s, servidor e cliente na mesma máquina). O servidor manda junto com cada imagem os dados dela que vão para o banco, e o cliente grava o arquivo direto no lugar e o banco em lotes — antes, cada imagem era gravada duas vezes no disco, relida e gravada no banco uma a uma.
+- **A primeira imagem chega antes**: a imagem do meio de todas as séries vem num pedido só (antes, dois pedidos por série, um atrás do outro), e o resto só começa a chegar depois de o exame abrir.
+- **A conexão com o servidor fica aberta** entre os pedidos (abrir um exame faz umas vinte chamadas ao servidor; cada uma abria uma conexão nova e, em https, refazia a negociação).
+- **No servidor**, o pedido de cada imagem do Ipê Web ficou cerca de quatro vezes mais leve (de 220 para 930 imagens por segundo na medição): as permissões e "quem vê este exame" são conferidos uma vez a cada poucos segundos, e não a cada imagem (uma mudança feita no servidor vale na hora); a imagem com a cópia de envio pronta sai sem o arquivo original ser aberto; e as respostas pequenas não esperam mais a confirmação da rede (eram 40 ms a mais por resposta no Linux, e até 200 ms com cliente Windows).
+- **Os dados que o navegador pede ao abrir** (os metadados de cada série) ficam guardados em disco, na pasta `CacheWeb`, e os dos exames de hoje e de ontem ficam prontos a cada 2 minutos (os dos últimos 14 dias, a cada 30).
+- Com um servidor de versão anterior, o cliente novo funciona como antes, sem os ganhos.
 
 **Menos dados na rede (HTJ2K).** O cliente recebe as imagens comprimidas **sem perda** em HTJ2K (2 a 4 vezes menos dados numa TC; a mesma imagem, conferida pixel a pixel). O acervo do servidor **não muda** — o que vai é uma cópia de envio, que o servidor prepara em segundo plano para os exames dos últimos 14 dias (de 30 em 30 minutos, quando ninguém está pedindo imagens) e guarda na pasta `CacheWeb`, ao lado do acervo (que pode ser apagada à vontade). Imagem que ainda não tem a cópia pronta vai como está, sem esperar. Desligue em **Configurações ▸ Rede ▸ Servidor central ▸ Receber as imagens comprimidas sem perda**. Mandar uma dessas imagens a um nó DICOM que não aceita HTJ2K vai descomprimido.
 

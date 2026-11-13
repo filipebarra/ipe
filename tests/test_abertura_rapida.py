@@ -44,6 +44,11 @@ def test_jpeg_ls_usa_o_pyjpegls_e_da_a_mesma_imagem(tmp_path, monkeypatch):
         usados.append(k.get("decoding_plugin"))
         return real(self, **k)
     monkeypatch.setattr(Dataset, "pixel_array_options", espia)
+    # 0.100.38: primeiro o imagecodecs (o mesmo CharLS, sem segurar a trava do Python) — a mesma imagem
+    img = SE.read_frame(SE.Frame(str(p), 0, "x", 1))
+    assert usados == [] and np.array_equal(img.pixels, original.astype(np.float32))
+    # sem ele (ou quando ele não serve), o pyjpegls, como antes
+    monkeypatch.setattr(SE, "_jpegls_rapido", lambda ds: None)
     img = SE.read_frame(SE.Frame(str(p), 0, "x", 1))
     assert usados == ["pyjpegls"]
     assert np.array_equal(img.pixels, original.astype(np.float32))
