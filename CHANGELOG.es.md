@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.39 — Organización del código (sin cambios de uso)
+- **La barra de herramientas del visor tiene su propio archivo** (`ui/viewer/barra.py`). `viewer_tab.py` tenía 6600
+  líneas; la barra, los botones por modalidad, el botón IA, los botones del mouse y el nivel de anotación (unas 1400
+  líneas) pasaron allí, con los mismos nombres. Nada cambia en pantalla; una prueba nueva verifica que ningún método
+  de la barra quede oculto por otro con el mismo nombre.
+
 ## 0.100.38 — Abrir y descargar más rápido (Ipê, modo cliente e Ipê Web)
 - **Descarga en modo cliente ~3× más rápida** (720 cortes de TC: de 2,9 s a 0,8 s en la medición): el servidor envía
   junto los datos de cada imagen, y el cliente guarda el archivo directo en su lugar y la base en lotes, sin releer ni

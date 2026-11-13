@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.39 — Code organization (no change in use)
+- **The viewer toolbar got its own file** (`ui/viewer/barra.py`). `viewer_tab.py` had 6,600 lines; the toolbar, the
+  per-modality buttons, the AI button, the mouse buttons and the annotation level (about 1,400 lines) moved there,
+  with the same names. Nothing changes on screen; a new test checks that no toolbar method is hidden by another one
+  with the same name.
+
 ## 0.100.38 — Faster opening and downloading (Ipê, client mode and Ipê Web)
 - **Client-mode download ~3× faster** (720 CT slices: from 2.9 s to 0.8 s as measured): the server sends each
   image's database fields along with it, and the client writes the file straight into place and the database in

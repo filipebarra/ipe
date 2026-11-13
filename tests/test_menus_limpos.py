@@ -126,7 +126,8 @@ def test_a_barra_usa_os_icones_novos(env, sample_dir):
     app, w, _repo = _janela(env, sample_dir)
     try:
         import pathlib
-        fonte = (pathlib.Path(__file__).resolve().parents[1] / "src/ipe/ui/viewer/viewer_tab.py").read_text("utf-8")
+        pasta = pathlib.Path(__file__).resolve().parents[1] / "src/ipe/ui/viewer"
+        fonte = "".join((pasta / f).read_text("utf-8") for f in ("viewer_tab.py", "barra.py"))     # a barra saiu na 0.100.39
         for n in ("app_indices", "app_cefalometria", "app_linfonodos", "app_nodulos", "app_composicao",
                   "app_figado", "app_orgaos", "app_difusao"):
             assert f'icon("{n}")' in fonte, n
