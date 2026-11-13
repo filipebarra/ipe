@@ -70,6 +70,37 @@ jobs:
         run: |
           rm -rf "$HOME/Library/Application Support/DicomViewer/dicomviewer.sqlite" "$HOME/Library/Application Support/DicomViewer/Storage"
           bash tools/diag_roteiro.sh app ABRIR_APP
+      - name: Links do sistema (ipe:// e o apelido osirix://) com o programa empacotado
+        if: ${{ inputs.empacotado && inputs.fuzz == '0' }}
+        run: |
+          CLI=dist/Ipe.app/Contents/MacOS/ipe-cli
+          LS=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+          $LS -f "$PWD/dist/Ipe.app"
+          python - <<'PY'
+          from ipe.core.config import Settings, get_paths
+          s = Settings(get_paths().settings_file)
+          c = dict(s.get("dicom", {}) or {})
+          c["link_apelidos"] = ["osirix"]
+          c["link_sem_token"] = "aceitar"
+          s.set("dicom", c)
+          s.save()
+          print("configurado:", get_paths().settings_file)
+          PY
+          $CLI register-url | tee diag/links.txt
+          ls -la "$HOME/Applications/Ipe links" | tee -a diag/links.txt
+          # 1) com o programa fechado: o link abre o programa
+          open "ipe://open?accession=LINKFECHADO"
+          sleep 45
+          screencapture -x diag/link_1.png || true
+          # 2) com o programa aberto: o apelido, no formato do OsiriX
+          open "osirix://?methodName=displayStudy&AccessionNumber=LINKAPELIDO"
+          sleep 20
+          screencapture -x diag/link_2.png || true
+          pkill -f "Ipe.app/Contents/MacOS/Ipe" || true
+          sleep 3
+          grep -h "Link do sistema\|Chamada externa\|Link inv" "$HOME"/Library/Logs/DicomViewer/*.log | tail -20 | tee -a diag/links.txt
+          grep -q "LINKFECHADO" diag/links.txt && echo "LINK_IPE_OK" | tee -a diag/links.txt || echo "LINK_IPE_FALHOU" | tee -a diag/links.txt
+          grep -q "LINKAPELIDO" diag/links.txt && echo "LINK_APELIDO_OK" | tee -a diag/links.txt || echo "LINK_APELIDO_FALHOU" | tee -a diag/links.txt
       - name: Guardar (rascunho, não publicado)
         if: ${{ always() }}
         env:

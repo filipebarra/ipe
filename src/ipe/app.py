@@ -304,6 +304,34 @@ def open_main_window(paths, settings):
     return win
 
 
+def _ouvir_links_do_sistema(app, entregar):
+    """0.100.32: no macOS o link (ipe://…) não vem na linha de comando: o sistema manda um evento ao aplicativo,
+    esteja ele abrindo agora ou já aberto. Os apelidos (osirix://…) chegam repassados como ipe:// pelo
+    aplicativo-ponte de `external._mac_apelidos`."""
+    from PySide6.QtCore import QEvent, QObject
+
+    class _Links(QObject):
+        def eventFilter(self, _obj, ev):  # noqa: N802
+            if ev.type() == QEvent.FileOpen:
+                url = ev.url().toString() if not ev.url().isEmpty() else ""
+                if url:
+                    from ipe.network.external import ExternalError, e_link, parse_url
+                    if e_link(url):
+                        try:
+                            payload = parse_url(url)
+                            payload["source"] = "link"
+                            log.info("Link do sistema: %s", payload)
+                            entregar(payload)
+                        except ExternalError as e:
+                            log.warning("Link inválido: %s", e)
+                        return True
+            return False
+
+    filtro = _Links(app)
+    app.installEventFilter(filtro)
+    return filtro
+
+
 def run_gui(external: dict | None = None, minimized: bool = False) -> int:
     if os.environ.get("IPE_DIAG"):                   # 0.100.27: diagnóstico automático (workflow do macOS)
         from ipe import diag
@@ -372,6 +400,7 @@ def run_gui(external: dict | None = None, minimized: bool = False) -> int:
     else:
         log.warning("Não foi possível abrir o canal de instância única: %s", server.errorString())
     app._ipc_server = server
+    app._ipe_links = _ouvir_links_do_sistema(app, entregar)
 
     paths = get_paths()
     setup_logging(paths.logs)
@@ -407,7 +436,7 @@ def run_gui(external: dict | None = None, minimized: bool = False) -> int:
     lang = _choose_language(settings)
     i18n.load(lang)
     _install_translator(app, lang)
-    if lang != i18n.BASE_LANG:
+    if lang != i18n.BASE_LANG or i18n.teclas_do_mac():     # 0.100.32: no Mac, também para trocar Ctrl por ⌘
         from ipe.ui.qt_i18n import install as install_i18n
         install_i18n()
 

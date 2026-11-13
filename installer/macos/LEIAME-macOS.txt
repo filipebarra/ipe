@@ -1,4 +1,4 @@
-Ipê para macOS — PACOTE DE TESTE (ainda não é um release)
+Ipê para macOS (experimental)
 
 Instalar
   1. Arraste "Ipe" para a pasta Aplicativos (o atalho ao lado).
@@ -9,21 +9,20 @@ Instalar
      Ou vá em Ajustes do Sistema ▸ Privacidade e Segurança ▸ "Abrir Mesmo Assim".
 
 Qual arquivo
-  arm64  = Mac com chip Apple (M1, M2, M3, M4)
+  arm64  = Mac com chip Apple (M1 em diante)
   x86_64 = Mac com processador Intel
 
 Onde ficam os dados
   ~/Library/Application Support/DicomViewer   (banco, configurações e exames)
+  ~/Library/Logs/DicomViewer                  (logs; se o programa fechar sozinho, mande o queda.log)
 
-Corrigido na 0.100.28
-  - Não dava para digitar no programa (o app estava marcado como "só de fundo" e não aparecia no Dock).
-  - Quando o programa fechar sozinho, mande o arquivo ~/Library/Logs/DicomViewer/queda.log.
+Desde a 0.100.32
+  - Os textos mostram as teclas do Mac (⌘ no lugar de Ctrl).
+  - Links ipe:// abrem o programa; em Rede ▸ Chamada externa dá para pôr apelidos (osirix, horos…).
+  - Ajuda ▸ Procurar atualizações baixa e troca o aplicativo sozinho (com o Ipe na pasta Aplicativos).
 
-O que ainda não foi feito para o Mac (este pacote é para ver o que funciona)
-  - Atalhos continuam com Ctrl; o botão do meio do mouse não existe no trackpad.
-  - Links ipe:// ainda não abrem o programa.
-  - Atualização automática pelo GitHub não instala no Mac.
-  - A segmentação (Arquivo ▸ Instalar a segmentação de órgãos) abre o Terminal e instala o PyTorch do Mac;
-    não foi testada num Mac de verdade.
+Limites conhecidos
+  - Não há ícone na barra de menus (o Dock faz esse papel).
+  - A segmentação de órgãos (Arquivo ▸ Instalar a segmentação de órgãos) não foi testada num Mac de verdade.
 
-English: drag Ipe to Applications; first launch: right-click ▸ Open. Unsigned test build.
+English: drag Ipe to Applications; first launch: right-click ▸ Open ▸ Open. Unsigned build.

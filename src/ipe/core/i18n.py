@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import sys
 import threading
 from pathlib import Path
 
@@ -139,8 +140,37 @@ def is_base() -> bool:
     return _state["lang"] == BASE_LANG
 
 
+# 0.100.32: no macOS o Qt já troca o Ctrl pelo Command (⌘) em todo atalho e em todo clique com tecla; faltava o
+# texto escrito à mão ("Ctrl+C copia…", "Ctrl+clique seleciona várias"). Ele é trocado aqui, na passagem para a tela.
+_MAC = {"ligado": sys.platform == "darwin"}
+_RX_CTRL = re.compile(r"(?<![A-Za-z])Ctrl\+")
+_RX_CTRL_SO = re.compile(r"(?<![A-Za-z])Ctrl(?![A-Za-z])")
+_RX_ALT = re.compile(r"(?<![A-Za-z])Alt\+")
+
+
+def teclas_do_mac(ligar: bool | None = None) -> bool:
+    """Liga/desliga a troca (para os testes) e diz como está."""
+    if ligar is not None:
+        _MAC["ligado"] = bool(ligar)
+    return _MAC["ligado"]
+
+
+def com_teclas_do_mac(text: str) -> str:
+    """"Ctrl+C" -> "⌘C", "Ctrl+clique" -> "⌘clique", "Alt+roda" -> "⌥roda"."""
+    if "Ctrl" not in text and "Alt+" not in text:
+        return text
+    return _RX_ALT.sub("⌥", _RX_CTRL_SO.sub("⌘", _RX_CTRL.sub("⌘", text)))
+
+
 def tr(text):
-    """Traduz o texto para o idioma atual (devolve igual se não houver tradução)."""
+    """Traduz o texto para o idioma atual (devolve igual se não houver tradução). No macOS, com as teclas do Mac."""
+    out = _tr_idioma(text)
+    if _MAC["ligado"] and isinstance(out, str) and out:
+        return com_teclas_do_mac(out)
+    return out
+
+
+def _tr_idioma(text):
     if not isinstance(text, str) or not text or _state["lang"] == BASE_LANG:
         return text
     cache = _state["cache"]

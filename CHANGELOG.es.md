@@ -3,6 +3,18 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.32 — macOS: teclas del Mac, enlaces del sistema con alias, actualización que instala y paquete en el release
+- **Teclas del Mac:** los atajos ya valían con ⌘ (Qt los cambia solo); ahora los textos también — ayudas, menús y
+  avisos muestran ⌘ y ⌥ en lugar de Ctrl y Alt.
+- **Enlaces:** en macOS, `ipe://` y `dicomviewer://` abren Ipê (o van al que ya está abierto).
+- **Alias del enlace** (todos los sistemas): en Red ▸ Llamada externa, otros nombres de enlace que abren Ipê, como
+  `osirix` u `horos`. El enlace con el formato de OsiriX (`osirix://?methodName=displayStudy&StudyInstanceUID=…`)
+  se entiende; `downloadURL` se rechaza.
+- **Actualización en macOS:** Buscar actualizaciones descarga el `.dmg` de la arquitectura correcta (antes ofrecía
+  el paquete de Linux), reemplaza la aplicación y la abre de nuevo. Donde no se puede reemplazar sola, el `.dmg`
+  se abre para hacerlo a mano.
+- Los paquetes de macOS (chip Apple e Intel) salen ahora junto con el release.
+
 ## 0.100.31 — macOS: buscar actualizaciones (y todo HTTPS) vuelve a funcionar
 - En el paquete de macOS, **Buscar actualizaciones** fallaba con "certificate verify failed": el programa no
   encontraba los certificados de las autoridades. Lo mismo pasaba al descargar modelos de IA, con DICOMweb por

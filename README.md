@@ -198,10 +198,9 @@ From the [releases](https://github.com/filipebarra/ipe/releases) (no Python need
   `xattr -dr com.apple.quarantine /Applications/Ipe.app` in the Terminal, or use System Settings ▸ Privacy &
   Security ▸ **Open Anyway**.
 
-The macOS package is new and has had far less use than the Windows and Linux ones. Known limits: shortcuts still
-use Ctrl; `ipe://` links do not open the program; **Check for updates** finds the new version but does not install
-it (download the new `.dmg`); there is no menu bar icon (the Dock does that job); organ segmentation has not been
-tested on a real Mac. If the program closes by itself, please send `~/Library/Logs/DicomViewer/queda.log`.
+The macOS package is new and has had far less use than the Windows and Linux ones. Since 0.100.32 the texts show the Mac
+keys (⌘, ⌥), `ipe://` links open the program and **Check for updates** installs the new version by itself. Known
+limits: there is no menu bar icon (the Dock does that job); organ segmentation has not been tested on a real Mac. If the program closes by itself, please send `~/Library/Logs/DicomViewer/queda.log`.
 
 To try it without real studies: **Help ▸ Generate test studies (phantoms)**.
 

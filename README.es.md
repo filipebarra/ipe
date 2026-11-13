@@ -91,9 +91,9 @@ administrador, y pregunta el idioma, la carpeta del programa y la de la base.
 para Mac con Intel. Abra el `.dmg` y arrastre **Ipe** a Aplicaciones. El programa **no está firmado por Apple**: la
 primera vez, clic derecho (o Control+clic) ▸ **Abrir** ▸ **Abrir**; si macOS dice que la app "está dañada", ejecute
 `xattr -dr com.apple.quarantine /Applications/Ipe.app` en la Terminal. El paquete de macOS es nuevo y se ha usado
-mucho menos que los de Windows y Linux. Límites conocidos: los atajos siguen con Ctrl; los enlaces `ipe://` no abren
-el programa; **Buscar actualizaciones** encuentra la versión nueva pero no la instala (descargue el `.dmg` nuevo); no
-hay icono en la barra de menús; la segmentación de órganos no se probó en un Mac real. Si el programa se cierra
+mucho menos que los de Windows y Linux. Desde la 0.100.32 los textos muestran las teclas del Mac (⌘, ⌥), los enlaces
+`ipe://` abren el programa y **Buscar actualizaciones** instala sola la versión nueva. Límites conocidos: no hay
+icono en la barra de menús; la segmentación de órganos no se probó en un Mac real. Si el programa se cierra
 solo, envíe `~/Library/Logs/DicomViewer/queda.log`.
 
 **Linux:** desde los [releases](https://github.com/filipebarra/ipe/releases) (sin Python):

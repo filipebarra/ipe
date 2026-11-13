@@ -225,6 +225,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "http_allowed_ips": [],
         # link ipe:// sem o token: qualquer página da internet pode montar um (0.99.24)
         "link_sem_token": "perguntar",   # perguntar | aceitar | recusar
+        "link_apelidos": [],             # 0.100.32: outros nomes de link que abrem o Ipê (osirix, horos…)
     },
     # impressora DICOM: recebe filmes das modalidades (TC, RM, MG, US) e guarda
     "print_scp": {

@@ -818,7 +818,17 @@ ipe://open?accession=123456&node=PACS&janela=viewer
 ipe://retrieve?studyuid=1.2.840...
 ```
 
-Registre o link uma vez em cada computador: **Rede ▸ Registrar link ipe:// neste computador**, ou `ipe-cli register-url`. O registro é no perfil do usuário e grava o caminho do executável: se o programa mudar de lugar, registre de novo.
+Registre o link uma vez em cada computador: **Rede ▸ Registrar link ipe:// neste computador**, ou `ipe-cli register-url`. O registro é no perfil do usuário e grava o caminho do executável: se o programa mudar de lugar, registre de novo. No **macOS** não precisa registrar: `ipe://` e `dicomviewer://` são do próprio aplicativo, e o link abre o Ipê (ou vai para o que já está aberto).
+
+**Apelidos do link** (0.100.32). Se o RIS já tem o botão de outro visualizador, o Ipê pode atender pelo nome dele: em **Rede ▸ Chamada externa ▸ Apelidos do link**, escreva os nomes separados por vírgula (por exemplo `osirix, horos`). Ao salvar, o Ipê se registra no sistema para esses nomes. O apelido aceita o formato do Ipê (`osirix://open?accession=123`) e o do OsiriX/Horos:
+
+```
+osirix://?methodName=displayStudy&StudyInstanceUID=1.2.840...
+osirix://?methodName=displayStudy&PatientID=12345
+osirix://?methodName=displayStudy&AccessionNumber=123456
+```
+
+Só abrir e buscar são aceitos; `downloadURL` (baixar de um endereço qualquer) é recusado. Valem as mesmas regras do `ipe://`: com o token abre direto, sem o token vale a escolha *Link ipe:// sem o token*. Se o programa de verdade (o OsiriX) também está instalado, é o sistema que decide quem atende; o Ipê pede para ser o padrão ao registrar. No macOS cada apelido vira um aplicativo mínimo em `~/Applications/Ipe links`, que só repassa o link ao Ipê; tirar o apelido da lista apaga esse aplicativo.
 
 3. **API HTTP local** — para scripts e para o RIS na mesma máquina:
 

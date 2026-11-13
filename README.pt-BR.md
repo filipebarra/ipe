@@ -196,10 +196,10 @@ Pelos [releases](https://github.com/filipebarra/ipe/releases) (sem Python), desd
   `xattr -dr com.apple.quarantine /Applications/Ipe.app` no Terminal, ou vá em Ajustes do Sistema ▸ Privacidade e
   Segurança ▸ **Abrir Mesmo Assim**.
 
-O pacote do macOS é novo e foi muito menos usado que os de Windows e Linux. Limites conhecidos: os atalhos continuam
-com Ctrl; links `ipe://` não abrem o programa; **Procurar atualizações** acha a versão nova, mas não a instala (baixe
-o `.dmg` novo); não há ícone na barra de menus (o Dock faz esse papel); a segmentação de órgãos não foi testada num
-Mac de verdade. Se o programa fechar sozinho, mande o arquivo `~/Library/Logs/DicomViewer/queda.log`.
+O pacote do macOS é novo e foi muito menos usado que os de Windows e Linux. Desde a 0.100.32 os textos mostram as
+teclas do Mac (⌘, ⌥), os links `ipe://` abrem o programa e **Procurar atualizações** instala a versão nova sozinho.
+Limites conhecidos: não há ícone na barra de menus (o Dock faz esse papel); a segmentação de órgãos não foi testada
+num Mac de verdade. Se o programa fechar sozinho, mande o arquivo `~/Library/Logs/DicomViewer/queda.log`.
 
 Para testar sem exames reais: **Ajuda ▸ Gerar exames de teste (fantomas)**.
 

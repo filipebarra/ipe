@@ -7,6 +7,9 @@ Qual pacote:
   abre a versão nova;
 - **Windows portátil**: ``-windows-portable.zip``, baixado e a pasta aberta (trocar a pasta é à mão);
 - **Linux**: ``-linux-portable.tar.gz``, idem;
+- **macOS** (0.100.32): ``-macos-arm64.dmg`` ou ``-macos-x86_64.dmg``, conforme o pacote que está rodando. O programa
+  fecha, um roteiro monta o ``.dmg``, troca o ``Ipe.app`` pelo novo e abre de novo (`roteiro_mac`). Se a pasta do
+  aplicativo não aceita escrita (ou ele roda de dentro do ``.dmg``), o ``.dmg`` abre no Finder para trocar à mão;
 
 Até a 0.99.80 os nomes eram em português (``-instalador.exe``, ``-windows-portatil.zip``, ``-linux-portatil.tar.gz``):
 os dois servem, o inglês primeiro.
@@ -60,7 +63,7 @@ def consultar(timeout: float = 10.0, abrir=None) -> dict:
 
 
 def modo_desta_instalacao(exe: Path | None = None, plataforma: str | None = None, congelado: bool | None = None) -> str:
-    """"instalado" (Windows, pelo instalador), "portatil_windows", "linux" ou "codigo"."""
+    """"instalado" (Windows, pelo instalador), "portatil_windows", "linux", "macos" ou "codigo"."""
     from ipe.core.runtime import frozen
     plataforma = plataforma or sys.platform
     congelado = frozen() if congelado is None else congelado
@@ -69,7 +72,84 @@ def modo_desta_instalacao(exe: Path | None = None, plataforma: str | None = None
     if plataforma.startswith("win"):
         pasta = Path(exe or sys.executable).parent
         return "instalado" if any(pasta.glob("unins*.exe")) else "portatil_windows"
+    if plataforma == "darwin":
+        return "macos"                       # até a 0.100.31 caía em "linux" e oferecia o pacote errado
     return "linux"
+
+
+def arquitetura_mac(maquina: str | None = None) -> str:
+    """"arm64" (chip Apple) ou "x86_64" (Intel) — a do pacote que está rodando (sob o Rosetta, x86_64)."""
+    import platform
+    m = (maquina or platform.machine() or "").lower()
+    return "arm64" if m in ("arm64", "aarch64") else "x86_64"
+
+
+def app_do_mac(exe: Path | None = None) -> Path | None:
+    """…/Ipe.app a partir de …/Ipe.app/Contents/MacOS/Ipe."""
+    exe = Path(exe or sys.executable)
+    for p in exe.parents:
+        if p.suffix == ".app":
+            return p
+    return None
+
+
+def mac_troca_sozinho(app: Path | None) -> bool:
+    """Dá para trocar o aplicativo sem o usuário? Não, se ele roda do .dmg, de uma cópia transladada pelo macOS
+    (aberto sem ter sido movido para Aplicativos) ou numa pasta sem permissão de escrita."""
+    import os
+    if app is None or not app.is_dir():
+        return False
+    txt = str(app)
+    if txt.startswith("/Volumes/") or "/AppTranslocation/" in txt:
+        return False
+    return os.access(app.parent, os.W_OK) and os.access(app, os.W_OK)
+
+
+ROTEIRO_MAC = r"""#!/bin/bash
+# Ipê: troca o aplicativo pela versão nova (gerado pelo programa; 0.100.32)
+DMG="$1"; APP="$2"; PID="$3"; ABRIR="${4:-1}"
+LOG="$(dirname "$DMG")/atualizacao_mac.log"
+exec >"$LOG" 2>&1
+echo "$(date) dmg=$DMG app=$APP pid=$PID"
+for i in $(seq 1 240); do kill -0 "$PID" 2>/dev/null || break; sleep 0.5; done
+MNT="$(mktemp -d /tmp/ipe_atualiza.XXXXXX)"
+falhou() { echo "FALHOU: $1"; hdiutil detach "$MNT" -quiet 2>/dev/null; [ "$ABRIR" = 1 ] && open "$DMG"; [ "$ABRIR" = 1 ] && open "$APP"; exit 1; }
+hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$MNT" || falhou "não montou o dmg"
+NOVO="$(ls -d "$MNT"/*.app 2>/dev/null | head -1)"
+[ -d "$NOVO" ] || falhou "o dmg não tem o aplicativo"
+rm -rf "$APP.novo" "$APP.antigo"
+ditto "$NOVO" "$APP.novo" || falhou "não copiou o aplicativo novo"
+mv "$APP" "$APP.antigo" || { rm -rf "$APP.novo"; falhou "não tirou o aplicativo antigo"; }
+if ! mv "$APP.novo" "$APP"; then mv "$APP.antigo" "$APP"; falhou "não pôs o aplicativo novo"; fi
+rm -rf "$APP.antigo"
+xattr -dr com.apple.quarantine "$APP" 2>/dev/null
+hdiutil detach "$MNT" -quiet
+rmdir "$MNT" 2>/dev/null
+echo "TROCADO"
+[ "$ABRIR" = 1 ] && open "$APP"
+exit 0
+"""
+
+
+def roteiro_mac(dmg: Path, app: Path, pid: int, abrir: bool = True) -> list[str]:
+    """Grava o roteiro ao lado do .dmg e devolve o comando que o roda."""
+    script = Path(dmg).with_name("atualizar_mac.sh")
+    script.write_text(ROTEIRO_MAC, encoding="utf-8")
+    script.chmod(0o755)
+    return ["/bin/bash", str(script), str(dmg), str(app), str(int(pid)), "1" if abrir else "0"]
+
+
+def instalar_no_mac(dmg: Path, app: Path | None = None, pid: int | None = None, popen=None) -> None:
+    """Solta o roteiro, desligado deste processo (ele espera o programa fechar). Quem chama fecha o programa."""
+    import os
+    import subprocess
+    app = app or app_do_mac()
+    if not mac_troca_sozinho(app):
+        raise ErroAtualizacao("Não dá para trocar o aplicativo sozinho neste lugar.")
+    cmd = roteiro_mac(dmg, app, pid or os.getpid())
+    from ipe.core.runtime import ambiente_do_sistema
+    (popen or subprocess.Popen)(cmd, start_new_session=True, stdin=subprocess.DEVNULL, env=ambiente_do_sistema(),
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
 
 
 #: 0.99.81: nomes em inglês; os em português (até a 0.99.80) ainda servem
@@ -78,8 +158,11 @@ SUFIXO = {"instalado": ("-installer.exe", "-instalador.exe"),
           "linux": ("-linux-portable.tar.gz", "-linux-portatil.tar.gz")}
 
 
-def pacote_para(info: dict, modo: str) -> dict | None:
-    for suf in SUFIXO.get(modo) or ():
+def pacote_para(info: dict, modo: str, maquina: str | None = None) -> dict | None:
+    sufixos = SUFIXO.get(modo) or ()
+    if modo == "macos":
+        sufixos = (f"-macos-{arquitetura_mac(maquina)}.dmg",)
+    for suf in sufixos:
         p = next((p for p in info.get("pacotes", []) if p["nome"].lower().endswith(suf)), None)
         if p is not None:
             return p

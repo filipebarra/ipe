@@ -1,4 +1,5 @@
-# Releases do Ipê: Windows (installer + portable) e Linux (portable com install.sh + .deb, desde a 0.100.6).
+# Releases do Ipê: Windows (installer + portable), Linux (portable com install.sh + .deb, desde a 0.100.6) e
+# macOS (.dmg para chip Apple e para Intel, desde a 0.100.32).
 # Nomes em inglês desde a 0.99.81.
 #
 # Só roda quando alguém aperta "Run workflow" (ou `gh workflow run release.yml`): combinado com o
@@ -112,8 +113,90 @@ jobs:
             dist/Ipe-*-linux-portable.tar.gz
             dist/Ipe-*-linux-amd64.deb
 
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arq: arm64
+          - runner: macos-15-intel
+            arq: x86_64
+    runs-on: ${{ matrix.runner }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Bibliotecas
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[ia]" "pyinstaller>=6.0"
+      - name: Versão
+        id: v
+        run: echo "versao=$(python -c 'import ipe;print(ipe.__version__)')" >> "$GITHUB_OUTPUT"
+      - name: Ícone (.icns a partir do PNG)
+        run: |
+          mkdir ipe.iconset
+          for t in 16 32 128 256 512; do
+            sips -z $t $t installer/linux/ipe.png --out ipe.iconset/icon_${t}x${t}.png >/dev/null
+            d=$((t*2)); sips -z $d $d installer/linux/ipe.png --out ipe.iconset/icon_${t}x${t}@2x.png >/dev/null
+          done
+          iconutil -c icns ipe.iconset -o installer/ipe.icns
+      - name: Empacotar
+        run: python -m PyInstaller --noconfirm --clean --workpath build-pyi --distpath dist installer/ipe.spec
+      - name: Conferir o pacote (pasta)
+        run: python installer/verifica.py
+      - name: Conferir o Ipe.app (abre, versão)
+        run: |
+          test -x dist/Ipe.app/Contents/MacOS/Ipe
+          dist/Ipe.app/Contents/MacOS/ipe-cli info | head -20
+          HOME=$(mktemp -d) dist/Ipe.app/Contents/MacOS/Ipe & P=$!
+          sleep 25
+          if kill -0 $P 2>/dev/null; then echo "JANELA_DE_PE"; kill $P; else echo "O programa fechou sozinho"; exit 1; fi
+      - name: Pacote (.dmg com o atalho de Aplicativos e o LEIAME)
+        run: |
+          V=${{ steps.v.outputs.versao }}
+          mkdir dmg && cp -R dist/Ipe.app dmg/ && ln -s /Applications dmg/Applications
+          cp installer/macos/LEIAME-macOS.txt dmg/ 2>/dev/null || true
+          for i in 1 2 3 4 5; do
+            hdiutil create -volname "Ipe $V" -srcfolder dmg -ov -format UDZO "Ipe-$V-macos-${{ matrix.arq }}.dmg" && break
+            sleep 15
+          done
+          ls -la *.dmg
+      - name: Conferir a atualização (o roteiro troca um Ipe.app antigo pelo do .dmg)
+        run: |
+          V=${{ steps.v.outputs.versao }}
+          T=$(mktemp -d); mkdir "$T/Aplicativos" "$T/baixados"
+          cp -R dist/Ipe.app "$T/Aplicativos/Ipe.app"
+          echo antigo > "$T/Aplicativos/Ipe.app/Contents/MARCA_DO_ANTIGO"
+          cp "Ipe-$V-macos-${{ matrix.arq }}.dmg" "$T/baixados/"
+          python - "$T" "$V" "${{ matrix.arq }}" <<'PY'
+          import subprocess, sys
+          from pathlib import Path
+          from ipe.core import atualizar_github as GH
+          t, v, arq = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+          app = t / "Aplicativos" / "Ipe.app"
+          assert GH.mac_troca_sozinho(app)
+          cmd = GH.roteiro_mac(t / "baixados" / f"Ipe-{v}-macos-{arq}.dmg", app, pid=4194000, abrir=False)
+          r = subprocess.run(cmd, timeout=600)
+          print((t / "baixados" / "atualizacao_mac.log").read_text())
+          assert r.returncode == 0, r.returncode
+          assert not (app / "Contents" / "MARCA_DO_ANTIGO").exists(), "o aplicativo antigo ficou"
+          PY
+          "$T/Aplicativos/Ipe.app/Contents/MacOS/ipe-cli" info | head -3
+          echo ATUALIZACAO_OK
+      - uses: actions/upload-artifact@v6
+        with:
+          name: macos-${{ matrix.arq }}
+          path: Ipe-*-macos-*.dmg
+
   release:
-    needs: [windows, linux]
+    needs: [windows, linux, macos]
+    # o pacote do Mac não segura o release: se ele falhar, Windows e Linux saem do mesmo jeito
+    if: ${{ !cancelled() && needs.windows.result == 'success' && needs.linux.result == 'success' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -144,7 +227,9 @@ jobs:
                 "(`sudo apt install ./Ipe-*-linux-amd64.deb`; the command is `ipe-viewer`). Or extract the portable "
                 "and run `Ipe/install.sh` (installs for your user, no administrator; `--system` for all users, "
                 "`--uninstall` to remove), or just run `Ipe/Ipe`. On first launch it asks for the language, with "
-                "English selected.\n\n"
+                "English selected.\n\n**macOS (experimental):** `-macos-arm64.dmg` for Apple silicon, "
+                "`-macos-x86_64.dmg` for Intel. Drag Ipe to Applications; the app is not signed by Apple: the first "
+                "time, right-click ▸ Open ▸ Open (or `xattr -dr com.apple.quarantine /Applications/Ipe.app`).\n\n"
                 "Organ segmentation (TotalSegmentator) is installed separately, with `instalar_segmentacao`.\n\n"
                 "*Notas em português: [CHANGELOG.md](https://github.com/filipebarra/ipe/blob/main/CHANGELOG.md) · "
                 "Notas en español: [CHANGELOG.es.md](https://github.com/filipebarra/ipe/blob/main/CHANGELOG.es.md)*")

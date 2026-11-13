@@ -446,6 +446,15 @@ class NetworkDialog(QDialog):
                                  "token no link (…&token=<o token acima>) ele abre direto; sem o token, vale "
                                  "esta escolha. Ponha o token no link do RIS para ele não perguntar.")
         f.addRow("Link ipe:// sem o token:", self.link_sem)
+        # 0.100.32: apelidos — outros nomes de link que abrem o Ipê (o RIS que já tem o botão do OsiriX)
+        from PySide6.QtWidgets import QLineEdit as _LE
+        self.apelidos = _LE(", ".join(c.get("link_apelidos") or []))
+        self.apelidos.setPlaceholderText("osirix, horos")
+        self.apelidos.setToolTip("Outros nomes de link que abrem o Ipê, separados por vírgula. Com “osirix”, um "
+                                 "link osirix://?methodName=displayStudy&StudyInstanceUID=… abre o exame aqui. "
+                                 "Valem as mesmas regras do ipe:// (token ou pergunta). Ao salvar, o Ipê se "
+                                 "registra no sistema para esses nomes.")
+        f.addRow("Apelidos do link:", self.apelidos)
         # 0.99.31 (onda A3): link cifrado — sem o ID do paciente à vista, montado com o token
         b_cif = QPushButton("Montar link cifrado…")
         b_cif.setToolTip("Monta um ipe://open?c=… a partir de accession=…, patientid=… etc. Só quem tem o token "
@@ -744,6 +753,9 @@ class NetworkDialog(QDialog):
             return
         ips = [x.strip() for x in self.ips.text().replace(";", ",").split(",") if x.strip()]
         c = dict(self.settings.get("dicom", {}) or {})
+        from ipe.network import external as _EX
+        apelidos_antes = list(c.get("link_apelidos") or [])
+        c["link_apelidos"] = _EX.apelidos_validos(self.apelidos.text())
         c.update({"enabled": self.enabled.isChecked(), "ae_title": self.ae.text().strip(),
                   "port": self.port.value(), "accept": self.accept_c.currentData(),
                   "timeout": self.timeout.value(), "max_parallel": self.parallel.value(),
@@ -753,6 +765,12 @@ class NetworkDialog(QDialog):
                   "http_allowed_ips": ips, "link_sem_token": self.link_sem.currentData()})
         self.settings.set("dicom", c)
         self.settings.set("viewer.outro_paciente_externo", self.outro_pac.currentData())
+        if c["link_apelidos"] != apelidos_antes:        # registra os novos e solta os que saíram
+            try:
+                self._aviso_apelidos = _EX.register_url_scheme(self.settings, antes=apelidos_antes)
+            except Exception as e:  # noqa: BLE001
+                self._aviso_apelidos = f"Não foi possível registrar os apelidos do link: {e}"
+            QMessageBox.information(self, "Apelidos do link", self._aviso_apelidos)
         self.settings.set("network.stream_default", self.stream_default.isChecked())
         self.settings.set("network.stream_external", self.stream_ext.isChecked())
         self.settings.set("network.stream_ask", self.stream_ask.isChecked())

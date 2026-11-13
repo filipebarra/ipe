@@ -75,11 +75,22 @@ def _parser() -> argparse.ArgumentParser:
     return p
 
 
+def _e_link(texto: str) -> bool:
+    """ipe://, dicomviewer:// ou um apelido configurado (0.100.32). Os dois primeiros sem ler configuração."""
+    t = str(texto or "").lower()
+    if t.startswith(("ipe:", "dicomviewer:")):
+        return True
+    if "://" not in t[:40] or t.startswith(("-", "/", ".")):
+        return False
+    from ipe.network.external import e_link
+    return e_link(texto)
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     minimized = "--minimized" in argv
     argv = [a for a in argv if a != "--minimized"]
-    if argv and argv[0].lower().startswith(("ipe:", "dicomviewer:")):
+    if argv and _e_link(argv[0]):
         from ipe.app import run_gui
         from ipe.network.external import ExternalError, parse_url
         try:

@@ -3427,7 +3427,7 @@ class MainWindow(QMainWindow):
     def _register_url(self) -> None:
         from ipe.network.external import register_url_scheme
         try:
-            QMessageBox.information(self, "Link ipe://", register_url_scheme())
+            QMessageBox.information(self, "Link ipe://", register_url_scheme(self.settings))
         except Exception as e:  # noqa: BLE001
             QMessageBox.warning(self, "Link ipe://", f"Não foi possível registrar: {e}")
 

@@ -27,6 +27,47 @@ log = logging.getLogger(__name__)
 #: botões do RIS e atalhos que já existem não quebram.
 SCHEME = "ipe"
 SCHEMES = ("ipe", "dicomviewer")
+#: 0.100.32: apelidos — outros nomes de link que abrem o Ipê (osirix://, horos://…), para o RIS que já tem o botão
+#: de outro visualizador. Ficam em Rede ▸ Chamada externa ("dicom.link_apelidos").
+APELIDO = re.compile(r"^[a-z][a-z0-9+.\-]{1,31}$")
+#: nomes que são de outros programas do sistema: nunca viram apelido
+RESERVADOS = {"http", "https", "file", "ftp", "mailto", "tel", "sms", "ssh", "data", "javascript", "about", "blob",
+              "ws", "wss", "smb", "afp", "vnc", "x-apple", "facetime", "itms", "macappstore"}
+
+
+def apelidos_validos(valor) -> list[str]:
+    """A lista de apelidos como o usuário digitou (lista ou texto com vírgulas) -> só os que valem, sem repetir."""
+    if isinstance(valor, str):
+        valor = re.split(r"[,;\s]+", valor)
+    out: list[str] = []
+    for a in valor or ():
+        a = str(a).strip().lower().rstrip(":/")
+        if APELIDO.match(a) and a not in RESERVADOS and a not in SCHEMES and a not in out:
+            out.append(a)
+    return out
+
+
+def esquemas(settings=None) -> tuple[str, ...]:
+    """ipe, dicomviewer e os apelidos configurados."""
+    if settings is None:
+        try:
+            from ipe.core.config import Settings, get_paths
+            settings = Settings(get_paths().settings_file)
+        except Exception:  # noqa: BLE001
+            return SCHEMES
+    try:
+        extra = apelidos_validos((settings.get("dicom", {}) or {}).get("link_apelidos") or [])
+    except Exception:  # noqa: BLE001
+        extra = []
+    return SCHEMES + tuple(extra)
+
+
+def e_link(texto: str, settings=None) -> bool:
+    """O argumento da linha de comando é um link nosso (ipe://, dicomviewer:// ou um apelido)?"""
+    m = re.match(r"^([A-Za-z][A-Za-z0-9+.\-]*):", str(texto or ""))
+    return bool(m) and m.group(1).lower() in esquemas(settings)
+
+
 SAFE = re.compile(r"^[A-Za-z0-9.\-_^ ,*:+]{1,512}$")
 PARAMS = {  # nome no link/HTTP -> chave interna
     "accession": "accession", "studyuid": "study_uid", "study_uid": "study_uid",
@@ -38,9 +79,14 @@ PARAMS = {  # nome no link/HTTP -> chave interna
     "modalitiesinstudy": "modalidades", "modalidades": "modalidades",
     "lowerdatetime": "data_de", "data_de": "data_de", "upperdatetime": "data_ate", "data_ate": "data_ate",
     "containsindescription": "descricao", "descricao": "descricao",
+    # 0.100.32: os nomes do link do OsiriX/Horos (osirix://?methodName=displayStudy&StudyInstanceUID=…)
+    "studyinstanceuid": "study_uid",
 }
 #: parâmetros do IHE IID que o programa aceita e não usa (não viram erro)
-IGNORADOS = {"viewertype", "diagnosticquality", "keyimagesonly"}
+IGNORADOS = {"viewertype", "diagnosticquality", "keyimagesonly", "methodname"}
+#: 0.100.32: o que o methodName do link do OsiriX/Horos pede -> o nosso comando (baixar de URL não é aceito)
+METODOS_OSIRIX = {"displaystudy": "open", "displaystudies": "open", "displayseries": "open", "openstudy": "open",
+                  "retrieve": "retrieve", "retrievestudy": "retrieve"}
 COMMANDS = {"open", "retrieve", "iheinvokeimagedisplay"}
 # `janela=` decide, **nesta chamada**, se abre o programa inteiro ou só o visualizador. Sem o
 # parâmetro vale a configuração de Rede. Assim a estação do médico segue abrindo o programa e a
@@ -59,7 +105,14 @@ def _junta(vals: list[str]) -> str:
 
 
 def payload_from_query(command: str, query: dict[str, list[str]]) -> dict:
-    command = command.strip("/").lower() or "open"
+    command = command.strip("/").lower()
+    if not command:
+        metodo = next((unquote(v[0]).strip() for k, v in query.items() if k.lower() == "methodname" and v), "")
+        if metodo:                                   # link no formato do OsiriX/Horos
+            command = METODOS_OSIRIX.get(metodo.lower(), "")
+            if not command:
+                raise ExternalError(f"methodName não aceito: {metodo}")
+    command = command or "open"
     if command not in COMMANDS:
         raise ExternalError(f"comando não aceito: {command}")
     if command == "iheinvokeimagedisplay":          # IHE IID: abre (requestType diz paciente ou exame)
@@ -140,11 +193,11 @@ def filtrar_estudos(estudos: list[dict], pedido: dict) -> list[dict]:
     return out[:n] if n > 0 else out
 
 
-def parse_url(url: str) -> dict:
-    """ipe://open?accession=123&node=PACS (ou dicomviewer://…) -> pedido."""
+def parse_url(url: str, aceitos: tuple[str, ...] | None = None) -> dict:
+    """ipe://open?accession=123&node=PACS (ou dicomviewer://…, ou um apelido configurado) -> pedido."""
     parts = urlsplit(url.strip())
-    if parts.scheme.lower() not in SCHEMES:
-        raise ExternalError("link não é ipe:// nem dicomviewer://")
+    if parts.scheme.lower() not in (aceitos if aceitos is not None else esquemas()):
+        raise ExternalError("link não é ipe:// nem dicomviewer:// (nem um apelido configurado)")
     command = parts.netloc or parts.path.strip("/").split("/")[0]
     query = parse_qs(parts.query)
     token = (query.pop("token", [""]) or [""])[0]
@@ -265,19 +318,13 @@ def _gui_python() -> str:
     return str(app_exe())
 
 
-def unregister_url_scheme() -> str:
-    """Tira o registro dos links ipe:// e dicomviewer:// deste usuário (usado ao desinstalar)."""
+def unregister_url_scheme(settings=None) -> str:
+    """Tira o registro dos links (ipe://, dicomviewer:// e apelidos) deste usuário (usado ao desinstalar)."""
+    todos = esquemas(settings)
     if sys.platform == "win32":
         import winreg
-        for esquema in SCHEMES:
-            for chave in (rf"Software\Classes\{esquema}\shell\open\command",
-                          rf"Software\Classes\{esquema}\shell\open",
-                          rf"Software\Classes\{esquema}\shell",
-                          rf"Software\Classes\{esquema}"):
-                try:
-                    winreg.DeleteKey(winreg.HKEY_CURRENT_USER, chave)
-                except OSError:
-                    pass
+        for esquema in todos:
+            _tirar_do_registro(winreg, esquema)
         return "Links ipe:// e dicomviewer:// desregistrados."
     if sys.platform.startswith("linux"):
         for nome in ("ipe-url.desktop", "dicomviewer-url.desktop"):
@@ -285,44 +332,172 @@ def unregister_url_scheme() -> str:
             if desk.exists():
                 desk.unlink()
         return "Links ipe:// e dicomviewer:// desregistrados."
+    if sys.platform == "darwin":
+        _mac_apelidos([])
+        return "Apelidos de link desregistrados (ipe:// e dicomviewer:// são do próprio aplicativo)."
     return "Sem registro de link neste sistema."
 
 
-def register_url_scheme() -> str:
-    """Faz o sistema abrir links ipe:// (e os antigos dicomviewer://) com este programa."""
+def _tirar_do_registro(winreg, esquema: str) -> None:
+    for chave in (rf"Software\Classes\{esquema}\shell\open\command",
+                  rf"Software\Classes\{esquema}\shell\open",
+                  rf"Software\Classes\{esquema}\shell",
+                  rf"Software\Classes\{esquema}"):
+        try:
+            winreg.DeleteKey(winreg.HKEY_CURRENT_USER, chave)
+        except OSError:
+            pass
+
+
+def _nosso_no_registro(winreg, esquema: str) -> bool:
+    """O esquema está registrado para o Ipê (a marca "URL:Ipê")? Só esses são apagados quando o apelido sai."""
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, rf"Software\Classes\{esquema}") as k:
+            return str(winreg.QueryValueEx(k, "")[0]) == "URL:Ipê"
+    except OSError:
+        return False
+
+
+def register_url_scheme(settings=None, antes: tuple[str, ...] | list[str] = ()) -> str:
+    """Faz o sistema abrir links ipe:// (os antigos dicomviewer:// e os apelidos) com este programa.
+    `antes`: os apelidos que valiam até agora — os que saíram da lista deixam de apontar para o Ipê."""
+    todos = esquemas(settings)
+    nomes = ", ".join(f"{e}://" for e in todos)
+    sairam = [a for a in apelidos_validos(list(antes)) if a not in todos]
     if sys.platform == "win32":
         import winreg
         from ipe.core.runtime import app_command
         cmd = app_command('"%1"')
-        for esquema in SCHEMES:
+        for esquema in sairam:
+            if _nosso_no_registro(winreg, esquema):
+                _tirar_do_registro(winreg, esquema)
+        for esquema in todos:
             base = rf"Software\Classes\{esquema}"
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base) as k:
                 winreg.SetValueEx(k, "", 0, winreg.REG_SZ, "URL:Ipê")
                 winreg.SetValueEx(k, "URL Protocol", 0, winreg.REG_SZ, "")
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + r"\shell\open\command") as k:
                 winreg.SetValueEx(k, "", 0, winreg.REG_SZ, cmd)
-        return "Links ipe:// e dicomviewer:// registrados para este usuário do Windows."
+        return f"Links registrados para este usuário do Windows: {nomes}"
     if sys.platform.startswith("linux"):
         import subprocess
         apps = Path.home() / ".local/share/applications"
         apps.mkdir(parents=True, exist_ok=True)
         from ipe.core.runtime import app_command
-        # um arquivo só, com os dois esquemas; o antigo dicomviewer-url.desktop sai
+        # um arquivo só, com todos os esquemas; o antigo dicomviewer-url.desktop sai
         velho = apps / "dicomviewer-url.desktop"
         if velho.exists():
             velho.unlink()
         desk = apps / "ipe-url.desktop"
-        mimes = "".join(f"x-scheme-handler/{e};" for e in SCHEMES)
+        mimes = "".join(f"x-scheme-handler/{e};" for e in todos)
         desk.write_text(
             "[Desktop Entry]\nType=Application\nName=Ipê\nNoDisplay=true\n"
             f"Exec={app_command('%u')}\nMimeType={mimes}\n",
             encoding="utf-8")
         try:
-            for e in SCHEMES:
+            for e in todos:
                 subprocess.run(["xdg-mime", "default", desk.name, f"x-scheme-handler/{e}"],
                                check=False, timeout=10)
             subprocess.run(["update-desktop-database", str(apps)], check=False, timeout=10)
         except (OSError, subprocess.SubprocessError):
             return f"Arquivo {desk} criado; rode: xdg-mime default {desk.name} x-scheme-handler/{SCHEME}"
-        return "Links ipe:// e dicomviewer:// registrados (xdg-mime)."
-    return "Registro automático do link só no Windows e no Linux."
+        return f"Links registrados (xdg-mime): {nomes}"
+    if sys.platform == "darwin":
+        extra = [e for e in todos if e not in SCHEMES]
+        feitos, falhas = _mac_apelidos(extra)
+        txt = "No macOS, ipe:// e dicomviewer:// já são do aplicativo (abra o Ipê uma vez pela pasta Aplicativos)."
+        if feitos:
+            txt += "\nApelidos registrados: " + ", ".join(f"{e}://" for e in feitos)
+        if falhas:
+            txt += "\nNão deu para registrar: " + "; ".join(falhas)
+        return txt
+    return "Registro automático do link só no Windows, no Linux e no macOS."
+
+
+# ---------------------------------------------------------------------------
+# macOS: apelidos de link (0.100.32)
+# ---------------------------------------------------------------------------
+# ipe:// e dicomviewer:// estão no Info.plist do aplicativo. Um apelido escolhido pelo usuário não pode entrar lá
+# (mexer no pacote estraga a assinatura), então cada apelido vira um aplicativo mínimo em
+# ~/Applications/Ipe links/Ipe-<apelido>.app, feito com o `osacompile` do próprio macOS: ele recebe o link e o
+# repassa como ipe://, que o sistema entrega ao Ipê (aberto ou não).
+
+ROTEIRO_MAC = """on open location u
+\ttry
+\t\tset p to offset of ":" in u
+\t\tset resto to text (p + 1) thru -1 of u
+\t\tdo shell script "/usr/bin/open " & quoted form of ("ipe:" & resto)
+\tend try
+end open location
+"""
+LSREGISTER = ("/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/"
+              "lsregister")
+
+
+def pasta_dos_apelidos_mac() -> Path:
+    return Path.home() / "Applications" / "Ipe links"
+
+
+def _mac_apelidos(apelidos: list[str], pasta: Path | None = None, rodar=None) -> tuple[list[str], list[str]]:
+    """Cria um aplicativo-ponte por apelido e apaga os que saíram da lista. Devolve (feitos, falhas)."""
+    import plistlib
+    import shutil
+    import subprocess
+    pasta = pasta or pasta_dos_apelidos_mac()
+    rodar = rodar or (lambda cmd: subprocess.run(cmd, capture_output=True, text=True, timeout=60))
+    feitos: list[str] = []
+    falhas: list[str] = []
+    if pasta.is_dir():
+        for velho in pasta.glob("Ipe-*.app"):
+            if velho.name[4:-4] not in apelidos:
+                try:
+                    rodar([LSREGISTER, "-u", str(velho)])
+                except Exception:  # noqa: BLE001
+                    pass
+                shutil.rmtree(velho, ignore_errors=True)
+    for a in apelidos:
+        app = pasta / f"Ipe-{a}.app"
+        try:
+            pasta.mkdir(parents=True, exist_ok=True)
+            shutil.rmtree(app, ignore_errors=True)
+            fonte = pasta / f".{a}.applescript"
+            fonte.write_text(ROTEIRO_MAC, encoding="utf-8")
+            r = rodar(["/usr/bin/osacompile", "-o", str(app), str(fonte)])
+            fonte.unlink(missing_ok=True)
+            if getattr(r, "returncode", 0) != 0 or not (app / "Contents" / "Info.plist").exists():
+                raise OSError((getattr(r, "stderr", "") or "osacompile falhou").strip()[:200])
+            info = app / "Contents" / "Info.plist"
+            d = plistlib.loads(info.read_bytes())
+            d["CFBundleIdentifier"] = f"br.ipe.link.{a}"
+            d["CFBundleName"] = f"Ipe-{a}"
+            d["LSUIElement"] = True                      # sem ícone no Dock
+            d["CFBundleURLTypes"] = [{"CFBundleURLName": f"Ipe {a}", "CFBundleURLSchemes": [a]}]
+            info.write_bytes(plistlib.dumps(d))
+            rodar(["/usr/bin/codesign", "--force", "--deep", "-s", "-", str(app)])     # o plist mudou
+            rodar([LSREGISTER, "-f", str(app)])
+            _mac_padrao(a, d["CFBundleIdentifier"])
+            feitos.append(a)
+        except Exception as e:  # noqa: BLE001
+            falhas.append(f"{a}:// ({e})")
+    return feitos, falhas
+
+
+def _mac_padrao(esquema: str, bundle_id: str) -> None:
+    """Se outro programa (o OsiriX de verdade) também atende o link, o Ipê passa a ser o padrão."""
+    try:
+        import ctypes
+        import ctypes.util
+        cf = ctypes.cdll.LoadLibrary(ctypes.util.find_library("CoreFoundation"))
+        cs = ctypes.cdll.LoadLibrary(ctypes.util.find_library("CoreServices"))
+        cf.CFStringCreateWithCString.restype = ctypes.c_void_p
+        cf.CFStringCreateWithCString.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_uint32]
+        cs.LSSetDefaultHandlerForURLScheme.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        cs.LSSetDefaultHandlerForURLScheme.restype = ctypes.c_int32
+        utf8 = 0x08000100
+        e = cf.CFStringCreateWithCString(None, esquema.encode(), utf8)
+        b = cf.CFStringCreateWithCString(None, bundle_id.encode(), utf8)
+        rc = cs.LSSetDefaultHandlerForURLScheme(e, b)
+        if rc:
+            log.info("LSSetDefaultHandlerForURLScheme(%s) = %s", esquema, rc)
+    except Exception as e:  # noqa: BLE001
+        log.info("Não deu para tornar o Ipê o padrão de %s://: %s", esquema, e)

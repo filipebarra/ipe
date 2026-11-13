@@ -83,6 +83,16 @@ def responder(win, info, erro, silencioso: bool) -> str:
         caixa.setInformativeText(f"Baixar ({mb:.0f} MB) e instalar agora? O programa fecha, instala e abre de novo; "
                                  "pastas, banco, idioma e usuários continuam como estão.")
         b_agora = caixa.addButton("Baixar e instalar", QMessageBox.AcceptRole)
+    elif modo == "macos" and GH.mac_troca_sozinho(GH.app_do_mac()):
+        mb = pacote["tamanho"] / 1024 / 1024
+        caixa.setInformativeText(f"Baixar ({mb:.0f} MB) e instalar agora? O programa fecha, troca o aplicativo e abre "
+                                 "de novo; banco, idioma e usuários continuam como estão.")
+        b_agora = caixa.addButton("Baixar e instalar", QMessageBox.AcceptRole)
+    elif modo == "macos":
+        mb = pacote["tamanho"] / 1024 / 1024
+        caixa.setInformativeText(f"Baixar o pacote ({mb:.0f} MB)? Aqui o aplicativo não pode ser trocado sozinho "
+                                 "(mova o Ipe para a pasta Aplicativos): o .dmg abre quando terminar.")
+        b_agora = caixa.addButton("Baixar", QMessageBox.AcceptRole)
     else:
         mb = pacote["tamanho"] / 1024 / 1024
         caixa.setInformativeText(f"Baixar o pacote ({mb:.0f} MB)? A versão portátil se troca à mão: a pasta abre "
@@ -135,6 +145,21 @@ def baixar_e_instalar(win, pacote: dict, modo: str, baixar=None, rodar=None) -> 
         win.settings.save()
         QTimer.singleShot(0, win.quit_app)
         return "instalando"
+    if modo == "macos":
+        if GH.mac_troca_sozinho(GH.app_do_mac()):
+            try:
+                (rodar or GH.instalar_no_mac)(arq)
+            except Exception as e:  # noqa: BLE001
+                QMessageBox.warning(win, "Versão nova", f"Não deu para trocar o aplicativo: {e}\n\n{arq}")
+                AT.abrir_pasta(arq.parent)
+                return "baixada"
+            win.settings.save()
+            QTimer.singleShot(0, win.quit_app)
+            return "instalando"
+        QMessageBox.information(win, "Versão nova", f"Baixado em:\n{arq}\n\nFeche o Ipê, abra o .dmg e arraste o "
+                                "Ipe para a pasta Aplicativos (substituir).")
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(arq)))
+        return "baixada"
     QMessageBox.information(win, "Versão nova", f"Baixado em:\n{arq}\n\nFeche o programa e troque a pasta pela do "
                             "pacote novo (o banco e as configurações ficam fora dela).")
     AT.abrir_pasta(arq.parent)
