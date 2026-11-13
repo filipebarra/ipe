@@ -24,3 +24,22 @@ _dv_*
 
 # visualizador web (0.99.91): só as fontes e o site construído (src/ipe/web_dist) vão para o git
 web/node_modules/
+
+# 0.100.38: dados de um Ipê rodando dentro da pasta do código (IPE_HOME apontando para cá): bancos, PostgreSQL, caches,
+# registros e configurações com senhas — nada disso vai para o repositório
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite.migrado*
+postgres/
+pgbin/
+Storage/
+CacheWeb/
+CacheCentral/
+Lixeira/
+Impressoes/
+Logs/
+*.log
+banco.json
+ipe_senha
+segmentacao/
