@@ -335,8 +335,50 @@ def test_pacote_leva_o_embutido():
     from pathlib import Path
     raiz = Path(__file__).resolve().parents[1]
     spec = (raiz / "installer" / "ipe.spec").read_text(encoding="utf-8")
-    assert "pixeltable_pgserver" in spec and '"pginstall"' in spec and "pginstall18" not in spec.split("rglob")[1][:80]
+    # num .tar.gz (o PyInstaller não analisa), só o 16, e no lugar onde o programa procura
+    assert "pg16.tar.gz" in spec and '"ipe/pg"' in spec and "montar_arquivo" in spec
+    assert "pginstall18" not in spec and PE.ARQUIVO_PACOTE == "pg16.tar.gz"
     assert "testar-embutido" in (raiz / "installer" / "verifica.py").read_text(encoding="utf-8")
+
+
+@com_embutido
+def test_no_pacote_extrai_e_liga_pelos_executaveis_extraidos(tmp_path, monkeypatch):
+    """Como no programa empacotado: o .tar.gz montado como o ipe.spec monta, extraído uma vez (a segunda vez reusa),
+    e o servidor ligado a partir dos executáveis extraídos."""
+    import tarfile
+    from pathlib import Path
+
+    import pixeltable_pgserver as P
+    from pixeltable_pgserver import utils as U
+
+    from ipe.core import runtime as R
+    arq = tmp_path / "pacote" / "ipe" / "pg" / "pg16.tar.gz"
+    arq.parent.mkdir(parents=True)
+    PE.montar_arquivo(Path(P.__file__).parent, arq)                   # como o ipe.spec
+    with tarfile.open(arq) as t:
+        nomes = t.getnames()
+    assert not any("pginstall18" in n or "/include" in n or n.endswith(".py") for n in nomes)
+    assert not any(n.endswith((".so.5.18", ".so.6.18", ".so.3.18")) for n in nomes)
+    destino = tmp_path / "local" / "pgbin"
+    bin_ = PE.pasta_dos_executaveis(arq, destino)
+    assert (bin_ / ("initdb.exe" if os.name == "nt" else "initdb")).is_file()
+    if os.name != "nt":
+        assert os.access(bin_ / "initdb", os.X_OK)                       # a permissão de executar veio junto
+    ok = bin_.parents[2] / ".ok"                                       # no alto da pasta extraída
+    marca = ok.stat().st_mtime
+    assert PE.pasta_dos_executaveis(arq, destino) == bin_ and ok.stat().st_mtime == marca
+    antes = U.POSTGRES_VERSIONS[16]
+    monkeypatch.setattr(R, "frozen", lambda: True)
+    monkeypatch.setattr(R, "ambiente_do_sistema", lambda env=None: dict(env or os.environ))
+    monkeypatch.setattr(PE, "_arquivo_do_pacote", lambda: arq)
+    monkeypatch.setattr(PE, "pasta_dos_executaveis", lambda arquivo=None, destino_=None: bin_)
+    try:
+        assert PE.disponivel()
+        versao = PE.testar_pacote(tmp_path / "dados" / "postgres")
+        assert versao.startswith("16") and U.POSTGRES_VERSIONS[16] == bin_
+    finally:
+        U.POSTGRES_VERSIONS[16] = antes
+        PE.desligar_todos()
 
 
 @com_embutido

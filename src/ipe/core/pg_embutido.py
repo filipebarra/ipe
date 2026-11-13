@@ -33,9 +33,87 @@ class ErroEmbutido(Exception):
 def disponivel() -> bool:
     try:
         import pixeltable_pgserver  # noqa: F401
-        return True
     except Exception:  # noqa: BLE001
         return False
+    from ipe.core import runtime as R
+    return not R.frozen() or _arquivo_do_pacote().is_file()
+
+
+ARQUIVO_PACOTE = "pg16.tar.gz"
+#: dentro do arquivo, como no site-packages: as rodas do PyPI tiram as bibliotecas dos executáveis para uma pasta
+#: vizinha e apontam para ela por caminho relativo — no Linux `pixeltable_pgserver.libs` (auditwheel), no macOS
+#: `pixeltable_pgserver/.dylibs` (delocate); no Windows as DLLs ficam junto dos .exe
+BIN_NO_ARQUIVO = ("pixeltable_pgserver", "pginstall", "bin")
+
+
+def montar_arquivo(pasta_do_pacote: Path, arquivo: Path) -> Path:
+    """Para o ipe.spec: o PostgreSQL 16 do pixeltable-pgserver num .tar.gz, com a mesma estrutura do site-packages
+    (sem o PostgreSQL 18, os cabeçalhos e o código Python)."""
+    import tarfile
+    pasta_do_pacote = Path(pasta_do_pacote)
+    site = pasta_do_pacote.parent
+    raizes = [pasta_do_pacote / "pginstall" / p for p in ("bin", "lib", "share")]
+    raizes += [pasta_do_pacote / ".dylibs", site / (pasta_do_pacote.name + ".libs")]
+    with tarfile.open(arquivo, "w:gz", compresslevel=6) as t:
+        for r in raizes:
+            if not r.exists():
+                continue
+            for item in sorted([r, *r.rglob("*")]):
+                nome = item.name
+                if item.is_file() and re.search(r"\.(so|dylib)[.0-9]*$", nome) and re.search(r"\.18\b|[.-]18\.", nome):
+                    continue                           # as bibliotecas do PostgreSQL 18 (ficam de fora)
+                t.add(str(item), arcname=str(item.relative_to(site)), recursive=False)
+    return Path(arquivo)
+
+
+def _arquivo_do_pacote() -> Path:
+    import sys
+    return Path(getattr(sys, "_MEIPASS", ".")) / "ipe" / "pg" / ARQUIVO_PACOTE
+
+
+def pasta_dos_executaveis(arquivo: Path | None = None, destino: Path | None = None) -> Path:
+    """No programa empacotado, os executáveis do PostgreSQL vêm num .tar.gz (o PyInstaller misturava as bibliotecas
+    deles com as do programa); na primeira vez, são extraídos para a pasta local do usuário — não para a pasta de
+    dados, que pode estar num disco de rede. A pasta leva o tamanho do arquivo no nome: versão nova, extração nova."""
+    import tarfile
+
+    import fasteners
+    arquivo = Path(arquivo) if arquivo else _arquivo_do_pacote()
+    if destino is None:
+        import platformdirs
+        destino = Path(platformdirs.user_data_dir("DicomViewer", appauthor=False)) / "pgbin"
+    alvo = Path(destino) / f"16-{arquivo.stat().st_size}"
+    if (alvo / ".ok").exists() and alvo.joinpath(*BIN_NO_ARQUIVO).is_dir():
+        return alvo.joinpath(*BIN_NO_ARQUIVO)
+    alvo.parent.mkdir(parents=True, exist_ok=True)
+    with fasteners.InterProcessLock(str(alvo.parent / ".trava")):
+        if (alvo / ".ok").exists() and alvo.joinpath(*BIN_NO_ARQUIVO).is_dir():
+            return alvo.joinpath(*BIN_NO_ARQUIVO)
+        tmp = alvo.parent / (alvo.name + ".tmp")
+        import shutil
+        shutil.rmtree(tmp, ignore_errors=True)
+        t = time.time()
+        with tarfile.open(arquivo, "r:gz") as tar:
+            try:
+                tar.extractall(tmp, filter="data")
+            except TypeError:                      # Python sem o filtro
+                tar.extractall(tmp)  # noqa: S202 - o arquivo é o do próprio pacote
+        shutil.rmtree(alvo, ignore_errors=True)
+        tmp.rename(alvo)
+        (alvo / ".ok").write_text("ok")
+        log.info("PostgreSQL embutido extraído em %.1f s (%s)", time.time() - t, alvo)
+    return alvo.joinpath(*BIN_NO_ARQUIVO)
+
+
+def _apontar_executaveis() -> None:
+    """No pacote, o pixeltable-pgserver passa a usar os executáveis extraídos."""
+    from ipe.core import runtime as R
+    if not R.frozen():
+        return
+    from pixeltable_pgserver import utils as U
+    bin_ = pasta_dos_executaveis()
+    if U.POSTGRES_VERSIONS.get(16) != bin_:
+        U.POSTGRES_VERSIONS[16] = bin_                 # o mesmo dicionário que o postgres_server usa
 
 
 def pasta_dos_dados(paths=None) -> Path:
@@ -70,7 +148,9 @@ def _servidor(pasta: Path):
     if srv is not None:
         return srv
     import pixeltable_pgserver as P
-    pasta.parent.mkdir(parents=True, exist_ok=True)
+    _apontar_executaveis()
+    # a pasta já existe (vazia) antes do initdb: no Windows, o initdb criando a pasta falhava ("File exists")
+    pasta.mkdir(parents=True, exist_ok=True)
     t = time.time()
     with _ambiente_do_sistema():
         try:

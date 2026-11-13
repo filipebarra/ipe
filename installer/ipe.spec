@@ -62,13 +62,20 @@ hidden += collect_submodules("psycopg") + collect_submodules("psycopg_binary") +
                                                                                    "sqlalchemy.dialects.postgresql.psycopg"]
 # 0.100.35: o PostgreSQL embutido — o pacote Python e os executáveis do PostgreSQL 16 (bin, lib, share). O 18, que
 # o pixeltable-pgserver também traz, fica de fora (38 MB a menos; o Ipê usa o 16).
+# Os executáveis vão num .tar.gz (não soltos): o PyInstaller trata executável solto como biblioteca do programa — no
+# macOS isso misturava a libpq do servidor com a do driver psycopg ("no pq wrapper available") — e o Ipê extrai o
+# arquivo na primeira vez que o embutido é usado (core/pg_embutido.py), como o pip faria.
 try:
+    import tarfile as _tar
+
     import pixeltable_pgserver as _pgs  # noqa: F401
     hidden += collect_submodules("pixeltable_pgserver") + ["fasteners", "psutil"]
     _pgs_dir = Path(_pgs.__file__).parent
-    for _arq in (_pgs_dir / "pginstall").rglob("*"):
-        if _arq.is_file() and "include" not in _arq.relative_to(_pgs_dir).parts[:2]:
-            datas.append((str(_arq), str(Path("pixeltable_pgserver") / _arq.parent.relative_to(_pgs_dir))))
+    _pg_tar = Path(workpath) / "pg16.tar.gz"     # noqa: F821 - workpath vem do PyInstaller
+    _pg_tar.parent.mkdir(parents=True, exist_ok=True)
+    from ipe.core.pg_embutido import montar_arquivo as _montar_pg
+    _montar_pg(_pgs_dir, _pg_tar)
+    datas.append((str(_pg_tar), "ipe/pg"))
 except ImportError:                              # sem ele, o Ipê funciona; só não oferece o PostgreSQL embutido
     pass
 hidden += ["pylibjpeg", "libjpeg", "openjpeg",
