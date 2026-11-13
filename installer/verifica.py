@@ -121,6 +121,15 @@ def postgres() -> int:
         print(saida[-2000:])
         return 1
     print("  PostgreSQL: o driver carregou (a conexão de teste foi recusada, como devia).")
+    # 0.100.35: o PostgreSQL embutido liga de verdade a partir do pacote (executáveis, bibliotecas e permissões)
+    r = roda([str(CLI), "banco", "testar-embutido"], 300)
+    saida = (r.stdout or "") + (r.stderr or "")
+    if r.returncode != 0 or "ok" not in saida:
+        print("  O PostgreSQL embutido não ligou a partir do pacote:")
+        print(saida[-3000:])
+        return 1
+    linhas = [ln for ln in saida.splitlines() if "PostgreSQL" in ln] or ["PostgreSQL embutido: ok"]
+    print("  " + linhas[-1].strip())
     return 0
 
 

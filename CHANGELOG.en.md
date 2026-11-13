@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.35 — PostgreSQL that comes with Ipê
+- **No need to install PostgreSQL separately anymore**: Ipê ships PostgreSQL 16 inside the package (Windows, macOS
+  and Linux). In Settings ▸ Database ▸ Database server, the *PostgreSQL that comes with Ipê* option: it starts by
+  itself when Ipê or the central server opens, keeps its data in the data folder and stops when the last Ipê program
+  closes. It only accepts connections from this computer, with a password created and stored by Ipê. The Copy button
+  moves the current database to it. Command line: `ipe banco embutido --copiar`.
+- The package is about 35 MB larger.
+
 ## 0.100.34 — Main database on PostgreSQL
 - The main database can live on a **PostgreSQL** server (free; Windows, macOS, Linux or cloud), for a central server
   with many workstations or a server in the cloud. **Settings ▸ Database ▸ Database server**: host, port, database,

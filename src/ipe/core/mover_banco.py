@@ -22,7 +22,7 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 CHAVE = "banco.mover_ao_abrir"
-ITENS = ("dicomviewer.sqlite", "dicomviewer.sqlite-wal", "dicomviewer.sqlite-shm", "dicomviewer.sqlite-journal",
+ITENS = ("postgres", "dicomviewer.sqlite", "dicomviewer.sqlite-wal", "dicomviewer.sqlite-shm", "dicomviewer.sqlite-journal",
          "Storage", "Lixeira")
 
 

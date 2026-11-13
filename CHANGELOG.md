@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.35 — PostgreSQL que vem com o Ipê
+- **Não precisa mais instalar o PostgreSQL à parte**: o Ipê traz o PostgreSQL 16 dentro do pacote (Windows, macOS e
+  Linux). Em Configurações ▸ Banco de dados ▸ Servidor de banco de dados, a opção *PostgreSQL que vem com o Ipê*:
+  ele liga sozinho quando o Ipê ou o servidor central abre, guarda os dados na pasta de dados e desliga quando o
+  último programa do Ipê fecha. Só aceita conexão deste computador, com senha criada e guardada pelo Ipê. O botão
+  Copiar leva o banco atual para ele. Linha de comando: `ipe banco embutido --copiar`.
+- O pacote fica cerca de 35 MB maior.
+
 ## 0.100.34 — Banco principal no PostgreSQL
 - O banco principal pode ficar num servidor **PostgreSQL** (gratuito; Windows, macOS, Linux ou nuvem), para o servidor
   central com muitas estações ou um servidor na nuvem. **Configurações ▸ Banco de dados ▸ Servidor de banco de

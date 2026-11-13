@@ -1,7 +1,8 @@
 """Configurações ▸ Banco de dados ▸ Servidor de banco de dados (PostgreSQL) — 0.100.34.
 
-Escolhe onde fica o banco principal deste computador: o arquivo SQLite (padrão) ou um servidor PostgreSQL. Testa a
-conexão e copia o banco SQLite atual para o PostgreSQL. A troca vale ao abrir o Ipê de novo.
+Escolhe onde fica o banco principal deste computador: o arquivo SQLite (padrão), o PostgreSQL que vem dentro do Ipê
+(0.100.35, sem instalar nada) ou um servidor PostgreSQL próprio. Testa a conexão e copia o banco SQLite atual para o
+PostgreSQL. A troca vale ao abrir o Ipê de novo.
 """
 from __future__ import annotations
 
@@ -34,10 +35,17 @@ class BancoDialog(QDialog):
             v.setWordWrap(True)
             v.setStyleSheet("color: #d9a400;")
             lay.addWidget(v)
-        self.r_sqlite = QRadioButton("Arquivo neste computador (SQLite) — o padrão, sem nada para instalar")
-        self.r_pg = QRadioButton("Servidor PostgreSQL — para o servidor central com muitas estações, ou na nuvem")
-        (self.r_pg if cfg.get("tipo") == "postgresql" else self.r_sqlite).setChecked(True)
+        self.r_sqlite = QRadioButton("Arquivo neste computador (SQLite) — o padrão de quem usa sozinho")
+        self.r_emb = QRadioButton("PostgreSQL que vem com o Ipê, neste computador — sem instalar nada; para o "
+                                  "servidor central com muitas estações")
+        self.r_pg = QRadioButton("Servidor PostgreSQL próprio (outro computador ou nuvem)")
+        from ipe.core import pg_embutido as PE
+        if not PE.disponivel():
+            self.r_emb.setEnabled(False)
+            self.r_emb.setToolTip("Este pacote do Ipê não traz o PostgreSQL embutido.")
+        {"postgresql": self.r_pg, "embutido": self.r_emb}.get(cfg.get("tipo"), self.r_sqlite).setChecked(True)
         lay.addWidget(self.r_sqlite)
+        lay.addWidget(self.r_emb)
         lay.addWidget(self.r_pg)
         self.grupo = QGroupBox("PostgreSQL")
         f = QFormLayout(self.grupo)
@@ -62,6 +70,7 @@ class BancoDialog(QDialog):
         f.addRow("Usuário:", self.usuario)
         f.addRow("Senha:", self.senha)
         f.addRow("Conexão cifrada (SSL):", self.ssl)
+        lay.addWidget(self.grupo)
         linha = QHBoxLayout()
         self.b_testar = QPushButton("Testar a conexão")
         self.b_testar.clicked.connect(self.testar)
@@ -70,11 +79,10 @@ class BancoDialog(QDialog):
         linha.addWidget(self.b_testar)
         linha.addWidget(self.b_copiar)
         linha.addStretch(1)
-        f.addRow(linha)
+        lay.addLayout(linha)
         self.estado = QLabel("")
         self.estado.setWordWrap(True)
-        f.addRow(self.estado)
-        lay.addWidget(self.grupo)
+        lay.addWidget(self.estado)
         nota = QLabel("As imagens continuam na pasta de dados (Storage); só as informações do banco vão para o "
                       "PostgreSQL. A troca vale ao abrir o Ipê de novo. A senha fica cifrada neste computador.")
         nota.setWordWrap(True)
@@ -84,14 +92,23 @@ class BancoDialog(QDialog):
         bb.accepted.connect(self.aceitar)
         bb.rejected.connect(self.reject)
         lay.addWidget(bb)
-        self.r_pg.toggled.connect(self._ligar)
+        for r in (self.r_sqlite, self.r_emb, self.r_pg):
+            r.toggled.connect(self._ligar)
         self._ligar()
         self._cfg_gravada = cfg
 
     def _ligar(self) -> None:
         self.grupo.setEnabled(self.r_pg.isChecked())
+        pg = not self.r_sqlite.isChecked()
+        self.b_testar.setEnabled(pg)
+        self.b_copiar.setEnabled(pg)
+        self.b_copiar.setText("Copiar o banco deste computador para o PostgreSQL do Ipê…" if self.r_emb.isChecked()
+                              else "Copiar o banco deste computador para lá…")
+        self.estado.setText("")
 
     def cfg(self) -> dict:
+        if self.r_emb.isChecked():
+            return {"tipo": "embutido"}
         return {"tipo": "postgresql", "host": self.host.text().strip(), "porta": self.porta.value(),
                 "banco": self.banco.text().strip(), "usuario": self.usuario.text().strip(),
                 "ssl": self.ssl.currentData()}
@@ -103,10 +120,24 @@ class BancoDialog(QDialog):
         return SG.abrir_ou_vazio(self._cfg_gravada.get("senha") or "")
 
     def url(self) -> str:
+        if self.r_emb.isChecked():
+            from PySide6.QtCore import Qt
+            from PySide6.QtWidgets import QApplication
+            QApplication.setOverrideCursor(Qt.WaitCursor)     # a primeira vez cria o banco (alguns segundos)
+            try:
+                return BC.url_embutido()
+            finally:
+                QApplication.restoreOverrideCursor()
         return BC.url(self.cfg(), self._senha())
 
     def testar(self) -> BC.Teste:
-        t = BC.testar(self.url())
+        try:
+            endereco = self.url()
+        except Exception as e:  # noqa: BLE001 - o embutido não ligou
+            self.estado.setText(f"Não conectou: {e}")
+            self.estado.setStyleSheet("color: #d04040;")
+            return BC.Teste(False, erro=str(e))
+        t = BC.testar(endereco)
         if t.ok:
             if t.vazio and not t.tabelas:
                 self.estado.setText(f"Conectou: PostgreSQL {t.versao}. Banco vazio.")
@@ -174,7 +205,7 @@ class BancoDialog(QDialog):
 
     def aceitar(self) -> None:
         if self.r_sqlite.isChecked():
-            BC.gravar({"tipo": "sqlite"})
+            BC.gravar({"tipo": "sqlite", "senha_embutido": BC.senha_embutido()})
             self.accept()
             return
         t = self.testar()
@@ -188,7 +219,10 @@ class BancoDialog(QDialog):
                                     "O PostgreSQL está vazio: os exames deste computador não vão aparecer lá até "
                                     "serem copiados (botão Copiar). Gravar assim mesmo?") != QMessageBox.Yes:
                 return
-        BC.gravar(dict(self.cfg(), senha=self._senha()))
+        if self.r_emb.isChecked():
+            BC.gravar({"tipo": "embutido", "senha": BC.senha_embutido()})
+        else:
+            BC.gravar(dict(self.cfg(), senha=self._senha(), senha_embutido=BC.senha_embutido()))
         QMessageBox.information(self, "Servidor de banco de dados",
                                 "Gravado. Feche e abra o Ipê para passar a usar o PostgreSQL.")
         self.accept()

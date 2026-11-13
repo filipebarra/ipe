@@ -128,9 +128,10 @@ ipe register-url                       registra los enlaces ipe:// y dicomviewer
 `ipe info` muestra las rutas. En Windows: `%LOCALAPPDATA%\DicomViewer` (el nombre anterior del
 programa, mantenido para quien actualiza). La variable `IPE_HOME` (o la antigua
 `DICOMVIEWER_HOME`) cambia la carpeta. En macOS: `~/Library/Application Support/DicomViewer` (datos) y
-`~/Library/Logs/DicomViewer` (registros). La base principal puede estar en un servidor **PostgreSQL**
-(0.100.34: Configuración ▸ Base de datos ▸ Servidor de base de datos), para el servidor central con muchas estaciones o
-en la nube; las imágenes siguen en la carpeta de datos.
+`~/Library/Logs/DicomViewer` (registros). La base principal puede estar en **PostgreSQL**
+(Configuración ▸ Base de datos ▸ Servidor de base de datos), para el servidor central con muchas estaciones o en la
+nube: el que **viene con Ipê** (0.100.35, sin instalar nada) o un servidor propio. Las imágenes siguen en la carpeta
+de datos.
 
 ## Desarrollo
 

@@ -1022,12 +1022,20 @@ A aba **Histórico** mostra o que cada regra fez e quando.
 
 **Configurações ▸ Rede ▸ Servidor central…** põe uma instalação no papel de servidor, com login e banco compartilhado; as outras entram como cliente. O banco é um arquivo SQLite, bom para um grupo pequeno na mesma rede; com muitas estações, ou com o servidor na nuvem, ponha o banco num **PostgreSQL** (a seguir).
 
-### Banco no PostgreSQL (0.100.34)
+### Banco no PostgreSQL (0.100.34; embutido desde a 0.100.35)
 
-O banco principal pode ficar num servidor **PostgreSQL** em vez do arquivo SQLite. O PostgreSQL é gratuito, inclusive para uso comercial, e roda em Windows, macOS e Linux (ou pronto, como serviço, em qualquer nuvem). Vale para o servidor central com muitas estações e para um servidor na nuvem; quem usa sozinho não precisa: o SQLite continua o padrão.
+O banco principal pode ficar num **PostgreSQL** em vez do arquivo SQLite. Vale para o servidor central com muitas estações e para um servidor na nuvem; quem usa sozinho não precisa: o SQLite continua o padrão. Em **Configurações ▸ Banco de dados ▸ Servidor de banco de dados (PostgreSQL)…** há três escolhas:
+
+- **Arquivo neste computador (SQLite)** — o padrão.
+- **PostgreSQL que vem com o Ipê** (0.100.35) — **não precisa instalar nada**: o PostgreSQL 16 vem dentro do Ipê. Ele liga sozinho quando o Ipê (ou o `ipe server`) abre, guarda os dados na pasta de dados (`postgres`, ao lado do Storage; mudar a pasta do banco leva junto) e desliga quando o último programa do Ipê do computador fecha. Só aceita conexão deste computador — as outras estações chegam pelo servidor central do Ipê, como sempre —, e a senha é criada e guardada pelo próprio Ipê. É a escolha recomendada para o servidor central.
+- **Servidor PostgreSQL próprio** — um PostgreSQL instalado à parte, em outro computador ou na nuvem.
+
+Para o PostgreSQL que vem com o Ipê: marque a opção, clique em **Testar a conexão** (na primeira vez ele cria o banco, em alguns segundos), depois em **Copiar o banco deste computador para o PostgreSQL do Ipê…** e em **OK**. Pela linha de comando: `ipe banco embutido --copiar`.
+
+Para um servidor próprio:
 
 1. Instale o PostgreSQL (postgresql.org) e crie um usuário e um banco vazio para o Ipê — por exemplo, no `psql`: `CREATE USER ipe PASSWORD '…'; CREATE DATABASE ipe OWNER ipe;`.
-2. No computador do banco principal (o servidor central): **Configurações ▸ Banco de dados ▸ Servidor de banco de dados (PostgreSQL)…**. Marque *Servidor PostgreSQL*, preencha servidor, porta (5432), banco, usuário e senha e clique em **Testar a conexão**.
+2. No computador do banco principal (o servidor central), na mesma janela: marque *Servidor PostgreSQL próprio*, preencha servidor, porta (5432), banco, usuário e senha e clique em **Testar a conexão**.
 3. Para levar o que já existe: **Copiar o banco deste computador para lá…** copia tudo do SQLite (pacientes, exames, medidas, laudos, listas, usuários, configurações do serviço), tabela a tabela, e confere a contagem de cada uma no fim. O banco de destino tem que estar vazio. Feche o Ipê nas outras estações antes.
 4. **OK** e abra o Ipê de novo: a janela de configuração passa a mostrar *Em uso agora: PostgreSQL usuário@servidor:5432/ipe*.
 

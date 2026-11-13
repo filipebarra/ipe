@@ -5,6 +5,7 @@ pessoa que entrou):
 
     {"tipo": "postgresql", "host": "localhost", "porta": 5432, "banco": "ipe", "usuario": "ipe",
      "senha": "<cifrada por core.segredos>", "ssl": "prefer"}
+    {"tipo": "embutido", "senha": "<cifrada>"}       # 0.100.35: o PostgreSQL que vem dentro do Ipê (core/pg_embutido)
 
 A variável `IPE_DATABASE_URL` (postgresql://usuario:senha@host:5432/banco) passa na frente — para servidores
 montados por roteiro.
@@ -50,12 +51,18 @@ def gravar(cfg: dict, caminho: Path | None = None) -> Path:
     p = Path(caminho) if caminho else arquivo()
     p.parent.mkdir(parents=True, exist_ok=True)
     d = dict(cfg or {})
-    if d.get("tipo") != "postgresql":
+    emb = d.pop("senha_embutido", "") or ""                  # a senha do embutido sobrevive à troca de tipo
+    if d.get("tipo") == "embutido":
+        d = {"tipo": "embutido", "senha": SG.guardar(d.get("senha") or emb)}
+        emb = ""
+    elif d.get("tipo") != "postgresql":
         d = {"tipo": "sqlite"}
     else:
         d["porta"] = int(d.get("porta") or 5432)
         d["ssl"] = d.get("ssl") if d.get("ssl") in SSL_MODOS else "prefer"
         d["senha"] = SG.guardar(d.get("senha") or "")
+    if emb:
+        d["senha_embutido"] = SG.guardar(SG.abrir_ou_vazio(emb) if SG.cifrado(emb) else emb)
     tmp = p.with_suffix(".tmp")
     tmp.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
     tmp.replace(p)
@@ -63,7 +70,10 @@ def gravar(cfg: dict, caminho: Path | None = None) -> Path:
 
 
 def url(cfg: dict, senha: str | None = None) -> str:
-    """O endereço do SQLAlchemy, ou "" para SQLite. `senha` em claro passa na frente da gravada (teste na tela)."""
+    """O endereço do SQLAlchemy, ou "" para SQLite. `senha` em claro passa na frente da gravada (teste na tela).
+    No embutido, liga o servidor (se preciso) e guarda a senha nova quando ela muda."""
+    if cfg and cfg.get("tipo") == "embutido":
+        return url_embutido(cfg)
     if not cfg or cfg.get("tipo") != "postgresql":
         return ""
     from ipe.core import segredos as SG
@@ -78,6 +88,33 @@ def url(cfg: dict, senha: str | None = None) -> str:
     alvo = f"{host}:{int(cfg.get('porta') or 5432)}/{quote(banco, safe='')}"
     ssl = cfg.get("ssl") if cfg.get("ssl") in SSL_MODOS else "prefer"
     return f"postgresql+psycopg://{cred + '@' if cred else ''}{alvo}?sslmode={ssl}"
+
+
+def senha_embutido(caminho: Path | None = None) -> str:
+    """A senha do embutido guardada (em claro), ou "" — vale mesmo com outro tipo escolhido agora."""
+    from ipe.core import segredos as SG
+    cfg = ler(caminho)
+    return SG.abrir_ou_vazio(cfg.get("senha_embutido") or (cfg.get("senha") if cfg.get("tipo") == "embutido" else "")
+                             or "")
+
+
+def url_embutido(cfg: dict | None = None, caminho: Path | None = None, pasta: Path | None = None) -> str:
+    """Liga o embutido e devolve o endereço; guarda a senha quando ela muda (o tipo escolhido não muda)."""
+    from ipe.core import pg_embutido as PE
+    antes = senha_embutido(caminho)
+    endereco, senha = PE.garantir(antes, pasta)
+    if senha != antes:
+        atual = ler(caminho)
+        if atual.get("tipo") == "embutido":
+            gravar({"tipo": "embutido", "senha": senha}, caminho)
+        else:
+            gravar(dict(atual, senha_embutido=senha, senha=_abrir(atual.get("senha"))), caminho)
+    return endereco
+
+
+def _abrir(v) -> str:
+    from ipe.core import segredos as SG
+    return SG.abrir_ou_vazio(v or "")
 
 
 @dataclass

@@ -209,3 +209,138 @@ def test_texto_com_nulo_e_valor_comprido(esquema_vazio, monkeypatch, tmp_path):
             assert p.patient_id == "P1" and len(p.name) == 408 and p.birth_date == "19700101000000"
     finally:
         db.close()
+
+
+# ---------------------------------------------------------------------------------- o embutido (0.100.35)
+from ipe.core import pg_embutido as PE  # noqa: E402
+
+com_embutido = pytest.mark.skipif(not PE.disponivel(), reason="sem o pixeltable-pgserver")
+
+
+@pytest.fixture()
+def casa(tmp_path, monkeypatch):
+    """Uma pasta de dados nova com o banco no embutido (o conftest da suíte com PG não interfere aqui)."""
+    monkeypatch.setenv("DICOMVIEWER_HOME", str(tmp_path / "casa"))
+    monkeypatch.delenv("IPE_DATABASE_URL", raising=False)
+    monkeypatch.setattr(SS, "endereco_configurado", _ENDERECO_DE_VERDADE)
+    yield tmp_path / "casa"
+    PE.desligar_todos()
+
+
+@com_embutido
+def test_embutido_liga_cria_o_banco_e_poe_senha(casa, sample_dir):
+    from ipe.core.config import get_paths
+    from ipe.db.repository import Repository
+    from ipe.importer.scanner import Importer
+    paths = get_paths()
+    BC.gravar({"tipo": "embutido"})
+    db = SS.Database(paths.database)
+    try:
+        assert db.e_postgres and db.descricao() == "PostgreSQL embutido no Ipê"
+        assert (paths.data / "postgres" / "PG_VERSION").read_text().strip() == "16"
+        assert not paths.database.exists()                                 # nada de arquivo SQLite
+        Importer(db, paths.storage).import_paths([sample_dir])
+        assert len(Repository(db).search_studies()) == 8
+    finally:
+        db.close()
+    # a conexão pela rede local (a do Windows) pede senha, guardada cifrada
+    assert PE._host_com_senha(paths.data / "postgres")
+    gravado = json.loads(BC.arquivo().read_text(encoding="utf-8"))
+    assert gravado["tipo"] == "embutido" and gravado["senha"].startswith("enc")
+    senha = BC.senha_embutido()
+    assert senha and len(senha) >= 24
+    # de novo: a mesma senha, o mesmo banco
+    db2 = SS.Database(paths.database)
+    try:
+        assert len(Repository(db2).search_studies()) == 8 and BC.senha_embutido() == senha
+    finally:
+        db2.close()
+
+
+@com_embutido
+def test_embutido_com_a_senha_perdida_poe_outra(casa):
+    from ipe.core.config import get_paths
+    pasta = get_paths().data / "postgres"
+    url, senha = PE.garantir("", pasta)
+    assert PE._conecta(url)
+    url2, senha2 = PE.garantir("nao-e-essa", pasta)                      # banco.json apagado, senha trocada…
+    assert senha2 != senha and PE._conecta(url2) and PE._host_com_senha(pasta)
+    from sqlalchemy.engine import make_url
+    errada = make_url(url2).set(password=senha).render_as_string(hide_password=False)
+    if make_url(url2).host:                                               # pela rede local (Windows): pede a senha
+        assert not PE._conecta(errada)
+
+
+@com_embutido
+def test_copiar_do_sqlite_para_o_embutido_e_trocar_de_tipo(casa, sample_dir, tmp_path):
+    from ipe.core.config import get_paths
+    from ipe.db.repository import Repository
+    from ipe.importer.scanner import Importer
+    paths = get_paths()
+    db = SS.Database(paths.database)                                      # começa no SQLite
+    assert not db.e_postgres
+    Importer(db, paths.storage).import_paths([sample_dir])
+    db.close()
+    url = BC.url_embutido()
+    assert BC.ler().get("tipo") != "embutido"                             # ligar para testar não troca a escolha
+    feito = BC.copiar(paths.database, url)
+    assert feito["study"] == 8
+    BC.gravar({"tipo": "embutido", "senha": BC.senha_embutido()})
+    db = SS.Database(paths.database)
+    try:
+        assert db.e_postgres and len(Repository(db).search_studies()) == 8
+    finally:
+        db.close()
+    # volta para o SQLite: o arquivo continua como estava, e a senha do embutido fica guardada
+    senha = BC.senha_embutido()
+    BC.gravar({"tipo": "sqlite", "senha_embutido": senha})
+    assert BC.senha_embutido() == senha
+    db = SS.Database(paths.database)
+    try:
+        assert not db.e_postgres and len(Repository(db).search_studies()) == 8
+    finally:
+        db.close()
+
+
+@com_embutido
+def test_janela_com_o_embutido(casa, monkeypatch):
+    from PySide6.QtWidgets import QApplication, QMessageBox
+
+    from ipe.core.config import get_paths
+    from ipe.ui.banco_dialog import BancoDialog
+    QApplication.instance() or QApplication([])
+    monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: None)
+    paths = get_paths()
+    d = BancoDialog(None, paths, None)
+    assert d.r_sqlite.isChecked() and not d.b_testar.isEnabled()
+    d.r_emb.setChecked(True)
+    assert not d.grupo.isEnabled() and d.b_testar.isEnabled() and "PostgreSQL do Ipê" in d.b_copiar.text()
+    t = d.testar()
+    assert t.ok and t.versao.startswith("16") and "Conectou" in d.estado.text()
+    d.reject()
+    assert BC.ler().get("tipo") != "embutido"                             # testar e cancelar não troca nada
+    d2 = BancoDialog(None, paths, None)
+    d2.r_emb.setChecked(True)
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.Yes)
+    d2.aceitar()
+    assert BC.ler()["tipo"] == "embutido" and BC.senha_embutido()
+
+
+def test_mover_a_pasta_leva_o_embutido():
+    from ipe.core import mover_banco as MB
+    assert "postgres" in MB.ITENS
+
+
+def test_pacote_leva_o_embutido():
+    from pathlib import Path
+    raiz = Path(__file__).resolve().parents[1]
+    spec = (raiz / "installer" / "ipe.spec").read_text(encoding="utf-8")
+    assert "pixeltable_pgserver" in spec and '"pginstall"' in spec and "pginstall18" not in spec.split("rglob")[1][:80]
+    assert "testar-embutido" in (raiz / "installer" / "verifica.py").read_text(encoding="utf-8")
+
+
+@com_embutido
+def test_linha_de_comando_testar_embutido(tmp_path, capsys):
+    from ipe.__main__ import main
+    assert main(["banco", "testar-embutido", str(tmp_path / "pg")]) == 0
+    assert "PostgreSQL embutido: ok, 16" in capsys.readouterr().out

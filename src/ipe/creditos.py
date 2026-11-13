@@ -62,6 +62,11 @@ CREDITOS: tuple[Credito, ...] = (
     Credito("psycopg 3", "a conexão com o PostgreSQL, quando o banco principal fica num servidor PostgreSQL "
             "(o pacote binário traz a libpq do PostgreSQL, licença PostgreSQL)", "LGPL-3.0",
             "https://www.psycopg.org/psycopg3/", pacotes=("psycopg", "psycopg-binary"), modulos=("psycopg",)),
+    Credito("pixeltable-pgserver", "o PostgreSQL que vem dentro do Ipê (liga, desliga e guarda os dados na pasta do "
+            "Ipê, sem instalar nada à parte)", "Apache-2.0", "https://github.com/pixeltable/pixeltable-pgserver",
+            pacotes=("pixeltable-pgserver",), modulos=("pixeltable_pgserver",)),
+    Credito("PostgreSQL", "o servidor de banco de dados (o embutido, versão 16, e o próprio, quando escolhido)",
+            "PostgreSQL", "https://www.postgresql.org"),
     Credito("SQLAlchemy", "o banco de dados dos exames (SQLite ou PostgreSQL)", "MIT", "https://www.sqlalchemy.org",
             pacotes=("SQLAlchemy",), modulos=("sqlalchemy",)),
     Credito("SQLite", "o arquivo do banco de dados", "domínio público", "https://www.sqlite.org"),

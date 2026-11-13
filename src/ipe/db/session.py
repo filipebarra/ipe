@@ -252,8 +252,19 @@ class Database:
         """"PostgreSQL usuario@host:porta/banco" ou o caminho do arquivo SQLite."""
         if self.e_postgres:
             u = self.engine.url
+            soquete = str((u.query or {}).get("host") or "")
+            local = soquete.startswith("/") or u.host in ("127.0.0.1", "localhost", None)
+            if local and self._embutido():
+                return "PostgreSQL embutido no Ipê"
             return f"PostgreSQL {u.username or ''}@{u.host or 'localhost'}:{u.port or 5432}/{u.database or ''}"
         return str(self.engine.url.database or "")
+
+    def _embutido(self) -> bool:
+        try:
+            from ipe.core import banco_config as BC
+            return BC.ler().get("tipo") == "embutido"
+        except Exception:  # noqa: BLE001
+            return False
 
     def close(self) -> None:
         """Fecha as conexões (usado ao trocar de local)."""

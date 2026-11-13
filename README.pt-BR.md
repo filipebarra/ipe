@@ -229,7 +229,8 @@ ipe info                               mostra onde ficam banco, arquivos e confi
 ipe set-language pt-BR                 idioma do programa: en, pt-BR ou es
 ipe register-url                       registra os links ipe:// e dicomviewer://
 ipe server                             servidor central sem janela
-ipe banco postgres --host H --copiar   banco principal num PostgreSQL (e copia o atual)
+ipe banco embutido --copiar           banco principal no PostgreSQL que vem com o Ipê
+ipe banco postgres --host H --copiar   banco principal num PostgreSQL próprio (e copia o atual)
 ```
 
 ## Onde ficam os dados
@@ -239,8 +240,9 @@ programa, mantido para quem atualiza): banco `dicomviewer.sqlite`, pasta `Storag
 arquivos DICOM, `Impressoes\`, `settings.json` e logs. A variável de ambiente `IPE_HOME` (ou a
 antiga `DICOMVIEWER_HOME`) troca a pasta — útil para manter um banco por projeto de pesquisa. No macOS os
 dados ficam em `~/Library/Application Support/DicomViewer` e os logs em `~/Library/Logs/DicomViewer`.
-O banco principal pode ficar num servidor **PostgreSQL** (0.100.34: Configurações ▸ Banco de dados ▸ Servidor de
-banco de dados), para o servidor central com muitas estações ou na nuvem; as imagens continuam na pasta de dados.
+O banco principal pode ficar num **PostgreSQL** (Configurações ▸ Banco de dados ▸ Servidor de banco de dados), para o
+servidor central com muitas estações ou na nuvem: o que **vem com o Ipê** (0.100.35, sem instalar nada) ou um
+servidor próprio. As imagens continuam na pasta de dados.
 
 ## Para quem vem do DicomViewer
 
