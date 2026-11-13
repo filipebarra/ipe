@@ -227,3 +227,12 @@ def test_painel_no_visualizador(env, tmp_path, monkeypatch):
         w._really_quit = True
         w.settings.set("ui.confirmar_sair", False)
         w.close()
+
+
+def test_botao_em_qualquer_rm():
+    """0.100.37: o botão Difusão vale em toda RM, mesmo sem a palavra na descrição das séries."""
+    from ipe.ui.viewer import aplicacoes as AP
+    ctx = AP.Contexto({"MR"}, {"pelve"}, set())
+    assert AP.avaliar(AP.APLICACOES["difusao"], ctx)[0]
+    assert not AP.avaliar(AP.APLICACOES["difusao"], AP.Contexto({"CT"}, set(), {"volume"}))[0]
+    assert DF.parece_difusao("RESOLVE b50 b800") and DF.parece_difusao("ep2d_ZOOMit") and not DF.parece_difusao("ADC")

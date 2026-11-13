@@ -22,6 +22,7 @@ import { ListaEnvios, painelEnvio } from "./envio";
 import { AbaIA, TarefasIA } from "./ia";
 import * as JAN from "./janelas";
 import { PainelFilme } from "./filme";
+import { nosDoServidor, telaPacs as montarTelaPacs } from "./pacs";
 import {
   Grade, TIPO_ARRASTO, TIPO_ARRASTO_ESTUDO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
   ARRANJO_PET_PADRAO, type ConteudoPet, type VistaPet,
@@ -277,7 +278,12 @@ async function telaLista(): Promise<void> {
   };
   rotuloMon();
   bMon.onclick = () => abrirPainel(JAN.painelMonitores(rotuloMon), bMon, tr("Monitores e janelas"));
-  const form = el("form", { class: "filtros" }, busca, el("button", { type: "submit" }, tr("Buscar")), bMon);
+  // 0.100.37: buscar no PACS pelo servidor (só aparece se o servidor compartilha algum nó com esta pessoa)
+  const bPacs = el("button", { type: "button", class: "pacs-busca", hidden: true,
+    title: tr("Buscar exames no PACS e baixar para o servidor") }, tr("Buscar no PACS…")) as HTMLButtonElement;
+  bPacs.onclick = () => { location.hash = "#/pacs"; };
+  void nosDoServidor().then((r) => { bPacs.hidden = !r.nos.length; });
+  const form = el("form", { class: "filtros" }, busca, el("button", { type: "submit" }, tr("Buscar")), bPacs, bMon);
   const antes = lerBusca();
   if (antes) {
     busca.value = antes.texto || "";
@@ -1634,6 +1640,19 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   })();
 }
 
+// ------------------------------------------------------------------ 0.100.37: buscar no PACS pelo servidor
+async function telaPacs(): Promise<void> {
+  pararDisponiveis();
+  grade?.encerrar();
+  grade = null;
+  const voltar = el("button", { type: "button", class: "link", onclick: () => { location.hash = "#/lista"; } },
+    `← ${tr("Lista de exames")}`);
+  const corpo = el("main", { class: "telalista" }, el("div", { class: "estado" }, tr("Carregando…")));
+  app.replaceChildren(cabecalho(voltar), corpo, tarja());
+  const tela = await montarTelaPacs((uid) => { location.hash = `#/exame/${uid}`; });
+  if (location.hash === "#/pacs") corpo.replaceChildren(el("div", { class: "lista-esq" }, tela));
+}
+
 // ------------------------------------------------------------------ rotas
 function rota(): void {
   if (!API.tokenAtual()) {
@@ -1654,6 +1673,7 @@ function rota(): void {
   if (m) void telaExame(m[1], m[2] === "2" ? 2 : 1, Number(m[2] || 0));
   else if (m2) void telaExame(m2[1], 2);
   else if (/^#\/espera\/j[1-9]$/.test(h)) telaEspera();
+  else if (h === "#/pacs") void telaPacs();
   else void telaLista();
 }
 

@@ -260,6 +260,11 @@ class NetworkService(QObject):
     def eh_web(node: dict) -> bool:
         return str(node.get("kind", "dimse")) == "dicomweb"
 
+    @staticmethod
+    def pelo_servidor(node: dict) -> bool:
+        """0.100.37: nó que o servidor central compartilha — quem fala com o PACS é o servidor."""
+        return str((node or {}).get("kind", "")) == "servidor"
+
     def cliente(self, node: dict):
         """O cliente que fala com este nó: DIMSE ou DICOMweb.
 
@@ -267,6 +272,9 @@ class NetworkService(QObject):
         devolvem os mesmos dicionários, então tudo acima daqui — busca, fila de download,
         pré-busca de anteriores, chamada externa — funciona sem saber qual protocolo está embaixo.
         """
+        if self.pelo_servidor(node):
+            from ipe.network.pelo_servidor import ClienteDoServidor
+            return ClienteDoServidor(self.repo.client)
         if not self.eh_web(node):
             return self.client
         web = self.__dict__.get("_web_client")
@@ -277,6 +285,8 @@ class NetworkService(QObject):
         return web
 
     def target(self, node: dict, identity: dict | None = None):
+        if self.pelo_servidor(node):
+            return node                       # o servidor fala com o PACS com a identidade dele
         if identity:
             allowed = [x for x in str(identity.get("allowed_nodes", "")).split(",") if x.strip()]
             if allowed and str(node.get("id")) not in allowed:
@@ -295,6 +305,8 @@ class NetworkService(QObject):
         self.repo.audit(action, f"{node['name']}{who}: {detail}")
 
     def identities_for(self, node: dict) -> list[dict]:
+        if self.pelo_servidor(node):
+            return []
         out = []
         for i in self.repo.identities():
             allowed = [x for x in str(i.get("allowed_nodes", "")).split(",") if x.strip()]
@@ -539,6 +551,11 @@ class NetworkService(QObject):
                                      f"para {job.destino}, {r['imagens']} imagens: {job.label}")
                 return r["mensagem"]
             cli = self.cliente(job.node)
+            if job.kind == "retrieve" and self.pelo_servidor(job.node):
+                # 0.100.37: o servidor baixa para o banco dele, no banco escolhido aqui (ele mesmo marca)
+                msg = cli.baixar(job, progress)
+                job.dono_destino = job.visivel_destino = ""
+                return msg
             # No DICOMweb não existe C-MOVE: o download é sempre o WADO-RS, que volta pela
             # mesma conexão — é o equivalente do C-GET.
             por_move = getattr(t, "retrieve", "get") == "move" and not self.eh_web(job.node)

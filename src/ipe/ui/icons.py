@@ -368,6 +368,19 @@ def _draw(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por ícone
             if i == 3:
                 p.setPen(_pen(ACCENT, 4))
             p.drawRoundedRect(QRectF(x, y, 18, 18), 4, 4)
+    elif name == "ia":
+        # 0.100.37: o botão que junta as IAs — um chip com os pinos e o selo ✦
+        p.setBrush(Qt.NoBrush)
+        p.drawRoundedRect(QRectF(16, 16, 32, 32), 5, 5)
+        p.setPen(_pen(ACCENT, 4))
+        p.drawRect(QRectF(26, 26, 12, 12))
+        p.setPen(_pen(FG, 3.5))
+        for k in (24, 32, 40):
+            p.drawLine(P(k, 8), P(k, 16))
+            p.drawLine(P(k, 48), P(k, 56))
+            p.drawLine(P(8, k), P(16, k))
+            p.drawLine(P(48, k), P(56, k))
+        _brilho(p)
     elif name == "more":
         p.setBrush(FG)
         p.setPen(Qt.NoPen)

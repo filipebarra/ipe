@@ -63,7 +63,8 @@ TIPOS: dict[str, tuple[str, str]] = {
               "CUBE|SPACE|VISTA|FIESTA|CISS|DRIVE|3D T2|T2 3D|T23D|3DT2"),
     "dinamica": ("Série dinâmica (contraste em fases)",
                  "DYN|DYNAMIC|DINAM|DINAMICO|DINAMICA|DCE|VIBRANT|THRIVE|DISCO|PERFUS|PERFUSION"),
-    "difusao": ("Difusão (DWI, ADC)", "DWI|DIFUS|DIFUSAO|DIFFUSION|DIFF|TRACE|TRACEW|ADC|EADC|DTI|EPI DIFF"),
+    "difusao": ("Difusão (DWI, ADC)", "DWI|DIFUS|DIFUSAO|DIFFUSION|DIFF|TRACE|TRACEW|ADC|EADC|DTI|EPI DIFF|"
+                                      "RESOLVE|ZOOMIT|IVIM|SSEPI|EP2D|EPI2D"),
     "volume": ("Volume (TC/RM/PET com muitos cortes)", ""),
 }
 
@@ -217,7 +218,9 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
     Aplicacao("flames", "Lesões no FLAIR", frozenset({"MR"}), ((frozenset({"cranio"}), frozenset()),),
               descricao="Lesões de substância branca no FLAIR (IA, modelo extra): número, volume e regiões, com a "
                         "comparação com o exame anterior"),
-    Aplicacao("difusao", "Difusão", frozenset({"MR"}), ((frozenset(), frozenset({"difusao"})),),
+    # 0.100.37: em toda RM (antes, só quando a descrição de uma série dizia DWI/DIFF…: aparelhos que chamam a
+    # difusão de outro jeito ficavam sem o botão). O painel põe as séries de difusão primeiro na lista.
+    Aplicacao("difusao", "Difusão", frozenset({"MR"}),
               descricao="Mapa ADC dos valores de b, DWI sintética e ADC numa ROI (qualquer RM)"),
     Aplicacao("abdome", "Órgãos abdominais", frozenset({"CT", "MR"}),
               ((frozenset({"abdome", "pelve"}), frozenset()),),
@@ -226,6 +229,17 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
               ((frozenset({"face", "pescoco"}), frozenset()),),
               descricao="Cefalometria do cavum: via aérea, palato mole, língua e hioide (automática ou à mão)"),
 )}
+
+#: 0.100.37: as aplicações de IA, que a barra junta num botão só ("IA", uma lista como a das medidas)
+IA = frozenset({"linfonodos", "nodulos", "composicao", "figado_rm", "enfisema", "genant", "figado_lesoes",
+                "autopet", "aorta", "calcio", "brats", "medula", "flames", "abdome"})
+CHAVE_IA_AGRUPADA = "viewer.ia_agrupada"
+
+
+def ia_agrupada(settings) -> bool:
+    """As IAs num botão só (o padrão desde a 0.100.37) ou cada uma com o seu botão, como antes."""
+    return bool(settings.get(CHAVE_IA_AGRUPADA, True)) if settings is not None else True
+
 
 MODOS = ("auto", "sempre", "nunca")
 NOME_DO_MODO = {"auto": "Automático (pela regra)", "sempre": "Sempre", "nunca": "Nunca (só em Todas)"}

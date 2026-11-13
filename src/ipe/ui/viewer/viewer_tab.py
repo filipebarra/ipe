@@ -503,6 +503,14 @@ class ViewerTab(OncoMixin, QWidget):
         pendentes = dict(getattr(self, "_apps_pendentes", []))
         self._sep_apps = tb.addSeparator()
         self._apps: dict[str, tuple] = {}
+        # 0.100.37: as IAs num botão só — uma lista, como a das medidas, com as que valem para este exame
+        self.ia_menu = self._menu()
+        self.ia_menu.setToolTipsVisible(True)
+        self.ia_menu.aboutToShow.connect(self._encher_menu_ia)
+        ia = self._plain("IA", "ia", "Inteligência artificial: as ferramentas que valem para este exame, os achados "
+                                     "para revisar e as tarefas em andamento")
+        self.ia_button = self._button(tb, ia, self.ia_menu, instant=True)
+        self._acao_ia = tb.actions()[-1]
         for aid in AP.ordem(self.settings):
             btn = pendentes.get(aid)
             if btn is not None:
@@ -535,22 +543,120 @@ class ViewerTab(OncoMixin, QWidget):
         return out
 
     def app_na_barra(self, aid: str) -> bool:
+        """A aplicação está à mão na barra — com o seu botão ou, se é uma IA, na lista do botão IA (0.100.37)."""
+        from ipe.ui.viewer import aplicacoes as AP
         par = getattr(self, "_apps", {}).get(aid)
+        if par and aid in AP.IA and AP.ia_agrupada(self.settings):
+            acao_ia = getattr(self, "_acao_ia", None)
+            return bool(acao_ia is not None and acao_ia.isVisible() and aid in self.ias_do_exame()[0])
         return bool(par and par[1].isVisible())
 
     def _atualizar_aplicacoes(self) -> None:
         apps = getattr(self, "_apps", None)
         if not apps:
             return
+        from ipe.ui.viewer import aplicacoes as AP
         estado = self.estado_das_aplicacoes()
-        algum = False
+        agrupar = AP.ia_agrupada(self.settings)
+        algum = ia_vale = False
         for aid, (btn, acao) in apps.items():
             vis, motivo = estado.get(aid, (False, ""))
+            if agrupar and aid in AP.IA:
+                ia_vale = ia_vale or vis
+                vis = False                       # entra na lista do botão IA
             acao.setVisible(vis)
             algum = algum or vis
+        acao_ia = getattr(self, "_acao_ia", None)
+        if acao_ia is not None:
+            acao_ia.setVisible(agrupar and ia_vale)
+            algum = algum or (agrupar and ia_vale)
         sep = getattr(self, "_sep_apps", None)
         if sep is not None:
             sep.setVisible(algum)
+
+    def ias_do_exame(self) -> tuple[list[str], list[tuple[str, str]]]:
+        """As IAs que valem para este exame (na ordem da barra) e as outras, com o motivo."""
+        from ipe import modules as MOD
+        from ipe.ui.viewer import aplicacoes as AP
+        estado = self.estado_das_aplicacoes()
+        fora = MOD.desligados(self.settings)
+        ids = [a for a in AP.ordem(self.settings) if a in AP.IA and a in getattr(self, "_apps", {})]
+        valem = [a for a in ids if estado.get(a, (False, ""))[0]]
+        outras = [(a, estado.get(a, (False, ""))[1]) for a in ids if a not in valem
+                  and AP.APLICACOES[a].modulo not in fora]
+        return valem, outras
+
+    def _encher_menu_ia(self) -> None:
+        """A lista do botão IA (0.100.37): cada IA que vale para o exame, com as opções dela; os achados para
+        revisar e as tarefas; e, num submenu, as que a regra deixou de fora (rodam mesmo assim)."""
+        m = self.ia_menu
+        m.clear()
+        for velho in self.__dict__.pop("_submenus_de_todas", []):
+            velho.deleteLater()
+        valem, outras = self.ias_do_exame()
+        if hasattr(m, "addSection"):
+            m.addSection("Para este exame (na série do quadro ativo)")
+        for aid in valem:
+            self._item_ia(m, aid, "")
+        if not valem:
+            a = QAction("Nenhuma IA para este exame pela regra", m)
+            a.setEnabled(False)
+            m.addAction(a)
+        m.addSeparator()
+        a = QAction("Achados de IA (revisar, confirmar, descartar)…", m)
+        a.triggered.connect(self.abrir_achados)
+        m.addAction(a)
+        a = QAction("Tarefas de IA (andamento e cancelar)…", m)
+        a.triggered.connect(self.abrir_tarefas_ia)
+        m.addAction(a)
+        if outras:
+            sub = QMenu("Outras IAs (não são deste exame; rodam mesmo assim)", m)
+            sub.setStyleSheet(self.MENU_STYLE)
+            for aid, motivo in outras:
+                self._item_ia(sub, aid, motivo)
+            m.addMenu(sub)
+            self.__dict__.setdefault("_submenus_de_todas", []).append(sub)
+        m.addSeparator()
+        a = QAction("Mostrar cada IA com o seu botão na barra", m, checkable=True)
+        from ipe.ui.viewer import aplicacoes as AP
+        a.setChecked(not AP.ia_agrupada(self.settings))
+        a.triggered.connect(lambda v: self.agrupar_ia(not v))
+        m.addAction(a)
+
+    def _item_ia(self, menu: QMenu, aid: str, motivo: str) -> None:
+        """Uma IA na lista: o nome e, ao passar, o que ela faz nesta série (as opções do botão dela); os achados
+        ficam uma vez só, no fim da lista."""
+        from ipe.ui.viewer import aplicacoes as AP
+        btn, _acao = self._apps[aid]
+        acao = btn.defaultAction()
+        nome = acao.iconText() or acao.text()
+        texto = f"{nome} — {motivo}" if motivo else nome
+        opcoes = [x for x in (btn.menu().actions() if btn.menu() is not None else [])
+                  if not x.isSeparator() and not x.text().startswith("Achados de IA")]
+        if not opcoes:
+            a = QAction(acao.icon(), texto, menu)
+            a.setToolTip(AP.APLICACOES[aid].descricao)
+            a.triggered.connect(acao.trigger)
+            menu.addAction(a)
+            return
+        sub = QMenu(texto, menu)
+        sub.setIcon(acao.icon())
+        sub.setStyleSheet(self.MENU_STYLE)
+        sub.setToolTipsVisible(True)
+        for x in opcoes:
+            sub.addAction(x)
+        sub.menuAction().setToolTip(AP.APLICACOES[aid].descricao)
+        menu.addMenu(sub)
+        self.__dict__.setdefault("_submenus_de_todas", []).append(sub)
+
+    def agrupar_ia(self, sim: bool) -> None:
+        from ipe.ui.viewer import aplicacoes as AP
+        self.settings.set(AP.CHAVE_IA_AGRUPADA, bool(sim))
+        try:
+            self.settings.save()
+        except Exception:  # noqa: BLE001
+            log.debug("salvar a escolha da barra de IA", exc_info=True)
+        self._atualizar_aplicacoes()
 
     def _encher_todas_as_aplicacoes(self) -> None:
         from ipe import modules as MOD

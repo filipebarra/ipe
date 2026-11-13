@@ -1899,7 +1899,7 @@ class Repository:
     NODE_FIELDS = ("name", "kind", "ae_title", "host", "port", "base_url", "username", "password",
                    "verify_tls", "auth", "token_url", "client_id", "client_secret", "scope", "retrieve",
                    "move_destination", "use_in_search", "use_in_priors", "use_in_send", "stream_open",
-                   "priority", "active", "note", "dono", "visivel_para")
+                   "compartilhar_clientes", "priority", "active", "note", "dono", "visivel_para")
     NODE_SECRETS = ("password", "client_secret")
     IDENTITY_FIELDS = ("name", "ae_title", "move_destination", "allowed_nodes", "note", "dono", "visivel_para")
 
@@ -1932,6 +1932,7 @@ class Repository:
                     d["use_in_priors"] = bool(d["use_in_search"])
                 if d["use_in_send"] is None:
                     d["use_in_send"] = True
+                d["compartilhar_clientes"] = bool(d.get("compartilhar_clientes"))
                 out.append(d)
             return out
 

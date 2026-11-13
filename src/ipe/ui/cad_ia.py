@@ -29,7 +29,8 @@ def _lista_de_nos(repo, marcados) -> QListWidget:
     alvo = {int(i) for i in (marcados or []) if str(i).lstrip("-").isdigit()}
     nos = []
     try:
-        nos = repo.nodes(only_active=True) if repo is not None else []
+        nos = [n for n in (repo.nodes(only_active=True) if repo is not None else [])
+               if n.get("kind") != "servidor"]          # 0.100.37: os do servidor só buscam e baixam
     except Exception:  # noqa: BLE001
         nos = []
     for n in nos:

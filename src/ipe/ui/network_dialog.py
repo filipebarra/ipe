@@ -96,10 +96,16 @@ class NodeDialog(QDialog):
         self.priors.setChecked(bool(n.get("use_in_priors", n.get("use_in_search", True))))
         self.send = QCheckBox("Envio (aparece em “Enviar para”)")
         self.send.setChecked(bool(n.get("use_in_send", True)))
+        self.compartilhar = QCheckBox("Compartilhar com os clientes (no servidor central: o Ipê cliente e o Ipê Web "
+                                      "buscam e baixam por este nó; os exames vão para o banco do servidor)")
+        self.compartilhar.setChecked(bool(n.get("compartilhar_clientes", False)))
+        self.compartilhar.setToolTip("Quem fala com o PACS é o servidor, com o AE title e a senha dele: os clientes "
+                                     "não recebem o endereço nem as credenciais. Buscar pede a permissão de busca; "
+                                     "baixar, a de download.")
         uses = QWidget()
         ul = QVBoxLayout(uses)
         ul.setContentsMargins(0, 0, 0, 0)
-        for cb in (self.search, self.priors, self.send):
+        for cb in (self.search, self.priors, self.send, self.compartilhar):
             ul.addWidget(cb)
         self.active = QCheckBox("Ativo (pode conectar e enviar para este programa)")
         self.active.setChecked(bool(n.get("active", True)))
@@ -217,6 +223,7 @@ class NodeDialog(QDialog):
                 "ae_title": "", "host": "", "port": 0, "retrieve": "get", "move_destination": "",
                 "use_in_search": self.search.isChecked(), "use_in_priors": self.priors.isChecked(),
                 "use_in_send": self.send.isChecked(), "active": self.active.isChecked(),
+                "compartilhar_clientes": self.compartilhar.isChecked(),
                 "stream_open": self.stream.currentData(),
                 "priority": self.priority.value(), "note": self.note.text().strip(), **self.visivel.valor()})
             self.accept()
@@ -236,6 +243,7 @@ class NodeDialog(QDialog):
             "retrieve": self.retrieve.currentData(), "move_destination": self.move_dest.text().strip(),
             "use_in_search": self.search.isChecked(), "use_in_priors": self.priors.isChecked(),
             "use_in_send": self.send.isChecked(), "active": self.active.isChecked(),
+                "compartilhar_clientes": self.compartilhar.isChecked(),
             "stream_open": self.stream.currentData(),
             "priority": self.priority.value(), "note": self.note.text().strip(), **self.visivel.valor()})
         self.accept()

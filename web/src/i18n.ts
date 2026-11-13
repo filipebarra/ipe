@@ -4,6 +4,25 @@
 type Trad = Record<string, [string, string]>;
 
 const T: Trad = {
+  // 0.100.37: buscar no PACS pelo servidor
+  "A busca não deu certo": ["The search failed", "La búsqueda no funcionó"],
+  "Abrir": ["Open", "Abrir"],
+  "Acesso": ["Accession", "Acceso"],
+  "Baixando…": ["Downloading…", "Descargando…"],
+  "Baixar": ["Download", "Descargar"],
+  "Buscando no PACS…": ["Searching the PACS…", "Buscando en el PACS…"],
+  "Buscar exames no PACS e baixar para o servidor": ["Search the PACS and download studies to the server", "Buscar estudios en el PACS y descargarlos al servidor"],
+  "Buscar no PACS": ["Search the PACS", "Buscar en el PACS"],
+  "Buscar no PACS…": ["Search the PACS…", "Buscar en el PACS…"],
+  "Diga um nome, ID, acesso ou um período (busca sem filtro pesa no PACS).": ["Enter a name, ID, accession or a period (an unfiltered search burdens the PACS).", "Indique un nombre, ID, acceso o un período (una búsqueda sin filtro sobrecarga el PACS)."],
+  "Downloads pelo servidor": ["Downloads through the server", "Descargas por el servidor"],
+  "ID do paciente": ["Patient ID", "ID del paciente"],
+  "Lista de exames": ["Exam list", "Lista de estudios"],
+  "O download não foi aceito": ["The download was not accepted", "La descarga no fue aceptada"],
+  "O servidor não compartilha nenhum nó de busca com você.": ["The server does not share any query node with you.", "El servidor no comparte ningún nodo de búsqueda con usted."],
+  "Onde buscar": ["Where to search", "Dónde buscar"],
+  "Pedindo…": ["Requesting…", "Solicitando…"],
+  "No servidor": ["On the server", "En el servidor"],
   "Entrar": ["Sign in", "Entrar"],
   "Usuário": ["User", "Usuario"],
   "Senha": ["Password", "Contraseña"],

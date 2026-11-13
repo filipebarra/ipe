@@ -685,7 +685,7 @@ Em **Automação ▸ Dinâmica pronta** dá para mandar o programa, assim que um
 
 ## Difusão (ADC) em qualquer RM
 
-Botão **Difusão** na barra (aparece na RM que tem uma série de difusão — DWI, DIFUSAO, TRACE… — e está em **Aplicações** nas outras). Abre um painel que não é modal: dá para desenhar no quadro com ele aberto.
+Botão **Difusão** na barra, em **toda RM** (desde a 0.100.37; antes, só quando alguma série dizia DWI, DIFUSAO, TRACE… na descrição — os aparelhos que chamam a difusão de outro jeito ficavam sem o botão). Abre um painel que não é modal: dá para desenhar no quadro com ele aberto.
 
 - **Série de difusão**: a do exame, escolhida sozinha pela descrição; as outras RM ficam na lista, porque nem todo aparelho escreve "DWI".
 - **Valores de b**: lidos do arquivo — o padrão (0018,9087) e os lugares próprios de cada fabricante (GE (0043,1039), Siemens, Philips). Uma caixa por b: desmarque o b que não quer no ajuste. Quando o arquivo não diz o b, digite-os na ordem em que se repetem em cada corte (ex.: *0, 1000*). Na série da GE anonimizada, que perde o privado, a imagem sem b numa série em que as outras têm b > 0 é o b0 — o painel avisa que deduziu.
@@ -1043,6 +1043,8 @@ No servidor sem janela, o mesmo pela linha de comando: `ipe banco status`, `ipe 
 
 **Abrir enquanto baixa.** No cliente, o exame que ainda não está no computador abre em poucos segundos: primeiro chega uma imagem de cada série (a tira mostra todas e o protocolo de exibição monta os quadros), depois o resto de cada série vai chegando e os quadros crescem sozinhos. A barra de status mostra *Baixando do servidor central: N de M imagem(ns) (P%)…*. Só o exame aberto (e o anterior que o protocolo pede para comparar) é baixado. Reabrir um exame que já chegou é imediato; o cache tem o limite de **Configurações ▸ Rede ▸ Servidor central**, e os exames abertos há mais tempo saem primeiro.
 
+**Buscar no PACS pelo servidor (0.100.37).** No servidor, abra o nó do PACS em **Configurações ▸ Rede ▸ Nós DICOM** e marque **Compartilhar com os clientes**. No cliente, esse nó aparece na busca do PACS como *Nome (pelo servidor)*, junto com os nós do próprio computador (e também na busca de anteriores). Buscar e baixar funcionam como sempre, mas quem fala com o PACS é o servidor, com o AE title e a senha dele — o cliente não recebe o endereço nem as credenciais — e o exame baixado **entra no banco do servidor**, no banco de quem pediu (o seu ou o compartilhado). A fila de downloads do cliente mostra o andamento do download no servidor, e cancelar lá cancela no servidor. Buscar pede a permissão de busca; baixar, a de download; tudo vai para o registro de acesso do servidor. O Ipê Web tem o mesmo (a seguir).
+
 **Quanto já chegou de cada série (0.100.0).** Enquanto o exame baixa, a miniatura de cada série na tira mostra *34/120 im* com uma barra embaixo: azul e com ⬇ na que está chegando agora, verde nas que esperam a vez (passe o mouse: a posição na fila). O quadro mostra **⬇ 34/120** embaixo do número da imagem até a série dele terminar. **Pôr uma série num quadro** (clicar ou arrastar) passa ela para a frente da fila. Duas séries baixam ao mesmo tempo, e o que chega entra no banco sem parar a rede. Se alguma série não baixar inteira, a barra de status diz quantas imagens faltaram e por quê; e o servidor guarda no registro de acesso (ações *cliente_entrou* e *cliente_download*) a versão de cada cliente e o que cada download fez (0.100.1).
 
 **Sinal da rede (0.100.1).** No cliente, a barra de status mostra a rede até o servidor: **barras** de 0 a 4 (como as do celular), a **ida e volta** em milissegundos e a **vazão** em Mbit/s — por exemplo *3 ms · 870 Mbit/s*. Vale o pior dos dois: quatro barras pedem menos de 10 ms e 300 Mbit/s ou mais; três, menos de 30 ms e 80 Mbit/s; duas, menos de 80 ms e 20 Mbit/s. O programa mede ao abrir (com um teste de 2 MB) e a cada exame aberto (só a ida e volta, para não disputar a rede com o download; a vazão passa a ser a do próprio download). Clique nas barras para medir de novo; *sem conexão*, em vermelho, quando o servidor não responde.
@@ -1135,6 +1137,8 @@ Nesta primeira fase:
 - **O rótulo de cada quadro (0.100.2)**: nos quadros de fase, **◂ ▸** passam de fase; clicar no texto (ou o botão direito) abre o menu do quadro — o que mostrar (qualquer fase ou mapa), **Subtração (fase − pré-contraste)** de qualquer fase, **Paisagem** (10 a 50% da anatomia de volta na subtração, como no Ipê) e a **cor** (as tabelas do Ipê, ou cinza). A barra escolhe também a **cor do mapa por cima da fase**.
 - **Correção de movimento (0.100.8)**: o seletor da correção de movimento na barra — **Sem correção**, **Translação** ou **Rígida** (com rotação), como no Ipê. O servidor faz a conta do Ipê (a translação 3D de cada fase sobre a pré e, na rígida, a rotação da fase que girou) e o navegador aplica ao montar cada corte: os mapas, as curvas, as subtrações e o quadro da fase que se mexeu saem corrigidos. A dica do seletor diz quanto mexeu (o maior deslocamento e a maior rotação). Vem ligada como você a deixou no Ipê; trocar a pré refaz a conta.
 - Ficam só no Ipê, por enquanto: fases fora da conta e a linha de base pela média das fases pré.
+
+**Buscar no PACS e baixar (0.100.37).** Na lista de exames, o botão **Buscar no PACS…** aparece quando o servidor compartilha algum nó com você (veja *Buscar no PACS pelo servidor*, acima). Escolha o nó, preencha nome, ID, acesso ou um período (busca sem filtro não é aceita, para não pesar no PACS) e clique em **Buscar no PACS**. Cada exame do resultado tem **Baixar** — o servidor baixa para o banco dele, no seu banco — ou **Abrir**, quando já está no servidor. Embaixo, **Downloads pelo servidor** mostra o andamento de cada um, com **Cancelar** e, no fim, **Abrir o exame**.
 
 **Enviar a um destino DICOM (0.100.9).** O botão **Enviar a um destino DICOM** (o avião de papel, ao lado do Laudo) só aparece para quem tem a permissão de enviar para nós DICOM.
 
@@ -1564,6 +1568,12 @@ Botão **Carga** (ou Aplicações ▸ Carga tumoral) num PET/CT. O TotalSegmenta
 - Cada foco vira um achado em **Aplicações ▸ Achados de IA**. **Descartar** um foco (inflamação, músculo, gordura marrom, intestino…) tira ele do total: o texto do **laudo** soma só os confirmados e refaz o miTNM. A máscara fica numa SEG sobre o PET (série 987), um segmento por região.
 
 São contas automáticas por limiar: confira cada foco antes de usar o número.
+
+## O botão IA (0.100.37)
+
+As IAs ficam num botão só na barra do visualizador: **IA**. Ele abre uma lista, como a das medidas, com as IAs que valem para o exame aberto (pela mesma regra da barra inteligente: nódulos, enfisema, Genant, aorta e cálcio numa TC de tórax; BraTS e lesões no FLAIR numa RM de crânio…). Passe o mouse numa delas para ver o que ela faz — rodar na série do quadro ativo, ver o resultado — e clique. No fim da lista: **Achados de IA** (revisar, confirmar, descartar), **Tarefas de IA** (andamento e cancelar) e **Outras IAs**, com as que a regra deixou de fora, que rodam mesmo assim. O resultado abre no painel de cada IA, como antes.
+
+Para voltar a ter um botão para cada IA, marque **Mostrar cada IA com o seu botão na barra**, no fim da mesma lista. O botão **Aplicações** continua listando todas.
 
 ## Tarefas de IA: andamento e cancelar
 

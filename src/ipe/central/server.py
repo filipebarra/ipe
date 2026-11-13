@@ -210,6 +210,10 @@ class CentralServer:
                 d = self.atualizacoes.retirar(canal)
             self.repo.audit("atualizacao", f"{method}: {d}", user=s.username, host=client_host)
             return d
+        # 0.100.37: buscar e baixar do PACS pelo servidor (os nós que ele compartilha com os clientes)
+        from ipe.central import pacs_servidor as PS
+        if method in PS.RPC:
+            return PS.rpc(self, s, method, args, kwargs, client_host)
         if method == "change_my_password":
             old, new = args[0], args[1]
             if self.repo.authenticate(s.username, old) is None:
@@ -633,6 +637,39 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._error(403, str(e))
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
+            return self._json(200, r, raw=True)
+        if path.startswith("/api/web/pacs/"):                               # 0.100.37: buscar e baixar do PACS
+            from ipe.central import pacs_servidor as PS
+            try:
+                acao = path.rsplit("/", 1)[-1]
+                if method == "GET" and acao == "nos":
+                    r = PS.nos(c, s)
+                elif method == "GET" and acao == "downloads":
+                    r = PS.downloads(c, s)
+                elif method == "POST":
+                    corpo = json.loads(self._body() or b"{}")
+                    if acao == "buscar":
+                        r = PS.buscar(c, s, corpo.get("no"), corpo.get("filtros") or {}, "web")
+                    elif acao == "series":
+                        r = PS.series(c, s, corpo.get("no"), corpo.get("study") or "")
+                    elif acao == "baixar":
+                        r = PS.baixar(c, s, corpo.get("no"), corpo.get("study") or "", corpo.get("series"),
+                                      corpo.get("rotulo") or "", corpo.get("banco"), "web")
+                    elif acao == "cancelar":
+                        r = PS.cancelar(c, s, corpo.get("id"))
+                    else:
+                        return self._error(404, "rota")
+                else:
+                    return self._error(405, "método")
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            except RuntimeError as e:
+                return self._error(503, str(e))
+            except Exception as e:  # noqa: BLE001 - o PACS não respondeu, recusou…
+                log.warning("PACS pelo navegador: %s", e)
+                return self._error(502, f"PACS: {e}")
             return self._json(200, r, raw=True)
         if path in ("/api/web/destinos", "/api/web/enviar", "/api/web/envios", "/api/web/envios/cancelar"):
             from ipe.central import envios_web as EW                       # 0.100.9: enviar ao PACS

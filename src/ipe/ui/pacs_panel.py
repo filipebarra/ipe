@@ -168,7 +168,10 @@ class PacsPanel(QWidget):
         if len([n for n in nodes if n["use_in_search"]]) > 1:
             self.node.addItem("Todos os nós de busca", ALL_NODES)
         for n in nodes:
-            self.node.addItem(f"{n['name']}  ({n['ae_title']}@{n['host']})", n["id"])
+            if n.get("kind") == "servidor":
+                self.node.addItem(n["name"], n["id"])
+            else:
+                self.node.addItem(f"{n['name']}  ({n['ae_title']}@{n['host']})", n["id"])
         if not nodes:
             self.node.addItem("(nenhum nó cadastrado — clique em Configurar nós…)", None)
         i = self.node.findData(cur)
@@ -374,7 +377,7 @@ class PacsPanel(QWidget):
     def _want_stream(self, node: dict | None, r: dict, open_after: bool) -> bool:
         """Abrir enquanto baixa? Usa a opção do nó ou, se o download parecer demorado, pergunta."""
         from ipe.network import probe
-        if not open_after:
+        if not open_after or (node or {}).get("kind") == "servidor":
             return False
         if node is not None and node.get("stream_open") is not None:
             return bool(node["stream_open"])

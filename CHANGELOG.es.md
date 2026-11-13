@@ -3,6 +3,21 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.37 — PACS por el servidor (cliente e Ipê Web), botón IA y difusión en toda RM
+- **Buscar y descargar del PACS por el servidor central.** En el servidor, cada nodo de búsqueda puede marcarse
+  *Compartir con los clientes*. El Ipê cliente pasa a ver ese nodo en la búsqueda del PACS (y en la de anteriores)
+  como *Nombre (por el servidor)*: quien habla con el PACS es el servidor, con su AE title y su contraseña, y el
+  estudio descargado entra **en la base del servidor**, en la base de quien lo pidió. El progreso aparece en la cola
+  del cliente; cancelar allí cancela en el servidor.
+- **Ipê Web: Buscar en el PACS…** en la lista de estudios, con los mismos nodos compartidos: búsqueda, **Descargar**
+  (a la base del servidor), el progreso de las descargas y **Abrir el estudio** al terminar. Buscar requiere el
+  permiso de búsqueda; descargar, el de descarga; todo en el registro de acceso.
+- **Botón IA en el visor:** las IA salen de la barra y quedan en una sola lista, como la de las medidas, con las que
+  valen para el estudio; al final, los hallazgos para revisar, las tareas de IA y las otras IA. Se puede volver a un
+  botón por IA al final de la misma lista.
+- **Difusión en toda RM:** el botón Difusión aparece en cualquier RM, aunque la descripción de la serie no diga DWI
+  (y reconoce también RESOLVE, ZOOMit, IVIM, SS-EPI y EP2D).
+
 ## 0.100.36 — PostgreSQL es la única base de datos
 - **La base de datos de Ipê pasa a ser siempre el PostgreSQL incluido en Ipê** (nada que instalar). SQLite sale: en la
   primera apertura después de actualizar, la base antigua pasa a PostgreSQL con una ventana de progreso (solo una

@@ -3,6 +3,21 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.37 — PACS through the server (client and Ipê Web), AI button and diffusion in every MRI
+- **Search and download from the PACS through the central server.** On the server, each query node can be marked
+  *Share with clients*. The Ipê client now sees that node in the PACS search (and in the priors search) as *Name
+  (through the server)*: the server talks to the PACS, with its own AE title and password, and the downloaded study
+  goes **into the server's database**, in the requester's database. Progress shows in the client's queue; cancelling
+  there cancels on the server.
+- **Ipê Web: Search the PACS…** on the exam list, with the same shared nodes: search, **Download** (to the server's
+  database), download progress and **Open the exam** when done. Searching requires the query permission;
+  downloading, the retrieve permission; everything goes to the access log.
+- **AI button in the viewer:** the AI tools leave the toolbar and live in a single list, like the measurements list,
+  with the ones that apply to the study; at the end, findings to review, AI tasks and the other AIs. One button per AI
+  can be restored at the end of the same list.
+- **Diffusion in every MRI:** the Diffusion button appears in any MRI, even when the series description doesn't say
+  DWI (it also recognizes RESOLVE, ZOOMit, IVIM, SS-EPI and EP2D).
+
 ## 0.100.36 — PostgreSQL is the only database
 - **Ipê's database is now always the PostgreSQL bundled with Ipê** (nothing to install). SQLite is gone: on the first
   opening after the upgrade, the old database is moved into PostgreSQL with a progress window (only once; a few

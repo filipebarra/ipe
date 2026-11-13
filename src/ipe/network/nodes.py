@@ -7,7 +7,8 @@ PRIORS_SETTING = "priors.nodes"          # "all" ou lista de ids de nós
 
 # Nó de consulta é o que sabe buscar e baixar: DIMSE (C-FIND/C-GET) ou DICOMweb (QIDO/WADO).
 # O resto do programa não precisa saber qual é — os dois clientes devolvem o mesmo dicionário.
-CONSULTA = ("dimse", "dicomweb")
+# 0.100.37: "servidor" = nó que o servidor central compartilha (no modo cliente; busca e baixa pelo servidor)
+CONSULTA = ("dimse", "dicomweb", "servidor")
 
 
 def _dimse(repo) -> list[dict]:

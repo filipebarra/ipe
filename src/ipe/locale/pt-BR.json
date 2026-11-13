@@ -6649,7 +6649,30 @@
   "copiar o banco em uso neste computador para ele",
   "desligar o PostgreSQL",
   "o banco do Ipê é PostgreSQL desde a 0.100.36 (o SQLite só é lido para migrar)",
-  "usar o PostgreSQL que vem com o Ipê, neste computador (o padrão)"
+  "usar o PostgreSQL que vem com o Ipê, neste computador (o padrão)",
+  "(?<![A-Z])(DWI|DIFUS[A-Z]*|DIFF[A-Z]*|TRACE[A-Z]*|DTI|RESOLVE|ZOOMIT|IVIM|SS[-_ ]?EPI|B\\s*\\d{3,4})(?![A-Z])",
+  "DWI|DIFUS|DIFUSAO|DIFFUSION|DIFF|TRACE|TRACEW|ADC|EADC|DTI|EPI DIFF|RESOLVE|ZOOMIT|IVIM|SSEPI|EP2D|EPI2D",
+  "Cancelado no servidor",
+  "Compartilhar com os clientes (no servidor central: o Ipê cliente e o Ipê Web buscam e baixam por este nó; os exames vão para o banco do servidor)",
+  "Inteligência artificial: as ferramentas que valem para este exame, os achados para revisar e as tarefas em andamento",
+  "Mostrar cada IA com o seu botão na barra",
+  "Nenhuma IA para este exame pela regra",
+  "Outras IAs (não são deste exame; rodam mesmo assim)",
+  "Para este exame (na série do quadro ativo)",
+  "Quem fala com o PACS é o servidor, com o AE title e a senha dele: os clientes não recebem o endereço nem as credenciais. Buscar pede a permissão de busca; baixar, a de download.",
+  "baixar do PACS (retrieve)",
+  "buscar no PACS (query)",
+  "diga o exame (study_uid)",
+  "diga um nome, ID, acesso, descrição ou um período (busca sem filtro pesa no PACS)",
+  "download não encontrado",
+  "nó não compartilhado pelo servidor (ou desligado)",
+  "o download foi cancelado no servidor",
+  "o exame baixado só pode ir para o seu banco ou para o compartilhado",
+  "o exame já está no servidor, no banco pessoal de outro usuário",
+  "o servidor não aceitou o download",
+  "o servidor não compartilha mais este nó",
+  "o servidor respondeu",
+  "salvar a escolha da barra de IA"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8482,6 +8505,15 @@
   "O banco em uso não abriu: {}",
   "Passando o banco de dados para o PostgreSQL (uma vez só)…\n{}: {} de {}",
   "PostgreSQL do Ipê ({})",
-  "o PostgreSQL não respondeu para receber o banco antigo: {}"
+  "o PostgreSQL não respondeu para receber o banco antigo: {}",
+  "PACS: {}",
+  "data inválida: {} (AAAAMMDD)",
+  "o servidor não conseguiu baixar: {}",
+  "servidor central: {}",
+  "seu perfil não permite {}",
+  "{} (pelo servidor)",
+  "{} (pelo servidor): ",
+  "{} (pelo servidor, para {}): {}",
+  "{} — no banco do servidor"
  ]
 }

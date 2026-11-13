@@ -39,7 +39,8 @@ import numpy as np
 log = logging.getLogger(__name__)
 
 #: descrição da série que sugere difusão (a confirmação é ter mais de um b no arquivo)
-PALAVRAS = re.compile(r"(?<![A-Z])(DWI|DIFUS[A-Z]*|DIFF[A-Z]*|TRACE[A-Z]*|DTI|B\s*\d{3,4})(?![A-Z])", re.I)
+PALAVRAS = re.compile(r"(?<![A-Z])(DWI|DIFUS[A-Z]*|DIFF[A-Z]*|TRACE[A-Z]*|DTI|RESOLVE|ZOOMIT|IVIM|SS[-_ ]?EPI|"
+                      r"B\s*\d{3,4})(?![A-Z])", re.I)
 #: séries que são mapa, não aquisição (o ADC do aparelho, o eADC, o FA)
 MAPAS = re.compile(r"(?<![A-Z])(E?ADC|FA|EXP|SINT[EÉ]TICA)(?![A-Z])", re.I)
 LIMIAR_SINAL = 0.05          # fração do percentil 99 do b0 abaixo da qual o pixel é ruído

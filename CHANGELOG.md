@@ -3,6 +3,20 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.37 — PACS pelo servidor (cliente e Ipê Web), botão IA e difusão em toda RM
+- **Buscar e baixar do PACS pelo servidor central.** No servidor, cada nó de busca pode ser marcado *Compartilhar
+  com os clientes*. O Ipê cliente passa a ver esse nó na busca do PACS (e na de anteriores) como *Nome (pelo
+  servidor)*: quem fala com o PACS é o servidor, com o AE title e a senha dele, e o exame baixado entra **no banco
+  do servidor**, no banco de quem pediu. O andamento aparece na fila do cliente; cancelar lá cancela no servidor.
+- **Ipê Web: Buscar no PACS…** na lista de exames, com os mesmos nós compartilhados: busca, **Baixar** (para o
+  banco do servidor), o andamento dos downloads e **Abrir o exame** quando termina. Buscar pede a permissão de
+  busca; baixar, a de download; tudo no registro de acesso.
+- **Botão IA no visualizador:** as IAs saem da barra e ficam numa lista só, como a das medidas, com as que valem
+  para o exame; no fim, os achados para revisar, as tarefas de IA e as outras IAs. Dá para voltar a ter um botão por
+  IA no fim da mesma lista.
+- **Difusão em toda RM:** o botão Difusão aparece em qualquer RM, mesmo quando a descrição da série não diz DWI (e
+  reconhece também RESOLVE, ZOOMit, IVIM, SS-EPI e EP2D).
+
 ## 0.100.36 — PostgreSQL é o banco único
 - **O banco do Ipê passa a ser sempre o PostgreSQL** que vem com o Ipê (nada a instalar). O SQLite sai: na primeira
   abertura depois da atualização, o banco antigo é passado para o PostgreSQL com uma janela de andamento (uma vez

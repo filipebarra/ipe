@@ -18,6 +18,8 @@ class FimLeituraDialog(QDialog):
         self.destino = QComboBox()
         self.destino.addItem("(escolha o destino)", None)
         for n in repo.nodes(only_active=True):
+            if n.get("kind") == "servidor":           # 0.100.37: os do servidor só buscam e baixam
+                continue
             self.destino.addItem(f"{n['name']} ({n.get('ae_title', '')})", n["id"])
         i = self.destino.findData(cfg.get("destino"))
         self.destino.setCurrentIndex(max(0, i))

@@ -65,6 +65,45 @@ class ClientRepository:
             return getattr(self.local, name)(study_uid, *a, **k)
         return self.client.rpc(name, study_uid, *a, **k)
 
+    # ------------------------------------------------------------------ PACS pelo servidor (0.100.37)
+    SERVIDOR = "servidor"           # o tipo dos nós que o servidor compartilha (busca e download pelo servidor)
+
+    def nos_do_servidor(self, recarregar: bool = False) -> list[dict]:
+        """Os nós que o servidor compartilha, como nós deste programa (id negativo, tipo "servidor"). Lidos uma vez
+        por minuto; sem a permissão de busca ou sem servidor, lista vazia."""
+        import time
+        cache = self.__dict__.get("_nos_srv")
+        if cache is not None and not recarregar and time.time() - cache[0] < 60:
+            return [dict(n) for n in cache[1]]
+        out = []
+        try:
+            r = self.client.rpc("pacs_nos") or {}
+            for n in r.get("nos") or []:
+                out.append({"id": -int(n["id"]), "name": f"{n['nome']} (pelo servidor)", "kind": self.SERVIDOR,
+                            "ae_title": "servidor", "host": self.client.url, "port": 0, "base_url": "",
+                            "retrieve": "get", "move_destination": "", "use_in_search": bool(n.get("busca", True)),
+                            "use_in_priors": bool(n.get("anteriores", True)), "use_in_send": False,
+                            "stream_open": False, "compartilhar_clientes": False, "priority": 1000, "active": True,
+                            "note": "", "dono": "", "visivel_para": "", "username": "", "password": "",
+                            "auth": "basic", "baixar": bool(r.get("baixar", True))})
+        except Exception as e:  # noqa: BLE001 - servidor antigo, sem permissão, fora do ar
+            log.info("nós do servidor: %s", e)
+        self._nos_srv = (time.time(), out)
+        return [dict(n) for n in out]
+
+    def nodes(self, only_active: bool = False, todos: bool = False, gerenciar: bool = False) -> list[dict]:
+        """Os nós deste computador e, para buscar e baixar, os que o servidor compartilha. A tela de configuração
+        (`gerenciar`) e quem trabalha pela máquina (`todos`) só veem os deste computador."""
+        lista = self.local.nodes(only_active=only_active, todos=todos, gerenciar=gerenciar)
+        if todos or gerenciar:
+            return lista
+        return lista + self.nos_do_servidor()
+
+    def node(self, node_id) -> dict | None:
+        if node_id is not None and int(node_id) < 0:
+            return next((n for n in self.nos_do_servidor() if n["id"] == int(node_id)), None)
+        return self.local.node(node_id)
+
     def is_cached(self, study_uid: str) -> bool:
         return bool(self.local.study_uids_present([study_uid]))
 

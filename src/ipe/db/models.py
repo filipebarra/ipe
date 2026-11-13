@@ -533,6 +533,8 @@ class DicomNode(Base):
     use_in_send: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=True)
     # abrir o exame enquanto ele baixa (streaming); None = usar o padrão das preferências
     stream_open: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=None)
+    # 0.100.37: no servidor central, os clientes (Ipê e navegador) buscam e baixam por este nó, pelo servidor
+    compartilhar_clientes: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)
     priority: Mapped[int] = mapped_column(Integer, default=0)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     note: Mapped[str] = mapped_column(Text, default="")
