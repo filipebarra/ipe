@@ -16,7 +16,7 @@ ANTIGA = """CREATE TABLE print_job (
 
 
 def _banco_antigo(tmp_path):
-    caminho = tmp_path / "antigo.db"
+    caminho = tmp_path / "dicomviewer.sqlite"
     con = sqlite3.connect(caminho)
     con.execute(ANTIGA)
     con.execute("INSERT INTO print_job (uid, source, label, status) VALUES ('u1','scp','Antigo','new')")
@@ -34,10 +34,14 @@ def _colunas(caminho, tabela):
 
 
 def test_coluna_not_null_entra_com_valor_inicial(tmp_path):
+    """0.100.36: o SQLite antigo ganha as colunas novas e vai para o PostgreSQL; os vazios que o SQLite aceitava
+    numa coluna NOT NULL (received_at) entram com um valor."""
     caminho = _banco_antigo(tmp_path)
     assert "server" not in _colunas(caminho, "print_job")
     db = Database(caminho)
-    assert "server" in _colunas(caminho, "print_job")
+    assert not caminho.exists()
+    guardado = tmp_path / "dicomviewer.sqlite.migrado"
+    assert "server" in _colunas(guardado, "print_job")
     linhas = Repository(db).print_jobs()
     assert len(linhas) == 1 and linhas[0]["label"] == "Antigo"
     assert linhas[0]["server"] == ""              # o que já estava lá ganha o valor padrão
@@ -47,7 +51,7 @@ def test_coluna_not_null_entra_com_valor_inicial(tmp_path):
 def test_migracao_nao_estraga_o_que_ja_existia(tmp_path):
     caminho = _banco_antigo(tmp_path)
     Database(caminho).close()
-    con = sqlite3.connect(caminho)
+    con = sqlite3.connect(tmp_path / "dicomviewer.sqlite.migrado")
     try:
         uid, label = con.execute("SELECT uid, label FROM print_job").fetchone()
     finally:

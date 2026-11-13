@@ -79,7 +79,7 @@ BANCO_ITENS = ("dicomviewer.sqlite", "Storage")
 
 def _tem_banco(p: Path) -> bool:
     try:
-        return (p / BANCO_ITENS[0]).is_file()
+        return (p / BANCO_ITENS[0]).is_file() or (p / "postgres" / "PG_VERSION").is_file()
     except OSError:
         return False
 

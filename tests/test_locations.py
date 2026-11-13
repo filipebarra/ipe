@@ -84,7 +84,7 @@ def test_banco_do_local_e_portatil(tmp_path, sample_dir):
     assert res.added > 0
     lid = repo.create_case_list("Casos do HD")
     db.close()
-    assert loc.database.exists()
+    assert loc.ready() and L.looks_used(hd)
     assert not any(loc.storage.rglob("*.dcm"))          # nada foi copiado
     assert list(Path(sample_dir).rglob("*.dcm"))        # originais intactos
 
@@ -161,7 +161,7 @@ def test_copiar_exames_para_outro_local(env, sample_dir, tmp_path, monkeypatch):
         w.close()
 
 
-@pytest.mark.so_sqlite
+@pytest.mark.pg_de_verdade
 def test_mudar_a_pasta_do_banco_padrao(env, sample_dir, tmp_path, monkeypatch):
     """A pasta do banco deste computador pode ser trocada, levando os arquivos junto."""
     from PySide6.QtWidgets import QMessageBox
@@ -188,14 +188,14 @@ def test_mudar_a_pasta_do_banco_padrao(env, sample_dir, tmp_path, monkeypatch):
         # 0.99.75: com o programa aberto nada se move; a mudança fica marcada para a próxima abertura
         from ipe.core import mover_banco as MB
         assert MB.pendente(st) == {"de": str(antiga), "para": str(nova)}
-        assert (antiga / "dicomviewer.sqlite").exists() and Path(w.paths.data) == antiga
+        assert (antiga / "postgres" / "PG_VERSION").exists() and Path(w.paths.data) == antiga
     finally:
         w.close()
     db.close()
     # a próxima abertura: move antes de abrir o banco
     ok, _msg = MB.executar_pendente(Settings(paths.settings_file), paths)
-    assert ok and (nova / "dicomviewer.sqlite").exists() and (nova / "Storage").is_dir()
-    assert not (antiga / "dicomviewer.sqlite").exists()
+    assert ok and (nova / "postgres" / "PG_VERSION").exists() and (nova / "Storage").is_dir()
+    assert not (antiga / "postgres").exists()
     assert C.chosen_data_dir(paths.config) == nova
     from ipe.core.config import AppPaths
     from ipe.db.repository import Repository

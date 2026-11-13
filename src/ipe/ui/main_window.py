@@ -3055,7 +3055,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Pasta do banco",
                                     f"Essa pasta já é o local “{outra.name}”.")
                 return
-        itens = [d for d in ("dicomviewer.sqlite", "Storage", "Lixeira") if (atual / d).exists()]
+        itens = [d for d in ("postgres", "dicomviewer.sqlite", "dicomviewer.sqlite.migrado", "Storage", "Lixeira") if (atual / d).exists()]
         mb = sum(f.stat().st_size for d in itens for f in [atual / d] + list((atual / d).rglob("*"))
                  if f.is_file()) / 1024 / 1024
         caixa = QMessageBox(self)

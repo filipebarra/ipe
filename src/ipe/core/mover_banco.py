@@ -22,7 +22,7 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 CHAVE = "banco.mover_ao_abrir"
-ITENS = ("postgres", "dicomviewer.sqlite", "dicomviewer.sqlite-wal", "dicomviewer.sqlite-shm", "dicomviewer.sqlite-journal",
+ITENS = ("postgres", "dicomviewer.sqlite", "dicomviewer.sqlite.migrado", "dicomviewer.sqlite-wal", "dicomviewer.sqlite-shm", "dicomviewer.sqlite-journal",
          "Storage", "Lixeira")
 
 
@@ -115,6 +115,11 @@ def executar_pendente(settings, paths, andou=None) -> tuple[bool, str] | None:
             return False, "A mudança da pasta do banco foi cancelada: o banco já não está na pasta marcada."
     except OSError:
         pass
+    try:
+        from ipe.core import pg_embutido as PE           # o PostgreSQL da pasta parado antes de mover os dados dele
+        PE.desligar_todos()
+    except Exception:  # noqa: BLE001
+        log.debug("desligar o PostgreSQL", exc_info=True)
     try:
         mover(de, para, andou)
     except ErroMover as e:

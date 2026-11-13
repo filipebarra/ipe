@@ -73,7 +73,8 @@ class Location:
     def ready(self) -> bool:
         """Já é um local montado (tem o índice ou a marca)."""
         try:
-            return self.online() and (self.database.exists() or self.marker.exists())
+            return self.online() and (self.database.exists() or self.marker.exists()
+                                      or (self.path / "postgres").exists())
         except OSError:
             return False
 
@@ -151,7 +152,7 @@ def prepare(path, name: str) -> Path:
 def looks_used(path) -> bool:
     """A pasta já tem um local montado? (para avisar que vai abrir em vez de criar)"""
     p = Path(path)
-    return (p / DB_NAME).exists() or (p / MARKER).exists()
+    return (p / DB_NAME).exists() or (p / MARKER).exists() or (p / "postgres").exists()
 
 
 def suggest_name(path) -> str:

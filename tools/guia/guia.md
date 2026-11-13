@@ -32,7 +32,7 @@ Menu **Arquivo**: **Importar pasta…** (Ctrl+I), **Importar arquivos…** e **I
 
 ## Onde ficam os dados
 
-Menu **Ajuda ▸ Abrir pasta de dados** mostra onde estão o banco (SQLite), as imagens copiadas (Storage), as configurações (settings.json) e os registros (logs). Pela linha de comando, `ipe-cli info` imprime os mesmos caminhos.
+Menu **Ajuda ▸ Abrir pasta de dados** mostra onde estão o banco (a pasta `postgres`), as imagens copiadas (Storage), as configurações (settings.json) e os registros (logs). Pela linha de comando, `ipe-cli info` imprime os mesmos caminhos.
 
 O programa não roda como administrador, e nunca precisa: tudo o que ele escreve fica no perfil do usuário.
 
@@ -1020,28 +1020,24 @@ A aba **Histórico** mostra o que cada regra fez e quando.
 
 ## Servidor central (intranet)
 
-**Configurações ▸ Rede ▸ Servidor central…** põe uma instalação no papel de servidor, com login e banco compartilhado; as outras entram como cliente. O banco é um arquivo SQLite, bom para um grupo pequeno na mesma rede; com muitas estações, ou com o servidor na nuvem, ponha o banco num **PostgreSQL** (a seguir).
+**Configurações ▸ Rede ▸ Servidor central…** põe uma instalação no papel de servidor, com login e banco compartilhado; as outras entram como cliente. O banco é um **PostgreSQL** (a seguir), que aguenta muitas estações ao mesmo tempo.
 
-### Banco no PostgreSQL (0.100.34; embutido desde a 0.100.35)
+### O banco de dados: PostgreSQL (desde a 0.100.36, o único)
 
-O banco principal pode ficar num **PostgreSQL** em vez do arquivo SQLite. Vale para o servidor central com muitas estações e para um servidor na nuvem; quem usa sozinho não precisa: o SQLite continua o padrão. Em **Configurações ▸ Banco de dados ▸ Servidor de banco de dados (PostgreSQL)…** há três escolhas:
+O banco do Ipê (pacientes, exames, medidas, laudos, listas, usuários, configurações do serviço) é um **PostgreSQL**. **Não precisa instalar nada**: o PostgreSQL 16 vem dentro do Ipê. Ele liga sozinho quando o Ipê (ou o `ipe server`) abre, guarda os dados na pasta de dados (`postgres`, ao lado do Storage; mudar a pasta do banco leva junto) e desliga quando o último programa do Ipê do computador fecha. Só aceita conexão deste computador — as outras estações chegam pelo servidor central do Ipê, como sempre —, e a senha é criada e guardada pelo próprio Ipê, junto com os dados. Cada local (disco externo, outra pasta) tem o seu PostgreSQL dentro da própria pasta, e continua indo junto com ela — entre computadores do mesmo sistema (Windows com Windows, Mac com Mac).
 
-- **Arquivo neste computador (SQLite)** — o padrão.
-- **PostgreSQL que vem com o Ipê** (0.100.35) — **não precisa instalar nada**: o PostgreSQL 16 vem dentro do Ipê. Ele liga sozinho quando o Ipê (ou o `ipe server`) abre, guarda os dados na pasta de dados (`postgres`, ao lado do Storage; mudar a pasta do banco leva junto) e desliga quando o último programa do Ipê do computador fecha. Só aceita conexão deste computador — as outras estações chegam pelo servidor central do Ipê, como sempre —, e a senha é criada e guardada pelo próprio Ipê. É a escolha recomendada para o servidor central.
-- **Servidor PostgreSQL próprio** — um PostgreSQL instalado à parte, em outro computador ou na nuvem.
+**Quem vem de uma versão anterior:** na primeira abertura depois da atualização, o Ipê passa o banco antigo (o arquivo SQLite `dicomviewer.sqlite`) para o PostgreSQL, com uma janela de andamento — num banco grande, alguns minutos, uma vez só. Tudo vai junto, e a contagem de cada tabela é conferida no fim. O arquivo antigo fica guardado como `dicomviewer.sqlite.migrado`, na mesma pasta, como cópia de segurança (pode ser apagado depois de conferir que está tudo lá). O mesmo vale para os outros locais, na primeira vez que cada um é aberto.
 
-Para o PostgreSQL que vem com o Ipê: marque a opção, clique em **Testar a conexão** (na primeira vez ele cria o banco, em alguns segundos), depois em **Copiar o banco deste computador para o PostgreSQL do Ipê…** e em **OK**. Pela linha de comando: `ipe banco embutido --copiar`.
-
-Para um servidor próprio:
+O banco principal também pode ficar num **servidor PostgreSQL próprio** — instalado à parte, em outro computador ou na nuvem. Em **Configurações ▸ Banco de dados ▸ Servidor de banco de dados (PostgreSQL)…**:
 
 1. Instale o PostgreSQL (postgresql.org) e crie um usuário e um banco vazio para o Ipê — por exemplo, no `psql`: `CREATE USER ipe PASSWORD '…'; CREATE DATABASE ipe OWNER ipe;`.
-2. No computador do banco principal (o servidor central), na mesma janela: marque *Servidor PostgreSQL próprio*, preencha servidor, porta (5432), banco, usuário e senha e clique em **Testar a conexão**.
-3. Para levar o que já existe: **Copiar o banco deste computador para lá…** copia tudo do SQLite (pacientes, exames, medidas, laudos, listas, usuários, configurações do serviço), tabela a tabela, e confere a contagem de cada uma no fim. O banco de destino tem que estar vazio. Feche o Ipê nas outras estações antes.
-4. **OK** e abra o Ipê de novo: a janela de configuração passa a mostrar *Em uso agora: PostgreSQL usuário@servidor:5432/ipe*.
+2. No computador do banco principal (o servidor central), marque *Servidor PostgreSQL próprio*, preencha servidor, porta (5432), banco, usuário e senha e clique em **Testar a conexão**.
+3. Para levar o que já existe: **Copiar o banco deste computador para lá…** copia tudo do banco em uso, tabela a tabela, e confere a contagem de cada uma no fim. O banco de destino tem que estar vazio. Feche o Ipê nas outras estações antes.
+4. **OK** e abra o Ipê de novo: a janela passa a mostrar *Em uso agora: PostgreSQL usuário@servidor:5432/ipe*.
 
-As **imagens continuam na pasta de dados** (Storage): só as informações do banco vão para o PostgreSQL. A senha fica cifrada neste computador (`banco.json`, na pasta de configurações). Para voltar, marque *Arquivo neste computador (SQLite)*: o arquivo antigo continua lá, como estava antes da cópia.
+Para voltar ao PostgreSQL que vem com o Ipê, marque a primeira opção (o botão Copiar traz de volta o que entrou no servidor próprio). As **imagens continuam na pasta de dados** (Storage): só as informações vão para o banco. A senha do servidor próprio fica cifrada neste computador (`banco.json`, na pasta de configurações).
 
-No servidor sem janela, o mesmo pela linha de comando: `ipe banco postgres --host 10.0.0.2 --banco ipe --usuario ipe --copiar` (pergunta a senha), `ipe banco status` e `ipe banco sqlite`. A variável `IPE_DATABASE_URL` (`postgresql://usuário:senha@servidor:5432/ipe`) passa na frente do que estiver configurado — para servidores montados por roteiro.
+No servidor sem janela, o mesmo pela linha de comando: `ipe banco status`, `ipe banco postgres --host 10.0.0.2 --banco ipe --usuario ipe --copiar` (pergunta a senha) e `ipe banco embutido --copiar` (de volta ao do Ipê). A variável `IPE_DATABASE_URL` (`postgresql://usuário:senha@servidor:5432/ipe`) passa na frente do que estiver configurado — para servidores montados por roteiro.
 
 ![Configurações ▸ Rede ▸ Servidor central: o modo deste computador (local, servidor ou cliente).](config_servidor_central.png){65}
 
@@ -2025,7 +2021,8 @@ Em toda tabela do programa a divisa entre colunas se arrasta, e clicar no cabeç
 
 - JPG/PNG exportado não apaga texto gravado na imagem nem aplica giro.
 - O registro entre exames é rígido (rotação e translação), não deformável.
-- O 3D roda na CPU; o servidor central usa SQLite.
+- O 3D roda na CPU.
+- O banco de um local numa pasta de rede (compartilhamento do Windows, NAS) não é recomendado: o PostgreSQL quer os dados num disco deste computador. Para dividir o banco, use o servidor central.
 - Na mamografia, os anteriores saem só do banco local.
 - O streaming não é sob demanda: o resto do exame entra na ordem em que o PACS manda.
 - A Gestão DICOM é pelo botão (não é agendada) e não confere nós DICOMweb.

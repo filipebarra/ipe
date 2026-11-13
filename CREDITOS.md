@@ -21,11 +21,12 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [imagecodecs (OpenJPH)](https://github.com/cgohlke/imagecodecs) | HTJ2K sem perda na cópia de envio do visualizador web: menos bytes na rede e carga progressiva no navegador | BSD-3-Clause (OpenJPH: BSD-2-Clause) |
 | [certifi](https://github.com/certifi/python-certifi) | certificados das autoridades (lista da Mozilla) para o HTTPS onde o sistema não os entrega | MPL-2.0 |
 | [NumPy](https://numpy.org) | todas as contas com as imagens (janela, MPR, 3D, mapas, medidas) | BSD-3-Clause |
-| [psycopg 3](https://www.psycopg.org/psycopg3/) | a conexão com o PostgreSQL, quando o banco principal fica num servidor PostgreSQL (o pacote binário traz a libpq do PostgreSQL, licença PostgreSQL) | LGPL-3.0 |
+| [psycopg 3](https://www.psycopg.org/psycopg3/) | a conexão com o PostgreSQL, o banco de dados do Ipê (o pacote binário traz a libpq do PostgreSQL, licença PostgreSQL) | LGPL-3.0 |
+| [fasteners](https://github.com/harlowja/fasteners) | a trava entre programas na migração do banco antigo e na preparação do PostgreSQL do Ipê | Apache-2.0 |
 | [pixeltable-pgserver](https://github.com/pixeltable/pixeltable-pgserver) | o PostgreSQL que vem dentro do Ipê (liga, desliga e guarda os dados na pasta do Ipê, sem instalar nada à parte) | Apache-2.0 |
 | [PostgreSQL](https://www.postgresql.org) | o servidor de banco de dados (o embutido, versão 16, e o próprio, quando escolhido) | PostgreSQL |
-| [SQLAlchemy](https://www.sqlalchemy.org) | o banco de dados dos exames (SQLite ou PostgreSQL) | MIT |
-| [SQLite](https://www.sqlite.org) | o arquivo do banco de dados | domínio público |
+| [SQLAlchemy](https://www.sqlalchemy.org) | o banco de dados dos exames (PostgreSQL) | MIT |
+| [SQLite](https://www.sqlite.org) | leitura dos bancos das versões antigas, para migrar para o PostgreSQL | domínio público |
 | [platformdirs](https://github.com/tox-dev/platformdirs) | as pastas de dados e de configuração de cada sistema | MIT |
 | [RapidOCR](https://github.com/RapidAI/RapidOCR) | OCR das folhas de impressão recebidas (identificar o paciente) | Apache-2.0 |
 | [ONNX Runtime](https://onnxruntime.ai) | roda as redes neurais na CPU (OCR, densidade mamária) | MIT |

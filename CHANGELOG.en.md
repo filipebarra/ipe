@@ -3,6 +3,20 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.36 — PostgreSQL is the only database
+- **Ipê's database is now always the PostgreSQL bundled with Ipê** (nothing to install). SQLite is gone: on the first
+  opening after the upgrade, the old database is moved into PostgreSQL with a progress window (only once; a few
+  minutes for a large database), with every table's row count verified. The old file is kept as
+  `dicomviewer.sqlite.migrado` in the same folder. This applies to the main database, to the other locations
+  (external drive, other folder: each with PostgreSQL inside its own folder) and to the client-mode cache.
+- Your own PostgreSQL server is still an option for the main database. The *Database server* window and the command
+  line lose the SQLite option; the Copy button (and `--copiar`) copies the database in use to the chosen one.
+- The password of Ipê's PostgreSQL is now kept with the data (each folder with its own).
+- Fixed: with a space in the data folder path (on macOS the default folder has one, "Application Support") Ipê's
+  PostgreSQL did not start.
+- Empty values that SQLite accepted in required fields (in databases from old versions) get a default value during
+  the migration.
+
 ## 0.100.35 — PostgreSQL that comes with Ipê
 - **No need to install PostgreSQL separately anymore**: Ipê ships PostgreSQL 16 inside the package (Windows, macOS
   and Linux). In Settings ▸ Database ▸ Database server, the *PostgreSQL that comes with Ipê* option: it starts by

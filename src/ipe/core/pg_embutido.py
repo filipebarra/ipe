@@ -1,4 +1,4 @@
-"""PostgreSQL embutido no Ipê (0.100.35): o servidor vem dentro do pacote, sem instalar nada à parte.
+"""PostgreSQL embutido no Ipê (0.100.35; o banco único desde a 0.100.36): o servidor vem dentro do pacote.
 
 Usa o `pixeltable-pgserver` (Apache-2.0), que traz o PostgreSQL 16 pronto para Windows, macOS e Linux. Os dados ficam
 na pasta de dados do Ipê (`<dados>/postgres`, ao lado do Storage). O servidor:
@@ -16,6 +16,7 @@ import logging
 import os
 import re
 import secrets
+import threading
 import time
 from pathlib import Path
 
@@ -141,6 +142,39 @@ def _ambiente_do_sistema():
         os.environ.update(antes)
 
 
+def _socket_sem_espaco() -> None:
+    """0.100.36: o pixeltable-pgserver põe a pasta do soquete na linha do postgres sem aspas (`-k <pasta>`); com um
+    espaço no caminho o servidor não liga. No macOS a pasta de dados padrão tem espaço ("Application Support"), e no
+    Linux pode ter (a pasta escolhida pela pessoa). Com espaço, o soquete vai para uma pasta curta sem espaço."""
+    import hashlib
+    import tempfile
+
+    import pixeltable_pgserver.postgres_server as PS
+    if getattr(PS.find_suitable_socket_dir, "_ipe", False):
+        return
+    original = PS.find_suitable_socket_dir
+
+    def sem_espaco(pgdata, runtime_path):
+        pasta = original(pgdata, runtime_path)
+        if not re.search(r"[\s'\"\\]", str(pasta)):
+            return pasta
+        h = hashlib.sha256(f"{pgdata}-{Path(pgdata).stat().st_ino}".encode()).hexdigest()[:10]
+        for base in (Path(runtime_path), Path(tempfile.gettempdir()), Path("/tmp")):
+            alvo = base / h if base == Path(runtime_path) else base / f"ipe_pg_{h}"
+            if re.search(r"[\s'\"\\]", str(alvo)):
+                continue
+            try:
+                alvo.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                continue
+            log.info("Soquete do PostgreSQL em %s (a pasta de dados tem espaço)", alvo)
+            return alvo
+        return pasta
+
+    sem_espaco._ipe = True
+    PS.find_suitable_socket_dir = sem_espaco
+
+
 def _servidor(pasta: Path):
     pasta = Path(pasta)
     chave = str(pasta.resolve())
@@ -149,6 +183,8 @@ def _servidor(pasta: Path):
         return srv
     import pixeltable_pgserver as P
     _apontar_executaveis()
+    if os.name != "nt":
+        _socket_sem_espaco()
     # a pasta já existe (vazia) antes do initdb: no Windows, o initdb criando a pasta falhava ("File exists")
     pasta.mkdir(parents=True, exist_ok=True)
     t = time.time()
@@ -213,7 +249,7 @@ def _conecta(url: str) -> bool:
         return False
 
 
-def garantir(senha: str = "", pasta: Path | None = None) -> tuple[str, str]:
+def garantir(senha: str = "", pasta: Path | None = None, banco: str = BANCO) -> tuple[str, str]:
     """Liga o servidor (se preciso), garante o banco "ipe" e a senha. Devolve (endereço, senha) — a senha é nova
     quando a de antes não existia ou não entrava (quem chama guarda)."""
     pasta = Path(pasta) if pasta else pasta_dos_dados()
@@ -240,19 +276,96 @@ def garantir(senha: str = "", pasta: Path | None = None) -> tuple[str, str]:
     e = create_engine(_uri(srv, "postgres", senha), poolclass=NullPool, isolation_level="AUTOCOMMIT")
     try:
         with e.connect() as c:
-            if not c.execute(text("SELECT 1 FROM pg_database WHERE datname = :n"), {"n": BANCO}).first():
-                c.execute(text(f'CREATE DATABASE "{BANCO}" ENCODING \'UTF8\' TEMPLATE template0'))
+            if not c.execute(text("SELECT 1 FROM pg_database WHERE datname = :n"), {"n": banco}).first():
+                c.execute(text(f'CREATE DATABASE "{banco}" ENCODING \'UTF8\' TEMPLATE template0'))
     finally:
         e.dispose()
-    return _uri(srv, BANCO, senha), senha
+    return _uri(srv, banco, senha), senha
+
+
+SENHA = "ipe_senha"
+
+
+def _arquivo_da_senha(pasta: Path) -> Path:
+    return Path(pasta) / SENHA
+
+
+def senha_da_pasta(pasta: Path) -> str:
+    """A senha fica com os dados (0.100.36): vale para qualquer pasta de banco (principal, outros locais, cache do
+    cliente) e para quem mais usa o mesmo banco neste computador. Só quem acessa a pasta lê — o mesmo que já vale para
+    os próprios dados."""
+    try:
+        return _arquivo_da_senha(pasta).read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
+
+def _guardar_senha(pasta: Path, senha: str) -> None:
+    a = _arquivo_da_senha(pasta)
+    tmp = a.with_suffix(".tmp")
+    tmp.write_text(senha, encoding="utf-8")
+    with contextlib.suppress(OSError):
+        os.chmod(tmp, 0o600)
+    tmp.replace(a)
+
+
+_TRAVA = threading.RLock()
+_ENDERECO: dict[tuple[str, str], str] = {}
+
+
+def nome_do_banco(arquivo: str) -> str:
+    """Cada nome de banco numa pasta é um banco do servidor da pasta: dicomviewer.sqlite → "ipe" (o de sempre);
+    outro (cache.sqlite, diag.sqlite…) → "ipe_cache"…"""
+    base = Path(str(arquivo)).name.split(".")[0].lower()
+    if base in ("", "dicomviewer"):
+        return BANCO
+    return "ipe_" + re.sub(r"[^a-z0-9_]", "_", base)[:50]
+
+
+def endereco_da_pasta(pasta: Path, banco: str = BANCO) -> str:
+    """Liga (se preciso) o PostgreSQL desta pasta de dados e devolve o endereço do banco `banco` nele. Uma vez por
+    pasta e banco em cada execução (depois vem da memória)."""
+    pasta = Path(pasta)
+    chave = str(pasta.resolve())
+    with _TRAVA:
+        if (chave, banco) in _ENDERECO and chave in _SERVIDOR:
+            return _ENDERECO[(chave, banco)]
+        url = _endereco_da_pasta(pasta, banco)
+        _ENDERECO[(chave, banco)] = url
+        return url
+
+
+def _endereco_da_pasta(pasta: Path, banco: str = BANCO) -> str:
+    antes = senha_da_pasta(pasta) if (pasta / "PG_VERSION").exists() else ""
+    if not antes and (pasta / "PG_VERSION").exists():
+        with contextlib.suppress(Exception):           # 0.100.35 guardava a do banco principal no banco.json
+            from ipe.core import banco_config as BC
+            antes = BC.senha_embutido()
+    url, senha = garantir(antes, pasta, banco)
+    if senha != senha_da_pasta(pasta):
+        _guardar_senha(pasta, senha)
+    return url
+
+
+def pasta_temporaria(prefixo: str = "ipe_pg_") -> Path:
+    """Uma pasta temporária onde o PostgreSQL consegue criar o banco. Não pelo `tempfile.mkdtemp`: no Windows, desde o
+    Python 3.13, ele cria a pasta com acesso só para o dono — e o initdb, que no Windows roda com os privilégios de
+    administrador retirados, não enxerga dentro dela ("could not create directory …: File exists")."""
+    import tempfile
+    import uuid
+    p = Path(tempfile.gettempdir()) / f"{prefixo}{uuid.uuid4().hex[:10]}"
+    p.mkdir(parents=True)
+    return p
 
 
 def desligar_todos() -> None:
     """Para os testes e para mover a pasta de dados: solta os servidores ligados por este processo."""
-    for srv in list(_SERVIDOR.values()):
-        with contextlib.suppress(Exception):
-            srv.cleanup()
-    _SERVIDOR.clear()
+    with _TRAVA:
+        for srv in list(_SERVIDOR.values()):
+            with contextlib.suppress(Exception):
+                srv.cleanup()
+        _SERVIDOR.clear()
+        _ENDERECO.clear()
 
 
 def testar_pacote(pasta: Path) -> str:

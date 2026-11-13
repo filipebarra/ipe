@@ -73,7 +73,7 @@ def _parser() -> argparse.ArgumentParser:
     dd.add_argument("folder")
     sub.add_parser("info", help="mostrar caminhos")
     # 0.100.34: o banco principal no PostgreSQL (servidor sem janela, montado por roteiro)
-    bc = sub.add_parser("banco", help="banco principal: SQLite (arquivo) ou PostgreSQL")
+    bc = sub.add_parser("banco", help="banco principal: o PostgreSQL do Ipê ou um servidor PostgreSQL próprio")
     bsub = bc.add_subparsers(dest="banco_cmd", required=True)
     bsub.add_parser("status", help="qual banco está em uso")
     bp = bsub.add_parser("postgres", help="usar um servidor PostgreSQL (pergunta a senha)")
@@ -82,27 +82,49 @@ def _parser() -> argparse.ArgumentParser:
     bp.add_argument("--banco", default="ipe")
     bp.add_argument("--usuario", default="ipe")
     bp.add_argument("--ssl", default="prefer", choices=["disable", "prefer", "require", "verify-full"])
-    bp.add_argument("--copiar", action="store_true", help="copiar o banco SQLite deste computador para ele")
-    bsub.add_parser("sqlite", help="voltar para o arquivo SQLite deste computador")
-    be = bsub.add_parser("embutido", help="usar o PostgreSQL que vem com o Ipê, neste computador (0.100.35)")
-    be.add_argument("--copiar", action="store_true", help="copiar o banco SQLite deste computador para ele")
+    bp.add_argument("--copiar", action="store_true", help="copiar o banco em uso neste computador para ele")
+    be = bsub.add_parser("embutido", help="usar o PostgreSQL que vem com o Ipê, neste computador (o padrão)")
+    be.add_argument("--copiar", action="store_true", help="copiar o banco em uso (o servidor próprio) para ele")
     bt = bsub.add_parser("testar-embutido", help="liga o PostgreSQL embutido numa pasta descartável e desliga")
     bt.add_argument("pasta", nargs="?", default="")
     return p
 
 
 def _cmd_banco(args) -> int:
-    """`ipe-cli banco status | postgres … [--copiar] | sqlite` (0.100.34)."""
+    """`ipe-cli banco status | postgres … [--copiar] | embutido [--copiar] | testar-embutido` (0.100.34)."""
     import getpass
     import os
 
     from ipe.core import banco_config as BC
     from ipe.core.config import get_paths
-    from ipe.db.session import endereco_configurado, mascarar
+    from ipe.db.session import endereco_configurado, mascarar, precisa_migrar
     paths = get_paths()
+
+    def copiar_para(url) -> bool:
+        try:
+            origem = BC.origem_atual(paths.database)
+        except Exception as e:  # noqa: BLE001
+            print(f"O banco em uso não abriu: {e}", file=sys.stderr)
+            return False
+        if isinstance(origem, str) and BC.mesmo_banco(origem, url):
+            print("Este já é o banco em uso: nada a copiar.")
+            return True
+        try:
+            feito = BC.copiar(origem, url, lambda tb, n, tot: print(f"  {tb}: {tot}") if n == tot else None)
+        except BC.ErroBanco as e:
+            print(f"Cópia não feita: {e}", file=sys.stderr)
+            return False
+        print(f"Copiadas {sum(feito.values())} linhas em {len(feito)} tabelas.")
+        return True
+
     if args.banco_cmd == "status":
         url = endereco_configurado()
-        print(f"Banco: {mascarar(url) if url else paths.database}")
+        if url:
+            print(f"Banco: servidor próprio {mascarar(url)}")
+        else:
+            print(f"Banco: PostgreSQL do Ipê em {paths.data / 'postgres'}")
+        if precisa_migrar(paths.database):
+            print(f"(o banco antigo {paths.database} será migrado para o PostgreSQL ao abrir o Ipê)")
         if os.environ.get("IPE_DATABASE_URL"):
             print("(pela variável IPE_DATABASE_URL, que passa na frente do banco.json)")
         if url:
@@ -111,10 +133,8 @@ def _cmd_banco(args) -> int:
             return 0 if t.ok else 1
         return 0
     if args.banco_cmd == "testar-embutido":
-        import tempfile
-
         from ipe.core import pg_embutido as PE
-        pasta = Path(args.pasta) if args.pasta else Path(tempfile.mkdtemp(prefix="ipe_pg_")) / "postgres"
+        pasta = Path(args.pasta) if args.pasta else PE.pasta_temporaria() / "postgres"
         try:
             versao = PE.testar_pacote(pasta)
         except Exception as e:  # noqa: BLE001
@@ -128,25 +148,16 @@ def _cmd_banco(args) -> int:
             print("Este pacote do Ipê não traz o PostgreSQL embutido.", file=sys.stderr)
             return 1
         try:
-            url = BC.url_embutido()
+            url = BC.url_embutido(paths.data / "postgres")
         except Exception as e:  # noqa: BLE001
             print(f"O PostgreSQL embutido não ligou: {e}", file=sys.stderr)
             return 1
         t = BC.testar(url)
         print(f"PostgreSQL embutido: {t.versao}; " + ("banco vazio." if t.vazio else "o banco já tem exames."))
-        if args.copiar:
-            try:
-                feito = BC.copiar(paths.database, url, lambda tb, n, tot: print(f"  {tb}: {tot}") if n == tot else None)
-            except BC.ErroBanco as e:
-                print(f"Cópia não feita: {e}", file=sys.stderr)
-                return 1
-            print(f"Copiadas {sum(feito.values())} linhas em {len(feito)} tabelas.")
-        BC.gravar({"tipo": "embutido", "senha": BC.senha_embutido()})
+        if args.copiar and not copiar_para(url):
+            return 1
+        BC.gravar({"tipo": "embutido"})
         print("Gravado em", BC.arquivo(), "— vale ao abrir o Ipê (ou o servidor) de novo.")
-        return 0
-    if args.banco_cmd == "sqlite":
-        BC.gravar({"tipo": "sqlite", "senha_embutido": BC.senha_embutido()})
-        print(f"Banco: arquivo {paths.database} (vale ao abrir o Ipê de novo)")
         return 0
     cfg = {"tipo": "postgresql", "host": args.host, "porta": args.porta, "banco": args.banco,
            "usuario": args.usuario, "ssl": args.ssl}
@@ -158,16 +169,8 @@ def _cmd_banco(args) -> int:
         return 1
     print(f"Conectou: PostgreSQL {t.versao}; banco vazio." if t.vazio else
           f"Conectou: PostgreSQL {t.versao}; o banco já tem exames.")
-    if args.copiar:
-        def andou(tabela, feitas, total):
-            if feitas == total:
-                print(f"  {tabela}: {total}")
-        try:
-            feito = BC.copiar(paths.database, url, andou)
-        except BC.ErroBanco as e:
-            print(f"Cópia não feita: {e}", file=sys.stderr)
-            return 1
-        print(f"Copiadas {sum(feito.values())} linhas em {len(feito)} tabelas.")
+    if args.copiar and not copiar_para(url):
+        return 1
     BC.gravar(dict(cfg, senha=senha))
     print("Gravado em", BC.arquivo(), "— vale ao abrir o Ipê (ou o servidor) de novo.")
     return 0

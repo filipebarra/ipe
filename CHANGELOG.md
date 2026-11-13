@@ -3,6 +3,20 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.36 — PostgreSQL é o banco único
+- **O banco do Ipê passa a ser sempre o PostgreSQL** que vem com o Ipê (nada a instalar). O SQLite sai: na primeira
+  abertura depois da atualização, o banco antigo é passado para o PostgreSQL com uma janela de andamento (uma vez
+  só; num banco grande, alguns minutos), com a contagem de cada tabela conferida. O arquivo antigo fica guardado como
+  `dicomviewer.sqlite.migrado`, na mesma pasta. Vale para o banco principal, para os outros locais (disco externo,
+  outra pasta: cada um com o PostgreSQL dentro da própria pasta) e para o cache do modo cliente.
+- O servidor PostgreSQL próprio continua como opção para o banco principal. A janela *Servidor de banco de dados* e a
+  linha de comando perdem a opção SQLite; o botão Copiar (e `--copiar`) copia o banco em uso para o escolhido.
+- A senha do PostgreSQL do Ipê passa a ficar com os dados (cada pasta com a sua).
+- Corrigido: com um espaço no caminho da pasta de dados (no macOS a pasta padrão tem, "Application Support") o
+  PostgreSQL do Ipê não ligava.
+- Valores vazios que o SQLite aceitava em campos obrigatórios (de bancos de versões antigas) entram com um valor
+  padrão na migração.
+
 ## 0.100.35 — PostgreSQL que vem com o Ipê
 - **Não precisa mais instalar o PostgreSQL à parte**: o Ipê traz o PostgreSQL 16 dentro do pacote (Windows, macOS e
   Linux). Em Configurações ▸ Banco de dados ▸ Servidor de banco de dados, a opção *PostgreSQL que vem com o Ipê*:

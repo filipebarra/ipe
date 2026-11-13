@@ -27,48 +27,63 @@ def env(tmp_path, monkeypatch):
     return paths, db, Repository(db)
 
 
-# 0.100.34: IPE_TEST_PG=postgresql://usuario:senha@host:5432/banco roda a suíte com o banco principal no
-# PostgreSQL — cada teste num esquema novo e vazio (os bancos de outras pastas continuam SQLite, como no programa).
+# 0.100.36: o banco é sempre PostgreSQL. Nos testes, um servidor só para a sessão inteira e um **esquema novo e
+# vazio para cada banco** (cada …/dicomviewer.sqlite de cada tmp_path) — no lugar do PostgreSQL do Ipê em <pasta>/postgres.
+#   IPE_TEST_PG=postgresql://usuario:senha@host:5432/banco   usa esse servidor;
+#   sem a variável, liga o PostgreSQL do Ipê numa pasta temporária (compartilhada pelos processos de teste).
+# Quem testa o PostgreSQL do Ipê de verdade marca `@pytest.mark.pg_de_verdade`.
 _PG = os.environ.get("IPE_TEST_PG", "").strip()
-_PG_N = [0]
+_PG_BASE: list[str] = []
+_PG_ESQUEMAS: dict[str, str] = {}
 _PG_FILA: list[str] = []
+
+
+def _pg_base() -> str:
+    if not _PG_BASE:
+        if _PG:
+            _PG_BASE.append(_PG.replace("postgresql://", "postgresql+psycopg://", 1))
+        else:
+            import tempfile
+
+            from ipe.core import pg_embutido as PE
+            pasta = Path(tempfile.gettempdir()) / f"ipe_testes_pg_{os.getuid() if hasattr(os, 'getuid') else 0}"
+            _PG_BASE.append(PE.endereco_da_pasta(pasta))
+    return _PG_BASE[0]
+
+
+def _esquema_do_banco(arquivo: Path) -> str:
+    chave = str(Path(arquivo).resolve())
+    if chave not in _PG_ESQUEMAS:
+        import uuid
+
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.pool import NullPool
+        nome = f"t_{os.getpid()}_{len(_PG_ESQUEMAS)}_{uuid.uuid4().hex[:6]}"
+        eng = create_engine(_pg_base(), poolclass=NullPool)
+        with eng.begin() as c:
+            c.execute(text(f'CREATE SCHEMA "{nome}"'))
+        eng.dispose()
+        _PG_ESQUEMAS[chave] = nome
+        _PG_FILA.append(nome)
+    return _PG_ESQUEMAS[chave]
+
+
+def url_de_teste(arquivo: Path) -> str:
+    """O endereço do banco de teste `arquivo` (…/dicomviewer.sqlite: um esquema só dele)."""
+    base = _pg_base()
+    sep = "&" if "?" in base else "?"
+    return f"{base}{sep}options=-csearch_path%3D{_esquema_do_banco(arquivo)}"
 
 
 @pytest.fixture(autouse=True)
 def _banco_postgres(request, monkeypatch):
-    if not _PG or request.node.get_closest_marker("so_sqlite"):
+    monkeypatch.setenv("IPE_DB_SEM_POOL", "1")
+    if request.node.get_closest_marker("pg_de_verdade"):
         yield
         return
-    import uuid
-
-    from sqlalchemy import create_engine, text
-    from sqlalchemy.pool import NullPool
-    nome = f"t_{os.getpid()}_{_PG_N[0]}_{uuid.uuid4().hex[:6]}"
-    _PG_N[0] += 1
-    base = _PG.replace("postgresql://", "postgresql+psycopg://", 1)
-    eng = create_engine(base, poolclass=NullPool)
-    with eng.begin() as c:
-        c.execute(text(f'CREATE SCHEMA "{nome}"'))
-    sep = "&" if "?" in _PG else "?"
-    url = f"{_PG}{sep}options=-csearch_path%3D{nome}"
-    monkeypatch.setenv("IPE_DB_SEM_POOL", "1")
-    # como num computador com o banco no PostgreSQL: vale para a primeira pasta de dados do teste; outra pasta
-    # (o "computador cliente" de um teste com servidor e cliente) continua com o seu SQLite
-    from ipe.core.config import get_paths
     from ipe.db import session as SS
-    primeira = []
-
-    def endereco():
-        dados = get_paths().data.resolve()
-        if not primeira:
-            primeira.append(dados)
-        return SS._normalizar(url) if dados == primeira[0] else ""
-    monkeypatch.setattr(SS, "endereco_configurado", endereco)
+    monkeypatch.setattr(SS, "endereco_da_pasta", lambda path: url_de_teste(Path(path)))
     yield
-    # o esquema só sai no fim da sessão (pytest_sessionfinish): uma janela de um teste (com o seu relógio) pode
-    # continuar consultando o banco depois do fim dele — no SQLite o arquivo continua lá, aqui o esquema também
-    _PG_FILA.append(nome)
-    eng.dispose()
 
 
 @pytest.fixture(autouse=True)
@@ -113,11 +128,13 @@ def _sair_sem_perguntar(request, monkeypatch):
 
 
 def pytest_sessionfinish(session, exitstatus):
-    if not (_PG and _PG_FILA):
+    # os esquemas só saem no fim: uma janela de um teste (com o seu relógio) pode continuar consultando o banco
+    # depois do fim dele
+    if not (_PG_BASE and _PG_FILA):
         return
     from sqlalchemy import create_engine, text
     from sqlalchemy.pool import NullPool
-    eng = create_engine(_PG.replace("postgresql://", "postgresql+psycopg://", 1), poolclass=NullPool)
+    eng = create_engine(_PG_BASE[0], poolclass=NullPool)
     for nome in _PG_FILA:
         try:
             with eng.begin() as c:
@@ -130,7 +147,7 @@ def pytest_sessionfinish(session, exitstatus):
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "pergunta_ao_sair: o teste confere a pergunta ao fechar o programa")
-    config.addinivalue_line("markers", "so_sqlite: o teste mexe no arquivo do banco; com IPE_TEST_PG fica no SQLite")
+    config.addinivalue_line("markers", "pg_de_verdade: o teste liga o PostgreSQL do Ipê de verdade, sem o esquema")
 
 
 @pytest.fixture(autouse=True)

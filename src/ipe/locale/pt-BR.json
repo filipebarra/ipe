@@ -6633,7 +6633,23 @@
   "banco vazio.",
   "o banco já tem exames.",
   "liga o PostgreSQL embutido numa pasta descartável e desliga",
-  "usar o PostgreSQL que vem com o Ipê, neste computador (0.100.35)"
+  "usar o PostgreSQL que vem com o Ipê, neste computador (0.100.35)",
+  "Este já é o banco em uso: nada a copiar.",
+  "Este já é o banco em uso: não há o que copiar.",
+  "Gravado. Feche e abra o Ipê para passar a usar o banco escolhido.",
+  "O banco escolhido está vazio: os exames deste computador não vão aparecer lá até serem copiados (botão Copiar). Gravar assim mesmo?",
+  "O banco não abriu",
+  "PRAGMA wal_checkpoint(TRUNCATE)",
+  "Passando o banco de dados para o PostgreSQL (uma vez só)…",
+  "PostgreSQL que vem com o Ipê, neste computador — o padrão, sem instalar nada",
+  "Preparando o banco de dados…",
+  "banco principal: o PostgreSQL do Ipê ou um servidor PostgreSQL próprio",
+  "banco.json ilegível: fica o PostgreSQL do Ipê",
+  "copiar o banco em uso (o servidor próprio) para ele",
+  "copiar o banco em uso neste computador para ele",
+  "desligar o PostgreSQL",
+  "o banco do Ipê é PostgreSQL desde a 0.100.36 (o SQLite só é lido para migrar)",
+  "usar o PostgreSQL que vem com o Ipê, neste computador (o padrão)"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8456,6 +8472,16 @@
   "o PostgreSQL embutido não ligou: {}",
   "PostgreSQL embutido: FALHOU — {}",
   "PostgreSQL embutido: ok, {}",
-  "PostgreSQL embutido: {}; "
+  "PostgreSQL embutido: {}; ",
+  "(o banco antigo {} será migrado para o PostgreSQL ao abrir o Ipê)",
+  "Banco: PostgreSQL do Ipê em {}",
+  "Banco: servidor próprio {}",
+  "Copiadas {} linhas em {} tabelas, com a contagem conferida. Clique em OK nesta janela para passar a usar este banco.",
+  "Copiar todas as informações de\n{}\npara o banco escolhido?\n\nFeche o Ipê nas outras estações antes: o que entrar durante a cópia não vai junto.",
+  "O banco de dados não abriu.\n\n{}\n\nO banco antigo (se havia) continua guardado na pasta de dados. O registro do que aconteceu está em {}.",
+  "O banco em uso não abriu: {}",
+  "Passando o banco de dados para o PostgreSQL (uma vez só)…\n{}: {} de {}",
+  "PostgreSQL do Ipê ({})",
+  "o PostgreSQL não respondeu para receber o banco antigo: {}"
  ]
 }

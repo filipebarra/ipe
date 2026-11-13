@@ -1,17 +1,18 @@
-"""Onde fica o banco principal: arquivo SQLite (padrão) ou servidor PostgreSQL (0.100.34).
+"""Onde fica o banco principal: o PostgreSQL que vem com o Ipê (padrão e, desde a 0.100.36, o banco único) ou um
+servidor PostgreSQL próprio (0.100.34). O SQLite só é lido para migrar os bancos antigos.
 
 `banco.json`, na pasta de configurações deste computador (não no settings.json: a conexão é da máquina, não da
 pessoa que entrou):
 
     {"tipo": "postgresql", "host": "localhost", "porta": 5432, "banco": "ipe", "usuario": "ipe",
      "senha": "<cifrada por core.segredos>", "ssl": "prefer"}
-    {"tipo": "embutido", "senha": "<cifrada>"}       # 0.100.35: o PostgreSQL que vem dentro do Ipê (core/pg_embutido)
+    {"tipo": "embutido"}       # o PostgreSQL que vem com o Ipê, na pasta de dados (core/pg_embutido); o padrão
 
 A variável `IPE_DATABASE_URL` (postgresql://usuario:senha@host:5432/banco) passa na frente — para servidores
 montados por roteiro.
 
-Também aqui: `testar` (conecta e diz a versão) e `copiar` (o banco SQLite inteiro para um PostgreSQL vazio, tabela a
-tabela, com a contagem conferida no fim).
+Também aqui: `testar` (conecta e diz a versão) e `copiar` (o banco inteiro — o SQLite antigo ou outro PostgreSQL —
+para um PostgreSQL vazio, tabela a tabela, com a contagem conferida no fim).
 """
 from __future__ import annotations
 
@@ -46,35 +47,34 @@ def ler(caminho: Path | None = None) -> dict:
 
 
 def gravar(cfg: dict, caminho: Path | None = None) -> Path:
-    """Grava cifrando a senha. `cfg` vazio ou tipo "sqlite" volta para o arquivo."""
+    """Grava cifrando a senha. Tipo "postgresql" (servidor próprio) ou "embutido" (o padrão; qualquer outro valor,
+    como o "sqlite" de antes da 0.100.36, vira "embutido"). A senha do embutido fica com os dados (pg_embutido)."""
     from ipe.core import segredos as SG
     p = Path(caminho) if caminho else arquivo()
     p.parent.mkdir(parents=True, exist_ok=True)
     d = dict(cfg or {})
-    emb = d.pop("senha_embutido", "") or ""                  # a senha do embutido sobrevive à troca de tipo
-    if d.get("tipo") == "embutido":
-        d = {"tipo": "embutido", "senha": SG.guardar(d.get("senha") or emb)}
-        emb = ""
-    elif d.get("tipo") != "postgresql":
-        d = {"tipo": "sqlite"}
+    if d.get("tipo") != "postgresql":
+        d = {"tipo": "embutido"}
     else:
+        d.pop("senha_embutido", None)
         d["porta"] = int(d.get("porta") or 5432)
         d["ssl"] = d.get("ssl") if d.get("ssl") in SSL_MODOS else "prefer"
         d["senha"] = SG.guardar(d.get("senha") or "")
-    if emb:
-        d["senha_embutido"] = SG.guardar(SG.abrir_ou_vazio(emb) if SG.cifrado(emb) else emb)
     tmp = p.with_suffix(".tmp")
     tmp.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
     tmp.replace(p)
     return p
 
 
+def proprio(cfg: dict | None) -> bool:
+    """O banco principal está num servidor PostgreSQL próprio (e não no que vem com o Ipê)?"""
+    return bool(cfg) and cfg.get("tipo") == "postgresql"
+
+
 def url(cfg: dict, senha: str | None = None) -> str:
-    """O endereço do SQLAlchemy, ou "" para SQLite. `senha` em claro passa na frente da gravada (teste na tela).
-    No embutido, liga o servidor (se preciso) e guarda a senha nova quando ela muda."""
-    if cfg and cfg.get("tipo") == "embutido":
-        return url_embutido(cfg)
-    if not cfg or cfg.get("tipo") != "postgresql":
+    """O endereço do servidor próprio, ou "" (o banco é o PostgreSQL que vem com o Ipê, na pasta de dados).
+    `senha` em claro passa na frente da gravada (teste na tela)."""
+    if not proprio(cfg):
         return ""
     from ipe.core import segredos as SG
     host = str(cfg.get("host") or "localhost").strip()
@@ -91,30 +91,36 @@ def url(cfg: dict, senha: str | None = None) -> str:
 
 
 def senha_embutido(caminho: Path | None = None) -> str:
-    """A senha do embutido guardada (em claro), ou "" — vale mesmo com outro tipo escolhido agora."""
+    """A senha do embutido que a 0.100.35 guardava no banco.json (agora ela fica com os dados)."""
     from ipe.core import segredos as SG
     cfg = ler(caminho)
     return SG.abrir_ou_vazio(cfg.get("senha_embutido") or (cfg.get("senha") if cfg.get("tipo") == "embutido" else "")
                              or "")
 
 
-def url_embutido(cfg: dict | None = None, caminho: Path | None = None, pasta: Path | None = None) -> str:
-    """Liga o embutido e devolve o endereço; guarda a senha quando ela muda (o tipo escolhido não muda)."""
+def url_embutido(pasta: Path | None = None) -> str:
+    """Liga o PostgreSQL que vem com o Ipê (o da pasta de dados, se não disser outra) e devolve o endereço."""
     from ipe.core import pg_embutido as PE
-    antes = senha_embutido(caminho)
-    endereco, senha = PE.garantir(antes, pasta)
-    if senha != antes:
-        atual = ler(caminho)
-        if atual.get("tipo") == "embutido":
-            gravar({"tipo": "embutido", "senha": senha}, caminho)
-        else:
-            gravar(dict(atual, senha_embutido=senha, senha=_abrir(atual.get("senha"))), caminho)
-    return endereco
+    return PE.endereco_da_pasta(Path(pasta) if pasta else PE.pasta_dos_dados())
 
 
-def _abrir(v) -> str:
-    from ipe.core import segredos as SG
-    return SG.abrir_ou_vazio(v or "")
+def origem_atual(database) -> Path | str:
+    """De onde copiar "o banco deste computador": o arquivo SQLite que ainda não foi migrado, ou o endereço do
+    PostgreSQL em uso agora (o do Ipê ou o servidor próprio)."""
+    from ipe.db.session import endereco_para, precisa_migrar
+    return Path(database) if precisa_migrar(database) else endereco_para(database)
+
+
+def mesmo_banco(a: str, b: str) -> bool:
+    from sqlalchemy.engine import make_url
+
+    from ipe.db.session import _normalizar
+    try:
+        ua, ub = make_url(_normalizar(a)), make_url(_normalizar(b))
+    except Exception:  # noqa: BLE001
+        return False
+    return (ua.host, ua.port, ua.database, dict(ua.query).get("host")) == \
+        (ub.host, ub.port, ub.database, dict(ub.query).get("host"))
 
 
 @dataclass
@@ -150,20 +156,60 @@ def testar(endereco: str, timeout: int = 8) -> Teste:
         return Teste(False, erro=(msg[0] if msg else type(e).__name__)[:300])
 
 
-def copiar(origem_sqlite: Path, destino: str, andou=None, apagar_destino: bool = False) -> dict[str, int]:
-    """Copia todas as tabelas do banco SQLite para o PostgreSQL. O destino tem que estar **vazio** (ou
-    `apagar_destino`, que esvazia as tabelas do Ipê antes). Confere a contagem de cada tabela no fim.
-    `andou(tabela, feitas, total_da_tabela)`. Devolve {tabela: linhas}."""
+def _valor_padrao(col):
+    """O valor de uma coluna NOT NULL que veio vazia do banco antigo (o SQLite aceitava): o padrão da coluna ou um
+    valor neutro pelo tipo."""
+    import datetime as _dt
+    d = col.default
+    if d is not None and getattr(d, "is_scalar", False):
+        return d.arg
+    if d is not None and getattr(d, "is_callable", False):
+        try:
+            return d.arg(None)
+        except Exception:  # noqa: BLE001
+            pass
+    try:
+        tipo = col.type.python_type
+    except NotImplementedError:
+        return ""
+    if tipo is _dt.datetime:
+        return _dt.datetime.now()
+    if tipo is _dt.date:
+        return _dt.date.today()
+    if tipo is bool:
+        return False
+    if tipo in (int, float):
+        return tipo(0)
+    if tipo in (dict, list):
+        return tipo()
+    return ""
+
+
+def _sem_nulo_proibido(t, linha: dict) -> dict:
+    for col in t.columns:
+        if linha.get(col.name) is None and not col.nullable and not col.primary_key:
+            linha[col.name] = _valor_padrao(col)
+    return linha
+
+
+def copiar(origem, destino: str, andou=None, apagar_destino: bool = False) -> dict[str, int]:
+    """Copia todas as tabelas de um banco para um PostgreSQL. `origem`: o arquivo SQLite antigo (Path) ou o endereço
+    de outro PostgreSQL (str). O destino tem que estar **vazio** (ou `apagar_destino`, que esvazia as tabelas do Ipê
+    antes). Confere a contagem de cada tabela no fim. `andou(tabela, feitas, total_da_tabela)`. Devolve
+    {tabela: linhas}."""
     from sqlalchemy import create_engine, func, select, text
     from sqlalchemy.pool import NullPool
 
     from ipe.db.models import Base
-    from ipe.db.session import Database
-    origem_sqlite = Path(origem_sqlite)
-    if not origem_sqlite.is_file():
-        raise ErroBanco(f"banco de origem não encontrado: {origem_sqlite}")
-    src = create_engine(f"sqlite:///{origem_sqlite}", poolclass=NullPool)
-    Database(f"sqlite:///{origem_sqlite}").close()          # o de origem com as colunas da versão atual
+    from ipe.db.session import Database, _normalizar, preparar_sqlite_antigo
+    if isinstance(origem, str) and "://" in origem:
+        src = create_engine(_normalizar(origem), poolclass=NullPool)
+    else:
+        origem = Path(origem)
+        if not origem.is_file():
+            raise ErroBanco(f"banco de origem não encontrado: {origem}")
+        preparar_sqlite_antigo(origem)                       # o de origem com as colunas da versão atual
+        src = create_engine(f"sqlite:///{origem}", poolclass=NullPool)
     dst_db = Database(destino)                               # cria as tabelas no PostgreSQL
     dst = dst_db.engine
     if dst.dialect.name != "postgresql":
@@ -189,7 +235,7 @@ def copiar(origem_sqlite: Path, destino: str, andou=None, apagar_destino: bool =
                 if not linhas:
                     break
                 with dst.begin() as cd:
-                    cd.execute(t.insert(), [dict(r._mapping) for r in linhas])
+                    cd.execute(t.insert(), [_sem_nulo_proibido(t, dict(r._mapping)) for r in linhas])
                 n += len(linhas)
                 if andou:
                     andou(t.name, n, total)

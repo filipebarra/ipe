@@ -28,7 +28,7 @@ on the author's requests, and it exists thanks to open-source DICOM, computing a
 ## Features
 
 ### Study database
-- Local database (SQLite): patient → study → series → image, with thumbnails and search by name, ID,
+- Database (PostgreSQL, bundled — nothing to install): patient → study → series → image, with thumbnails and search by name, ID,
   accession or description (several terms with `|`), modality and date range.
 - Import from folders, CD/DVD, ZIP and loose files, including drag and drop onto the window; in the
   background, without duplicates. Copy into storage or just reference the files. RAR, 7z and other
@@ -230,20 +230,21 @@ ipe info                               shows where the database, files and setti
 ipe set-language en                    program language: en, pt-BR or es
 ipe register-url                       registers the ipe:// and dicomviewer:// links
 ipe server                             headless central server
-ipe banco embutido --copiar           main database on the PostgreSQL that comes with Ipê
+ipe banco embutido --copiar           main database on the PostgreSQL that comes with Ipê (default)
 ipe banco postgres --host H --copiar   main database on your own PostgreSQL (and copy the current one)
 ```
 
 ## Where the data lives
 
 `ipe info` shows the paths. On Windows they are in `%LOCALAPPDATA%\DicomViewer` (the program's old
-name, kept for those who upgrade): the `dicomviewer.sqlite` database, the `Storage\` folder with the
+name, kept for those who upgrade): the `postgres\` folder with the database, the `Storage\` folder with the
 DICOM files, `Impressoes\`, `settings.json` and logs. The `IPE_HOME` environment variable (or the old
 `DICOMVIEWER_HOME`) changes the folder — useful to keep one database per research project. On macOS
 the data is in `~/Library/Application Support/DicomViewer` and the logs in `~/Library/Logs/DicomViewer`.
-The main database can live on **PostgreSQL** (Settings ▸ Database ▸ Database server), for a central server with many
-workstations or in the cloud: the one that **comes with Ipê** (0.100.35, nothing to install) or your own server. The
-images stay in the data folder.
+The database is **PostgreSQL** (since 0.100.36, the only one): the one that **comes with Ipê**, nothing to install,
+or your own server (Settings ▸ Database ▸ Database server), for a central server with many workstations or in the
+cloud. The first opening after upgrading moves the old SQLite database into it and keeps the old file as
+`dicomviewer.sqlite.migrado`. The images stay in the data folder.
 
 ## Coming from DicomViewer
 

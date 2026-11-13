@@ -27,7 +27,7 @@ y existe gracias a bibliotecas abiertas de DICOM, cálculo e IA.
 
 ## Funciones
 
-- **Base de estudios:** base local SQLite con miniaturas y búsqueda; importación de carpetas, CD/DVD,
+- **Base de estudios:** base PostgreSQL (incluida en Ipê, sin instalar nada) con miniaturas y búsqueda; importación de carpetas, CD/DVD,
   ZIP, RAR, 7z o arrastrando; varias ubicaciones; listas de casos; copias anonimizadas; corrección
   de tags que graba una copia; compresión sin pérdida con verificación píxel a píxel; PDFs e imágenes
   adjuntos; estado del estudio y del análisis; lista de trabajo con prioridad y plazo; panel de
@@ -128,10 +128,11 @@ ipe register-url                       registra los enlaces ipe:// y dicomviewer
 `ipe info` muestra las rutas. En Windows: `%LOCALAPPDATA%\DicomViewer` (el nombre anterior del
 programa, mantenido para quien actualiza). La variable `IPE_HOME` (o la antigua
 `DICOMVIEWER_HOME`) cambia la carpeta. En macOS: `~/Library/Application Support/DicomViewer` (datos) y
-`~/Library/Logs/DicomViewer` (registros). La base principal puede estar en **PostgreSQL**
-(Configuración ▸ Base de datos ▸ Servidor de base de datos), para el servidor central con muchas estaciones o en la
-nube: el que **viene con Ipê** (0.100.35, sin instalar nada) o un servidor propio. Las imágenes siguen en la carpeta
-de datos.
+`~/Library/Logs/DicomViewer` (registros). La base de datos es **PostgreSQL** (desde la
+0.100.36, la única): el que **viene con Ipê**, sin instalar nada, o un servidor propio (Configuración ▸ Base de datos ▸
+Servidor de base de datos), para el servidor central con muchas estaciones o en la nube. La primera apertura después
+de actualizar pasa la base SQLite antigua a él y guarda el archivo antiguo como `dicomviewer.sqlite.migrado`. Las
+imágenes siguen en la carpeta de datos.
 
 ## Desarrollo
 

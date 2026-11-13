@@ -29,7 +29,7 @@ do autor, e existe graças a bibliotecas abertas de DICOM, cálculo e IA.
 ## Funções
 
 ### Banco de exames
-- Banco local (SQLite): paciente → exame → série → imagem, com miniaturas e busca por nome, ID,
+- Banco de dados (PostgreSQL, que vem com o Ipê — nada a instalar): paciente → exame → série → imagem, com miniaturas e busca por nome, ID,
   accession ou descrição (vários termos com `|`), modalidade e período.
 - Importação de pastas, CD/DVD, ZIP e arquivos soltos, inclusive arrastando para a janela; em
   segundo plano, sem duplicar. Copiar para o armazenamento ou só referenciar. Também RAR, 7z e
@@ -229,20 +229,21 @@ ipe info                               mostra onde ficam banco, arquivos e confi
 ipe set-language pt-BR                 idioma do programa: en, pt-BR ou es
 ipe register-url                       registra os links ipe:// e dicomviewer://
 ipe server                             servidor central sem janela
-ipe banco embutido --copiar           banco principal no PostgreSQL que vem com o Ipê
+ipe banco embutido --copiar           banco principal no PostgreSQL que vem com o Ipê (o padrão)
 ipe banco postgres --host H --copiar   banco principal num PostgreSQL próprio (e copia o atual)
 ```
 
 ## Onde ficam os dados
 
 `ipe info` mostra os caminhos. No Windows ficam em `%LOCALAPPDATA%\DicomViewer` (o nome antigo do
-programa, mantido para quem atualiza): banco `dicomviewer.sqlite`, pasta `Storage\` com os
+programa, mantido para quem atualiza): pasta `postgres\` com o banco, pasta `Storage\` com os
 arquivos DICOM, `Impressoes\`, `settings.json` e logs. A variável de ambiente `IPE_HOME` (ou a
 antiga `DICOMVIEWER_HOME`) troca a pasta — útil para manter um banco por projeto de pesquisa. No macOS os
 dados ficam em `~/Library/Application Support/DicomViewer` e os logs em `~/Library/Logs/DicomViewer`.
-O banco principal pode ficar num **PostgreSQL** (Configurações ▸ Banco de dados ▸ Servidor de banco de dados), para o
-servidor central com muitas estações ou na nuvem: o que **vem com o Ipê** (0.100.35, sem instalar nada) ou um
-servidor próprio. As imagens continuam na pasta de dados.
+O banco é um **PostgreSQL** (desde a 0.100.36, o único): o que **vem com o Ipê**, sem instalar nada, ou um servidor
+próprio (Configurações ▸ Banco de dados ▸ Servidor de banco de dados), para o servidor central com muitas estações ou
+na nuvem. A primeira abertura depois da atualização passa o banco SQLite antigo para ele e guarda o arquivo antigo
+como `dicomviewer.sqlite.migrado`. As imagens continuam na pasta de dados.
 
 ## Para quem vem do DicomViewer
 

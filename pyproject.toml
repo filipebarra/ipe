@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ipe"
-version = "0.100.35"
+version = "0.100.36"
 description = "Ipê — visualizador DICOM para pesquisa e ensino (Windows e Linux)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,8 +15,9 @@ dependencies = [
     "pydicom>=3.0",
     "numpy>=1.26",
     "SQLAlchemy>=2.0",
-    "psycopg[binary]>=3.2",    # 0.100.34: o banco principal no PostgreSQL (opcional; o padrão continua o SQLite)
+    "psycopg[binary]>=3.2",    # o banco do Ipê é PostgreSQL (0.100.36: o único)
     "pixeltable-pgserver>=0.7",  # 0.100.35: o PostgreSQL 16 que vem dentro do Ipê (sem instalar nada à parte)
+    "fasteners",               # 0.100.36: trava entre programas (migração do banco antigo)
     "platformdirs>=4.0",
     "certifi",                 # 0.100.31: certificados das autoridades onde o sistema não entrega (pacote do macOS)
     "pylibjpeg>=2.0",

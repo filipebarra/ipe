@@ -21,7 +21,6 @@ def cache_paths(paths):
 
 def open_client_window(paths, settings, login=True):
     from ipe.db.repository import Repository
-    from ipe.db.session import Database
     from ipe.ui.login import LoginDialog
     from ipe.ui.main_window import MainWindow
     url = settings.get("central.url", "")
@@ -38,7 +37,10 @@ def open_client_window(paths, settings, login=True):
         return None
     s = dlg.session
     db_path, storage = cache_paths(paths)
-    db = Database(db_path)
+    from ipe.ui.abrir_banco import abrir
+    db = abrir(db_path)
+    if db is None:
+        return None
     repo = ClientRepository(Repository(db), client, storage, settings)
     win = MainWindow(paths, settings, auth=auth, repo=repo, db=db, storage=storage)
 

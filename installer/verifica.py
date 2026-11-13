@@ -183,29 +183,46 @@ def ida_e_volta() -> int:
     """Gera fantomas e importa, com banco novo: prova que o pacote lê e escreve DICOM.
 
     É o teste que pega o que falta de verdade num pacote — decodificador de imagem,
-    dialeto do SQLite, numpy —, coisas que só quebram quando o programa trabalha.
+    dialeto do PostgreSQL, numpy —, coisas que só quebram quando o programa trabalha.
     """
-    import os
     import tempfile
-    with tempfile.TemporaryDirectory() as tmp:
-        casa = Path(tmp) / "casa"
-        amostra = Path(tmp) / "amostra"
-        env = dict(os.environ, DICOMVIEWER_HOME=str(casa))
-        g = roda([str(CLI), "sample", str(amostra)], 600, env=env)
-        if g.returncode != 0 or not list(amostra.rglob("*.dcm")):
-            print("  Não consegui gerar os exames de teste:", g.stdout[-800:], g.stderr[-800:])
-            return 1
-        quantos = len(list(amostra.rglob("*.dcm")))
-        print(f"  {quantos} arquivos de teste gerados.")
-        i = roda([str(CLI), "import", str(amostra)], 900, env=env)
-        saida = (i.stdout or "") + (i.stderr or "")
-        if i.returncode != 0 or "com erro" not in saida:
-            print("  A importação não terminou bem:", saida[-1200:])
-            return 1
-        if "0 com erro" not in saida:
-            print("  A importação teve erros:", saida[-1200:])
-            return 1
-        print("  Importação sem erros, com banco novo.")
+    import uuid
+    # 0.100.36: não pelo mkdtemp — no Windows (Python 3.13) a pasta sai com acesso só para o dono e o initdb do
+    # PostgreSQL, que roda com os privilégios de administrador retirados, não enxerga dentro dela
+    tmp = Path(tempfile.gettempdir()) / f"ipe_verifica_{uuid.uuid4().hex[:8]}"
+    tmp.mkdir(parents=True)
+    try:
+        return _exames_de_teste(tmp)
+    finally:
+        import shutil
+        import time
+        time.sleep(3)                                   # o PostgreSQL da importação desliga ao sair
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _exames_de_teste(tmp) -> int:
+    import os
+    casa = Path(tmp) / "casa"
+    amostra = Path(tmp) / "amostra"
+    env = dict(os.environ, DICOMVIEWER_HOME=str(casa))
+    g = roda([str(CLI), "sample", str(amostra)], 600, env=env)
+    if g.returncode != 0 or not list(amostra.rglob("*.dcm")):
+        print("  Não consegui gerar os exames de teste:", g.stdout[-800:], g.stderr[-800:])
+        return 1
+    quantos = len(list(amostra.rglob("*.dcm")))
+    print(f"  {quantos} arquivos de teste gerados.")
+    i = roda([str(CLI), "import", str(amostra)], 900, env=env)
+    saida = (i.stdout or "") + (i.stderr or "")
+    if i.returncode != 0 or "com erro" not in saida:
+        print("  A importação não terminou bem:", saida[-1200:])
+        return 1
+    if "0 com erro" not in saida:
+        print("  A importação teve erros:", saida[-1200:])
+        return 1
+    if not (casa / "data" / "postgres" / "PG_VERSION").is_file():
+        print("  A importação não gravou no PostgreSQL do Ipê (sem casa/data/postgres).")
+        return 1
+    print("  Importação sem erros, com banco novo (PostgreSQL do Ipê).")
     print("Pacote conferido.")
     return 0
 

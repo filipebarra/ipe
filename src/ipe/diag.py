@@ -23,7 +23,8 @@ def teclado() -> int:
     from ipe.db.session import Database
     from ipe.ui.modo_de_uso import ModoDeUsoDialog
     app = QApplication.instance() or QApplication(sys.argv)
-    d = Path(tempfile.mkdtemp(prefix="ipe_diag_"))
+    from ipe.core.pg_embutido import pasta_temporaria
+    d = pasta_temporaria("ipe_diag_")                   # o banco (PostgreSQL) não liga numa pasta do mkdtemp
     settings = Settings(d / "settings.json")
     repo = Repository(Database(d / "diag.sqlite"))
     dlg = ModoDeUsoDialog(settings, repo, LocalAuth(repo), primeiro_uso=True)

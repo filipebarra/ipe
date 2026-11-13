@@ -268,14 +268,16 @@ def open_main_window(paths, settings):
     """Login (banco local ou servidor central) e janela principal. None = cancelado."""
     from ipe.auth.backend import LocalAuth
     from ipe.db.repository import Repository
-    from ipe.db.session import Database
     from ipe.ui.login import do_login
     from ipe.ui.main_window import MainWindow
     mode = settings.get("central.mode", "local")
     if mode == "client":
         from ipe.central.client_mode import open_client_window
         return open_client_window(paths, settings)
-    db = Database(paths.database)
+    from ipe.ui.abrir_banco import abrir
+    db = abrir(paths.database)          # 0.100.36: PostgreSQL; a primeira vez migra o SQLite antigo
+    if db is None:
+        return None
     repo = Repository(db)
     auth = LocalAuth(repo)
     # 0.99.25: primeiro uso — perguntar como o programa vai ser usado (e criar o administrador, se for o caso)

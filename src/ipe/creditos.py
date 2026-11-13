@@ -59,17 +59,20 @@ CREDITOS: tuple[Credito, ...] = (
             "MPL-2.0", "https://github.com/certifi/python-certifi", pacotes=("certifi",), modulos=("certifi",)),
     Credito("NumPy", "todas as contas com as imagens (janela, MPR, 3D, mapas, medidas)", "BSD-3-Clause",
             "https://numpy.org", pacotes=("numpy",), modulos=("numpy",)),
-    Credito("psycopg 3", "a conexão com o PostgreSQL, quando o banco principal fica num servidor PostgreSQL "
+    Credito("psycopg 3", "a conexão com o PostgreSQL, o banco de dados do Ipê "
             "(o pacote binário traz a libpq do PostgreSQL, licença PostgreSQL)", "LGPL-3.0",
             "https://www.psycopg.org/psycopg3/", pacotes=("psycopg", "psycopg-binary"), modulos=("psycopg",)),
+    Credito("fasteners", "a trava entre programas na migração do banco antigo e na preparação do PostgreSQL do Ipê",
+            "Apache-2.0", "https://github.com/harlowja/fasteners", pacotes=("fasteners",), modulos=("fasteners",)),
     Credito("pixeltable-pgserver", "o PostgreSQL que vem dentro do Ipê (liga, desliga e guarda os dados na pasta do "
             "Ipê, sem instalar nada à parte)", "Apache-2.0", "https://github.com/pixeltable/pixeltable-pgserver",
             pacotes=("pixeltable-pgserver",), modulos=("pixeltable_pgserver",)),
     Credito("PostgreSQL", "o servidor de banco de dados (o embutido, versão 16, e o próprio, quando escolhido)",
             "PostgreSQL", "https://www.postgresql.org"),
-    Credito("SQLAlchemy", "o banco de dados dos exames (SQLite ou PostgreSQL)", "MIT", "https://www.sqlalchemy.org",
+    Credito("SQLAlchemy", "o banco de dados dos exames (PostgreSQL)", "MIT", "https://www.sqlalchemy.org",
             pacotes=("SQLAlchemy",), modulos=("sqlalchemy",)),
-    Credito("SQLite", "o arquivo do banco de dados", "domínio público", "https://www.sqlite.org"),
+    Credito("SQLite", "leitura dos bancos das versões antigas, para migrar para o PostgreSQL", "domínio público",
+            "https://www.sqlite.org"),
     Credito("platformdirs", "as pastas de dados e de configuração de cada sistema", "MIT",
             "https://github.com/tox-dev/platformdirs", pacotes=("platformdirs",), modulos=("platformdirs",)),
     Credito("RapidOCR", "OCR das folhas de impressão recebidas (identificar o paciente)", "Apache-2.0",
