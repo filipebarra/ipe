@@ -21,7 +21,8 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [imagecodecs (OpenJPH)](https://github.com/cgohlke/imagecodecs) | HTJ2K sem perda na cópia de envio do visualizador web: menos bytes na rede e carga progressiva no navegador | BSD-3-Clause (OpenJPH: BSD-2-Clause) |
 | [certifi](https://github.com/certifi/python-certifi) | certificados das autoridades (lista da Mozilla) para o HTTPS onde o sistema não os entrega | MPL-2.0 |
 | [NumPy](https://numpy.org) | todas as contas com as imagens (janela, MPR, 3D, mapas, medidas) | BSD-3-Clause |
-| [SQLAlchemy](https://www.sqlalchemy.org) | o banco de dados dos exames (SQLite) | MIT |
+| [psycopg 3](https://www.psycopg.org/psycopg3/) | a conexão com o PostgreSQL, quando o banco principal fica num servidor PostgreSQL (o pacote binário traz a libpq do PostgreSQL, licença PostgreSQL) | LGPL-3.0 |
+| [SQLAlchemy](https://www.sqlalchemy.org) | o banco de dados dos exames (SQLite ou PostgreSQL) | MIT |
 | [SQLite](https://www.sqlite.org) | o arquivo do banco de dados | domínio público |
 | [platformdirs](https://github.com/tox-dev/platformdirs) | as pastas de dados e de configuração de cada sistema | MIT |
 | [RapidOCR](https://github.com/RapidAI/RapidOCR) | OCR das folhas de impressão recebidas (identificar o paciente) | Apache-2.0 |

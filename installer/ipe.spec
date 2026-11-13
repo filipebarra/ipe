@@ -57,6 +57,9 @@ hidden = collect_submodules("pydicom") + collect_submodules("pynetdicom")
 # 0.100.13: as ferramentas de IA são importadas pelo nome (`ai/ferramentas.GENERICAS`); sem isto o pacote não
 # levava enfisema, genant, aorta… e a lista de CAD/IA do navegador quebrava inteira.
 hidden += collect_submodules("ipe")
+# 0.100.34: o driver do PostgreSQL (o psycopg-binary traz a libpq dentro) e o dialeto do SQLAlchemy
+hidden += collect_submodules("psycopg") + collect_submodules("psycopg_binary") + ["sqlalchemy.dialects.postgresql",
+                                                                                   "sqlalchemy.dialects.postgresql.psycopg"]
 hidden += ["pylibjpeg", "libjpeg", "openjpeg",
            "pylibjpeg_libjpeg", "pylibjpeg_openjpeg", "jpeg_ls", "pyjpegls", "sqlalchemy.dialects.sqlite",
            "certifi"]                                # 0.100.31: HTTPS no pacote do macOS (o gancho leva o cacert.pem)

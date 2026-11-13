@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.34 — Base principal en PostgreSQL
+- La base principal puede estar en un servidor **PostgreSQL** (gratuito; Windows, macOS, Linux o nube), para el
+  servidor central con muchas estaciones o un servidor en la nube. **Configuración ▸ Base de datos ▸ Servidor de base
+  de datos**: servidor, puerto, base, usuario y contraseña (cifrada), probar la conexión y **copiar la base actual** de
+  SQLite allí, con el recuento de cada tabla verificado. SQLite sigue siendo el predeterminado; las imágenes siguen en
+  la carpeta de datos.
+- Línea de comandos: `ipe banco status | postgres … [--copiar] | sqlite`; la variable `IPE_DATABASE_URL` para
+  servidores montados por guion.
+- Toda la batería de pruebas ahora también corre contra un PostgreSQL real.
+
 ## 0.100.33 — Segmentar por la caja (MedSAM2) no montaba el modelo
 - **Segmentar por la caja (MedSAM2)** se detenía con "Cannot find primary config 'configs/sam2.1_hiera_t512.yaml'":
   el paquete de MedSAM2 se instala sin el archivo de configuración del modelo. Ipê trae ahora ese archivo y lo

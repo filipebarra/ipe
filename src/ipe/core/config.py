@@ -135,18 +135,22 @@ def publicar_pasta_do_banco(paths) -> None:
         pass
 
 
-def get_paths() -> AppPaths:
+def get_paths(criar: bool = True) -> AppPaths:
+    """Os caminhos do programa. `criar=False` (0.100.34) só calcula, sem criar pasta nenhuma — para quem só quer
+    comparar caminhos (a abertura do banco), sem tocar num disco de rede que pode estar fora do ar."""
     home = os.environ.get("IPE_HOME") or os.environ.get("DICOMVIEWER_HOME")
     if home:
         base = Path(home).expanduser().resolve()
         cfg = base / "config"
-        return AppPaths(chosen_data_dir(cfg) or (base / "data"), cfg, base / "logs").ensure()
+        p = AppPaths(chosen_data_dir(cfg) or (base / "data"), cfg, base / "logs")
+        return p.ensure() if criar else p
     cfg = Path(user_config_dir(DATA_NAME, appauthor=False))
-    return AppPaths(
+    p = AppPaths(
         chosen_data_dir(cfg) or Path(user_data_dir(DATA_NAME, appauthor=False)),
         cfg,
         Path(user_log_dir(DATA_NAME, appauthor=False)),
-    ).ensure()
+    )
+    return p.ensure() if criar else p
 
 
 # ---------------------------------------------------------------------------

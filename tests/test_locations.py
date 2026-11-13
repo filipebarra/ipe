@@ -161,6 +161,7 @@ def test_copiar_exames_para_outro_local(env, sample_dir, tmp_path, monkeypatch):
         w.close()
 
 
+@pytest.mark.so_sqlite
 def test_mudar_a_pasta_do_banco_padrao(env, sample_dir, tmp_path, monkeypatch):
     """A pasta do banco deste computador pode ser trocada, levando os arquivos junto."""
     from PySide6.QtWidgets import QMessageBox

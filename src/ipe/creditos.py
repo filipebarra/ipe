@@ -59,7 +59,10 @@ CREDITOS: tuple[Credito, ...] = (
             "MPL-2.0", "https://github.com/certifi/python-certifi", pacotes=("certifi",), modulos=("certifi",)),
     Credito("NumPy", "todas as contas com as imagens (janela, MPR, 3D, mapas, medidas)", "BSD-3-Clause",
             "https://numpy.org", pacotes=("numpy",), modulos=("numpy",)),
-    Credito("SQLAlchemy", "o banco de dados dos exames (SQLite)", "MIT", "https://www.sqlalchemy.org",
+    Credito("psycopg 3", "a conexão com o PostgreSQL, quando o banco principal fica num servidor PostgreSQL "
+            "(o pacote binário traz a libpq do PostgreSQL, licença PostgreSQL)", "LGPL-3.0",
+            "https://www.psycopg.org/psycopg3/", pacotes=("psycopg", "psycopg-binary"), modulos=("psycopg",)),
+    Credito("SQLAlchemy", "o banco de dados dos exames (SQLite ou PostgreSQL)", "MIT", "https://www.sqlalchemy.org",
             pacotes=("SQLAlchemy",), modulos=("sqlalchemy",)),
     Credito("SQLite", "o arquivo do banco de dados", "domínio público", "https://www.sqlite.org"),
     Credito("platformdirs", "as pastas de dados e de configuração de cada sistema", "MIT",

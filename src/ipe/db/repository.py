@@ -1567,7 +1567,8 @@ class Repository:
                         func.count(Instance.id))
                  .join(Study, Series.study_fk == Study.id)
                  .join(Instance, Instance.series_fk == Series.id)
-                 .group_by(Series.id).limit(max(1, limite)))
+                 # 0.100.34: e o exame — o PostgreSQL não deixa mostrar study_uid agrupando só pela série
+                 .group_by(Series.id, Study.id).limit(max(1, limite)))
             if modalidades:
                 q = q.where(Series.modality.in_(list(modalidades)))
             return [{"series_uid": su, "study_uid": st, "modalidade": mod or "",

@@ -1020,7 +1020,20 @@ A aba **Histórico** mostra o que cada regra fez e quando.
 
 ## Servidor central (intranet)
 
-**Configurações ▸ Rede ▸ Servidor central…** põe uma instalação no papel de servidor, com login e banco compartilhado; as outras entram como cliente. É para um grupo pequeno na mesma rede — o banco é SQLite.
+**Configurações ▸ Rede ▸ Servidor central…** põe uma instalação no papel de servidor, com login e banco compartilhado; as outras entram como cliente. O banco é um arquivo SQLite, bom para um grupo pequeno na mesma rede; com muitas estações, ou com o servidor na nuvem, ponha o banco num **PostgreSQL** (a seguir).
+
+### Banco no PostgreSQL (0.100.34)
+
+O banco principal pode ficar num servidor **PostgreSQL** em vez do arquivo SQLite. O PostgreSQL é gratuito, inclusive para uso comercial, e roda em Windows, macOS e Linux (ou pronto, como serviço, em qualquer nuvem). Vale para o servidor central com muitas estações e para um servidor na nuvem; quem usa sozinho não precisa: o SQLite continua o padrão.
+
+1. Instale o PostgreSQL (postgresql.org) e crie um usuário e um banco vazio para o Ipê — por exemplo, no `psql`: `CREATE USER ipe PASSWORD '…'; CREATE DATABASE ipe OWNER ipe;`.
+2. No computador do banco principal (o servidor central): **Configurações ▸ Banco de dados ▸ Servidor de banco de dados (PostgreSQL)…**. Marque *Servidor PostgreSQL*, preencha servidor, porta (5432), banco, usuário e senha e clique em **Testar a conexão**.
+3. Para levar o que já existe: **Copiar o banco deste computador para lá…** copia tudo do SQLite (pacientes, exames, medidas, laudos, listas, usuários, configurações do serviço), tabela a tabela, e confere a contagem de cada uma no fim. O banco de destino tem que estar vazio. Feche o Ipê nas outras estações antes.
+4. **OK** e abra o Ipê de novo: a janela de configuração passa a mostrar *Em uso agora: PostgreSQL usuário@servidor:5432/ipe*.
+
+As **imagens continuam na pasta de dados** (Storage): só as informações do banco vão para o PostgreSQL. A senha fica cifrada neste computador (`banco.json`, na pasta de configurações). Para voltar, marque *Arquivo neste computador (SQLite)*: o arquivo antigo continua lá, como estava antes da cópia.
+
+No servidor sem janela, o mesmo pela linha de comando: `ipe banco postgres --host 10.0.0.2 --banco ipe --usuario ipe --copiar` (pergunta a senha), `ipe banco status` e `ipe banco sqlite`. A variável `IPE_DATABASE_URL` (`postgresql://usuário:senha@servidor:5432/ipe`) passa na frente do que estiver configurado — para servidores montados por roteiro.
 
 ![Configurações ▸ Rede ▸ Servidor central: o modo deste computador (local, servidor ou cliente).](config_servidor_central.png){65}
 

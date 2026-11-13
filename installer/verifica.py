@@ -98,7 +98,30 @@ def main() -> int:
             print(f"  Falta no pacote: {'/'.join(rel)} — sem ele a segmentação de órgãos não roda/instala.")
             return 1
     print("  Segmentação de órgãos: trabalhador e instalador no pacote.")
+    for rel in (("ipe", "ai", "medsam2_sam2.1_hiera_t512.yaml"),):              # 0.100.33
+        if not ((pasta / "_internal").joinpath(*rel).exists() or pasta.joinpath(*rel).exists()):
+            print(f"  Falta no pacote: {'/'.join(rel)} — o MedSAM2 não montaria o modelo.")
+            return 1
+    if postgres() != 0:
+        return 1
     return ida_e_volta()
+
+
+def postgres() -> int:
+    """0.100.34: o driver do PostgreSQL (psycopg + libpq) foi junto? O pacote tenta um servidor que não existe: a
+    resposta tem que ser "não conectou" (o driver carregou), não "módulo não encontrado"."""
+    import os
+    amb = dict(os.environ, IPE_DATABASE_URL="postgresql://ipe:x@127.0.0.1:1/ipe")
+    r = roda([str(CLI), "banco", "status"], 120, env=amb)
+    saida = (r.stdout or "") + (r.stderr or "")
+    falta = ("No module named" in saida or "libpq" in saida.lower() and "not found" in saida.lower()
+             or "no pq wrapper" in saida.lower() or "ImportError" in saida)
+    if falta or "FALHOU" not in saida and "FAILED" not in saida:
+        print("  O driver do PostgreSQL não carregou no pacote:")
+        print(saida[-2000:])
+        return 1
+    print("  PostgreSQL: o driver carregou (a conexão de teste foi recusada, como devia).")
+    return 0
 
 
 def versao_do_codigo() -> str:

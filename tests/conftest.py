@@ -27,6 +27,50 @@ def env(tmp_path, monkeypatch):
     return paths, db, Repository(db)
 
 
+# 0.100.34: IPE_TEST_PG=postgresql://usuario:senha@host:5432/banco roda a suíte com o banco principal no
+# PostgreSQL — cada teste num esquema novo e vazio (os bancos de outras pastas continuam SQLite, como no programa).
+_PG = os.environ.get("IPE_TEST_PG", "").strip()
+_PG_N = [0]
+_PG_FILA: list[str] = []
+
+
+@pytest.fixture(autouse=True)
+def _banco_postgres(request, monkeypatch):
+    if not _PG or request.node.get_closest_marker("so_sqlite"):
+        yield
+        return
+    import uuid
+
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.pool import NullPool
+    nome = f"t_{os.getpid()}_{_PG_N[0]}_{uuid.uuid4().hex[:6]}"
+    _PG_N[0] += 1
+    base = _PG.replace("postgresql://", "postgresql+psycopg://", 1)
+    eng = create_engine(base, poolclass=NullPool)
+    with eng.begin() as c:
+        c.execute(text(f'CREATE SCHEMA "{nome}"'))
+    sep = "&" if "?" in _PG else "?"
+    url = f"{_PG}{sep}options=-csearch_path%3D{nome}"
+    monkeypatch.setenv("IPE_DB_SEM_POOL", "1")
+    # como num computador com o banco no PostgreSQL: vale para a primeira pasta de dados do teste; outra pasta
+    # (o "computador cliente" de um teste com servidor e cliente) continua com o seu SQLite
+    from ipe.core.config import get_paths
+    from ipe.db import session as SS
+    primeira = []
+
+    def endereco():
+        dados = get_paths().data.resolve()
+        if not primeira:
+            primeira.append(dados)
+        return SS._normalizar(url) if dados == primeira[0] else ""
+    monkeypatch.setattr(SS, "endereco_configurado", endereco)
+    yield
+    # o esquema só sai no fim da sessão (pytest_sessionfinish): uma janela de um teste (com o seu relógio) pode
+    # continuar consultando o banco depois do fim dele — no SQLite o arquivo continua lá, aqui o esquema também
+    _PG_FILA.append(nome)
+    eng.dispose()
+
+
 @pytest.fixture(autouse=True)
 def _sem_github(monkeypatch):
     """0.99.70: a janela não procura versão nova no GitHub durante os testes."""
@@ -68,8 +112,25 @@ def _sair_sem_perguntar(request, monkeypatch):
     monkeypatch.setattr(MainWindow, "_confirmar_saida", lambda self: True)
 
 
+def pytest_sessionfinish(session, exitstatus):
+    if not (_PG and _PG_FILA):
+        return
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.pool import NullPool
+    eng = create_engine(_PG.replace("postgresql://", "postgresql+psycopg://", 1), poolclass=NullPool)
+    for nome in _PG_FILA:
+        try:
+            with eng.begin() as c:
+                c.execute(text("SET lock_timeout = '5s'"))
+                c.execute(text(f'DROP SCHEMA "{nome}" CASCADE'))
+        except Exception:  # noqa: BLE001 - uma conexão ainda presa: o esquema fica
+            pass
+    eng.dispose()
+
+
 def pytest_configure(config):
     config.addinivalue_line("markers", "pergunta_ao_sair: o teste confere a pergunta ao fechar o programa")
+    config.addinivalue_line("markers", "so_sqlite: o teste mexe no arquivo do banco; com IPE_TEST_PG fica no SQLite")
 
 
 @pytest.fixture(autouse=True)

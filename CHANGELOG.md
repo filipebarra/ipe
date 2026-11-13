@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.34 — Banco principal no PostgreSQL
+- O banco principal pode ficar num servidor **PostgreSQL** (gratuito; Windows, macOS, Linux ou nuvem), para o servidor
+  central com muitas estações ou um servidor na nuvem. **Configurações ▸ Banco de dados ▸ Servidor de banco de
+  dados**: servidor, porta, banco, usuário e senha (cifrada), testar a conexão e **copiar o banco atual** do SQLite
+  para lá, com a contagem de cada tabela conferida. O SQLite continua o padrão; as imagens continuam na pasta de dados.
+- Linha de comando: `ipe banco status | postgres … [--copiar] | sqlite`; a variável `IPE_DATABASE_URL` para servidores
+  montados por roteiro.
+- A suíte de testes inteira passou a rodar também contra um PostgreSQL de verdade.
+
 ## 0.100.33 — Segmentar pela caixa (MedSAM2) não montava o modelo
 - **Segmentar pela caixa (MedSAM2)** parava com "Cannot find primary config 'configs/sam2.1_hiera_t512.yaml'": o
   pacote do MedSAM2 é instalado sem o arquivo de configuração do modelo. O Ipê passa a trazer esse arquivo e o põe

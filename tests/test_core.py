@@ -134,7 +134,6 @@ def test_comments(env, sample_dir):
 def test_operators_column_and_backfill(env, sample_dir):
     """(0008,1070) Operators' Name, estação e aparelho: gravados na importação e completados
     em bancos antigos (colunas criadas sozinhas)."""
-    import sqlite3
     from ipe.db.repository import Repository
     from ipe.db.session import Database
     from ipe.importer.backfill import backfill_series_details
@@ -145,13 +144,12 @@ def test_operators_column_and_backfill(env, sample_dir):
     assert rows["ACC2001"].operators == "Técnica, Maria; Técnico, João"
     assert rows["ACC1001"].operators == "Técnica, Maria" and rows["ACC1001"].station == "CT01"
     assert rows["ACC1001"].device == "Fantoma Modelo CT"
-    # banco "antigo": sem as colunas novas
+    # banco "antigo": sem as colunas novas (pela conexão do próprio banco: vale no SQLite e no PostgreSQL, 0.100.34)
+    from sqlalchemy import text
+    with db.engine.begin() as con:
+        for col in ("operators", "station", "device"):
+            con.execute(text(f"ALTER TABLE series DROP COLUMN {col}"))
     db.engine.dispose()
-    con = sqlite3.connect(paths.database)
-    for col in ("operators", "station", "device"):
-        con.execute(f"ALTER TABLE series DROP COLUMN {col}")
-    con.commit()
-    con.close()
     db2 = Database(paths.database)               # recria as colunas (vazias)
     repo2 = Repository(db2)
     assert {r.accession: r for r in repo2.search_studies()}["ACC1001"].operators == ""

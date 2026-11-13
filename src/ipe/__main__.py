@@ -72,7 +72,67 @@ def _parser() -> argparse.ArgumentParser:
     dd = sub.add_parser("set-data-dir", help="pasta do banco deste computador (usado pelo instalador, 0.99.67)")
     dd.add_argument("folder")
     sub.add_parser("info", help="mostrar caminhos")
+    # 0.100.34: o banco principal no PostgreSQL (servidor sem janela, montado por roteiro)
+    bc = sub.add_parser("banco", help="banco principal: SQLite (arquivo) ou PostgreSQL")
+    bsub = bc.add_subparsers(dest="banco_cmd", required=True)
+    bsub.add_parser("status", help="qual banco está em uso")
+    bp = bsub.add_parser("postgres", help="usar um servidor PostgreSQL (pergunta a senha)")
+    bp.add_argument("--host", default="localhost")
+    bp.add_argument("--porta", type=int, default=5432)
+    bp.add_argument("--banco", default="ipe")
+    bp.add_argument("--usuario", default="ipe")
+    bp.add_argument("--ssl", default="prefer", choices=["disable", "prefer", "require", "verify-full"])
+    bp.add_argument("--copiar", action="store_true", help="copiar o banco SQLite deste computador para ele")
+    bsub.add_parser("sqlite", help="voltar para o arquivo SQLite deste computador")
     return p
+
+
+def _cmd_banco(args) -> int:
+    """`ipe-cli banco status | postgres … [--copiar] | sqlite` (0.100.34)."""
+    import getpass
+    import os
+
+    from ipe.core import banco_config as BC
+    from ipe.core.config import get_paths
+    from ipe.db.session import endereco_configurado, mascarar
+    paths = get_paths()
+    if args.banco_cmd == "status":
+        url = endereco_configurado()
+        print(f"Banco: {mascarar(url) if url else paths.database}")
+        if os.environ.get("IPE_DATABASE_URL"):
+            print("(pela variável IPE_DATABASE_URL, que passa na frente do banco.json)")
+        if url:
+            t = BC.testar(url)
+            print(f"Conexão: ok, PostgreSQL {t.versao}" if t.ok else f"Conexão: FALHOU — {t.erro}")
+            return 0 if t.ok else 1
+        return 0
+    if args.banco_cmd == "sqlite":
+        BC.gravar({"tipo": "sqlite"})
+        print(f"Banco: arquivo {paths.database} (vale ao abrir o Ipê de novo)")
+        return 0
+    cfg = {"tipo": "postgresql", "host": args.host, "porta": args.porta, "banco": args.banco,
+           "usuario": args.usuario, "ssl": args.ssl}
+    senha = os.environ.get("IPE_DB_SENHA") or getpass.getpass(f"Senha de {args.usuario} no PostgreSQL: ")
+    url = BC.url(cfg, senha)
+    t = BC.testar(url)
+    if not t.ok:
+        print(f"Não conectou: {t.erro}", file=sys.stderr)
+        return 1
+    print(f"Conectou: PostgreSQL {t.versao}; banco vazio." if t.vazio else
+          f"Conectou: PostgreSQL {t.versao}; o banco já tem exames.")
+    if args.copiar:
+        def andou(tabela, feitas, total):
+            if feitas == total:
+                print(f"  {tabela}: {total}")
+        try:
+            feito = BC.copiar(paths.database, url, andou)
+        except BC.ErroBanco as e:
+            print(f"Cópia não feita: {e}", file=sys.stderr)
+            return 1
+        print(f"Copiadas {sum(feito.values())} linhas em {len(feito)} tabelas.")
+    BC.gravar(dict(cfg, senha=senha))
+    print("Gravado em", BC.arquivo(), "— vale ao abrir o Ipê (ou o servidor) de novo.")
+    return 0
 
 
 def _e_link(texto: str) -> bool:
@@ -195,6 +255,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{len(files)} arquivos gerados em {args.folder}")
         return 0
 
+    if args.cmd == "banco":
+        return _cmd_banco(args)
+
     if args.cmd == "info":
         from ipe import __version__
         from ipe.core.config import get_paths
@@ -202,7 +265,8 @@ def main(argv: list[str] | None = None) -> int:
         # A versão vem primeiro de propósito: é o jeito de saber **qual** instalação é esta
         # quando há mais de um pacote gerado na pasta dist.
         print(f"Versão:        {__version__}")
-        print(f"Banco:         {p.database}\nArmazenamento: {p.storage}\n"
+        from ipe.db.session import endereco_configurado, mascarar
+        print(f"Banco:         {mascarar(endereco_configurado()) or p.database}\nArmazenamento: {p.storage}\n"
               f"Configurações: {p.settings_file}\nLogs:          {p.logs}")
         return 0
 

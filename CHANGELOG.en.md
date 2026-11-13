@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.34 — Main database on PostgreSQL
+- The main database can live on a **PostgreSQL** server (free; Windows, macOS, Linux or cloud), for a central server
+  with many workstations or a server in the cloud. **Settings ▸ Database ▸ Database server**: host, port, database,
+  user and password (encrypted), test the connection and **copy the current database** from SQLite to it, with each
+  table's count checked. SQLite remains the default; the images stay in the data folder.
+- Command line: `ipe banco status | postgres … [--copiar] | sqlite`; the `IPE_DATABASE_URL` variable for scripted
+  servers.
+- The whole test suite now also runs against a real PostgreSQL.
+
 ## 0.100.33 — Segment from a box (MedSAM2) could not build the model
 - **Segment from a box (MedSAM2)** stopped with "Cannot find primary config 'configs/sam2.1_hiera_t512.yaml'": the
   MedSAM2 package is installed without the model configuration file. Ipê now ships that file and puts it in place

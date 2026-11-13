@@ -1044,6 +1044,11 @@ class MainWindow(QMainWindow):
                 log.exception("registrar a abertura do exame pessoal")
         return dono
 
+    def abrir_banco_postgres(self) -> bool:
+        """Configurações ▸ Banco de dados ▸ Servidor de banco de dados (PostgreSQL) — 0.100.34."""
+        from ipe.ui.banco_dialog import BancoDialog
+        return bool(BancoDialog(self, self.paths, getattr(self, "db", None)).exec())
+
     def abrir_modo_de_uso(self) -> bool:
         """Configurações ▸ Usuários ▸ Modo de uso (0.99.25)."""
         from ipe.auth import session as S

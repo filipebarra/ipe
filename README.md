@@ -230,6 +230,7 @@ ipe info                               shows where the database, files and setti
 ipe set-language en                    program language: en, pt-BR or es
 ipe register-url                       registers the ipe:// and dicomviewer:// links
 ipe server                             headless central server
+ipe banco postgres --host H --copiar   main database on PostgreSQL (and copy the current one)
 ```
 
 ## Where the data lives
@@ -239,6 +240,8 @@ name, kept for those who upgrade): the `dicomviewer.sqlite` database, the `Stora
 DICOM files, `Impressoes\`, `settings.json` and logs. The `IPE_HOME` environment variable (or the old
 `DICOMVIEWER_HOME`) changes the folder — useful to keep one database per research project. On macOS
 the data is in `~/Library/Application Support/DicomViewer` and the logs in `~/Library/Logs/DicomViewer`.
+The main database can live on a **PostgreSQL** server (0.100.34: Settings ▸ Database ▸ Database server), for a central
+server with many workstations or in the cloud; the images stay in the data folder.
 
 ## Coming from DicomViewer
 
