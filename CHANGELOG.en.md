@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.42 — Code organization, part three (no change in use)
+- **The image viewport and the main window were split too**, with the same function names. `viewport.py` (3,900
+  lines) is down to 1,200; the rest went to viewport drawing, mouse and keyboard, menus and mammography.
+  `main_window.py` (4,200) is down to 2,900; the rest went to the Prints tab, databases and server, the ultrasound
+  automatic film and attached documents. Nothing changes on screen; the test that checks that no function is hidden by
+  another now also covers these two.
+
 ## 0.100.41 — Code organization, part two (no change in use)
 - **The viewer was split into four more files**, with the same function names: MPR and planes (`mpr_aba.py`),
   fusion and PET reading (`fusao_aba.py`), mammography and step protocols (`mamografia_aba.py`), and the AI tools and

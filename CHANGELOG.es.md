@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.42 — Organización del código, tercera parte (sin cambios de uso)
+- **El cuadro de imagen y la ventana principal también se dividieron**, con los mismos nombres de función.
+  `viewport.py` (3900 líneas) quedó con 1200; el resto pasó al dibujo del cuadro, el mouse y el teclado, los menús y la
+  mamografía. `main_window.py` (4200) quedó con 2900; el resto pasó a la pestaña Impresiones, las bases y el servidor,
+  la película automática de la ecografía y los documentos adjuntos. Nada cambia en pantalla; la prueba que verifica
+  que ninguna función quede oculta por otra ahora revisa también estas dos partes.
+
 ## 0.100.41 — Organización del código, segunda parte (sin cambios de uso)
 - **El visor se dividió en cuatro archivos más**, con los mismos nombres de función: MPR y planos (`mpr_aba.py`),
   fusión y lectura PET (`fusao_aba.py`), mamografía y protocolos por etapas (`mamografia_aba.py`) y las herramientas
