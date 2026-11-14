@@ -437,7 +437,8 @@ def _draw(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por ícone
 _APPS_IA = {"app_nodulos": True, "app_enfisema": True, "app_composicao": True, "app_figado": True,
             "app_orgaos": True, "app_genant": True, "app_linfonodos": True, "app_cefalometria": True,
             "app_indices": True, "app_difusao": False, "app_figado_lesoes": True,
-            "app_autopet": True, "app_brats": True, "app_flames": True, "app_medula": True, "app_carga_pet": True, "app_calcio": True, "app_aorta": True}
+            "app_autopet": True, "app_brats": True, "app_flames": True, "app_medula": True, "app_carga_pet": True, "app_calcio": True, "app_aorta": True,
+            "app_densidade": True}
 
 
 def _pulmoes(p: QPainter) -> None:
@@ -696,6 +697,17 @@ def _draw_app(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por aplic
         p.drawLine(P(8, 58), P(56, 58))
         for x in (8, 20, 32, 44, 56):
             p.drawLine(P(x, 58), P(x, 53))
+    elif name == "app_densidade":       # a mama de perfil (MLO) com manchas de tecido denso
+        p.setPen(_pen(FG, 3.5))
+        mama = QPainterPath()
+        mama.moveTo(14, 6)
+        mama.cubicTo(52, 10, 58, 46, 14, 58)
+        p.drawPath(mama)
+        p.drawLine(P(14, 6), P(14, 58))
+        p.setPen(Qt.NoPen)
+        p.setBrush(ACCENT)
+        for x, y, w, h in ((20, 20, 12, 9), (26, 32, 14, 10), (19, 42, 10, 7)):
+            p.drawEllipse(QRectF(x, y, w, h))
     elif name == "app_difusao":         # três setas saindo de um ponto
         p.setPen(_pen(ACCENT, 4))
         cx, cy = 22.0, 40.0

@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.43 — Breast density review
+- **Review density (exam queue)**: in *File*, on the mammography bar and in the AI button ▸ Density. Build the queue
+  by period, and each mammogram opens in the viewer with the program's two suggestions (NYU network and % area). You
+  confirm or correct with one key (A–D or 1–4; N = not assessable) and the next exam opens. In part of the exams
+  (10%, adjustable) the suggestion only appears after your answer, as a control. Below, each method's agreement with
+  you (weighted kappa, exact agreement, dense × non-dense), and the CSV with everything. The review is stored in the
+  database, one per exam and reviewer.
+- **Density in the AI button list** for mammography exams: measure on the images on screen and the review queue.
+
 ## 0.100.42 — Code organization, part three (no change in use)
 - **The image viewport and the main window were split too**, with the same function names. `viewport.py` (3,900
   lines) is down to 1,200; the rest went to viewport drawing, mouse and keyboard, menus and mammography.

@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.43 — Revisión de la densidad mamaria
+- **Revisar la densidad (cola de exámenes)**: en *Archivo*, en la barra de mamografía y en el botón IA ▸ Densidad.
+  Arme la cola por período, y cada mamografía se abre en el visor con las dos sugerencias del programa (red de la
+  NYU y % de área). Usted confirma o corrige con una tecla (A–D o 1–4; N = no evaluable) y se abre el examen
+  siguiente. En parte de los exámenes (10 %, ajustable) la sugerencia solo aparece después de la respuesta, como
+  control. Abajo, la concordancia de cada método con usted (kappa ponderado, acuerdo exacto, denso × no denso), y el
+  CSV con todo. La revisión queda en la base, una por examen y por revisor.
+- **Densidad en la lista del botón IA** en los exámenes de mamografía: medir en las imágenes de la pantalla y la
+  cola de revisión.
+
 ## 0.100.42 — Organización del código, tercera parte (sin cambios de uso)
 - **El cuadro de imagen y la ventana principal también se dividieron**, con los mismos nombres de función.
   `viewport.py` (3900 líneas) quedó con 1200; el resto pasó al dibujo del cuadro, el mouse y el teclado, los menús y la

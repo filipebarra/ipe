@@ -281,6 +281,7 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
             (None, None, None),
             ("Relatório do acervo (formato e compressão)…", self.open_acervo_report, None),
             ("Densidade mamária das imagens na tela…", self.open_densidade, None),
+            ("Revisar a densidade mamária (fila de exames)…", self.abrir_revisao_densidade, None),
             (None, None, None),
             ("Sair", self.quit_app, "Ctrl+Q"),
         ):

@@ -413,6 +413,14 @@ class MamografiaMixin:
         from ipe.ui.densidade_dialog import DensidadeDialog
         DensidadeDialog(self, self).exec()
 
+    def revisar_densidade(self):
+        """0.100.43: a fila de revisão da densidade (abre os exames nas abas da janela principal)."""
+        main = self._janela_principal()
+        if main is None:
+            return None
+        from ipe.ui import densidade_revisao
+        return densidade_revisao.abrir(main)
+
     def mg_set_implant(self, on: bool) -> None:
         """Implante "apagado" em todos os quadros de mamografia (ou no ativo, fora do protocolo)."""
         self.mg_implant = on

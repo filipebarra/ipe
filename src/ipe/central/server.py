@@ -213,6 +213,20 @@ class CentralServer:
                 dados = args[1] if len(args) > 1 else kwargs.get("dados", {})
                 return self.repo.salvar_estado(uid, dados, s.username)
             return getattr(self.repo, method)(uid, s.username)
+        if method in ("salvar_revisao_densidade", "revisoes_densidade"):
+            # 0.100.43: o revisor é sempre o da sessão; ver as de todos pede a permissão de usuários
+            if not s.can("view"):
+                raise PermissionError("seu perfil não permite (view)")
+            if method == "revisoes_densidade":
+                todos = bool(kwargs.get("todos") or (len(args) > 1 and args[1]))
+                if todos and not s.can("users"):
+                    raise PermissionError("ver as revisões de todos pede a permissão de usuários")
+                return self.repo.revisoes_densidade(s.username, todos=todos)
+            uid = str(args[0] if args else kwargs.get("study_uid", "") or "")
+            if uid and not self.pode_ver(s, uid):
+                raise PermissionError("o exame está no banco pessoal de outro usuário")
+            dados = args[1] if len(args) > 1 else kwargs.get("dados", {})
+            return self.repo.salvar_revisao_densidade(uid, dados, s.username)
         if method == "atualizacoes_todas":
             return self.atualizacoes.todas()
         if method in ("atualizacao_promover", "atualizacao_retirar"):

@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 from ipe.db.models import (
     AeIdentity, AnnotationRecord, AuditLog, AutomationRule, CaseList, DeletionLog, Diagnosis, JobRun, CaseListItem, Comment, Instance, KeyImage, Patient, Series, Study,
     DicomNode, PrintJobRecord, PrintSendRecord, SavedFilm, SeriesGroup, StudyRegistration, User, AppSetting, Lesion, LesionTrack, Report,
-    RevisaoIA, AchadoIA, BuscaAtiva, EstadoAnalise,
+    RevisaoIA, AchadoIA, BuscaAtiva, EstadoAnalise, RevisaoDensidade,
 )
 from ipe.db.session import Database
 
@@ -2565,6 +2565,52 @@ class Repository:
                  .order_by(EstadoAnalise.study_date.desc(), EstadoAnalise.atualizado_em.desc()))
             return [{"study_uid": e.study_uid, "study_date": e.study_date, "modalidades": e.modalidades}
                     for e in s.scalars(q)]
+
+    # ------------------------------------------------------------------ revisão da densidade (0.100.43)
+    def salvar_revisao_densidade(self, study_uid: str, dados: dict, usuario: str = "") -> int:
+        """Grava (ou troca) a revisão do exame por este revisor. `dados`: categoria, controle, nyu, nyu_probs,
+        area_pd, area, aparelho, avisos."""
+        import json
+        d = dict(dados or {})
+        with self.db.session() as s:
+            r = s.scalar(select(RevisaoDensidade).where(RevisaoDensidade.study_uid == study_uid,
+                                                        RevisaoDensidade.usuario == (usuario or "")))
+            if r is None:
+                r = RevisaoDensidade(study_uid=study_uid, usuario=usuario or "")
+                s.add(r)
+            st = s.scalar(select(Study).where(Study.study_uid == study_uid))
+            r.study_date = (st.study_date if st is not None else "") or ""
+            r.categoria = str(d.get("categoria") or "")[:1]
+            r.controle = bool(d.get("controle"))
+            r.nyu = str(d.get("nyu") or "")[:1]
+            r.nyu_probs = json.dumps([float(x) for x in (d.get("nyu_probs") or [])][:4])
+            r.area_pd = None if d.get("area_pd") is None else float(d["area_pd"])
+            r.area = str(d.get("area") or "")[:1]
+            r.aparelho = str(d.get("aparelho") or "")[:128]
+            r.avisos = "\n".join(str(x) for x in (d.get("avisos") or []))
+            r.quando = datetime.now()
+            s.flush()
+            return r.id
+
+    def revisoes_densidade(self, usuario: str = "", todos: bool = False) -> list[dict]:
+        """As revisões do revisor (ou de todos), da mais antiga à mais nova."""
+        import json
+        with self.db.session() as s:
+            q = select(RevisaoDensidade).order_by(RevisaoDensidade.quando)
+            if not todos:
+                q = q.where(RevisaoDensidade.usuario == (usuario or ""))
+            out = []
+            for r in s.scalars(q):
+                try:
+                    probs = json.loads(r.nyu_probs or "[]")
+                except ValueError:
+                    probs = []
+                out.append({"study_uid": r.study_uid, "usuario": r.usuario, "study_date": r.study_date,
+                            "aparelho": r.aparelho, "categoria": r.categoria, "controle": bool(r.controle),
+                            "nyu": r.nyu, "nyu_probs": probs, "area_pd": r.area_pd, "area": r.area,
+                            "avisos": [x for x in (r.avisos or "").split("\n") if x],
+                            "quando": r.quando.strftime("%Y-%m-%d %H:%M") if r.quando else ""})
+            return out
 
     def report_counts(self, study_uids: list[str]) -> dict[str, str]:
         """Estado do laudo por estudo: "final" se houver assinado, senão "draft"."""

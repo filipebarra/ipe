@@ -1192,6 +1192,18 @@ class BarraMixin:
         dwi.setIcon(icon("app_difusao"))
         dwi.setIconText("Difusão")
         self._button(tb, dwi, None, app="difusao")
+        # densidade mamária (0.100.43): medir nas imagens da tela e a fila de revisão
+        menu_den = self._menu()
+        a_med = QAction("Medir a densidade nas imagens da tela (rede da NYU e % de área)…", self)
+        a_med.triggered.connect(self.mg_densidade)
+        menu_den.addAction(a_med)
+        a_rev = QAction("Revisar a densidade (fila de exames: o programa sugere, você confirma)…", self)
+        a_rev.triggered.connect(self.revisar_densidade)
+        menu_den.addAction(a_rev)
+        den = self._act("densidade.medir", "Densidade mamária nas imagens da tela", self.mg_densidade)
+        den.setIcon(icon("app_densidade"))
+        den.setIconText("Densidade")
+        self._button(tb, den, menu_den, app="densidade")
         self._montar_bloco_de_aplicacoes(tb)
         self._button(tb, self._plain("Mais", "more", "Mais opções"), more, instant=True)
 

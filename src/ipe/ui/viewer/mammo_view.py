@@ -502,6 +502,11 @@ class MgBar(QToolBar):
                      "programa; a categoria do BI-RADS é do radiologista.")
         a.triggered.connect(lambda: tab.mg_densidade())
         self.addAction(a)
+        a = QAction("Revisar densidade…", self)
+        a.setToolTip("Fila de mamografias: o programa sugere a densidade (rede da NYU e % de área) e você "
+                     "confirma ou corrige; no fim, a concordância (0.100.43)")
+        a.triggered.connect(lambda: tab.revisar_densidade())
+        self.addAction(a)
         self.addSeparator()
         a = QAction("✕", self)
         a.setToolTip("Sair do protocolo de mamografia")

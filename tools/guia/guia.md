@@ -567,11 +567,25 @@ Este capítulo reúne o que o programa faz de específico para mama — a parte 
 
 ## Densidade mamária
 
-**Arquivo ▸ Densidade mamária das imagens na tela…**, ou o botão **Densidade…** da barra de mamografia. O item do menu só aparece com exame aberto: a densidade é medida no que está nos quadros, não no exame inteiro.
+**Arquivo ▸ Densidade mamária das imagens na tela…**, o botão **Densidade…** da barra de mamografia, ou, desde a 0.100.43, a lista do botão **IA** num exame de mamografia ▸ **Densidade**. O item do menu só aparece com exame aberto: a densidade é medida no que está nos quadros, não no exame inteiro.
 
 Três métodos aparecem lado a lado, com a máscara desenhada sobre a imagem. Os dois primeiros (limiar de Otsu e FCM) concordam quase perfeitamente entre si: isso é precisão, não acerto. O terceiro é uma rede neural em ONNX.
 
 > **O que falta para o número entrar no laudo:** a leitura cega — comparar a medida do programa com a sua categoria, sem você ver o número antes. Enquanto isso não for feito, trate o valor como orientação, não como laudo.
+
+### Revisar a densidade (fila de exames)
+
+**Arquivo ▸ Revisar a densidade mamária (fila de exames)…**, **Revisar densidade…** na barra de mamografia, ou IA ▸ Densidade ▸ *Revisar a densidade*. É o jeito de saber, nos seus exames e nos seus aparelhos, se a sugestão do programa serve.
+
+1. Escolha o período e clique **Montar a fila**: entram as mamografias do banco nesse período (com *Só os que eu ainda não revisei*, as que você ainda não revisou), a mais recente primeiro.
+2. Cada exame abre numa aba do visualizador, e a janela mostra as duas sugestões: a **rede da NYU** (categoria A–D, com a confiança) e o **% de área** (o valor do exame, que é o da mama mais densa, a faixa de referência e o valor de cada mama). Embaixo, o aparelho e os avisos (incidência faltando, prótese).
+3. Responda com um clique ou uma tecla: **A**, **B**, **C**, **D** (ou **1** a **4**), **N** para não avaliável. A resposta é gravada e o próximo exame abre. **→** pula, **←** volta (o botão da resposta dada fica marcado). Com *Fechar o exame anterior ao passar*, a aba de cada exame fecha quando você segue.
+4. **Controle**: em parte dos exames (10% de fábrica, ajustável) a sugestão só aparece depois da sua resposta. Quem revisa com a resposta à vista tende a concordar com ela; os exames de controle medem quanto.
+5. Embaixo, a **concordância** até agora, para cada método: kappa ponderado, acerto exato e denso (C/D) × não denso (A/B), no total e nos exames de controle. **Exportar CSV…** leva tudo, exame por exame, com as probabilidades da rede.
+
+*Ver o % de área com a máscara…* abre a janela de densidade no exame da vez, para ver de onde saiu o número.
+
+A revisão fica no banco (no servidor central, quando você usa um), uma por exame e por revisor: rever o mesmo exame troca a resposta. É com essas revisões que, mais adiante, o % de área pode ser calibrado para os seus aparelhos.
 
 ## RM de mama dinâmica
 

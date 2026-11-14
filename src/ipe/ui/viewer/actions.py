@@ -127,6 +127,7 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("linfonodos.auto", "Mapa dos níveis linfonodais (IA)", "Medidas"),
     ("abdome.auto", "Segmentar órgãos abdominais (IA)", "Medidas"),
     ("difusao.abrir", "Difusão: ADC, DWI sintética e ADC na ROI", "Medidas"),
+    ("densidade.medir", "Densidade mamária nas imagens da tela", "Mamografia"),
     ("nodulos.auto", "Nódulos pulmonares (IA)", "Medidas"),
     ("composicao.auto", "Composição corporal em L3 e esteatose (IA)", "Medidas"),
     ("figado_rm.auto", "Gordura e ferro hepáticos na RM (IA)", "Medidas"),

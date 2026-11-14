@@ -376,6 +376,27 @@ class EstadoAnalise(Base):
     atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
 
+class RevisaoDensidade(Base):
+    """A densidade mamária que o radiologista confirmou ou corrigiu (0.100.43), com as sugestões que o programa
+    deu naquele exame — a rede da NYU e o % de área —, o aparelho e se era exame de controle (sugestão escondida
+    até a resposta). Uma por exame e por revisor; rever o exame substitui."""
+    __tablename__ = "revisao_densidade"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    study_uid: Mapped[str] = mapped_column(String(64), index=True)
+    usuario: Mapped[str] = mapped_column(String(64), default="", index=True)
+    study_date: Mapped[str] = mapped_column(String(8), default="")
+    aparelho: Mapped[str] = mapped_column(String(128), default="")
+    categoria: Mapped[str] = mapped_column(String(1), default="")       # a, b, c, d, x (não avaliável)
+    controle: Mapped[bool] = mapped_column(Boolean, default=False)
+    nyu: Mapped[str] = mapped_column(String(1), default="")
+    nyu_probs: Mapped[str] = mapped_column(String(128), default="")     # JSON [pa, pb, pc, pd]
+    area_pd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    area: Mapped[str] = mapped_column(String(1), default="")
+    avisos: Mapped[str] = mapped_column(Text, default="")
+    quando: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    __table_args__ = (UniqueConstraint("study_uid", "usuario"),)
+
+
 class SeriesGroup(Base):
     """Séries agrupadas pelo usuário (ex.: fases de uma RM dinâmica, uma série por fase)."""
     __tablename__ = "series_group"

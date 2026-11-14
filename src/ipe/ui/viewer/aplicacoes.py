@@ -225,6 +225,9 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
     Aplicacao("abdome", "Órgãos abdominais", frozenset({"CT", "MR"}),
               ((frozenset({"abdome", "pelve"}), frozenset()),),
               descricao="Segmentação dos órgãos abdominais (IA): máscaras e tabela de volumes no exame"),
+    # 0.100.43: densidade mamária — medir nas imagens da tela e a fila de revisão (o médico confirma ou corrige)
+    Aplicacao("densidade", "Densidade", frozenset({"MG"}),
+              descricao="Densidade mamária: rede da NYU e % de área nas imagens da tela, e a revisão em fila"),
     Aplicacao("cefalometria", "Cefalometria", frozenset({"CT"}),
               ((frozenset({"face", "pescoco"}), frozenset()),),
               descricao="Cefalometria do cavum: via aérea, palato mole, língua e hioide (automática ou à mão)"),
@@ -232,7 +235,7 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
 
 #: 0.100.37: as aplicações de IA, que a barra junta num botão só ("IA", uma lista como a das medidas)
 IA = frozenset({"linfonodos", "nodulos", "composicao", "figado_rm", "enfisema", "genant", "figado_lesoes",
-                "autopet", "aorta", "calcio", "brats", "medula", "flames", "abdome"})
+                "autopet", "aorta", "calcio", "brats", "medula", "flames", "abdome", "densidade"})
 CHAVE_IA_AGRUPADA = "viewer.ia_agrupada"
 
 

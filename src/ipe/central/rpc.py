@@ -65,6 +65,8 @@ RPC_METHODS: dict[str, str] = {
     "atualizacao_retirar": "users",
     # 0.99.58: estado salvo da análise (o usuário vem da sessão, no próprio servidor)
     "salvar_estado": "view", "estado": "view", "esquecer_estado": "view", "estados_anteriores": "view",
+    # 0.100.43: revisão da densidade mamária (o revisor é sempre o da sessão)
+    "salvar_revisao_densidade": "view", "revisoes_densidade": "view",
 }
 
 # 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame
