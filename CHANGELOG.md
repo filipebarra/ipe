@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.41 — Organização do código, segunda parte (sem mudança de uso)
+- **O visualizador foi dividido em mais quatro arquivos**, com os mesmos nomes de função: MPR e planos
+  (`mpr_aba.py`), fusão e leitura PET (`fusao_aba.py`), mamografia e protocolos em etapas (`mamografia_aba.py`) e as
+  ferramentas de IA e Estruturas (`ia_aba.py`). O `viewer_tab.py` caiu de 6,6 mil (na 0.100.38) para 3 mil linhas.
+  Nada muda na tela; o teste que confere que nenhuma função fica escondida por outra de mesmo nome passou a olhar
+  todas as partes.
+
 ## 0.100.40 — Letra das anotações na barra; o pincel abre as Estruturas
 - **Letra das anotações maior ou menor sem ir às configurações**: na setinha do botão **Anot.**, *Letra maior*,
   *Letra menor* (de 10 em 10%, de 60 a 250%) e *Letra no tamanho normal*, para o texto dos cantos (paciente, série,

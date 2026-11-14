@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.41 — Code organization, part two (no change in use)
+- **The viewer was split into four more files**, with the same function names: MPR and planes (`mpr_aba.py`),
+  fusion and PET reading (`fusao_aba.py`), mammography and step protocols (`mamografia_aba.py`), and the AI tools and
+  Structures (`ia_aba.py`). `viewer_tab.py` went from 6,600 lines (in 0.100.38) to 3,000. Nothing changes on screen;
+  the test that checks that no function is hidden by another with the same name now looks at every part.
+
 ## 0.100.40 — Annotation text size on the toolbar; the brush opens Structures
 - **Larger or smaller annotation text without going to settings**: in the **Annot.** button's arrow, *Larger text*,
   *Smaller text* (in 10% steps, from 60 to 250%) and *Normal text size*, for the corner text (patient, series, window,
