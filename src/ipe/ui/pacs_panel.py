@@ -15,7 +15,8 @@ from ipe.network import nodes as NODES
 from ipe.network.service import STATUS_TEXT, Job, NetworkService
 from ipe.ui.tabelas import colunas_ajustaveis
 
-ALL_NODES = -1
+# 0.100.45: era -1, que é o id do nó 1 do servidor no cliente (os nós do servidor têm id negativo)
+ALL_NODES = "todos"
 STUDY_COLS = ["Paciente", "ID", "Nascimento", "Data", "Mod.", "Descrição", "Accession", "Séries",
               "Imagens", "Nó", "No computador"]
 PERIODS = [("Hoje", 0), ("Ontem e hoje", 1), ("Últimos 7 dias", 7), ("Últimos 30 dias", 30),
@@ -75,9 +76,15 @@ class PacsPanel(QWidget):
         btn_cfg.clicked.connect(self.configure_requested.emit)
 
         row1 = QHBoxLayout()
-        for lab, w in (("Nó:", self.node), ("Como:", self.identity)):
-            row1.addWidget(QLabel(lab))
+        self.lbl_como = QLabel("Como:")
+        for lab, w in ((QLabel("Nó:"), self.node), (self.lbl_como, self.identity)):
+            row1.addWidget(lab)
             row1.addWidget(w)
+        self.lbl_servidor = QLabel("Pelo servidor: ele busca e baixa com o AE dele, e o exame vai para o banco do "
+                                   "servidor.")
+        self.lbl_servidor.setStyleSheet("color:gray")
+        self.lbl_servidor.setVisible(False)
+        row1.addWidget(self.lbl_servidor)
         row1.addStretch(1)
         row1.addWidget(btn_cfg)
         row2 = QHBoxLayout()
@@ -160,10 +167,16 @@ class PacsPanel(QWidget):
         else:
             self.search()
 
-    def refresh_nodes(self) -> None:
+    def refresh_nodes(self, recarregar: bool = False) -> None:
         cur = self.node.currentData()
         self.node.blockSignals(True)
         self.node.clear()
+        pelo_servidor = hasattr(self.repo, "nos_do_servidor")
+        if pelo_servidor and recarregar:
+            try:
+                self.repo.nos_do_servidor(recarregar=True)     # 0.100.45: a lista do servidor, fresca
+            except Exception:  # noqa: BLE001
+                pass
         nodes = [n for n in self.repo.nodes(only_active=True) if n["kind"] in NODES.CONSULTA]
         if len([n for n in nodes if n["use_in_search"]]) > 1:
             self.node.addItem("Todos os nós de busca", ALL_NODES)
@@ -173,7 +186,13 @@ class PacsPanel(QWidget):
             else:
                 self.node.addItem(f"{n['name']}  ({n['ae_title']}@{n['host']})", n["id"])
         if not nodes:
-            self.node.addItem("(nenhum nó cadastrado — clique em Configurar nós…)", None)
+            erro = self.repo.erro_dos_nos_do_servidor() if hasattr(self.repo, "erro_dos_nos_do_servidor") else ""
+            if erro:
+                self.node.addItem(f"(o servidor não mandou a lista de nós: {erro})", None)
+            elif pelo_servidor:
+                self.node.addItem("(nenhum nó: no servidor, marque “Compartilhar com os clientes” no nó DICOM)", None)
+            else:
+                self.node.addItem("(nenhum nó cadastrado — clique em Configurar nós…)", None)
         i = self.node.findData(cur)
         self.node.setCurrentIndex(max(0, i))
         self.node.blockSignals(False)
@@ -181,8 +200,16 @@ class PacsPanel(QWidget):
 
     def _fill_identities(self) -> None:
         self.identity.clear()
-        self.identity.addItem(f"Este programa ({self.net.local_ae})", None)
         node = self._single_node()
+        # 0.100.45: pelo servidor, quem fala com o PACS é o servidor (com o AE dele) e o exame vai para o banco dele:
+        # escolher o AE deste computador não faz sentido, então o "Como" some e a tela diz o que acontece
+        servidor = bool(node and node.get("kind") == "servidor")
+        self.identity.setVisible(not servidor)
+        self.lbl_como.setVisible(not servidor)
+        self.lbl_servidor.setVisible(servidor)
+        if servidor:
+            return
+        self.identity.addItem(f"Este programa ({self.net.local_ae})", None)
         idents = self.net.identities_for(node) if node else self.repo.identities()
         for i in idents:
             self.identity.addItem(f"{i['name']} ({i['ae_title']})", i["id"])

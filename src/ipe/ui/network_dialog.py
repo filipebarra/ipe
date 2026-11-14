@@ -154,6 +154,8 @@ class NodeDialog(QDialog):
         # 0.99.26: quem vê este nó (todos, só eu, eu e escolhidos)
         from ipe.ui.visivel_para import VisivelPara
         self.visivel = VisivelPara(node, repo, settings, self)
+        self.visivel.setToolTip("Quais usuários DESTE programa usam o nó. Para o Ipê cliente e o Ipê Web buscarem "
+                                "por ele, marque “Compartilhar com os clientes” em Usos.")
         f.addRow("Visível para:", self.visivel)
         if not self.visivel.isVisibleTo(self) and settings is not None:
             f.labelForField(self.visivel).setVisible(False)

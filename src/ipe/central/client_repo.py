@@ -87,6 +87,7 @@ class ClientRepository:
         if cache is not None and not recarregar and time.time() - cache[0] < 60:
             return [dict(n) for n in cache[1]]
         out = []
+        self._nos_srv_erro = ""
         try:
             r = self.client.rpc("pacs_nos") or {}
             for n in r.get("nos") or []:
@@ -99,8 +100,16 @@ class ClientRepository:
                             "auth": "basic", "baixar": bool(r.get("baixar", True))})
         except Exception as e:  # noqa: BLE001 - servidor antigo, sem permissão, fora do ar
             log.info("nós do servidor: %s", e)
+            # 0.100.45: a falha não fica guardada (antes, uma falha passageira deixava a lista vazia até trocar de
+            # local); a próxima pergunta tenta de novo, e a janela do PACS mostra o motivo
+            self._nos_srv_erro = str(e)
+            self.__dict__.pop("_nos_srv", None)
+            return []
         self._nos_srv = (time.time(), out)
         return [dict(n) for n in out]
+
+    def erro_dos_nos_do_servidor(self) -> str:
+        return str(self.__dict__.get("_nos_srv_erro", "") or "")
 
     def nodes(self, only_active: bool = False, todos: bool = False, gerenciar: bool = False) -> list[dict]:
         """Os nós deste computador e, para buscar e baixar, os que o servidor compartilha. A tela de configuração

@@ -41,8 +41,15 @@ class Medidor(QThread):
             if self.stop.is_set():
                 self.pronto.emit(self.uid, None, "interrompida")
                 return
-            R.guardar_medida(self.repo, self.uid, m)
-            self.pronto.emit(self.uid, R.guardada(self.repo, self.uid) or m, "")
+            try:
+                R.guardar_medida(self.repo, self.uid, m)
+                m = R.guardada(self.repo, self.uid) or m
+            except Exception as e:  # noqa: BLE001 - 0.100.45: não guardar não pode esconder a medida
+                log.info("densidade: não guardei a medida: %s", e)
+                m.setdefault("avisos", []).append(
+                    f"A medida não foi guardada no exame ({e}). Num servidor central, atualize o servidor para a "
+                    "mesma versão deste computador.")
+            self.pronto.emit(self.uid, m, "")
         except Exception as e:  # noqa: BLE001
             log.debug("densidade do exame", exc_info=True)
             self.pronto.emit(self.uid, None, str(e))

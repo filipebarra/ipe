@@ -250,3 +250,23 @@ def test_janela_do_exame(env, tmp_path, monkeypatch):
     d2 = J.DensidadeExameJanela(aba)
     assert d2.medidor is None and d2.categoria() == "d"
     d2.close()
+
+
+def test_medida_aparece_mesmo_sem_guardar(env, tmp_path, monkeypatch):
+    """0.100.45: servidor antigo recusa guardar ("método não permitido"): a medida aparece, com o aviso."""
+    from ipe.ai import densidade_nyu as N
+    from ipe.ui import densidade_exame as J
+    _paths, _db, repo = env
+    monkeypatch.setattr(N, "disponivel", lambda dados=None: (False, "sem o modelo"))
+    arquivos = _exame(tmp_path)
+    monkeypatch.setattr(repo, "files_for_study", lambda uid, series_uids=None: arquivos, raising=False)
+
+    def recusa(*a, **k):
+        raise PermissionError("método não permitido: salvar_revisao_ia")
+    monkeypatch.setattr(repo, "salvar_revisao_ia", recusa, raising=False)
+    saiu = {}
+    t = J.Medidor(repo, "8.8")
+    t.pronto.connect(lambda u, m, e: saiu.update(m=m, e=e))
+    t.run()
+    assert saiu["e"] == "" and saiu["m"]["area_pd"] is not None
+    assert any("atualize o servidor" in a for a in saiu["m"]["avisos"])

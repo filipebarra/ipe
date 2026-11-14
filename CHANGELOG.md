@@ -3,6 +3,19 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.45 — Os nós do servidor na janela do PACS do cliente
+- **O nó compartilhado pelo servidor não aparecia no cliente** quando a primeira pergunta ao servidor falhava (a
+  lista ficava vazia até trocar de local). Agora a lista é pedida de novo cada vez que a janela do PACS abre, a
+  falha não fica guardada, e a lista diz o motivo quando está vazia (o servidor não compartilha nenhum nó, ou não
+  respondeu).
+- **O nó 1 do servidor era confundido com "Todos os nós de busca"** na janela do PACS do cliente. Corrigido.
+- Com um nó do servidor escolhido, o campo **Como** some: quem busca e baixa é o servidor, com o AE dele, e o exame
+  vai para o banco do servidor (a janela diz isso).
+- No cadastro do nó, a dica de *Visível para* explica que é para os usuários do próprio programa; para os clientes,
+  vale *Compartilhar com os clientes*.
+- **Densidade**: quando o exame não pode ser guardado (servidor central numa versão anterior), a medida aparece
+  mesmo assim, com o aviso para atualizar o servidor.
+
 ## 0.100.44 — O botão Densidade
 - **Botão Densidade** nos exames de mamografia (fora da lista de IA): *Medir em segundo plano* (mede as quatro
   incidências e guarda no exame, sem abrir janela) e *Medir e revisar* (mostra o que já foi medido ou mede na hora).

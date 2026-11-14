@@ -201,3 +201,43 @@ def test_pelo_navegador(servidor):
         pg.wait_for_selector(".quadro canvas")
         b.close()
     assert not erros, erros
+
+
+def test_janela_do_pacs_no_cliente(servidor, tmp_path):
+    """0.100.45: na janela do PACS do cliente, o nó do servidor aparece (a lista é pedida de novo ao abrir), o
+    "Como" some para ele, e uma falha passageira não deixa a lista vazia para sempre."""
+    from ipe.central.client_repo import ClientRepository
+    from ipe.central.remote import RemoteClient
+    from ipe.core.config import Settings
+    from ipe.db.repository import Repository
+    from ipe.db.session import Database
+    from ipe.network.service import NetworkService
+    from ipe.ui.pacs_panel import PacsPanel
+    cli = RemoteClient(f"http://127.0.0.1:{servidor.port}")
+    cli.login("med", "medic123")
+    cache = Database(tmp_path / "cache" / "cache.sqlite")
+    repo = ClientRepository(Repository(cache), cli, tmp_path / "cache" / "Storage")
+    net = NetworkService(cache, repo, tmp_path / "cache" / "Storage", Settings(tmp_path / "c.json"))
+    try:
+        p = PacsPanel(net, repo)
+        assert "Compartilhar com os clientes" in p.node.itemText(0)          # nada compartilhado ainda
+        _compartilhar(servidor)
+        p.refresh_nodes(recarregar=True)
+        assert p.node.itemText(0) == "PACS (pelo servidor)" and p.node.currentData() == -servidor.no
+        assert p._single_node()["kind"] == "servidor", p._single_node()
+        assert p.identity.isHidden() and not p.lbl_servidor.isHidden()
+        # o servidor falha uma vez: a falha aparece e não fica guardada
+        real = cli.rpc
+
+        def falha(m, *a, **k):
+            if m == "pacs_nos":
+                raise RuntimeError("caiu")
+            return real(m, *a, **k)
+        cli.rpc = falha
+        p.refresh_nodes(recarregar=True)
+        assert "caiu" in p.node.itemText(0)
+        cli.rpc = real
+        p.refresh_nodes()
+        assert p.node.itemText(0) == "PACS (pelo servidor)"
+    finally:
+        net.shutdown()

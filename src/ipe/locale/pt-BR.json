@@ -6765,7 +6765,10 @@
   "confirmar densidade",
   "densidade do exame",
   "densidade guardada",
-  "densidade no laudo BI-RADS"
+  "densidade no laudo BI-RADS",
+  "(nenhum nó: no servidor, marque “Compartilhar com os clientes” no nó DICOM)",
+  "Pelo servidor: ele busca e baixa com o AE dele, e o exame vai para o banco do servidor.",
+  "Quais usuários DESTE programa usam o nó. Para o Ipê cliente e o Ipê Web buscarem por ele, marque “Compartilhar com os clientes” em Usos."
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8631,6 +8634,8 @@
   "fuzzy {}% ({})",
   "{} <b>{}%</b>",
   "{}: {}% → {} {}",
-  "{}: —"
+  "{}: —",
+  "(o servidor não mandou a lista de nós: {})",
+  "A medida não foi guardada no exame ({}). Num servidor central, atualize o servidor para a mesma versão deste computador."
  ]
 }

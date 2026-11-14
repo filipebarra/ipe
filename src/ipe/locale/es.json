@@ -9125,5 +9125,10 @@
  "fuzzy {}% ({})": "fuzzy {}% ({})",
  "{} <b>{}%</b>": "{} <b>{}%</b>",
  "{}: {}% → {} {}": "{}: {}% → {} {}",
- "{}: —": "{}: —"
+ "{}: —": "{}: —",
+ "(nenhum nó: no servidor, marque “Compartilhar com os clientes” no nó DICOM)": "(ningún nodo: en el servidor, marque “Compartir con los clientes” en el nodo DICOM)",
+ "Pelo servidor: ele busca e baixa com o AE dele, e o exame vai para o banco do servidor.": "Por el servidor: él busca y descarga con su AE, y el examen va a la base del servidor.",
+ "Quais usuários DESTE programa usam o nó. Para o Ipê cliente e o Ipê Web buscarem por ele, marque “Compartilhar com os clientes” em Usos.": "Qué usuarios de ESTE programa usan el nodo. Para que el Ipê cliente y el Ipê Web busquen por él, marque “Compartir con los clientes” en Usos.",
+ "(o servidor não mandou a lista de nós: {})": "(el servidor no envió la lista de nodos: {})",
+ "A medida não foi guardada no exame ({}). Num servidor central, atualize o servidor para a mesma versão deste computador.": "La medida no se guardó en el examen ({}). Con un servidor central, actualice el servidor a la misma versión de esta computadora."
 }

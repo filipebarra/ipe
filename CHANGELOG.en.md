@@ -3,6 +3,18 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.45 — Server nodes in the client's PACS window
+- **The node shared by the server did not appear in the client** when the first request to the server failed (the
+  list stayed empty until switching location). Now the list is requested again every time the PACS window opens,
+  the failure is not kept, and the list says why when it is empty (the server shares no node, or did not answer).
+- **Server node 1 was mistaken for "All query nodes"** in the client's PACS window. Fixed.
+- With a server node chosen, the **As** field disappears: the server queries and retrieves, with its own AE, and the
+  exam goes to the server's database (the window says so).
+- In the node setup, the *Visible to* tip explains it is for the program's own users; for clients, *Share with
+  clients* is what counts.
+- **Density**: when the exam cannot be saved (central server on an older version), the measurement still shows,
+  with a warning to update the server.
+
 ## 0.100.44 — The Density button
 - **Density button** on mammography exams (outside the AI list): *Measure in the background* (measures the four
   views and saves them in the exam, without opening a window) and *Measure and review* (shows what was already

@@ -3,6 +3,20 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.45 — Los nodos del servidor en la ventana PACS del cliente
+- **El nodo compartido por el servidor no aparecía en el cliente** cuando la primera consulta al servidor fallaba
+  (la lista quedaba vacía hasta cambiar de ubicación). Ahora la lista se pide de nuevo cada vez que se abre la
+  ventana PACS, la falla no se guarda, y la lista dice el motivo cuando está vacía (el servidor no comparte ningún
+  nodo, o no respondió).
+- **El nodo 1 del servidor se confundía con "Todos los nodos de búsqueda"** en la ventana PACS del cliente.
+  Corregido.
+- Con un nodo del servidor elegido, el campo **Como** desaparece: quien busca y descarga es el servidor, con su AE,
+  y el examen va a la base del servidor (la ventana lo dice).
+- En el registro del nodo, la ayuda de *Visible para* explica que es para los usuarios del propio programa; para
+  los clientes, vale *Compartir con los clientes*.
+- **Densidad**: cuando el examen no se puede guardar (servidor central en una versión anterior), la medida aparece
+  igual, con el aviso para actualizar el servidor.
+
 ## 0.100.44 — El botón Densidad
 - **Botón Densidad** en los exámenes de mamografía (fuera de la lista de IA): *Medir en segundo plano* (mide las
   cuatro proyecciones y las guarda en el examen, sin abrir ventana) y *Medir y revisar* (muestra lo que ya se midió o

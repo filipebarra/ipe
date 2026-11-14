@@ -811,6 +811,7 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
             return
         if not S.require("query", self):
             return
+        self.pacs.refresh_nodes(recarregar=True)        # 0.100.45: os nós que o servidor compartilha, frescos
         self.pacs_window.show_front()
 
     # ------------------------------------------------------------ usuário e permissões
