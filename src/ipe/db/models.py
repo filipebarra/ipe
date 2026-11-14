@@ -392,6 +392,8 @@ class RevisaoDensidade(Base):
     nyu_probs: Mapped[str] = mapped_column(String(128), default="")     # JSON [pa, pb, pc, pd]
     area_pd: Mapped[float | None] = mapped_column(Float, nullable=True)
     area: Mapped[str] = mapped_column(String(1), default="")
+    fcm_pd: Mapped[float | None] = mapped_column(Float, nullable=True)     # 0.100.44: o % de área pelo fuzzy
+    fcm: Mapped[str] = mapped_column(String(1), default="")
     avisos: Mapped[str] = mapped_column(Text, default="")
     quando: Mapped[datetime] = mapped_column(DateTime, default=_now)
     __table_args__ = (UniqueConstraint("study_uid", "usuario"),)

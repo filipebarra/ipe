@@ -497,10 +497,9 @@ class MgBar(QToolBar):
         a.triggered.connect(lambda: tab.abrir_marcadores_mama())
         self.addAction(a)
         a = QAction("Densidade…", self)
-        a.setToolTip("Mede quanto da mama é tecido fibroglandular (PD%) nas imagens que estiverem "
-                     "nos quadros da tela, e deixa ver a máscara por cima delas. O número é do "
-                     "programa; a categoria do BI-RADS é do radiologista.")
-        a.triggered.connect(lambda: tab.mg_densidade())
+        a.setToolTip("Densidade mamária do exame (0.100.44): a rede da NYU e o % de área (Otsu e fuzzy) das "
+                     "quatro incidências; você confirma a categoria e pode mandá-la ao laudo. Fica salvo no exame.")
+        a.triggered.connect(lambda: tab.densidade_do_exame())
         self.addAction(a)
         a = QAction("Revisar densidade…", self)
         a.setToolTip("Fila de mamografias: o programa sugere a densidade (rede da NYU e % de área) e você "

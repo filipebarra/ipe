@@ -24,7 +24,12 @@ CATEGORIAS = ("a", "b", "c", "d")
 NAO_AVALIAVEL = "x"
 NOMES = {"a": "A — quase toda gordurosa", "b": "B — áreas esparsas de tecido fibroglandular",
          "c": "C — heterogeneamente densa", "d": "D — extremamente densa", "x": "Não avaliável"}
-METODOS = {"nyu": "Rede (NYU)", "area": "% de área"}
+#: "area" é o % de área pelo limiar de Otsu; "fcm", pelo agrupamento nebuloso (fuzzy) — 0.100.44: os dois ficam à
+#: vista por enquanto, ao lado da rede, para decidir depois qual fica
+METODOS = {"nyu": "Rede (NYU)", "area": "% de área (Otsu)", "fcm": "% de área (fuzzy)"}
+#: onde a medida do exame fica guardada (tabela revisao_ia, um registro por exame)
+MODULO = "densidade"
+VERSAO = 2
 #: fração dos exames com a sugestão escondida até a resposta (o controle do viés de ancoragem)
 CONTROLE_PADRAO = 0.10
 
@@ -102,18 +107,32 @@ def escolher_vistas(cabecalhos: list[dict]) -> tuple[dict, str, list[str]]:
 def sugerir(vistas: dict, dados=None, stop=None) -> dict:
     """As sugestões dos dois métodos para o exame. Cada um falha sozinho, com o motivo, sem derrubar o outro."""
     from ipe.imaging import density as D
-    out: dict = {"nyu": None, "nyu_probs": [], "nyu_aviso": "", "area_pd": None, "area": None,
-                 "area_por_mama": {}, "avisos": []}
+    out: dict = {"versao": VERSAO, "nyu": None, "nyu_probs": [], "nyu_aviso": "", "area_pd": None, "area": None,
+                 "area_por_mama": {}, "fcm_pd": None, "fcm": None, "fcm_por_mama": {}, "imagens": [], "avisos": []}
     caminhos = list(dict.fromkeys(vistas.values()))
     if caminhos:
         try:
-            medidas = D.medir_imagens(caminhos, stop=stop, metodos=(D.LIMIAR,))
+            medidas = D.medir_imagens(caminhos, stop=stop, metodos=(D.LIMIAR, D.FCM))
             boas = [m for m in medidas if m.mama_cm2 > 0]
             if boas:
                 out["area_pd"] = round(D.do_exame(boas), 1)
                 out["area"] = D.faixa_de(out["area_pd"])
                 out["area_por_mama"] = {k: round(v, 1) for k, v in D.por_mama(boas).items()}
+                fcm = {}
+                for lado in ("R", "L"):
+                    vals = [m.medidas[D.FCM].pd for m in boas if m.lado == lado and D.FCM in m.medidas]
+                    if vals:
+                        fcm[lado] = round(sum(vals) / len(vals), 1)
+                if fcm:
+                    out["fcm_por_mama"] = fcm
+                    out["fcm_pd"] = max(fcm.values())          # como no Otsu: a mama mais densa
+                    out["fcm"] = D.faixa_de(out["fcm_pd"])
             for m in medidas:
+                out["imagens"].append({
+                    "lado": m.lado, "incidencia": m.incidencia, "mama_cm2": round(m.mama_cm2, 1),
+                    "otsu": round(m.pd, 1) if m.mama_cm2 > 0 else None,
+                    "fcm": round(m.medidas[D.FCM].pd, 1) if D.FCM in m.medidas and m.mama_cm2 > 0 else None,
+                    "espessura_mm": round(m.espessura_mm, 1) if m.espessura_mm else None})
                 out["avisos"].extend(a for a in m.avisos if a not in out["avisos"])
         except Exception as e:  # noqa: BLE001
             log.debug("revisão de densidade: %% de área", exc_info=True)
@@ -138,6 +157,84 @@ def sugerir(vistas: dict, dados=None, stop=None) -> dict:
         log.debug("revisão de densidade: rede", exc_info=True)
         out["nyu_aviso"] = f"A rede falhou: {e}"
     return out
+
+
+def medir_exame(repo, study_uid: str, dados=None, stop=None) -> dict:
+    """Mede o exame inteiro (as quatro incidências 2D dele), não só o que está na tela: no cliente do servidor
+    central, baixa o exame antes. Devolve a medida pronta para guardar."""
+    import time
+    if hasattr(repo, "is_cached") and not repo.is_cached(study_uid):
+        repo.download(study_uid)
+    arquivos = [f for f in repo.files_for_study(study_uid) if f]
+    vistas, aparelho, avisos = escolher_vistas([cabecalho(f) for f in arquivos])
+    if not vistas:
+        s = {"versao": VERSAO, "nyu": None, "nyu_probs": [], "nyu_aviso": "", "area_pd": None, "area": None,
+             "fcm_pd": None, "fcm": None, "imagens": [],
+             "avisos": avisos + ["Nenhuma incidência de mamografia 2D com lado e incidência no exame."]}
+    else:
+        s = sugerir(vistas, dados, stop)
+        s["avisos"] = avisos + s.get("avisos", [])
+    s["aparelho"] = aparelho
+    s["quando"] = time.strftime("%Y-%m-%d %H:%M")
+    return s
+
+
+def guardada(repo, study_uid: str) -> dict | None:
+    """A medida guardada do exame (e, se houver, a confirmação: "categoria", "revisor", "estado")."""
+    import json
+    try:
+        r = repo.revisao_ia(study_uid, MODULO)
+    except Exception:  # noqa: BLE001
+        log.debug("densidade guardada", exc_info=True)
+        return None
+    if not r or not r.get("dados"):
+        return None
+    try:
+        d = json.loads(r["dados"])
+    except ValueError:
+        return None
+    d["estado"] = r.get("estado") or "auto"
+    if r.get("usuario"):
+        d["revisor"] = r["usuario"]
+    q = r.get("quando")
+    if q is not None and not isinstance(q, str):
+        q = q.strftime("%Y-%m-%d %H:%M")
+    d["confirmado_em"] = q if d["estado"] != "auto" else ""
+    return d
+
+
+def guardar_medida(repo, study_uid: str, medida: dict) -> None:
+    """Guarda a medida nova. Uma confirmação que já existia continua valendo (a categoria é do médico)."""
+    import json
+    antes = guardada(repo, study_uid) or {}
+    d = {k: v for k, v in medida.items() if k not in ("estado", "revisor", "confirmado_em")}
+    estado, usuario = "auto", ""
+    if antes.get("categoria"):
+        d["categoria"] = antes["categoria"]
+        estado, usuario = antes.get("estado") or "aceito", antes.get("revisor", "")
+    repo.salvar_revisao_ia(study_uid, MODULO, estado, estado == "editado", usuario,
+                           json.dumps(d, ensure_ascii=False, default=str))
+
+
+def confirmar(repo, study_uid: str, medida: dict, categoria: str, usuario: str = "",
+              controle: bool = False) -> None:
+    """A categoria do médico: grava junto da medida (estado aceito = igual à rede; editado = outra) e na tabela da
+    revisão, que dá a concordância."""
+    import json
+    d = {k: v for k, v in (medida or {}).items() if k not in ("estado", "revisor", "confirmado_em")}
+    d["categoria"] = categoria
+    estado = "aceito" if categoria == (d.get("nyu") or "") else "editado"
+    repo.salvar_revisao_ia(study_uid, MODULO, estado, estado == "editado", usuario,
+                           json.dumps(d, ensure_ascii=False, default=str))
+    repo.salvar_revisao_densidade(study_uid, {
+        "categoria": categoria, "controle": controle, "nyu": d.get("nyu") or "", "nyu_probs": d.get("nyu_probs") or [],
+        "area_pd": d.get("area_pd"), "area": d.get("area") or "", "fcm_pd": d.get("fcm_pd"),
+        "fcm": d.get("fcm") or "", "aparelho": d.get("aparelho") or "", "avisos": d.get("avisos") or []}, usuario)
+
+
+def frase_do_laudo(categoria: str) -> str:
+    from ipe.reporting import birads as B
+    return B.COMPOSITION["mg"].get(categoria, "")
 
 
 def de_controle(study_uid: str, usuario: str, fracao: float) -> bool:
@@ -244,12 +341,13 @@ def texto_da_concordancia(c: dict) -> str:
 
 def linhas_csv(revisoes: list[dict]) -> list[list[str]]:
     cab = ["study_uid", "data_do_exame", "aparelho", "revisor", "categoria", "controle", "nyu", "nyu_a", "nyu_b",
-           "nyu_c", "nyu_d", "area_pd", "area", "quando"]
+           "nyu_c", "nyu_d", "otsu_pd", "otsu", "fuzzy_pd", "fuzzy", "quando"]
     out = [cab]
     for r in revisoes:
         p = list(r.get("nyu_probs") or []) + [""] * 4
         out.append([r.get("study_uid", ""), r.get("study_date", ""), r.get("aparelho", ""), r.get("usuario", ""),
                     r.get("categoria", ""), "1" if r.get("controle") else "0", r.get("nyu") or "",
                     *[str(x) for x in p[:4]], "" if r.get("area_pd") is None else str(r["area_pd"]),
-                    r.get("area") or "", r.get("quando", "")])
+                    r.get("area") or "", "" if r.get("fcm_pd") is None else str(r["fcm_pd"]), r.get("fcm") or "",
+                    r.get("quando", "")])
     return out

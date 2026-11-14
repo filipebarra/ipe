@@ -44,6 +44,8 @@ def test_sugestao_do_exame_sem_a_rede(tmp_path, monkeypatch):
     s = R.sugerir(vistas)
     assert s["area_pd"] is not None and s["area"] in R.CATEGORIAS
     assert set(s["area_por_mama"]) == {"R", "L"}
+    assert s["fcm_pd"] is not None and s["fcm"] in R.CATEGORIAS            # 0.100.44: o fuzzy também
+    assert abs(s["fcm_pd"] - s["area_pd"]) < 10 and len(s["imagens"]) == 4
     assert s["nyu"] is None and s["nyu_aviso"] == "sem o modelo"     # a rede falha sozinha, com o motivo
 
 
@@ -166,7 +168,8 @@ def test_janela_da_revisao(env, tmp_path, monkeypatch):
     rev = repo.revisoes_densidade(j.usuario)
     assert len(rev) == 1, repo.revisoes_densidade(todos=True)
     assert rev[0]["categoria"] == "c" and rev[0]["area"] in R.CATEGORIAS and not rev[0]["controle"]
-    assert "% de área (n = 1)" in j.lb_conc.text()
+    assert "% de área (Otsu) (n = 1)" in j.lb_conc.text()
+    assert R.guardada(repo, "9.2")["categoria"] == "c"                  # e no exame, junto da medida
     j.ir(0)                                                          # voltar mostra a resposta dada
     assert "2px solid" in j.botoes["c"].styleSheet()
     # controle: com 100%, a sugestão fica escondida até a resposta
@@ -174,3 +177,76 @@ def test_janela_da_revisao(env, tmp_path, monkeypatch):
     j.ir(2)
     assert "controle" in j.lb_sugestao.text()
     j.close()
+
+
+# ---------------------------------------------------------------- 0.100.44: o botão da densidade do exame
+def test_medida_guardada_e_confirmacao(env, tmp_path, monkeypatch):
+    from ipe.ai import densidade_nyu as N
+    _paths, _db, repo = env
+    monkeypatch.setattr(N, "disponivel", lambda dados=None: (False, "sem o modelo"))
+    arquivos = _exame(tmp_path)
+    monkeypatch.setattr(repo, "files_for_study", lambda uid, series_uids=None: arquivos, raising=False)
+    m = R.medir_exame(repo, "5.5")
+    R.guardar_medida(repo, "5.5", m)
+    g = R.guardada(repo, "5.5")
+    assert g["estado"] == "auto" and g["area_pd"] == m["area_pd"] and "categoria" not in g
+    R.confirmar(repo, "5.5", g, "b", "med")
+    g = R.guardada(repo, "5.5")
+    assert g["categoria"] == "b" and g["estado"] == "editado" and g["revisor"] == "med"   # a rede não deu b
+    assert repo.revisoes_densidade("med")[0]["fcm"] == m["fcm"]
+    # medir de novo não apaga a confirmação
+    R.guardar_medida(repo, "5.5", R.medir_exame(repo, "5.5"))
+    assert R.guardada(repo, "5.5")["categoria"] == "b"
+    assert "heterogeneamente" in R.frase_do_laudo("c")
+
+
+def test_janela_do_exame(env, tmp_path, monkeypatch):
+    """Abre, mede (não havia medida), marca a categoria da rede de saída, confirma e manda ao laudo."""
+    import numpy as np
+    from PySide6.QtCore import QObject, Signal
+    from PySide6.QtWidgets import QApplication
+
+    from ipe.ai import densidade_nyu as N
+    from ipe.ui import densidade_exame as J
+    app = QApplication.instance() or QApplication([])
+    _paths, _db, repo = env
+    monkeypatch.setattr(N, "disponivel", lambda dados=None: (True, ""))
+    monkeypatch.setattr(N, "do_exame", lambda vistas, dados=None: (np.array([0.05, 0.15, 0.7, 0.1]), ""))
+    arquivos = _exame(tmp_path)
+    monkeypatch.setattr(repo, "files_for_study", lambda uid, series_uids=None: arquivos, raising=False)
+    textos = []
+
+    class Aba(QObject):
+        status_message = Signal(str)
+
+        def __init__(self):
+            super().__init__()
+            self.repo, self.study_uid, self.active = repo, "7.7", None
+
+        def open_report(self, uid):
+            pass
+
+        def mandar_texto_ao_laudo(self, texto):
+            textos.append(texto)
+
+    aba = Aba()
+    d = J.DensidadeExameJanela(aba)
+    d.medidor.wait(60000)
+    for _ in range(50):
+        app.processEvents()
+        if d.medida is not None:
+            break
+    assert d.medida["nyu"] == "c"
+    assert "C — heterogeneamente densa" in d.lb_rede.text() and "<b>70%</b>" in d.lb_probs.text()
+    assert "(Otsu)" in d.lb_area.text() and "(fuzzy)" in d.lb_area.text()
+    assert d.categoria() == "c"                                      # de saída, a da rede
+    d.radios["d"].setChecked(True)
+    assert d.confirmar(True)
+    assert R.guardada(repo, "7.7")["categoria"] == "d"
+    assert textos and "extremamente densas" in textos[0]             # sem laudo BI-RADS aberto: vai como texto
+    assert "Confirmado: D" in d.lb_confirmado.text()
+    d.close()
+    # reabrir mostra o que já foi medido e confirmado, sem medir de novo
+    d2 = J.DensidadeExameJanela(aba)
+    assert d2.medidor is None and d2.categoria() == "d"
+    d2.close()

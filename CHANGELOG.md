@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.44 — O botão Densidade
+- **Botão Densidade** nos exames de mamografia (fora da lista de IA): *Medir em segundo plano* (mede as quatro
+  incidências e guarda no exame, sem abrir janela) e *Medir e revisar* (mostra o que já foi medido ou mede na hora).
+  A **rede da NYU** vem primeiro, com a probabilidade de cada categoria; o **% de área por Otsu e por fuzzy** fica
+  abaixo, por enquanto. A categoria da rede vem marcada; você confirma ou troca, e *Confirmar e mandar ao laudo*
+  põe a composição no laudo BI-RADS. Tudo fica salvo no exame, com quem confirmou e quando.
+- A fila de revisão usa a medida já salva do exame e mostra também o fuzzy; a resposta na fila vale como a
+  confirmação do exame. O CSV ganhou as colunas do fuzzy.
+
 ## 0.100.43 — Revisão da densidade mamária
 - **Revisar a densidade (fila de exames)**: em *Arquivo*, na barra de mamografia e no botão IA ▸ Densidade. Monte
   a fila por período, e cada mamografia abre no visualizador com as duas sugestões do programa (rede da NYU e % de

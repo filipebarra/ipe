@@ -413,6 +413,34 @@ class MamografiaMixin:
         from ipe.ui.densidade_dialog import DensidadeDialog
         DensidadeDialog(self, self).exec()
 
+    def densidade_do_exame(self):
+        """0.100.44: a janela da densidade do exame — o que foi medido (ou mede agora), confirmar e mandar ao laudo."""
+        from ipe.ui import densidade_exame
+        return densidade_exame.abrir(self)
+
+    def densidade_em_segundo_plano(self) -> None:
+        """0.100.44: mede o exame (as quatro incidências) sem abrir janela e guarda no exame; a barra de estado avisa
+        quando terminar."""
+        vp = self.active
+        uid = (vp.study_uid if vp is not None and getattr(vp, "study_uid", "") else "") or self.study_uid
+        medidores = self.__dict__.setdefault("_medidores_densidade", {})
+        if uid in medidores and medidores[uid].isRunning():
+            self.status_message.emit("Densidade: a medida deste exame já está em andamento.")
+            return
+        from ipe.ui.densidade_exame import Medidor, resumo_curto
+        t = Medidor(self.repo, uid, None, self)
+
+        def pronto(u, m, erro) -> None:
+            medidores.pop(u, None)
+            if m is None:
+                self.status_message.emit(f"Densidade: não consegui medir ({erro}).")
+            else:
+                self.status_message.emit(f"Densidade salva no exame: {resumo_curto(m)}.")
+        t.pronto.connect(pronto)
+        medidores[uid] = t
+        t.start()
+        self.status_message.emit("Densidade: medindo o exame em segundo plano…")
+
     def revisar_densidade(self):
         """0.100.43: a fila de revisão da densidade (abre os exames nas abas da janela principal)."""
         main = self._janela_principal()

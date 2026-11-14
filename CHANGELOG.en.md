@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.44 — The Density button
+- **Density button** on mammography exams (outside the AI list): *Measure in the background* (measures the four
+  views and saves them in the exam, without opening a window) and *Measure and review* (shows what was already
+  measured or measures now). The **NYU network** comes first, with the probability of each category; the **% area by
+  Otsu and by fuzzy** stays below, for now. The network's category comes preselected; you confirm or change it, and
+  *Confirm and send to the report* puts the composition in the BI-RADS report. Everything is saved in the exam, with
+  who confirmed it and when.
+- The review queue uses the measurement already saved in the exam and also shows fuzzy; the answer in the queue
+  counts as the exam's confirmation. The CSV gained the fuzzy columns.
+
 ## 0.100.43 — Breast density review
 - **Review density (exam queue)**: in *File*, on the mammography bar and in the AI button ▸ Density. Build the queue
   by period, and each mammogram opens in the viewer with the program's two suggestions (NYU network and % area). You

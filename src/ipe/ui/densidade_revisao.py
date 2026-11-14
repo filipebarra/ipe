@@ -42,20 +42,11 @@ class _Sugeridor(QThread):
 
     def run(self) -> None:  # noqa: D102
         try:
-            if hasattr(self.repo, "is_cached") and not self.repo.is_cached(self.uid):
-                self.repo.download(self.uid)
-            arquivos = [f for f in self.repo.files_for_study(self.uid) if f]
-            cabs = [R.cabecalho(f) for f in arquivos]
-            vistas, aparelho, avisos = R.escolher_vistas(cabs)
-            if not vistas:
-                self.pronto.emit(self.uid, {"nyu": None, "area": None, "area_pd": None, "nyu_probs": [],
-                                            "aparelho": aparelho, "nyu_aviso": "",
-                                            "avisos": avisos + [("Nenhuma incidência de mamografia 2D com lado e "
-                                                                 "incidência no exame.")]})
-                return
-            s = R.sugerir(vistas, self.dados, self.stop)
-            s["aparelho"] = aparelho
-            s["avisos"] = avisos + s.get("avisos", [])
+            s = R.guardada(self.repo, self.uid)               # 0.100.44: o que já foi medido não se mede de novo
+            if s is None or s.get("versao", 1) < R.VERSAO:
+                s = R.medir_exame(self.repo, self.uid, self.dados, self.stop)
+                if not self.stop.is_set():
+                    R.guardar_medida(self.repo, self.uid, s)
             self.pronto.emit(self.uid, s)
         except Exception as e:  # noqa: BLE001
             log.debug("revisão de densidade: sugestão", exc_info=True)
@@ -320,13 +311,14 @@ class RevisaoDensidadeJanela(QDialog):
             partes.append(f"<b>{tr('Rede (NYU)')}:</b> {s['nyu'].upper()}{conf}")
         else:
             partes.append(f"<b>{tr('Rede (NYU)')}:</b> — {s.get('nyu_aviso') or ''}")
-        if s.get("area_pd") is not None:
-            mamas = s.get("area_por_mama") or {}
-            lados = " · ".join(f"{'D' if k == 'R' else 'E'} {v:.0f}%".replace(".", ",") for k, v in mamas.items())
-            partes.append(f"<b>{tr('% de área')}:</b> {s['area_pd']:.0f}% → {tr('faixa')} {s['area'].upper()}"
-                          + (f" ({lados})" if lados else ""))
-        else:
-            partes.append(f"<b>{tr('% de área')}:</b> —")
+        for chave, mamas in (("area", "area_por_mama"), ("fcm", "fcm_por_mama")):
+            nome = tr(R.METODOS[chave])
+            if s.get(f"{chave}_pd") is not None:
+                lados = " · ".join(f"{'D' if k == 'R' else 'E'} {v:.0f}%" for k, v in (s.get(mamas) or {}).items())
+                partes.append(f"<span style='color:gray'>{nome}: {s[chave + '_pd']:.0f}% → {tr('faixa')} "
+                              f"{s[chave].upper()}" + (f" ({lados})" if lados else "") + "</span>")
+            else:
+                partes.append(f"<span style='color:gray'>{nome}: —</span>")
         if s.get("aparelho"):
             partes.append(f"<span style='color:gray'>{tr('Aparelho')}: {s['aparelho']}</span>")
         return "<br>".join(partes)
@@ -351,11 +343,8 @@ class RevisaoDensidadeJanela(QDialog):
     # ------------------------------------------------------------- a resposta
     def _gravar(self, uid: str, cat: str, controle: bool) -> None:
         s = self.sugestoes.get(uid) or {}
-        dados = {"categoria": cat, "controle": controle, "nyu": s.get("nyu") or "",
-                 "nyu_probs": s.get("nyu_probs") or [], "area_pd": s.get("area_pd"), "area": s.get("area") or "",
-                 "aparelho": s.get("aparelho") or "", "avisos": s.get("avisos") or []}
         try:
-            self.repo.salvar_revisao_densidade(uid, dados, self.usuario)
+            R.confirmar(self.repo, uid, s, cat, self.usuario, controle=controle)   # no exame e na revisão
         except Exception as e:  # noqa: BLE001
             QMessageBox.warning(self, tr("Revisão da densidade mamária"), tr("Não gravei a revisão: {}").format(e))
             return

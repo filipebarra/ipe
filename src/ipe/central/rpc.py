@@ -67,6 +67,8 @@ RPC_METHODS: dict[str, str] = {
     "salvar_estado": "view", "estado": "view", "esquecer_estado": "view", "estados_anteriores": "view",
     # 0.100.43: revisão da densidade mamária (o revisor é sempre o da sessão)
     "salvar_revisao_densidade": "view", "revisoes_densidade": "view",
+    # 0.100.44: a medida de densidade guardada no exame (e as outras conferências de IA)
+    "revisao_ia": "view", "salvar_revisao_ia": "view",
 }
 
 # 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame
@@ -75,7 +77,7 @@ POR_EXAME = {
     "study_info", "series_for_study", "other_studies_same_patient", "files_for_study", "sop_uids_for_study",
     "comments", "mark_opened", "key_images", "key_image_set", "toggle_key_image", "count_annotations",
     "series_groups", "save_series_group", "reports", "lists_of_study", "set_locked", "delete_study",
-    "dados_do_exame", "retirar_do_servidor", "historico_do_exame",
+    "dados_do_exame", "retirar_do_servidor", "historico_do_exame", "revisao_ia", "salvar_revisao_ia",
 }
 
 # 0.99.30: o primeiro argumento é a lista de casos; o servidor confere se quem pede enxerga a lista

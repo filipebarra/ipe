@@ -2586,6 +2586,8 @@ class Repository:
             r.nyu_probs = json.dumps([float(x) for x in (d.get("nyu_probs") or [])][:4])
             r.area_pd = None if d.get("area_pd") is None else float(d["area_pd"])
             r.area = str(d.get("area") or "")[:1]
+            r.fcm_pd = None if d.get("fcm_pd") is None else float(d["fcm_pd"])
+            r.fcm = str(d.get("fcm") or "")[:1]
             r.aparelho = str(d.get("aparelho") or "")[:128]
             r.avisos = "\n".join(str(x) for x in (d.get("avisos") or []))
             r.quando = datetime.now()
@@ -2608,6 +2610,7 @@ class Repository:
                 out.append({"study_uid": r.study_uid, "usuario": r.usuario, "study_date": r.study_date,
                             "aparelho": r.aparelho, "categoria": r.categoria, "controle": bool(r.controle),
                             "nyu": r.nyu, "nyu_probs": probs, "area_pd": r.area_pd, "area": r.area,
+                            "fcm_pd": r.fcm_pd, "fcm": r.fcm,
                             "avisos": [x for x in (r.avisos or "").split("\n") if x],
                             "quando": r.quando.strftime("%Y-%m-%d %H:%M") if r.quando else ""})
             return out
