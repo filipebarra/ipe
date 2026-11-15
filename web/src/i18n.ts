@@ -63,6 +63,8 @@ const T: Trad = {
   "ampliação": ["magnification", "magnificación"],
   "direita": ["right", "derecha"],
   "esquerda": ["left", "izquierda"],
+  "Mais botões": ["More buttons", "Más botones"],
+  "Mais botões (os que não couberam na barra)": ["More buttons (the ones that did not fit on the bar)", "Más botones (los que no cupieron en la barra)"],
   "Buscar no PACS": ["Search the PACS", "Buscar en el PACS"],
   "Buscar no PACS…": ["Search the PACS…", "Buscar en el PACS…"],
   "Diga um nome, ID, acesso ou um período (busca sem filtro pesa no PACS).": ["Enter a name, ID, accession or a period (an unfiltered search burdens the PACS).", "Indique un nombre, ID, acceso o un período (una búsqueda sin filtro sobrecarga el PACS)."],

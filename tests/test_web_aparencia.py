@@ -21,7 +21,7 @@ def test_series_botoes_e_modo_leitura(servidor):
     erros = []
     with pw.sync_playwright() as p:
         b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
-        pg = b.new_page(viewport={"width": 1500, "height": 900})
+        pg = b.new_page(viewport={"width": 1920, "height": 1080})
         pg.on("pageerror", lambda e: erros.append(str(e)))
         pg.goto(f"http://127.0.0.1:{servidor.port}/web/")
         pg.fill("#usuario", "admin")

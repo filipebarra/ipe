@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.53 — Ipê Web en pantallas más pequeñas
+- La barra superior del visor muestra lo que cabe y pone el resto en el botón **»**, al final de la barra (menú con
+  los botones que no cupieron). Antes, en pantallas de menos de ~1900 píxeles de ancho, los botones de la derecha
+  (Informe, Enviar, CAD/IA, Modo lectura…) quedaban escondidos, accesibles solo desplazando la barra de lado.
+
 ## 0.100.52 — Calcificaciones vasculares en todas las imágenes; ventana de la mamografía en el navegador
 - **Calcificaciones vasculares** en **todas las imágenes 2D** del examen (repetición, otras incidencias, compresión
   localizada, magnificación); en la ventana de confirmación (y en Ipê Web) cada incidencia recorre sus imágenes

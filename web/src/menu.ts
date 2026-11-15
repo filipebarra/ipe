@@ -18,6 +18,15 @@ export interface ItemMenu {
 }
 
 let aberto: HTMLElement[] = [];
+
+/** 0.100.53: o botão pode estar no "»" da barra (sem lugar na tela): então o menu abre embaixo do "»". */
+function alvo(a: HTMLElement): HTMLElement {
+  if (a.classList.contains("transbordou") || a.getBoundingClientRect().width === 0) {
+    const m = document.querySelector<HTMLElement>("nav.barra .mais:not([hidden])");
+    if (m) return m;
+  }
+  return a;
+}
 let fechar: (() => void) | null = null;
 
 export function icone(d: string, tam = 16): SVGSVGElement {
@@ -164,7 +173,7 @@ export function abrirMenu(itens: ItemMenu[], x: number, y: number, rotulo = "Men
   const m = construir(itens, 0, rotulo);
   aberto = [m];
   if (ancora) {
-    const r = ancora.getBoundingClientRect();
+    const r = alvo(ancora).getBoundingClientRect();
     posicionar(m, r.left, r.bottom + 4);
   } else {
     posicionar(m, x, y);
@@ -200,7 +209,7 @@ export function abrirPainel(conteudo: HTMLElement, ancora: HTMLElement, rotulo: 
   m.setAttribute("aria-label", rotulo);
   m.append(conteudo);
   aberto = [m];
-  const r = ancora.getBoundingClientRect();
+  const r = alvo(ancora).getBoundingClientRect();
   posicionar(m, r.left, r.bottom + 4);
   const fora = (e: MouseEvent) => {
     if (m.contains(e.target as Node) || ancora.contains(e.target as Node)) return;

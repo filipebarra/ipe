@@ -16,7 +16,7 @@ def test_lista_numa_janela_e_exame_em_duas(servidor):
     erros = []
     with pw.sync_playwright() as p:
         b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
-        ctx = b.new_context(viewport={"width": 1400, "height": 900})
+        ctx = b.new_context(viewport={"width": 1920, "height": 1080})
         pg = ctx.new_page()
         pg.on("pageerror", lambda e: erros.append(str(e)))
         pg.goto(f"http://127.0.0.1:{servidor.port}/web/")
@@ -111,6 +111,8 @@ def test_lista_numa_janela_e_exame_em_duas(servidor):
                 break
             j2.wait_for_timeout(100)
         # desligando na segunda janela, ela para de seguir
+        j2.set_viewport_size({"width": 1920, "height": 1080})   # 0.100.53: na janela pequena o botão vai para o "»"
+        j2.wait_for_timeout(300)
         j2.click("nav.barra button[aria-label^='Ligar as janelas']")
         j1.evaluate("() => window.__ipeGrade.viewport(0).setImageIdIndex(12)")
         j1.wait_for_timeout(1200)

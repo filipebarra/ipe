@@ -20,6 +20,7 @@ import { ModoDinamica, dinamicaDoExame, guardarTabelas } from "./dinamica";
 import { PainelLaudo } from "./laudo";
 import { PainelDensidade } from "./densidade";
 import { PainelCalcVascular } from "./calcvasc";
+import { barraComTransbordo } from "./transborda";
 import { ListaEnvios, painelEnvio } from "./envio";
 import { AbaIA, TarefasIA } from "./ia";
 import * as JAN from "./janelas";
@@ -816,6 +817,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     el("div", { class: "grupo" }, bInverter, bRestaurar, bOverlay, bOverlayMenu),
     el("div", { class: "grupo" }, bLaudo, bEnviar, bIA),
     el("div", { class: "grupo" }, bLigar, bLeitura, bAparencia));
+  barraComTransbordo(nav);   // 0.100.53: o que não cabe vai para o "»"
 
   // ---------------------------------------------------------------- painéis
   const tira = el("aside", { class: "tira", "aria-label": tr("Séries") },

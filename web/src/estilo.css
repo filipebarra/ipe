@@ -630,3 +630,8 @@ table.lista .selo-laudo.assinado { background: #2f6f46; color: #e9ffe9; }
 .painel-calcvasc .botoes { display: flex; flex-wrap: wrap; gap: 6px; }
 .painel-calcvasc figcaption { display: flex; align-items: center; gap: 4px; justify-content: center; }
 .painel-calcvasc figcaption .rolar { padding: 0 6px; }
+/* 0.100.53: a barra mostra o que cabe; o resto vai para o "»" */
+header .barra { overflow: hidden; }
+header .barra .transbordou { display: none !important; }
+header .barra .mais { margin-left: auto; flex: 0 0 auto; }
+header .barra .mais[hidden] { display: none; }
