@@ -111,6 +111,19 @@ class ClientRepository:
     def erro_dos_nos_do_servidor(self) -> str:
         return str(self.__dict__.get("_nos_srv_erro", "") or "")
 
+    # ------------------------------------------------------------------ impressoras pelo servidor (0.100.49)
+    def impressoras_do_servidor(self) -> list[dict]:
+        """As impressoras DICOM que o servidor compartilha (só o nome); servidor antigo ou sem permissão: []."""
+        try:
+            return list(self.client.rpc("impressoras_do_servidor") or [])
+        except Exception as e:  # noqa: BLE001
+            log.info("impressoras do servidor: %s", e)
+            return []
+
+    def imprimir_filme_no_servidor(self, film: dict, folhas: list[int], nome: str, copias: int = 1) -> dict:
+        """O servidor desenha a receita do filme e manda para a impressora dele (com o IP e o AE dele)."""
+        return self.client.rpc("filme_imprimir_no_servidor", film, list(folhas), nome, int(copias))
+
     def nodes(self, only_active: bool = False, todos: bool = False, gerenciar: bool = False) -> list[dict]:
         """Os nós deste computador e, para buscar e baixar, os que o servidor compartilha. A tela de configuração
         (`gerenciar`) e quem trabalha pela máquina (`todos`) só veem os deste computador."""

@@ -37,7 +37,8 @@ def servidor(env, sample_dir, tmp_path):
     fp = FakePrinter(porta)
     st = Settings(paths.settings_file)
     st.set("printing.dicom_printers", [{"name": "Dry", "ae_title": "FAKEPRN", "host": "127.0.0.1", "port": porta,
-                                        "dpi": 40}])
+                                        "dpi": 40, "compartilhar_clientes": True},
+                                       {"name": "Sala", "ae_title": "SALA", "host": "127.0.0.1", "port": porta}])
     st.set("printing.destinations", [
         {"name": "Pasta PDF", "kind": "pdf", "folder": str(tmp_path / "pdfs")},
         {"name": "Pasta imagens", "kind": "images", "folder": str(tmp_path / "imgs"), "dpi": 40, "fmt": "png"}])
@@ -99,6 +100,9 @@ def test_opcoes_previa_pdf_e_destinos(servidor):
     o = _api(srv, "/api/web/filme/opcoes")
     ids = [d["id"] for d in o["destinos"]]
     assert ids[:2] == ["baixar", "navegador"] and "dicom:Dry" in ids
+    assert "dicom:Sala" not in ids                                   # 0.100.49: só as compartilhadas
+    dry = next(d for d in o["destinos"] if d["id"] == "dicom:Dry")
+    assert dry["nome"] == "Dry" and "FAKEPRN" not in json.dumps(o) and "127.0.0.1" not in json.dumps(o)
     assert "dest:Pasta PDF" in ids and "dest:Pasta imagens" in ids
     assert "A4" in o["papeis"] and o["tamanhos"]["A4"] == [210, 297] and "2×2" in o["layouts"]
     png, tipo = _api(srv, "/api/web/filme/previa", {"film": _filme(srv), "folha": 0, "dpi": 40}, cru=True)
@@ -128,6 +132,59 @@ def test_impressora_dicom(servidor):
     assert srv.fp.film_boxes[1].FilmOrientation == "LANDSCAPE"
     r = _api(srv, "/api/web/filme/imprimir", {"film": film, "destino": "dicom:Dry", "folhas": [1]})
     assert "1 folha(s)" in r["mensagem"] and len(srv.fp.printed) == 3
+    with pytest.raises(urllib.error.HTTPError):                      # não compartilhada: recusada
+        _api(srv, "/api/web/filme/imprimir", {"film": film, "destino": "dicom:Sala"})
+    assert len(srv.fp.printed) == 3
+
+
+def test_ipe_cliente_imprime_pelo_servidor(servidor):
+    """0.100.49: o Ipê de mesa no modo cliente vê a impressora compartilhada e imprime nela pelo servidor."""
+    from ipe.central.client_repo import ClientRepository
+    from ipe.central.remote import RemoteClient
+    srv = servidor
+    cli = RemoteClient(f"http://127.0.0.1:{srv.port}")
+    cli.login("admin", "admin123")
+    repo = ClientRepository(srv.repo_, cli, srv.tmp / "cache")         # o local não entra nesta conta
+    assert repo.impressoras_do_servidor() == [{"nome": "Dry", "copias": 1, "cor": False}]
+    caixa = {}
+    film = _filme(srv, 4)
+    t = threading.Thread(target=lambda: caixa.update(r=repo.imprimir_filme_no_servidor(film, [0], "Dry", 2)))
+    t.start()
+    while t.is_alive():
+        srv.app.processEvents()
+        time.sleep(0.01)
+    assert "1 folha(s)" in caixa["r"]["mensagem"] and len(srv.fp.printed) == 1
+    assert int(srv.fp.sessions[-1].NumberOfCopies) == 2
+    assert srv.repo_.access_log(limit=10, action="imprimir", study_uid=srv.estudo)
+    caixa.clear()
+    t = threading.Thread(target=lambda: caixa.update(e=_pega(lambda: repo.imprimir_filme_no_servidor(
+        film, [0], "Sala", 1))))
+    t.start()
+    while t.is_alive():
+        srv.app.processEvents()
+        time.sleep(0.01)
+    assert "não compartilhada" in str(caixa["e"])
+    # a janela Imprimir do compositor mostra a do servidor
+    from ipe.core.config import Settings
+    from ipe.ui.film.dialogs import ImprimirFilmeDialog
+    st = Settings(srv.tmp / "cli.json")
+    st.set("printing.dicom_printers", [{"name": "Local", "ae_title": "L", "host": "10.0.0.1"}])
+    d = ImprimirFilmeDialog(st, "IPE", 1, 0, repo=repo)
+    itens = [d.c_imp.itemText(i) for i in range(d.c_imp.count())]
+    assert itens == ["Local", "Dry (pelo servidor)"]
+    d.c_imp.setCurrentIndex(1)
+    assert d.impressora_do_servidor() == "Dry"
+    d.c_imp.setCurrentIndex(0)
+    assert d.impressora_do_servidor() == "" and d.impressora_dicom().host == "10.0.0.1"
+    d.close()
+
+
+def _pega(f):
+    try:
+        f()
+    except Exception as e:  # noqa: BLE001
+        return e
+    return None
 
 
 def test_permissao_e_validacao(servidor):

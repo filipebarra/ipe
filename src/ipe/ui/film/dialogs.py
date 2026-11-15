@@ -227,10 +227,13 @@ class DicomPrintDialog(QDialog):
         self.f_mag.addItems(MAGNIFICATIONS)
         self.f_dpi = QSpinBox(minimum=72, maximum=600, value=150, suffix=" dpi")
         self.f_color = QCheckBox("Colorida (Basic Color Print)")
+        self.f_compartilhar = QCheckBox("Compartilhar com os clientes")
+        self.f_compartilhar.setToolTip("No servidor central: os clientes (Ipê e Ipê Web) imprimem nesta impressora pelo "
+                                       "servidor, que manda com o IP e o AE dele. Os clientes não veem o endereço.")
         for label, w in (("Nome", self.f_name), ("AE da impressora", self.f_ae), ("IP / host", self.f_host),
                          ("Porta", self.f_port), ("AE de origem", self.f_calling), ("Tamanho do filme", self.f_size),
                          ("Mídia", self.f_medium), ("Destino", self.f_dest), ("Ampliação", self.f_mag),
-                         ("Resolução enviada", self.f_dpi), ("", self.f_color)):
+                         ("Resolução enviada", self.f_dpi), ("", self.f_color), ("", self.f_compartilhar)):
             form.addRow(label, w)
         right.addLayout(form)
         test = QPushButton("Testar conexão")
@@ -296,6 +299,7 @@ class DicomPrintDialog(QDialog):
         self.f_mag.setCurrentText(c.magnification)
         self.f_dpi.setValue(int(c.dpi))
         self.f_color.setChecked(bool(c.color))
+        self.f_compartilhar.setChecked(bool(c.compartilhar_clientes))
         self.copies.setValue(int(c.copies))
 
     def _add(self) -> None:
@@ -334,7 +338,8 @@ class DicomPrintDialog(QDialog):
             host=self.f_host.text().strip(), port=self.f_port.value(), calling_ae=self.f_calling.text().strip(),
             film_size=self.f_size.currentData() or "", medium=self.f_medium.currentText(),
             destination=self.f_dest.currentText(), magnification=self.f_mag.currentText(),
-            copies=self.copies.value(), dpi=self.f_dpi.value(), color=self.f_color.isChecked())
+            copies=self.copies.value(), dpi=self.f_dpi.value(), color=self.f_color.isChecked(),
+            compartilhar_clientes=self.f_compartilhar.isChecked())
 
     def save(self) -> None:
         self._collect()
@@ -457,9 +462,16 @@ class ImprimirFilmeDialog(QDialog):
     DESTINOS = (("local", "Impressora do computador"), ("pdf", "PDF"), ("imagem", "Imagens (JPG/PNG)"),
                 ("dicom", "Impressora DICOM"))
 
-    def __init__(self, settings, local_ae: str, n_folhas: int, atual: int, parent=None):
+    def __init__(self, settings, local_ae: str, n_folhas: int, atual: int, parent=None, repo=None):
         super().__init__(parent)
         self.settings, self.local_ae, self.n, self.atual = settings, local_ae, n_folhas, atual
+        # 0.100.49: no modo cliente, as impressoras DICOM que o servidor compartilha (imprimem pelo servidor)
+        self.do_servidor: list[dict] = []
+        if repo is not None and hasattr(repo, "impressoras_do_servidor"):
+            try:
+                self.do_servidor = list(repo.impressoras_do_servidor() or [])
+            except Exception:  # noqa: BLE001
+                self.do_servidor = []
         self.setWindowTitle("Imprimir filme")
         lay = QVBoxLayout(self)
 
@@ -533,9 +545,12 @@ class ImprimirFilmeDialog(QDialog):
 
     def _preencher_impressoras(self) -> None:
         self.c_imp.clear()
-        self.impressoras = list(self.settings.get("printing.dicom_printers", []) or [])
+        locais = list(self.settings.get("printing.dicom_printers", []) or [])
+        # as do servidor entram como impressoras com a marca "servidor" (nada de endereço: ele é quem manda)
+        self.impressoras = locais + [{"name": d["nome"], "copies": d.get("copias", 1), "servidor": True}
+                                     for d in self.do_servidor]
         for p in self.impressoras:
-            self.c_imp.addItem(p.get("name", "?"))
+            self.c_imp.addItem(p.get("name", "?") + (" (pelo servidor)" if p.get("servidor") else ""))
         if not self.impressoras:
             self.c_imp.addItem("(nenhuma cadastrada)")
         ult = int(self.settings.get("printing.last_dicom_printer", 0) or 0)
@@ -567,11 +582,18 @@ class ImprimirFilmeDialog(QDialog):
             return paginas_do_texto(self.e_paginas.text(), self.n)
         return list(range(self.n))
 
+    def impressora_do_servidor(self) -> str:
+        """O nome da impressora do servidor escolhida ("" = uma deste computador)."""
+        i = self.c_imp.currentIndex()
+        if self.impressoras and 0 <= i < len(self.impressoras) and self.impressoras[i].get("servidor"):
+            return str(self.impressoras[i]["name"])
+        return ""
+
     def impressora_dicom(self) -> PrinterConfig | None:
         i = self.c_imp.currentIndex()
         if not self.impressoras or not 0 <= i < len(self.impressoras):
             return None
-        cfg = PrinterConfig.from_dict(self.impressoras[i])
+        cfg = PrinterConfig.from_dict({k: v for k, v in self.impressoras[i].items() if k != "servidor"})
         cfg.copies = self.s_copias.value()
         return cfg
 
@@ -583,7 +605,9 @@ class ImprimirFilmeDialog(QDialog):
         d = self.destino()
         if d == "dicom":
             cfg = self.impressora_dicom()
-            if cfg is None or not cfg.host or not cfg.ae_title:
+            if cfg is not None and self.impressora_do_servidor():
+                pass                                   # o servidor tem o endereço
+            elif cfg is None or not cfg.host or not cfg.ae_title:
                 QMessageBox.information(self, "Imprimir filme",
                                         "Cadastre a impressora DICOM (AE e IP) em “Configurar impressoras…”.")
                 return

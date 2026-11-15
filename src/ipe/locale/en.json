@@ -9166,5 +9166,14 @@
  "O servidor central não tem o pacote para este computador ({}).": "The central server does not have the package for this computer ({}).",
  "publicou {} ({}) no canal {}": "published {} ({}) in channel {}",
  "{}: <span style='color:gray'>—</span>": "{}: <span style='color:gray'>—</span>",
- "{}: {} — {} ({} MB), publicada em {} por {}": "{}: {} — {} ({} MB), published on {} by {}"
+ "{}: {} — {} ({} MB), publicada em {} por {}": "{}: {} — {} ({} MB), published on {} by {}",
+ "Compartilhar com os clientes": "Share with clients",
+ "Impressoras DICOM (pelo servidor)": "DICOM printers (through the server)",
+ "No servidor central: os clientes (Ipê e Ipê Web) imprimem nesta impressora pelo servidor, que manda com o IP e o AE dele. Os clientes não veem o endereço.": "On the central server: clients (Ipê and Ipê Web) print on this printer through the server, which sends with its own IP and AE. Clients do not see the address.",
+ "Impressora DICOM (pelo servidor): {}": "DICOM printer (through the server): {}",
+ "Mandando {} folha(s) para {} pelo servidor…": "Sending {} sheet(s) to {} through the server…",
+ "cliente {}": "client {}",
+ "dicom_print pelo servidor: {}": "dicom_print through the server: {}",
+ "impressora DICOM não compartilhada pelo servidor: {}": "DICOM printer not shared by the server: {}",
+ "{} ({}): {}": "{} ({}): {}"
 }

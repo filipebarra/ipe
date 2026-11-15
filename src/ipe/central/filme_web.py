@@ -10,6 +10,11 @@ servidor desenha as folhas com o código do compositor, na resolução de cada s
 - as **impressoras DICOM** cadastradas no servidor;
 - os **destinos de impressão** cadastrados (PDF ou imagens numa pasta, impressora do sistema, impressora DICOM).
 
+0.100.49: as impressoras DICOM só aparecem para quem está fora do servidor se estiverem marcadas **"Compartilhar com
+os clientes"** (como os nós DICOM), sem o endereço; e o Ipê de mesa no modo cliente imprime nelas pelo servidor
+(`imprimir_do_cliente`, RPC `filme_imprimir_no_servidor`): manda a mesma receita do filme, o servidor desenha e
+manda com o IP e o AE dele.
+
 A prévia de cada folha (PNG) vem do mesmo desenho, então o que se vê é o que sai. Cada impressão conta no painel de
 filmes (o filme fica salvo, com quem imprimiu e para onde) e no registro de acesso. Só com a permissão de imprimir.
 """
@@ -42,6 +47,20 @@ def _filme(c, s, d: dict):
     return film
 
 
+def compartilhadas(c) -> list[dict]:
+    """As impressoras DICOM que o servidor compartilha com os clientes (Ipê e Ipê Web)."""
+    st = c.settings
+    return [d for d in ((st.get("printing.dicom_printers", []) if st is not None else []) or [])
+            if d.get("compartilhar_clientes")]
+
+
+def impressoras_do_servidor(c, s) -> list[dict]:
+    """Para o cliente: só o nome e o que ajuda a escolher. Nada de endereço nem AE."""
+    _exigir(s)
+    return [{"nome": d.get("name") or "Impressora DICOM", "copias": int(d.get("copies", 1) or 1),
+             "cor": bool(d.get("color"))} for d in compartilhadas(c)]
+
+
 def _saida(c, film):
     from ipe.printing.filme_saida import Saida
     return Saida(film, c.repo, c.settings)
@@ -65,10 +84,9 @@ def opcoes(c, s) -> dict:
         log.debug("impressoras do sistema", exc_info=True)
         sistema = []
     destinos += [{"id": f"sis:{n}", "nome": n, "grupo": "Impressoras do servidor"} for n in sistema]
-    for d in (st.get("printing.dicom_printers", []) if st is not None else []) or []:
+    for d in compartilhadas(c):
         nome = d.get("name") or "Impressora DICOM"
-        destinos.append({"id": f"dicom:{nome}", "nome": f"{nome} ({d.get('ae_title', '')}@{d.get('host', '')})",
-                         "grupo": "Impressoras DICOM"})
+        destinos.append({"id": f"dicom:{nome}", "nome": nome, "grupo": "Impressoras DICOM (pelo servidor)"})
     for d in (D.all_destinations(st) if st is not None else []):
         destinos.append({"id": f"dest:{d.name}", "nome": d.label(), "grupo": "Destinos de impressão do Ipê"})
     return {"papeis": list(PAPERS), "tamanhos": {k: [v[0], v[1]] for k, v in PAPERS.items()}, "layouts": LAYOUTS,
@@ -94,14 +112,14 @@ def pdf(c, s, corpo: dict) -> bytes:
     return dados
 
 
-def _contar(c, s, film, destino: str) -> None:
+def _contar(c, s, film, destino: str, origem: str = "navegador") -> None:
     """O filme no painel de filmes (salvo, com a impressão) e no registro de acesso."""
     try:
         info = c.repo.study_info(film.study_uids()[0]) or {}
         fid = c.repo.save_film(film.name, film.to_dict(), film.study_uids(), info.get("patient_name", ""),
                                user=s.username)
         c.repo.mark_film_printed(fid, s.username, destino)
-        c.repo.add_send("film", fid, destino, s.username, "navegador")
+        c.repo.add_send("film", fid, destino, s.username, origem)
     except Exception:  # noqa: BLE001
         log.exception("contar a impressão do filme")
     for uid in film.study_uids():
@@ -124,7 +142,9 @@ def _dicom(c, film, cfg, folhas) -> str:
     return f"{res.pages} folha(s) enviada(s) para {cfg.name}{extra}"
 
 
-def imprimir(c, s, corpo: dict) -> dict:
+def imprimir(c, s, corpo: dict, origem: str = "navegador", contar: bool = True) -> dict:
+    """`contar=False` (Ipê de mesa): quem conta o filme no painel é o próprio Ipê, no filme dele; aqui fica só o
+    registro de acesso."""
     from ipe.printing import dispatch as D
     from ipe.printing.dicom_print import PrinterConfig
     _exigir(s)
@@ -138,11 +158,13 @@ def imprimir(c, s, corpo: dict) -> dict:
         msg, destino = f"{n} folha(s) na impressora {nome}", f"Impressora do servidor: {nome}"
     elif alvo.startswith("dicom:"):
         nome = alvo[6:]
-        cfgs = [PrinterConfig.from_dict(d) for d in (st.get("printing.dicom_printers", []) or [])]
+        cfgs = [PrinterConfig.from_dict(d) for d in compartilhadas(c)]
         cfg = next((x for x in cfgs if x.name == nome), None)
         if cfg is None:
-            raise KeyError(f"impressora DICOM não encontrada: {nome}")
-        msg, destino = _dicom(c, film, cfg, folhas), f"Impressora DICOM: {nome}"
+            raise KeyError(f"impressora DICOM não compartilhada pelo servidor: {nome}")
+        if corpo.get("copias"):
+            cfg.copies = max(1, min(20, int(corpo["copias"])))
+        msg, destino = _dicom(c, film, cfg, folhas), f"Impressora DICOM (pelo servidor): {nome}"
     elif alvo.startswith("dest:"):
         d = D.find_destination(st, alvo[5:])
         if d is None:
@@ -171,5 +193,25 @@ def imprimir(c, s, corpo: dict) -> dict:
         destino = f"Destino: {d.name}"
     else:
         raise ValueError("destino de impressão desconhecido")
-    _contar(c, s, film, destino)
+    if contar:
+        _contar(c, s, film, destino, origem)
+    else:
+        for uid in film.study_uids():
+            c.repo.audit("imprimir", f"{destino} ({origem}): {film.name}", user=s.username, study_uid=uid)
     return {"ok": True, "mensagem": msg}
+
+
+RPC = ("impressoras_do_servidor", "filme_imprimir_no_servidor")
+
+
+def rpc(c, s, method: str, args: list, kwargs: dict, host: str = ""):
+    """0.100.49: o Ipê de mesa no modo cliente imprime numa impressora DICOM do servidor."""
+    if method == "impressoras_do_servidor":
+        return impressoras_do_servidor(c, s)
+    film, folhas, nome = (list(args) + [None, None, None])[:3]
+    film = film if film is not None else kwargs.get("film")
+    folhas = folhas if folhas is not None else kwargs.get("folhas", [])
+    nome = nome if nome is not None else kwargs.get("nome", "")
+    copias = (args[3] if len(args) > 3 else kwargs.get("copias")) or None
+    return imprimir(c, s, {"film": film, "folhas": folhas, "destino": f"dicom:{nome}", "copias": copias},
+                    origem=f"cliente {host}".strip(), contar=False)

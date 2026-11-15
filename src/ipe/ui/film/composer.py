@@ -1170,7 +1170,8 @@ class FilmComposer(QWidget):
         if not S.require("print", self) or not self._check_not_empty():
             return
         from ipe.ui.film.dialogs import ImprimirFilmeDialog
-        dlg = ImprimirFilmeDialog(self.settings, self.local_ae_fn(), len(self.film.sheets), self.current, self)
+        dlg = ImprimirFilmeDialog(self.settings, self.local_ae_fn(), len(self.film.sheets), self.current, self,
+                                  repo=self.repo)
         if not dlg.exec():
             return
         folhas, d = dlg.folhas(), dlg.destino()
@@ -1181,6 +1182,8 @@ class FilmComposer(QWidget):
         elif d == "imagem":
             self.export_images(dpi=int(self.settings.get("printing.image_dpi", 150) or 150), indices=folhas,
                                fmt=str(self.settings.get("printing.image_fmt", "PNG") or "PNG"))
+        elif dlg.impressora_do_servidor():
+            self.enviar_pelo_servidor(dlg.impressora_do_servidor(), dlg.s_copias.value(), folhas)
         else:
             self.enviar_dicom(dlg.impressora_dicom(), folhas)
 
@@ -1305,6 +1308,24 @@ class FilmComposer(QWidget):
             from ipe.printing.dicom_print import dicom_print
             try:
                 self._bridge.done.emit(dicom_print(cfg, pages, local), None)
+            except Exception as e:  # noqa: BLE001
+                self._bridge.done.emit(None, e)
+        threading.Thread(target=run, daemon=True).start()
+
+    def enviar_pelo_servidor(self, nome: str, copias: int, idx: list[int]) -> None:
+        """0.100.49: a impressora DICOM é do servidor central — ele desenha a receita e manda, com o IP e o AE dele."""
+        from ipe.auth import session as S
+        S.audit(self.repo, "imprimir", f"dicom_print pelo servidor: {self.film.name or ''}")
+        self._destino_dicom = f"Impressora DICOM (pelo servidor): {nome}"
+        self.status_message.emit(f"Mandando {len(idx)} folha(s) para {nome} pelo servidor…")
+        receita = self.film.to_dict()
+
+        def run():
+            from ipe.printing.dicom_print import PrintResult
+            try:
+                self.repo.imprimir_filme_no_servidor(receita, idx, nome, copias)
+                res = PrintResult(pages=len(idx))
+                self._bridge.done.emit(res, None)
             except Exception as e:  # noqa: BLE001
                 self._bridge.done.emit(None, e)
         threading.Thread(target=run, daemon=True).start()

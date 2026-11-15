@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.49 — Printing through the server
+- **DICOM printer shared by the server**, like the DICOM nodes: on the server, the printer gets the *Share with
+  clients* box. In the client Ipê it appears in the film composer's Print window as *Name (through the server)*; in
+  Ipê Web, in the film Output. Sheets leave from the server, with its IP and AE; the client never gets the address
+  or the AE.
+- Ipê Web now lists only the shared DICOM printers, without the address (before, it listed all of the server's,
+  with AE and IP).
+
 ## 0.100.48 — Breast density: NYU network only
 - After the reviews, density keeps **only the NYU network**: the % area by Otsu and by fuzzy, far from the
   confirmed categories, are no longer measured or shown (exam window, review queue, Measured densities, CSV and

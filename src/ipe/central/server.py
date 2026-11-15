@@ -246,6 +246,10 @@ class CentralServer:
         from ipe.central import pacs_servidor as PS
         if method in PS.RPC:
             return PS.rpc(self, s, method, args, kwargs, client_host)
+        # 0.100.49: imprimir numa impressora DICOM que o servidor compartilha
+        from ipe.central import filme_web as FW
+        if method in FW.RPC:
+            return FW.rpc(self, s, method, args, kwargs, client_host)
         if method == "change_my_password":
             old, new = args[0], args[1]
             if self.repo.authenticate(s.username, old) is None:

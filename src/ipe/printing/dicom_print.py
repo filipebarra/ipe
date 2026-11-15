@@ -43,6 +43,9 @@ class PrinterConfig:
     copies: int = 1
     dpi: int = 150                  # resolução da imagem enviada
     color: bool = False
+    #: 0.100.49: no servidor central, os clientes (Ipê e Ipê Web) imprimem nela pelo servidor — sai com o IP e o AE
+    #: do servidor; o cliente não recebe o endereço
+    compartilhar_clientes: bool = False
     min_density: int | None = None
     max_density: int | None = None
 

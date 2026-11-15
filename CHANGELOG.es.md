@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.49 — Imprimir por el servidor
+- **Impresora DICOM compartida por el servidor**, como los nodos DICOM: en el servidor, la impresora tiene la
+  casilla *Compartir con los clientes*. En el Ipê del cliente aparece en la ventana Imprimir del compositor como
+  *Nombre (por el servidor)*; en Ipê Web, en la Salida de la película. Las hojas salen del servidor, con su IP y su
+  AE; el cliente no recibe la dirección ni el AE.
+- Ipê Web muestra solo las impresoras DICOM compartidas, sin la dirección (antes mostraba todas las del servidor,
+  con AE e IP).
+
 ## 0.100.48 — Densidad mamaria: solo la red de NYU
 - Después de las revisiones, la densidad queda **solo con la red de NYU**: el % de área por Otsu y por fuzzy, muy
   distintos de las categorías confirmadas, ya no se miden ni se muestran (ventana del examen, cola de revisión,
