@@ -6,8 +6,8 @@ janela com o que já foi medido, onde confirmo, salvo e posso enviar para o rela
 mostre por enquanto Otsu e fuzzy. Deixe tudo salvo para decidirmos depois."*
 
 A medida é do **exame inteiro** (as quatro incidências 2D), não só do que está na tela, e fica guardada no exame
-(`imaging/densidade_revisao.py`). A janela mostra a rede primeiro — a categoria e a probabilidade de cada uma — e os
-dois % de área abaixo, menores. A categoria marcada de saída é a da rede (ou a que já foi confirmada); o médico troca
+(`imaging/densidade_revisao.py`). A janela mostra a rede — a categoria e a probabilidade de cada uma (0.100.48: só
+ela; o Otsu e o fuzzy saíram). A categoria marcada de saída é a da rede (ou a que já foi confirmada); o médico troca
 se discordar e confirma. "Confirmar e mandar ao laudo" põe a composição no laudo BI-RADS do exame.
 """
 from __future__ import annotations
@@ -63,15 +63,7 @@ def resumo_curto(m: dict) -> str:
         partes.append(f"NYU {m['nyu'].upper()} ({100 * p:.0f}%)")
     else:
         partes.append("NYU —")
-    if m.get("area_pd") is not None:
-        partes.append(f"Otsu {m['area_pd']:.0f}% ({m['area'].upper()})")
-    if m.get("fcm_pd") is not None:
-        partes.append(f"fuzzy {m['fcm_pd']:.0f}% ({m['fcm'].upper()})")
     return " · ".join(partes)
-
-
-def _mamas(d: dict) -> str:
-    return " · ".join(f"{'D' if k == 'R' else 'E'} {v:.0f}%" for k, v in (d or {}).items())
 
 
 class DensidadeExameJanela(QDialog):
@@ -111,11 +103,6 @@ class DensidadeExameJanela(QDialog):
         self.lb_probs.setTextFormat(Qt.RichText)
         cl.addWidget(self.lb_probs)
         lay.addWidget(caixa)
-        # os % de área, menores
-        self.lb_area = QLabel("")
-        self.lb_area.setTextFormat(Qt.RichText)
-        self.lb_area.setWordWrap(True)
-        lay.addWidget(self.lb_area)
         self.lb_avisos = QLabel("")
         self.lb_avisos.setWordWrap(True)
         self.lb_avisos.setStyleSheet("color:#b8860b")
@@ -139,10 +126,6 @@ class DensidadeExameJanela(QDialog):
         botoes = QHBoxLayout()
         self.bt_medir = QPushButton(tr("Medir de novo"))
         self.bt_medir.clicked.connect(self.medir)
-        self.bt_mascara = QPushButton(tr("Por imagem, com a máscara…"))
-        self.bt_mascara.setToolTip(tr("Otsu e fuzzy imagem por imagem, com a máscara sobre a imagem (nas imagens da "
-                                      "tela)"))
-        self.bt_mascara.clicked.connect(self.ver_mascara)
         self.bt_ok = QPushButton(tr("Confirmar"))
         self.bt_ok.clicked.connect(lambda: self.confirmar(False))
         self.bt_laudo = QPushButton(tr("Confirmar e mandar ao laudo"))
@@ -150,7 +133,6 @@ class DensidadeExameJanela(QDialog):
         fechar = QPushButton(tr("Fechar"))
         fechar.clicked.connect(self.close)
         botoes.addWidget(self.bt_medir)
-        botoes.addWidget(self.bt_mascara)
         botoes.addStretch(1)
         botoes.addWidget(self.bt_ok)
         botoes.addWidget(self.bt_laudo)
@@ -204,17 +186,6 @@ class DensidadeExameJanela(QDialog):
         else:
             self.lb_rede.setText(f"<b>{tr('Rede (NYU)')}:</b> — {m.get('nyu_aviso') or ''}")
             self.lb_probs.setText("")
-        linhas = []
-        for chave, nome, mamas in (("area", R.METODOS["area"], "area_por_mama"), ("fcm", R.METODOS["fcm"],
-                                                                               "fcm_por_mama")):
-            pd = m.get(f"{chave}_pd")
-            if pd is None:
-                linhas.append(f"{tr(nome)}: —")
-            else:
-                lados = _mamas(m.get(mamas))
-                linhas.append(f"{tr(nome)}: {pd:.0f}% → {tr('faixa')} {m[chave].upper()}"
-                              + (f" ({lados})" if lados else ""))
-        self.lb_area.setText("<span style='color:gray'>" + "<br>".join(linhas) + "</span>")
         self.lb_avisos.setText("\n".join(m.get("avisos") or []))
         marcada = m.get("categoria") or m.get("nyu") or ""
         for c, rb in self.radios.items():
@@ -245,10 +216,6 @@ class DensidadeExameJanela(QDialog):
         if laudo:
             mandar_ao_laudo(self.tab, self.uid, cat)
         return True
-
-    def ver_mascara(self) -> None:
-        from ipe.ui.densidade_dialog import DensidadeDialog
-        DensidadeDialog(self.tab, self).exec()
 
     def closeEvent(self, event) -> None:  # noqa: D102, N802
         if self.medidor is not None and self.medidor.isRunning():

@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.48 — Breast density: NYU network only
+- After the reviews, density keeps **only the NYU network**: the % area by Otsu and by fuzzy, far from the
+  confirmed categories, are no longer measured or shown (exam window, review queue, Measured densities, CSV and
+  agreement). Measuring is faster. What was already saved with them stays in the database.
+- The per-image table with the mask (*Per image, with the mask…*) and the queue's *See the % area with the mask…*
+  button are gone too.
+
 ## 0.100.47 — Updates from the server: one package per system
 - **The Mac downloaded the Linux package** when checking for a new version on a central server running Linux: the
   server kept a single package per channel and handed it to any computer. Each channel now keeps one package per

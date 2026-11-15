@@ -10,6 +10,9 @@ A concordância sai daqui: kappa ponderado (quadrático) de cada método contra 
 (c/d) × não denso (a/b) e a matriz de confusão — no total, nos exames de controle à parte e por aparelho. É essa
 tabela, nos exames dele, que diz se o método serve; e é com ela que, mais tarde, se calibra o % de área por aparelho.
 
+0.100.48: depois de conferir, ele ficou **só com a rede da NYU** ("os outros são muito diferentes"): o Otsu e o
+fuzzy não são mais medidos nem mostrados; o que já foi guardado com eles fica no banco, fora das telas e da conta.
+
 Nada aqui depende de tela: a janela (`ui/densidade_revisao.py`) só chama estas funções.
 """
 from __future__ import annotations
@@ -26,7 +29,10 @@ NOMES = {"a": "A — quase toda gordurosa", "b": "B — áreas esparsas de tecid
          "c": "C — heterogeneamente densa", "d": "D — extremamente densa", "x": "Não avaliável"}
 #: "area" é o % de área pelo limiar de Otsu; "fcm", pelo agrupamento nebuloso (fuzzy) — 0.100.44: os dois ficam à
 #: vista por enquanto, ao lado da rede, para decidir depois qual fica
-METODOS = {"nyu": "Rede (NYU)", "area": "% de área (Otsu)", "fcm": "% de área (fuzzy)"}
+METODOS = {"nyu": "Rede (NYU)"}
+#: 0.100.48: ele ficou só com a rede ("os outros são muito diferentes"); medidas antigas com Otsu e fuzzy
+#: continuam guardadas, mas não aparecem nem entram na conta
+METODOS_ANTIGOS = {"area": "% de área (Otsu)", "fcm": "% de área (fuzzy)"}
 #: onde a medida do exame fica guardada (tabela revisao_ia, um registro por exame)
 MODULO = "densidade"
 VERSAO = 2
@@ -104,13 +110,13 @@ def escolher_vistas(cabecalhos: list[dict]) -> tuple[dict, str, list[str]]:
 
 
 # ------------------------------------------------------------------ sugestão
-def sugerir(vistas: dict, dados=None, stop=None) -> dict:
-    """As sugestões dos dois métodos para o exame. Cada um falha sozinho, com o motivo, sem derrubar o outro."""
+def sugerir(vistas: dict, dados=None, stop=None, com_area: bool = False) -> dict:
+    """A sugestão da rede da NYU para o exame (0.100.48: só ela; `com_area=True` mede ainda o Otsu e o fuzzy)."""
     from ipe.imaging import density as D
     out: dict = {"versao": VERSAO, "nyu": None, "nyu_probs": [], "nyu_aviso": "", "area_pd": None, "area": None,
                  "area_por_mama": {}, "fcm_pd": None, "fcm": None, "fcm_por_mama": {}, "imagens": [], "avisos": []}
     caminhos = list(dict.fromkeys(vistas.values()))
-    if caminhos:
+    if caminhos and com_area:
         try:
             medidas = D.medir_imagens(caminhos, stop=stop, metodos=(D.LIMIAR, D.FCM))
             boas = [m for m in medidas if m.mama_cm2 > 0]
@@ -341,13 +347,11 @@ def texto_da_concordancia(c: dict) -> str:
 
 def linhas_csv(revisoes: list[dict]) -> list[list[str]]:
     cab = ["study_uid", "data_do_exame", "aparelho", "revisor", "categoria", "controle", "nyu", "nyu_a", "nyu_b",
-           "nyu_c", "nyu_d", "otsu_pd", "otsu", "fuzzy_pd", "fuzzy", "quando"]
+           "nyu_c", "nyu_d", "quando"]
     out = [cab]
     for r in revisoes:
         p = list(r.get("nyu_probs") or []) + [""] * 4
         out.append([r.get("study_uid", ""), r.get("study_date", ""), r.get("aparelho", ""), r.get("usuario", ""),
                     r.get("categoria", ""), "1" if r.get("controle") else "0", r.get("nyu") or "",
-                    *[str(x) for x in p[:4]], "" if r.get("area_pd") is None else str(r["area_pd"]),
-                    r.get("area") or "", "" if r.get("fcm_pd") is None else str(r["fcm_pd"]), r.get("fcm") or "",
-                    r.get("quando", "")])
+                    *[str(x) for x in p[:4]], r.get("quando", "")])
     return out

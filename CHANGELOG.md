@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.48 — Densidade mamária: só a rede da NYU
+- Depois das conferências, a densidade fica **só com a rede da NYU**: o % de área por Otsu e por fuzzy, muito
+  diferentes das categorias confirmadas, não são mais medidos nem mostrados (janela do exame, fila de revisão,
+  Densidades medidas, CSV e concordância). Medir ficou mais rápido. O que já foi guardado com eles fica no banco.
+- Saíram também a tabela por imagem com a máscara (*Por imagem, com a máscara…*) e o botão *Ver o % de área com a
+  máscara…* da fila.
+
 ## 0.100.47 — Atualização pelo servidor: um pacote por sistema
 - **O Mac baixava o pacote do Linux** ao procurar versão nova num servidor central em Linux: o servidor guardava
   um pacote só por canal e o entregava a qualquer computador. Agora cada canal guarda um pacote por sistema

@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
-from ipe.ui.viewer.viewer_tab import ViewerTab
 
 log = logging.getLogger("ipe.ui.main_window")      # o mesmo registro de antes da separação
 
@@ -364,17 +363,6 @@ class ImpressoesMixin:
         from ipe.ui.acervo_dialog import AcervoDialog
         AcervoDialog(self.repo, self.settings, self.studies_in_use(), self).exec()
         self.browser.refresh()
-
-    def open_densidade(self, tab=None) -> None:
-        """Densidade mamária do exame que está na tela. Sem exame aberto, diz isso e não abre nada."""
-        aba = tab if isinstance(tab, ViewerTab) else self.aba_atual()
-        if not isinstance(aba, ViewerTab):
-            QMessageBox.information(self, "Densidade mamária",
-                                    "Abra primeiro as imagens: a densidade é medida no que está "
-                                    "nos quadros da tela.")
-            return
-        from ipe.ui.densidade_dialog import DensidadeDialog
-        DensidadeDialog(aba, self).exec()
 
     def abrir_densidades_medidas(self):
         """0.100.46: todas as densidades guardadas nos exames, com as confirmações."""

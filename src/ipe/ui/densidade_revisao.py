@@ -143,12 +143,9 @@ class RevisaoDensidadeJanela(QDialog):
         self.bt_na.clicked.connect(lambda: self.responder(R.NAO_AVALIAVEL))
         self.bt_pular = QPushButton(tr("Pular") + " →")
         self.bt_pular.clicked.connect(lambda: self.ir(self.i + 1))
-        self.bt_mascara = QPushButton(tr("Ver o % de área com a máscara…"))
-        self.bt_mascara.clicked.connect(self.ver_mascara)
         for b in (self.bt_ant, self.bt_na, self.bt_pular):
             nav.addWidget(b)
         nav.addStretch(1)
-        nav.addWidget(self.bt_mascara)
         cl.addLayout(nav)
         lay.addWidget(caixa)
 
@@ -230,7 +227,7 @@ class RevisaoDensidadeJanela(QDialog):
         return self.fila
 
     def _habilitar(self, sim: bool) -> None:
-        for b in (*self.botoes.values(), self.bt_na, self.bt_pular, self.bt_ant, self.bt_mascara):
+        for b in (*self.botoes.values(), self.bt_na, self.bt_pular, self.bt_ant):
             b.setEnabled(sim)
 
     def _aba(self, uid: str):
@@ -311,14 +308,6 @@ class RevisaoDensidadeJanela(QDialog):
             partes.append(f"<b>{tr('Rede (NYU)')}:</b> {s['nyu'].upper()}{conf}")
         else:
             partes.append(f"<b>{tr('Rede (NYU)')}:</b> — {s.get('nyu_aviso') or ''}")
-        for chave, mamas in (("area", "area_por_mama"), ("fcm", "fcm_por_mama")):
-            nome = tr(R.METODOS[chave])
-            if s.get(f"{chave}_pd") is not None:
-                lados = " · ".join(f"{'D' if k == 'R' else 'E'} {v:.0f}%" for k, v in (s.get(mamas) or {}).items())
-                partes.append(f"<span style='color:gray'>{nome}: {s[chave + '_pd']:.0f}% → {tr('faixa')} "
-                              f"{s[chave].upper()}" + (f" ({lados})" if lados else "") + "</span>")
-            else:
-                partes.append(f"<span style='color:gray'>{nome}: —</span>")
         if s.get("aparelho"):
             partes.append(f"<span style='color:gray'>{tr('Aparelho')}: {s['aparelho']}</span>")
         return "<br>".join(partes)
@@ -391,16 +380,6 @@ class RevisaoDensidadeJanela(QDialog):
         with open(destino, "w", newline="", encoding="utf-8-sig") as f:
             w = csv.writer(f, delimiter=";")
             w.writerows(R.linhas_csv(revs))
-
-    def ver_mascara(self) -> None:
-        if not (0 <= self.i < len(self.fila)):
-            return
-        tab = self._aba(self.fila[self.i].study_uid)
-        if tab is None:
-            QMessageBox.information(self, tr("Revisão da densidade mamária"), tr("O exame ainda não abriu."))
-            return
-        from ipe.ui.densidade_dialog import DensidadeDialog
-        DensidadeDialog(tab, self).exec()
 
     def closeEvent(self, event) -> None:  # noqa: D102, N802
         for t in list(self._threads.values()):

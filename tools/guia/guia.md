@@ -567,9 +567,9 @@ Este capítulo reúne o que o programa faz de específico para mama — a parte 
 
 ## Densidade mamária
 
-O botão **Densidade** da barra, num exame de mamografia (a seguir), ou **Densidade…** na barra do protocolo de mamografia. A tabela por imagem (*Por imagem, com a máscara…*) mede o que está nos quadros; o resto mede o exame inteiro. Desde a 0.100.46 a densidade saiu do menu Arquivo.
+O botão **Densidade** da barra, num exame de mamografia (a seguir), ou **Densidade…** na barra do protocolo de mamografia. A medida é do exame inteiro, pela **rede da NYU** (uma rede neural em ONNX que dá a categoria A–D a partir das quatro incidências). Desde a 0.100.46 a densidade saiu do menu Arquivo.
 
-Três métodos aparecem lado a lado, com a máscara desenhada sobre a imagem. Os dois primeiros (limiar de Otsu e FCM) concordam quase perfeitamente entre si: isso é precisão, não acerto. O terceiro é uma rede neural em ONNX.
+Até a 0.100.47 apareciam também o % de área pelo limiar de Otsu e pelo agrupamento fuzzy. Nas conferências, eles ficaram muito longe das categorias confirmadas, e desde a 0.100.48 só a rede é medida e mostrada (o que já tinha sido guardado com eles fica no banco, fora das telas).
 
 > **O que falta para o número entrar no laudo:** a leitura cega — comparar a medida do programa com a sua categoria, sem você ver o número antes. Enquanto isso não for feito, trate o valor como orientação, não como laudo.
 
@@ -578,15 +578,14 @@ Três métodos aparecem lado a lado, com a máscara desenhada sobre a imagem. Os
 Nos exames de mamografia, o botão **Densidade** fica na barra (com o seu próprio botão, fora da lista de IA). O clique abre **Medir e revisar**; a setinha mostra as opções:
 
 - **Medir em segundo plano (fica salvo no exame)**: mede as quatro incidências 2D do exame sem abrir janela; a barra de estado avisa quando terminar, com o resultado.
-- **Medir e revisar…**: abre a densidade do exame. Se já foi medido, mostra o que está salvo; se não, mede na hora. Primeiro e maior, a **rede da NYU**: a categoria e a probabilidade de cada uma. Abaixo, menores, o **% de área por Otsu e por fuzzy** (o exame e cada mama). A categoria marcada de saída é a da rede (ou a que você já confirmou); troque se discordar e clique **Confirmar** ou **Confirmar e mandar ao laudo**, que põe a composição no laudo BI-RADS do exame (num laudo assinado, ou sem a parte BI-RADS, a frase vai como texto). *Medir de novo* refaz a conta sem perder a sua confirmação.
-- **Por imagem, com a máscara…**: a tabela antiga, imagem por imagem, com a máscara sobre a imagem.
+- **Medir e revisar…**: abre a densidade do exame. Se já foi medido, mostra o que está salvo; se não, mede na hora. Primeiro e maior, a **rede da NYU**: a categoria e a probabilidade de cada uma. A categoria marcada de saída é a da rede (ou a que você já confirmou); troque se discordar e clique **Confirmar** ou **Confirmar e mandar ao laudo**, que põe a composição no laudo BI-RADS do exame (num laudo assinado, ou sem a parte BI-RADS, a frase vai como texto). *Medir de novo* refaz a conta sem perder a sua confirmação.
 - **Revisar vários exames em fila…**: a fila abaixo.
 
-A medida é do exame inteiro, não só do que está na tela, e fica guardada no exame (no servidor central, quando você usa um), com quem confirmou e quando. Otsu e fuzzy aparecem por enquanto, para comparar; a decisão de deixar só a rede vem depois das conferências.
+A medida é do exame inteiro, não só do que está na tela, e fica guardada no exame (no servidor central, quando você usa um), com quem confirmou e quando.
 
 ### Densidades medidas (0.100.46)
 
-**Laudos ▸ Densidade mamária: medidas e confirmações…**, ou botão **Densidade** ▸ *Densidades medidas…*. Uma linha por exame medido: data, paciente, aparelho, a **rede da NYU** (categoria e confiança), o **% de área por Otsu e por fuzzy**, a categoria **confirmada**, quem confirmou e quando, e a situação (não confirmada, igual à rede, diferente da rede). Filtre pelo período e pela situação. Em cima, quantos exames foram medidos e confirmados e, para cada método, a porcentagem de iguais às confirmações e o kappa. Duplo clique abre o exame; *Exportar CSV…* leva a tabela, com as probabilidades da rede.
+**Laudos ▸ Densidade mamária: medidas e confirmações…**, ou botão **Densidade** ▸ *Densidades medidas…*. Uma linha por exame medido: data, paciente, aparelho, a **rede da NYU** (categoria e confiança), a categoria **confirmada**, quem confirmou e quando, e a situação (não confirmada, igual à rede, diferente da rede). Filtre pelo período e pela situação. Em cima, quantos exames foram medidos e confirmados e a porcentagem de iguais às confirmações, com o kappa. Duplo clique abre o exame; *Exportar CSV…* leva a tabela, com as probabilidades da rede.
 
 A rede da NYU vai junto no pacote do Ipê desde a 0.100.46: não é preciso copiar nada para outros computadores.
 
@@ -595,14 +594,12 @@ A rede da NYU vai junto no pacote do Ipê desde a 0.100.46: não é preciso copi
 Botão **Densidade** ▸ *Revisar vários exames em fila…*, ou **Revisar densidade…** na barra de mamografia. É o jeito de saber, nos seus exames e nos seus aparelhos, se a sugestão do programa serve.
 
 1. Escolha o período e clique **Montar a fila**: entram as mamografias do banco nesse período (com *Só os que eu ainda não revisei*, as que você ainda não revisou), a mais recente primeiro.
-2. Cada exame abre numa aba do visualizador, e a janela mostra as sugestões: a **rede da NYU** (categoria A–D, com a confiança) e o **% de área por Otsu e por fuzzy** (o valor do exame, que é o da mama mais densa, a faixa de referência e o valor de cada mama). Embaixo, o aparelho e os avisos (incidência faltando, prótese). O exame que já foi medido (pelo botão Densidade) não é medido de novo, e a sua resposta vale também como a confirmação do exame.
+2. Cada exame abre numa aba do visualizador, e a janela mostra a sugestão da **rede da NYU** (categoria A–D, com a confiança). Embaixo, o aparelho e os avisos (incidência faltando, prótese). O exame que já foi medido (pelo botão Densidade) não é medido de novo, e a sua resposta vale também como a confirmação do exame.
 3. Responda com um clique ou uma tecla: **A**, **B**, **C**, **D** (ou **1** a **4**), **N** para não avaliável. A resposta é gravada e o próximo exame abre. **→** pula, **←** volta (o botão da resposta dada fica marcado). Com *Fechar o exame anterior ao passar*, a aba de cada exame fecha quando você segue.
 4. **Controle**: em parte dos exames (10% de fábrica, ajustável) a sugestão só aparece depois da sua resposta. Quem revisa com a resposta à vista tende a concordar com ela; os exames de controle medem quanto.
-5. Embaixo, a **concordância** até agora, para cada método: kappa ponderado, acerto exato e denso (C/D) × não denso (A/B), no total e nos exames de controle. **Exportar CSV…** leva tudo, exame por exame, com as probabilidades da rede.
+5. Embaixo, a **concordância** da rede até agora: kappa ponderado, acerto exato e denso (C/D) × não denso (A/B), no total e nos exames de controle. **Exportar CSV…** leva tudo, exame por exame, com as probabilidades da rede.
 
-*Ver o % de área com a máscara…* abre a janela de densidade no exame da vez, para ver de onde saiu o número.
-
-A revisão fica no banco (no servidor central, quando você usa um), uma por exame e por revisor: rever o mesmo exame troca a resposta. É com essas revisões que, mais adiante, o % de área pode ser calibrado para os seus aparelhos.
+A revisão fica no banco (no servidor central, quando você usa um), uma por exame e por revisor: rever o mesmo exame troca a resposta. Essas revisões mostram quanto a rede acerta nos seus aparelhos.
 
 ## RM de mama dinâmica
 

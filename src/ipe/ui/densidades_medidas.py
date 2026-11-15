@@ -21,8 +21,7 @@ from ipe.imaging import densidade_revisao as R
 
 log = logging.getLogger(__name__)
 
-COLUNAS = ("Data", "Paciente", "ID", "Descrição", "Aparelho", "Rede (NYU)", "Otsu", "Fuzzy", "Confirmada",
-           "Por", "Em", "Situação")
+COLUNAS = ("Data", "Paciente", "ID", "Descrição", "Aparelho", "Rede (NYU)", "Confirmada", "Por", "Em", "Situação")
 SITUACOES = (("todas", "Todas"), ("confirmadas", "Confirmadas"), ("pendentes", "Não confirmadas"),
              ("discordou", "Confirmadas diferente da rede"))
 
@@ -148,11 +147,9 @@ class DensidadesMedidasJanela(QDialog):
             probs = r.get("nyu_probs") or []
             nyu = f"{r['nyu'].upper()} ({100 * max(probs):.0f}%)" if r.get("nyu") and probs else (
                 r.get("nyu") or "").upper()
-            otsu = "" if r.get("area_pd") is None else f"{r['area_pd']:.0f}% ({(r.get('area') or '').upper()})"
-            fuzzy = "" if r.get("fcm_pd") is None else f"{r['fcm_pd']:.0f}% ({(r.get('fcm') or '').upper()})"
             conf = (r.get("categoria") or "").upper()
             valores = (_data(r.get("study_date", "")), r.get("patient_name", ""), r.get("patient_id", ""),
-                       r.get("description", ""), r.get("aparelho", ""), nyu, otsu, fuzzy, conf,
+                       r.get("description", ""), r.get("aparelho", ""), nyu, conf,
                        r.get("revisor", "") if conf else "", r.get("quando", "") if conf else "",
                        tr(situacao(r)))
             for j, v in enumerate(valores):
@@ -180,7 +177,7 @@ class DensidadesMedidasJanela(QDialog):
 
     def gravar_csv(self, destino: str) -> None:
         cab = ["study_uid", "data", "paciente", "id", "descricao", "aparelho", "nyu", "nyu_a", "nyu_b", "nyu_c",
-               "nyu_d", "otsu_pd", "otsu", "fuzzy_pd", "fuzzy", "confirmada", "por", "em", "medido_em"]
+               "nyu_d", "confirmada", "por", "em", "medido_em"]
         with open(destino, "w", newline="", encoding="utf-8-sig") as f:
             w = csv.writer(f, delimiter=";")
             w.writerow(cab)
@@ -188,9 +185,7 @@ class DensidadesMedidasJanela(QDialog):
                 p = [str(x) for x in (r.get("nyu_probs") or [])] + [""] * 4
                 w.writerow([r["study_uid"], r.get("study_date", ""), r.get("patient_name", ""),
                             r.get("patient_id", ""), r.get("description", ""), r.get("aparelho", ""),
-                            r.get("nyu", ""), *p[:4], "" if r.get("area_pd") is None else r["area_pd"],
-                            r.get("area", ""), "" if r.get("fcm_pd") is None else r["fcm_pd"], r.get("fcm", ""),
-                            r.get("categoria", ""), r.get("revisor", "") if r.get("categoria") else "",
+                            r.get("nyu", ""), *p[:4], r.get("categoria", ""), r.get("revisor", "") if r.get("categoria") else "",
                             r.get("quando", "") if r.get("categoria") else "", r.get("medido_em", "")])
 
 

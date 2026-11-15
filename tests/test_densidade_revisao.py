@@ -41,7 +41,11 @@ def test_sugestao_do_exame_sem_a_rede(tmp_path, monkeypatch):
     from ipe.ai import densidade_nyu as N
     monkeypatch.setattr(N, "disponivel", lambda dados=None: (False, "sem o modelo"))
     vistas, _a, _v = R.escolher_vistas([R.cabecalho(p) for p in _exame(tmp_path, fracao=0.3)])
-    s = R.sugerir(vistas)
+    s0 = R.sugerir(vistas)                                           # 0.100.48: só a rede
+    assert s0["area_pd"] is None and s0["fcm_pd"] is None and s0["imagens"] == []
+    assert s0["nyu"] is None and s0["nyu_aviso"] == "sem o modelo"
+    assert list(R.METODOS) == ["nyu"]
+    s = R.sugerir(vistas, com_area=True)                             # o Otsu e o fuzzy ainda medem, se pedidos
     assert s["area_pd"] is not None and s["area"] in R.CATEGORIAS
     assert set(s["area_por_mama"]) == {"R", "L"}
     assert s["fcm_pd"] is not None and s["fcm"] in R.CATEGORIAS            # 0.100.44: o fuzzy também
@@ -92,7 +96,7 @@ def test_concordancia_separa_controle_e_aparelho():
     assert nyu["total"]["denso"] == pytest.approx(1.0)                 # c × d: os dois densos
     assert nyu["controle"]["n"] == 1 and nyu["vista"]["n"] == 2
     assert set(nyu["aparelhos"]) == {"GE", "Hologic"}
-    assert c["metodos"]["area"]["total"]["n"] == 2                    # sem a sugestão, fica fora da conta
+    assert set(c["metodos"]) == {"nyu"}                               # 0.100.48: só a rede entra na conta
     txt = R.texto_da_concordancia(c)
     assert "Rede (NYU) (n = 3)" in txt and "controle" in txt
     assert R.linhas_csv([dict(revs[0], study_uid="1", nyu_probs=[0.1, 0.2, 0.6, 0.1])])[1][7:11] == \
@@ -162,13 +166,13 @@ def test_janela_da_revisao(env, tmp_path, monkeypatch):
             break
         j._threads and next(iter(j._threads.values())).wait(200)
     assert "9.1" in j.sugestoes                                      # o próximo já vem adiantado
-    assert "% de área" in j.lb_sugestao.text()
+    assert "Rede (NYU)" in j.lb_sugestao.text() and "% de área" not in j.lb_sugestao.text()
     j.responder("c")
     assert j.i == 1 and abertos == ["9.2", "9.1"] and fechados == ["9.2"]
     rev = repo.revisoes_densidade(j.usuario)
     assert len(rev) == 1, repo.revisoes_densidade(todos=True)
-    assert rev[0]["categoria"] == "c" and rev[0]["area"] in R.CATEGORIAS and not rev[0]["controle"]
-    assert "% de área (Otsu) (n = 1)" in j.lb_conc.text()
+    assert rev[0]["categoria"] == "c" and not rev[0]["controle"]
+    assert "Otsu" not in j.lb_conc.text()
     assert R.guardada(repo, "9.2")["categoria"] == "c"                  # e no exame, junto da medida
     j.ir(0)                                                          # voltar mostra a resposta dada
     assert "2px solid" in j.botoes["c"].styleSheet()
@@ -189,11 +193,11 @@ def test_medida_guardada_e_confirmacao(env, tmp_path, monkeypatch):
     m = R.medir_exame(repo, "5.5")
     R.guardar_medida(repo, "5.5", m)
     g = R.guardada(repo, "5.5")
-    assert g["estado"] == "auto" and g["area_pd"] == m["area_pd"] and "categoria" not in g
+    assert g["estado"] == "auto" and g["area_pd"] is None and "categoria" not in g
     R.confirmar(repo, "5.5", g, "b", "med")
     g = R.guardada(repo, "5.5")
     assert g["categoria"] == "b" and g["estado"] == "editado" and g["revisor"] == "med"   # a rede não deu b
-    assert repo.revisoes_densidade("med")[0]["fcm"] == m["fcm"]
+    assert repo.revisoes_densidade("med")[0]["categoria"] == "b"
     # medir de novo não apaga a confirmação
     R.guardar_medida(repo, "5.5", R.medir_exame(repo, "5.5"))
     assert R.guardada(repo, "5.5")["categoria"] == "b"
@@ -238,7 +242,7 @@ def test_janela_do_exame(env, tmp_path, monkeypatch):
             break
     assert d.medida["nyu"] == "c"
     assert "C — heterogeneamente densa" in d.lb_rede.text() and "<b>70%</b>" in d.lb_probs.text()
-    assert "(Otsu)" in d.lb_area.text() and "(fuzzy)" in d.lb_area.text()
+    assert not hasattr(d, "lb_area") and not hasattr(d, "bt_mascara")   # 0.100.48: só a rede
     assert d.categoria() == "c"                                      # de saída, a da rede
     d.radios["d"].setChecked(True)
     assert d.confirmar(True)
@@ -268,5 +272,5 @@ def test_medida_aparece_mesmo_sem_guardar(env, tmp_path, monkeypatch):
     t = J.Medidor(repo, "8.8")
     t.pronto.connect(lambda u, m, e: saiu.update(m=m, e=e))
     t.run()
-    assert saiu["e"] == "" and saiu["m"]["area_pd"] is not None
+    assert saiu["e"] == "" and saiu["m"]["nyu_aviso"] == "sem o modelo"
     assert any("atualize o servidor" in a for a in saiu["m"]["avisos"])

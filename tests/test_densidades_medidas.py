@@ -65,7 +65,8 @@ def test_janela(env, tmp_path):
     j.ate.setDate(QDate(2026, 11, 30))
     j.carregar()
     assert j.tabela.rowCount() == 1 and j.tabela.item(0, 5).text() == "D (80%)"
-    assert j.tabela.item(0, 8).text() == "D" and j.tabela.item(0, 9).text() == "med"
+    assert j.tabela.item(0, 6).text() == "D" and j.tabela.item(0, 7).text() == "med"
+    assert j.tabela.columnCount() == 10                              # 0.100.48: sem Otsu e fuzzy
     j.abrir_exame(j.tabela.model().index(0, 0))
     assert abertos == ["6.1"]
     j.gravar_csv(str(tmp_path / "d.csv"))

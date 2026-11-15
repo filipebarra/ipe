@@ -408,11 +408,6 @@ class MamografiaMixin:
         d.show()
         return d
 
-    def mg_densidade(self) -> None:
-        """Densidade das imagens que estão na tela. A janela lê os quadros visíveis desta aba."""
-        from ipe.ui.densidade_dialog import DensidadeDialog
-        DensidadeDialog(self, self).exec()
-
     def densidade_do_exame(self):
         """0.100.44: a janela da densidade do exame — o que foi medido (ou mede agora), confirmar e mandar ao laudo."""
         from ipe.ui import densidade_exame
