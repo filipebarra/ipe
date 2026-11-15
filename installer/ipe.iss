@@ -76,6 +76,7 @@ english.BancoDentroApp=Choose a database folder outside the program folder (the 
 english.BancoNaoTrocou=The database folder was not changed: the current one (%1) already has studies and the new one is empty. To take the studies to the new folder, open the program and use Settings ▸ Database ▸ Change the folder of this computer's database.
 english.VcTitulo=Visual C++ Redistributable
 english.VcTexto=This computer does not have the Microsoft Visual C++ Redistributable (x64). Ipê opens without it, but the organ segmentation (TotalSegmentator/PyTorch) needs it.%n%nOpen the Microsoft download page now? (Install it before running the segmentation installer.)
+english.IpeAberto=Ipê is still open on this computer (maybe as the icon near the clock). Close it completely — also the icon near the clock, with right-click ▸ Quit — and click Retry. If it stays open, the files of the old version are not replaced.
 brazilianportuguese.TarefaAtalho=Criar atalho na área de trabalho
 brazilianportuguese.GrupoAtalhos=Atalhos:
 brazilianportuguese.TarefaUrl=Abrir links ipe:// (e os antigos dicomviewer://) com este programa
@@ -95,6 +96,7 @@ brazilianportuguese.BancoDentroApp=Escolha a pasta do banco fora da pasta do pro
 brazilianportuguese.BancoNaoTrocou=A pasta do banco não foi trocada: a de agora (%1) já tem exames e a nova está vazia. Para levar os exames para a pasta nova, abra o programa e use Configurações ▸ Banco de dados ▸ Mudar a pasta do banco deste computador.
 brazilianportuguese.VcTitulo=Visual C++ Redistributable
 brazilianportuguese.VcTexto=Este computador não tem o Microsoft Visual C++ Redistributable (x64). O Ipê abre sem ele, mas a segmentação de órgãos (TotalSegmentator/PyTorch) precisa dele.%n%nAbrir agora o download da Microsoft? (Instale antes de rodar o instalador da segmentação.)
+brazilianportuguese.IpeAberto=O Ipê ainda está aberto neste computador (talvez como o ícone perto do relógio). Feche-o por inteiro — também o ícone perto do relógio, com o botão direito ▸ Sair — e clique em Repetir. Se ele continuar aberto, os arquivos da versão antiga não são trocados.
 spanish.TarefaAtalho=Crear un acceso directo en el escritorio
 spanish.GrupoAtalhos=Accesos directos:
 spanish.TarefaUrl=Abrir los enlaces ipe:// (y los antiguos dicomviewer://) con este programa
@@ -114,6 +116,7 @@ spanish.BancoDentroApp=Elija la carpeta de la base fuera de la carpeta del progr
 spanish.BancoNaoTrocou=La carpeta de la base no se cambió: la actual (%1) ya tiene estudios y la nueva está vacía. Para llevar los estudios a la carpeta nueva, abra el programa y use Configuración ▸ Base de datos ▸ Cambiar la carpeta de la base de este equipo.
 spanish.VcTitulo=Visual C++ Redistributable
 spanish.VcTexto=Este equipo no tiene el Microsoft Visual C++ Redistributable (x64). Ipê abre sin él, pero la segmentación de órganos (TotalSegmentator/PyTorch) lo necesita.%n%n¿Abrir ahora la descarga de Microsoft? (Instálelo antes de ejecutar el instalador de la segmentación.)
+spanish.IpeAberto=Ipê sigue abierto en este equipo (quizá como el icono junto al reloj). Ciérrelo por completo — también el icono junto al reloj, con el botón derecho ▸ Salir — y haga clic en Reintentar. Si sigue abierto, los archivos de la versión anterior no se reemplazan.
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:TarefaAtalho}"; GroupDescription: "{cm:GrupoAtalhos}"
@@ -166,9 +169,24 @@ var PaginaBanco: TInputDirWizardPage;
 var JaInstalado: Boolean;
 
 function InitializeSetup(): Boolean;
+var
+  Espera: Integer;
 begin
   JaInstalado := RegKeyExists(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{7B3A9C2E-5D41-4C8A-9E17-DC0F2A6B8E41}_is1');
   Result := True;
+  // 0.100.54: com o Ipê aberto (o programa cria o mutex IpeViewerAberto) os arquivos antigos ficavam no lugar e "a
+  // versão não mudava". Na atualização automática o programa está fechando: espera até 30 s; depois, pede para fechar.
+  Espera := 0;
+  while CheckForMutexes('IpeViewerAberto') and (Espera < 60) do
+  begin
+    Sleep(500);
+    Espera := Espera + 1;
+  end;
+  while Result and CheckForMutexes('IpeViewerAberto') do
+  begin
+    if SuppressibleMsgBox(CustomMessage('IpeAberto'), mbError, MB_RETRYCANCEL, IDCANCEL) = IDCANCEL then
+      Result := False;
+  end;
 end;
 
 // A pasta de agora: o programa grava em HKCU\Software\Ipe (DataDir) ao abrir; sem isso, a padrão.

@@ -58,6 +58,13 @@ Os arquivos do release têm nomes em inglês desde a 0.99.81: `Ipe-<versão>-ins
 
 No modo cliente quem decide a versão é o servidor central (Ajuda ▸ Procurar atualização no servidor central…), e o aviso do GitHub não aparece. A consulta manda ao GitHub só o nome do programa e a versão.
 
+**Limite do GitHub (0.100.54).** Sem conta, o GitHub aceita poucas consultas por hora vindas do mesmo endereço de internet — numa clínica, todos os computadores saem pelo mesmo — e respondia "HTTP Error 403: rate limit exceeded". Agora, quando isso acontece, o Ipê descobre a versão nova pela própria página do release (que não tem esse limite) e baixa de lá, conferindo o SHA-256 pelo arquivo `SHA256SUMS.txt` do release.
+
+**A versão não mudou depois de instalar (0.100.54).** Duas causas, e o Ipê agora avisa as duas ao abrir:
+
+- *O atalho aponta para outra cópia.* O instalador atualiza a pasta onde o Ipê foi instalado (normalmente `%LOCALAPPDATA%\Programs\Ipe`); se o atalho que você usa abre outra cópia (o portátil, uma pasta antiga), ela continua velha. O Ipê compara a versão aberta com a que o instalador registrou e oferece abrir a nova. Depois, troque o atalho (ou apague a cópia antiga). O registro (`Logs\dicomviewer.log`) mostra, a cada abertura, a versão e a pasta do programa.
+- *O Ipê estava aberto durante a instalação* (por exemplo, minimizado como ícone perto do relógio, no computador que serve os exames): os arquivos antigos ficavam no lugar. Agora o instalador espera o Ipê fechar (até 30 s, na atualização automática) e, se ele continuar aberto, pede para fechá-lo antes de seguir.
+
 ### Levar as configurações para outro computador
 
 **Configurações ▸ Sistema ▸ Exportar as configurações…** grava um arquivo `.ipeconfig` com o que você escolher: as configurações deste computador (janela, mouse, impressão, exportação, rede), as suas preferências, os protocolos de exibição e de mamografia, os modelos de laudo e de folha, perfis, SLA e busca ativa, os nós DICOM, as identidades AE, a automação e as traduções próprias. O arquivo é o mesmo no Windows e no Linux: exporte num e importe no outro.

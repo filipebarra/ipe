@@ -43,13 +43,22 @@ def _agente() -> str:
 
 
 def consultar(timeout: float = 10.0, abrir=None) -> dict:
-    """O último release: {versao, tag, nome, notas, pagina, pacotes: [{nome, url, tamanho, sha256}]}."""
+    """O último release: {versao, tag, nome, notas, pagina, pacotes: [{nome, url, tamanho, sha256}]}.
+
+    0.100.54: a API do GitHub aceita só 60 pedidos por hora por IP sem login — numa clínica, todos os computadores
+    saem pelo mesmo IP, e ele viu "HTTP Error 403: rate limit exceeded". Quando a API recusa (ou falha), a versão vem
+    da página do release (`pela_pagina`), que não tem esse limite."""
     req = urllib.request.Request(API, headers={"Accept": "application/vnd.github+json", "User-Agent": _agente()})
     abrir = abrir or urllib.request.urlopen
     try:
         with abrir(req, timeout=timeout) as r:
             d = json.loads(r.read().decode("utf-8"))
     except Exception as e:  # noqa: BLE001
+        log.info("API do GitHub recusou (%s); procurando pela página do release", e)
+        try:
+            return pela_pagina(timeout, abrir)
+        except Exception as e2:  # noqa: BLE001
+            log.info("página do release: %s", e2)
         raise ErroAtualizacao(f"Não deu para falar com o GitHub: {e}") from e
     tag = str(d.get("tag_name") or "")
     pacotes = []
@@ -156,6 +165,51 @@ def instalar_no_mac(dmg: Path, app: Path | None = None, pid: int | None = None, 
 SUFIXO = {"instalado": ("-installer.exe", "-instalador.exe"),
           "portatil_windows": ("-windows-portable.zip", "-windows-portatil.zip"),
           "linux": ("-linux-portable.tar.gz", "-linux-portatil.tar.gz")}
+
+
+DOWNLOAD = f"https://github.com/{REPO}/releases/download"
+
+
+def pela_pagina(timeout: float = 10.0, abrir=None) -> dict:
+    """Sem a API: a página "releases/latest" redireciona para ".../releases/tag/vX.Y.Z"; a lista dos arquivos vem da
+    página "expanded_assets" e as somas do SHA256SUMS.txt do release (da 0.100.54 em diante; sem ele, o download não
+    é conferido pela soma, só pelo tamanho que o servidor informa)."""
+    import re
+    abrir = abrir or urllib.request.urlopen
+    req = urllib.request.Request(PAGINA, headers={"User-Agent": _agente()})
+    with abrir(req, timeout=timeout) as r:
+        final = r.geturl() if hasattr(r, "geturl") else getattr(r, "url", "")
+    m = re.search(r"/releases/tag/([^/?#]+)", final or "")
+    if not m:
+        raise ErroAtualizacao("a página do GitHub não disse a versão mais nova")
+    tag = m.group(1)
+    nomes: list[str] = []
+    try:
+        req = urllib.request.Request(f"https://github.com/{REPO}/releases/expanded_assets/{tag}",
+                                     headers={"User-Agent": _agente()})
+        with abrir(req, timeout=timeout) as r:
+            html = r.read().decode("utf-8", "replace")
+        nomes = list(dict.fromkeys(re.findall(rf"/releases/download/{re.escape(tag)}/([^\"'?#<>\s]+)", html)))
+    except Exception:  # noqa: BLE001
+        log.debug("lista dos arquivos do release", exc_info=True)
+    v = tag.lstrip("vV")
+    if not nomes:                                     # os nomes que o release.yml publica
+        nomes = [f"Ipe-{v}{suf}" for sufs in SUFIXO.values() for suf in sufs[:1]] + [
+            f"Ipe-{v}-macos-arm64.dmg", f"Ipe-{v}-macos-x86_64.dmg", f"Ipe-{v}-linux-amd64.deb"]
+    somas: dict[str, str] = {}
+    try:
+        req = urllib.request.Request(f"{DOWNLOAD}/{tag}/SHA256SUMS.txt", headers={"User-Agent": _agente()})
+        with abrir(req, timeout=timeout) as r:
+            for linha in r.read().decode("utf-8", "replace").splitlines():
+                partes = linha.split()
+                if len(partes) == 2 and len(partes[0]) == 64:
+                    somas[partes[1].lstrip("*")] = partes[0].lower()
+    except Exception:  # noqa: BLE001
+        log.info("release %s sem SHA256SUMS.txt: o download não será conferido pela soma", tag)
+    pacotes = [{"nome": n, "url": f"{DOWNLOAD}/{tag}/{n}", "tamanho": 0, "sha256": somas.get(n, "")}
+               for n in nomes if n != "SHA256SUMS.txt"]
+    return {"versao": v, "tag": tag, "nome": f"Ipê {v}", "notas": "",
+            "pagina": f"https://github.com/{REPO}/releases/tag/{tag}", "pacotes": pacotes, "pela_pagina": True}
 
 
 def pacote_para(info: dict, modo: str, maquina: str | None = None) -> dict | None:

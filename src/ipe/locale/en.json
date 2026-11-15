@@ -9238,5 +9238,14 @@
  "fora da conta": "not counted",
  "imagem não encontrada": "image not found",
  "Faltam incidências: {}.": "Missing views: {}.",
- "sem a imagem {}": "no image {}"
+ "sem a imagem {}": "no image {}",
+ "a página do GitHub não disse a versão mais nova": "the GitHub page did not tell the newest version",
+ "conferir a cópia aberta": "check the open copy",
+ "lista dos arquivos do release": "release file list",
+ "mutex do Ipê": "Ipê mutex",
+ "Ipê {}": "Ipê {}",
+ "O instalador da versão {} rodou, mas os arquivos desta pasta continuam sendo da {} — provavelmente o Ipê estava aberto (talvez na bandeja, perto do relógio) e não deu para trocá-los.\\n\\nFeche o Ipê inteiro (também o ícone da bandeja) e rode o instalador de novo.": "The installer for version {} ran, but the files in this folder are still from {} — Ipê was probably open (maybe in the tray, near the clock) and they could not be replaced.\\n\\nClose Ipê completely (also the tray icon) and run the installer again.",
+ "Você abriu o Ipê {} da pasta\\n{}\\n\\nmas a versão instalada mais nova ({}) está em\\n{}\\n\\nO atalho que você usou aponta para a cópia antiga. Abrir a versão nova agora? (Depois, troque o atalho ou apague a cópia antiga.)": "You opened Ipê {} from the folder\\n{}\\n\\nbut the newest installed version ({}) is in\\n{}\\n\\nThe shortcut you used points to the old copy. Open the new version now? (Then change the shortcut or delete the old copy.)",
+ "O instalador da versão {} rodou, mas os arquivos desta pasta continuam sendo da {} — provavelmente o Ipê estava aberto (talvez na bandeja, perto do relógio) e não deu para trocá-los.\n\nFeche o Ipê inteiro (também o ícone da bandeja) e rode o instalador de novo.": "The installer for version {} ran, but the files in this folder are still from {} — Ipê was probably open (maybe in the tray, near the clock) and they could not be replaced.\n\nClose Ipê completely (also the tray icon) and run the installer again.",
+ "Você abriu o Ipê {} da pasta\n{}\n\nmas a versão instalada mais nova ({}) está em\n{}\n\nO atalho que você usou aponta para a cópia antiga. Abrir a versão nova agora? (Depois, troque o atalho ou apague a cópia antiga.)": "You opened Ipê {} from the folder\n{}\n\nbut the newest installed version ({}) is in\n{}\n\nThe shortcut you used points to the old copy. Open the new version now? (Then change the shortcut or delete the old copy.)"
 }

@@ -469,9 +469,48 @@ def run_gui(external: dict | None = None, minimized: bool = False) -> int:
     # que versão está falando.
     from ipe import __version__
     from ipe.core import runtime as _R
-    log.info("Ipê %s (%s) — dados em %s", __version__,
-             "empacotado" if _R.frozen() else "código", paths.data)
+    log.info("Ipê %s (%s) — dados em %s — programa em %s", __version__,
+             "empacotado" if _R.frozen() else "código", paths.data, sys.executable if _R.frozen() else "código")
+    if _R.frozen():                                   # 0.100.54: o instalador espera o Ipê fechar (AppMutex)
+        from ipe.core import instalacoes
+        instalacoes.marcar_aberto()
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(3000, lambda: _conferir_copia(win))
     if os.environ.get("IPE_DIAG_JANELA"):            # 0.100.27: roteiro automático na janela de verdade
         from ipe import diag
         diag.na_janela(win, app)
     return app.exec()
+
+
+def _conferir_copia(win) -> None:
+    """0.100.54: "instalo outra versão e a versão não muda" — avisa quando a cópia aberta não é a que o instalador
+    atualizou (atalho para outra pasta), ou quando ele não conseguiu trocar os arquivos."""
+    from pathlib import Path
+
+    from ipe import __version__
+    from ipe.core import instalacoes as I
+    try:
+        outra = I.outra_mais_nova(Path(sys.executable), __version__)
+        mesma = None if outra else I.mesma_pasta_desatualizada(Path(sys.executable), __version__)
+    except Exception:  # noqa: BLE001
+        log.debug("conferir a cópia aberta", exc_info=True)
+        return
+    from PySide6.QtWidgets import QMessageBox
+    if outra:
+        log.warning("cópia aberta %s (%s); instalada %s em %s", sys.executable, __version__, outra["versao"],
+                    outra["pasta"])
+        r = QMessageBox.question(
+            win, "Ipê", f"Você abriu o Ipê {__version__} da pasta\n{Path(sys.executable).parent}\n\n"
+            f"mas a versão instalada mais nova ({outra['versao']}) está em\n{outra['pasta']}\n\n"
+            "O atalho que você usou aponta para a cópia antiga. Abrir a versão nova agora? (Depois, troque o atalho "
+            "ou apague a cópia antiga.)")
+        if r == QMessageBox.Yes and Path(outra["exe"]).exists():
+            import subprocess
+            subprocess.Popen([outra["exe"]], close_fds=True)
+            win.quit_app() if hasattr(win, "quit_app") else win.close()
+    elif mesma:
+        log.warning("instalador registrou %s nesta pasta, mas os arquivos são da %s", mesma["versao"], __version__)
+        QMessageBox.warning(
+            win, "Ipê", f"O instalador da versão {mesma['versao']} rodou, mas os arquivos desta pasta continuam "
+            f"sendo da {__version__} — provavelmente o Ipê estava aberto (talvez na bandeja, perto do relógio) e não "
+            "deu para trocá-los.\n\nFeche o Ipê inteiro (também o ícone da bandeja) e rode o instalador de novo.")

@@ -9238,5 +9238,14 @@
  "fora da conta": "fuera de la cuenta",
  "imagem não encontrada": "imagen no encontrada",
  "Faltam incidências: {}.": "Faltan incidencias: {}.",
- "sem a imagem {}": "sin la imagen {}"
+ "sem a imagem {}": "sin la imagen {}",
+ "a página do GitHub não disse a versão mais nova": "la página de GitHub no dijo la versión más nueva",
+ "conferir a cópia aberta": "revisar la copia abierta",
+ "lista dos arquivos do release": "lista de archivos del release",
+ "mutex do Ipê": "mutex de Ipê",
+ "Ipê {}": "Ipê {}",
+ "O instalador da versão {} rodou, mas os arquivos desta pasta continuam sendo da {} — provavelmente o Ipê estava aberto (talvez na bandeja, perto do relógio) e não deu para trocá-los.\\n\\nFeche o Ipê inteiro (também o ícone da bandeja) e rode o instalador de novo.": "El instalador de la versión {} se ejecutó, pero los archivos de esta carpeta siguen siendo de la {} — probablemente Ipê estaba abierto (quizá en la bandeja, junto al reloj) y no se pudieron reemplazar.\\n\\nCierre Ipê por completo (también el icono de la bandeja) y ejecute el instalador de nuevo.",
+ "Você abriu o Ipê {} da pasta\\n{}\\n\\nmas a versão instalada mais nova ({}) está em\\n{}\\n\\nO atalho que você usou aponta para a cópia antiga. Abrir a versão nova agora? (Depois, troque o atalho ou apague a cópia antiga.)": "Abrió Ipê {} de la carpeta\\n{}\\n\\npero la versión instalada más nueva ({}) está en\\n{}\\n\\nEl acceso directo que usó apunta a la copia antigua. ¿Abrir la versión nueva ahora? (Después, cambie el acceso directo o borre la copia antigua.)",
+ "O instalador da versão {} rodou, mas os arquivos desta pasta continuam sendo da {} — provavelmente o Ipê estava aberto (talvez na bandeja, perto do relógio) e não deu para trocá-los.\n\nFeche o Ipê inteiro (também o ícone da bandeja) e rode o instalador de novo.": "El instalador de la versión {} se ejecutó, pero los archivos de esta carpeta siguen siendo de la {} — probablemente Ipê estaba abierto (quizá en la bandeja, junto al reloj) y no se pudieron reemplazar.\n\nCierre Ipê por completo (también el icono de la bandeja) y ejecute el instalador de nuevo.",
+ "Você abriu o Ipê {} da pasta\n{}\n\nmas a versão instalada mais nova ({}) está em\n{}\n\nO atalho que você usou aponta para a cópia antiga. Abrir a versão nova agora? (Depois, troque o atalho ou apague a cópia antiga.)": "Abrió Ipê {} de la carpeta\n{}\n\npero la versión instalada más nueva ({}) está en\n{}\n\nEl acceso directo que usó apunta a la copia antigua. ¿Abrir la versión nueva ahora? (Después, cambie el acceso directo o borre la copia antigua.)"
 }

@@ -241,4 +241,7 @@ jobs:
           V=${{ steps.n.outputs.versao }}
           RASC=""
           if [ "${{ inputs.rascunho }}" = "true" ]; then RASC="--draft"; fi
-          gh release create "v$V" pacotes/*/* --title "Ipê $V" --notes-file notas.md --target "$GITHUB_SHA" $RASC
+          # 0.100.54: as somas SHA-256 num arquivo do release — o Ipê confere o download mesmo quando a API do GitHub
+          # recusa (limite de pedidos por IP) e ele acha a versão pela página
+          for f in pacotes/*/*; do echo "$(sha256sum "$f" | cut -d' ' -f1)  $(basename "$f")"; done > SHA256SUMS.txt
+          gh release create "v$V" pacotes/*/* SHA256SUMS.txt --title "Ipê $V" --notes-file notas.md --target "$GITHUB_SHA" $RASC

@@ -6850,7 +6850,11 @@
   "ampliação",
   "compressão localizada",
   "fora da conta",
-  "imagem não encontrada"
+  "imagem não encontrada",
+  "a página do GitHub não disse a versão mais nova",
+  "conferir a cópia aberta",
+  "lista dos arquivos do release",
+  "mutex do Ipê"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8744,6 +8748,11 @@
   "{} — {} mm²",
   "a rede não rodou ({})",
   "Faltam incidências: {}.",
-  "sem a imagem {}"
+  "sem a imagem {}",
+  "Ipê {}",
+  "O instalador da versão {} rodou, mas os arquivos desta pasta continuam sendo da {} — provavelmente o Ipê estava aberto (talvez na bandeja, perto do relógio) e não deu para trocá-los.\\n\\nFeche o Ipê inteiro (também o ícone da bandeja) e rode o instalador de novo.",
+  "Você abriu o Ipê {} da pasta\\n{}\\n\\nmas a versão instalada mais nova ({}) está em\\n{}\\n\\nO atalho que você usou aponta para a cópia antiga. Abrir a versão nova agora? (Depois, troque o atalho ou apague a cópia antiga.)",
+  "O instalador da versão {} rodou, mas os arquivos desta pasta continuam sendo da {} — provavelmente o Ipê estava aberto (talvez na bandeja, perto do relógio) e não deu para trocá-los.\n\nFeche o Ipê inteiro (também o ícone da bandeja) e rode o instalador de novo.",
+  "Você abriu o Ipê {} da pasta\n{}\n\nmas a versão instalada mais nova ({}) está em\n{}\n\nO atalho que você usou aponta para a cópia antiga. Abrir a versão nova agora? (Depois, troque o atalho ou apague a cópia antiga.)"
  ]
 }

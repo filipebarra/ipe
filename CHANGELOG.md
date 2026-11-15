@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.54 — Atualização: limite do GitHub e "a versão não muda"
+- **"HTTP Error 403: rate limit exceeded"** ao procurar versão nova: a API do GitHub tem limite de consultas por
+  endereço de internet (numa clínica, todos saem pelo mesmo). Agora o Ipê acha a versão pela página do release, que
+  não tem esse limite, e confere o download pelo novo `SHA256SUMS.txt` do release.
+- **"Instalo outra versão e a versão não muda"**: o Ipê avisa ao abrir quando a cópia aberta é mais velha que a que
+  o instalador registrou noutra pasta (atalho para outra cópia) e oferece abrir a nova; ou quando o instalador rodou
+  nesta pasta sem conseguir trocar os arquivos. O instalador agora espera o Ipê fechar (inclusive o da bandeja) antes
+  de trocar os arquivos. O registro mostra a pasta do programa a cada abertura.
+
 ## 0.100.53 — Ipê Web em telas menores
 - A barra de cima do visualizador mostra o que cabe e põe o resto no botão **»**, no fim da barra (menu com os
   botões que não couberam). Antes, em telas menores que ~1900 pixels de largura, os botões da direita (Laudo,
