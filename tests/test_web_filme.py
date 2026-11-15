@@ -177,6 +177,8 @@ def test_ipe_cliente_imprime_pelo_servidor(servidor):
     d.c_imp.setCurrentIndex(0)
     assert d.impressora_do_servidor() == "" and d.impressora_dicom().host == "10.0.0.1"
     d.close()
+    d.deleteLater()                                   # janela solta atrapalhava o teste seguinte (navegador)
+    srv.app.processEvents()
 
 
 def _pega(f):

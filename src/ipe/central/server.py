@@ -747,6 +747,31 @@ class _Handler(BaseHTTPRequestHandler):
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, r, raw=True)
+        if path in ("/api/web/calcvasc", "/api/web/calcvasc/medir", "/api/web/calcvasc/confirmar",
+                    "/api/web/calcvasc/previa"):
+            from ipe.central import calc_vascular_web as CW                 # 0.100.51: calcificações vasculares
+            q = parse_qs(parts.query)
+            try:
+                if method == "GET" and path == "/api/web/calcvasc/previa":
+                    return self._send(200, CW.previa(c, s, (q.get("study") or [""])[0], (q.get("vista") or [""])[0]),
+                                      "image/png")
+                if method == "GET" and path == "/api/web/calcvasc":
+                    r = CW.ver(c, s, (q.get("study") or [""])[0])
+                elif method == "POST":
+                    d = json.loads(self._body() or b"{}")
+                    if path == "/api/web/calcvasc/medir":
+                        r = CW.medir(c, s, str(d.get("study") or ""), bool(d.get("de_novo")))
+                    elif path == "/api/web/calcvasc/confirmar":
+                        r = CW.confirmar(c, s, str(d.get("study") or ""), str(d.get("grau") or ""))
+                    else:
+                        return self._error(404, "rota")
+                else:
+                    return self._error(405, "método")
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            return self._json(200, r, raw=True)
         if path in ("/api/web/densidade", "/api/web/densidade/medir", "/api/web/densidade/confirmar"):
             from ipe.central import densidade_web as DW                     # 0.100.50: densidade mamária
             try:

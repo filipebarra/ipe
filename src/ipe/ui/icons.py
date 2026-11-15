@@ -438,7 +438,7 @@ _APPS_IA = {"app_nodulos": True, "app_enfisema": True, "app_composicao": True, "
             "app_orgaos": True, "app_genant": True, "app_linfonodos": True, "app_cefalometria": True,
             "app_indices": True, "app_difusao": False, "app_figado_lesoes": True,
             "app_autopet": True, "app_brats": True, "app_flames": True, "app_medula": True, "app_carga_pet": True, "app_calcio": True, "app_aorta": True,
-            "app_densidade": True}
+            "app_densidade": True, "app_calc_vascular": True}
 
 
 def _pulmoes(p: QPainter) -> None:
@@ -708,6 +708,21 @@ def _draw_app(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por aplic
         p.setBrush(ACCENT)
         for x, y, w, h in ((20, 20, 12, 9), (26, 32, 14, 10), (19, 42, 10, 7)):
             p.drawEllipse(QRectF(x, y, w, h))
+    elif name == "app_calc_vascular":   # um vaso sinuoso com trechos calcificados (os "trilhos")
+        p.setPen(_pen(FG, 3.5))
+        vaso = QPainterPath()
+        vaso.moveTo(8, 52)
+        vaso.cubicTo(20, 20, 36, 60, 56, 12)
+        p.drawPath(vaso)
+        p.setPen(_pen(ACCENT, 6))
+        trecho = QPainterPath()
+        trecho.moveTo(12, 42)
+        trecho.cubicTo(17, 30, 22, 30, 26, 36)
+        p.drawPath(trecho)
+        trecho2 = QPainterPath()
+        trecho2.moveTo(40, 38)
+        trecho2.cubicTo(45, 30, 48, 24, 51, 20)
+        p.drawPath(trecho2)
     elif name == "app_difusao":         # três setas saindo de um ponto
         p.setPen(_pen(ACCENT, 4))
         cx, cy = 22.0, 40.0

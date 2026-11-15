@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.51 — Calcificações vasculares da mama
+- Botão **Vasos** na mamografia (e **Calcificações vasculares** no Ipê Web): a rede **SCU-Net** (Emory, licença MIT,
+  no pacote) marca as calcificações vasculares nas quatro incidências; a janela mostra as incidências com as marcas,
+  a área por mama e uma sugestão provisória de grau; o médico gradua (**ausente, leve, moderada ou acentuada**),
+  confirma e pode mandar a frase ao laudo. Tudo fica guardado no exame, para validar e calibrar.
+- Conta só os trechos alongados (≥ 3 mm); a prótese é achada na imagem e a borda dela sai da conta (em exame com
+  prótese, sem sugestão de grau).
+
 ## 0.100.50 — Densidade mamária no Ipê Web
 - Botão **Densidade mamária** no visualizador web (exames com mamografia): a rede da NYU medida no servidor nas
   quatro incidências, a categoria com as probabilidades, **Confirmar** e **Confirmar e mandar ao laudo** (a

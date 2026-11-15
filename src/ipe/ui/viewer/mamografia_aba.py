@@ -413,6 +413,32 @@ class MamografiaMixin:
         from ipe.ui import densidade_exame
         return densidade_exame.abrir(self)
 
+    def calc_vascular_do_exame(self):
+        """0.100.51: calcificações vasculares da mama do exame — medir (ou abrir o medido), graduar, laudo."""
+        from ipe.ui import calc_vascular_exame
+        return calc_vascular_exame.abrir(self)
+
+    def calc_vascular_em_segundo_plano(self) -> None:
+        vp = self.active
+        uid = (vp.study_uid if vp is not None and getattr(vp, "study_uid", "") else "") or self.study_uid
+        medidores = self.__dict__.setdefault("_medidores_calc_vascular", {})
+        if uid in medidores and medidores[uid].isRunning():
+            self.status_message.emit("Calcificações vasculares: a medida deste exame já está em andamento.")
+            return
+        from ipe.ui.calc_vascular_exame import Medidor, resumo_curto
+        t = Medidor(self.repo, uid, None, self)
+
+        def pronto(u, m, erro) -> None:
+            medidores.pop(u, None)
+            if m is None:
+                self.status_message.emit(f"Calcificações vasculares: não consegui medir ({erro}).")
+            else:
+                self.status_message.emit(f"Calcificações vasculares salvas no exame: {resumo_curto(m)}.")
+        t.pronto.connect(pronto)
+        medidores[uid] = t
+        t.start()
+        self.status_message.emit("Calcificações vasculares: medindo o exame em segundo plano…")
+
     def densidade_em_segundo_plano(self) -> None:
         """0.100.44: mede o exame (as quatro incidências) sem abrir janela e guarda no exame; a barra de estado avisa
         quando terminar."""

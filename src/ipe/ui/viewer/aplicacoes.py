@@ -227,8 +227,11 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
               descricao="Segmentação dos órgãos abdominais (IA): máscaras e tabela de volumes no exame"),
     # 0.100.43: densidade mamária — medir nas imagens da tela e a fila de revisão (o médico confirma ou corrige)
     Aplicacao("densidade", "Densidade", frozenset({"MG"}),
-              descricao="Densidade mamária do exame: rede da NYU (e, por enquanto, o % de área por Otsu e fuzzy); "
-                        "confirmar, guardar e mandar ao laudo"),
+              descricao="Densidade mamária do exame: rede da NYU; confirmar, guardar e mandar ao laudo"),
+    # 0.100.51: calcificações vasculares da mama (SCU-Net) — o médico gradua: ausente, leve, moderada, acentuada
+    Aplicacao("calc_vascular", "Calcificações vasculares", frozenset({"MG"}),
+              descricao="Calcificações vasculares da mama (rede SCU-Net): marca nas quatro incidências, sugere o grau "
+                        "e o médico confirma; guarda e manda ao laudo"),
     Aplicacao("cefalometria", "Cefalometria", frozenset({"CT"}),
               ((frozenset({"face", "pescoco"}), frozenset()),),
               descricao="Cefalometria do cavum: via aérea, palato mole, língua e hioide (automática ou à mão)"),

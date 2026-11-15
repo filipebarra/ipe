@@ -14,6 +14,8 @@ _capturas/
 modelos/*
 # 0.100.46: a rede de densidade da NYU (BSD-2, 23 MB) vai no repositório e no pacote
 !modelos/densidade_nyu.onnx
+!modelos/calc_vascular_scunet.onnx
+!modelos/LICENSE-SCU-Net.txt
 !modelos/LEIAME.md
 *.dcm
 *.DCM

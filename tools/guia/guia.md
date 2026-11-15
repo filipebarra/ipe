@@ -601,6 +601,20 @@ Botão **Densidade** ▸ *Revisar vários exames em fila…*, ou **Revisar densi
 
 A revisão fica no banco (no servidor central, quando você usa um), uma por exame e por revisor: rever o mesmo exame troca a resposta. Essas revisões mostram quanto a rede acerta nos seus aparelhos.
 
+### Calcificações vasculares (0.100.51)
+
+Num exame de mamografia, o botão **Vasos** (um vaso com trechos calcificados) procura calcificações vasculares da mama (calcificação arterial) nas quatro incidências 2D. A rede é a **SCU-Net** (Emory, licença MIT), que vem no pacote do Ipê.
+
+- **Medir e revisar** (o clique no botão): abre a janela com as quatro incidências e, em vermelho, o que a rede marcou; a área em mm² de cada incidência e de cada mama (a maior entre CC e MLO); e a **sugestão** de grau. Se o exame ainda não foi medido, mede na hora (alguns segundos).
+- **Medir em segundo plano** (no menu do botão): mede e guarda no exame sem abrir a janela.
+- **Seu grau**: **ausente, leve, moderada ou acentuada**. A sugestão vem marcada de saída; troque se discordar e clique **Confirmar** ou **Confirmar e mandar ao laudo** (a frase, por exemplo "Calcificações vasculares moderadas.", vai como texto para o laudo). **Medir de novo** refaz sem perder o grau confirmado.
+
+A sugestão é **provisória**: conta só os trechos alongados (com 3 mm ou mais no maior lado, o jeito do vaso; os pontinhos isolados ficam de fora) e usa cortes de área ainda sem calibração (5, 30 e 100 mm² na mama com mais). O que vale é o seu grau; as áreas ficam guardadas junto, para calibrar a sugestão com as suas confirmações e, depois, chegar a uma escala de pontos.
+
+**Prótese**: a borda da prótese engana a rede. O Ipê acha a prótese na imagem (mesmo quando o aparelho não declara) e tira da conta o que cai nela e numa faixa de 5 mm em volta; mesmo assim, em exame com prótese não há sugestão de grau — confira nas imagens.
+
+No **Ipê Web**, o botão **Calcificações vasculares** (ao lado da Densidade mamária) faz o mesmo, medindo no servidor: as quatro prévias com as marcas, a sugestão, o grau e o laudo. Confirmar pede a permissão de escrever laudos.
+
 ## RM de mama dinâmica
 
 O programa reproduz o fluxo do CADstream: detecta as fases, corrige movimento, calcula os mapas paramétricos, classifica a cinética em seis cores e mede a lesão sobre o realce.

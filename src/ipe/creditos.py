@@ -193,6 +193,10 @@ CREDITOS: tuple[Credito, ...] = (
             "https://github.com/nyukat/breast_density_classifier", onde="modelo",
             citacao="Wu N, et al. Breast density classification with deep convolutional neural "
                     "networks. ICASSP 2018."),
+    Credito("SCU-Net (Emory HITI)", "calcificações vasculares da mama na mamografia", "MIT",
+            "https://github.com/Emory-HITI/BAC_segmentation", onde="modelo",
+            citacao="Guo X, et al. SCU-Net: A deep learning method for segmentation and quantification of breast "
+                    "arterial calcifications on mammograms. Med Phys 2021;48:5851-61."),
     # ------------------------------------------------------------------ instalador e desenvolvimento
     Credito("PyInstaller", "empacota o programa para Windows", "GPL-2.0 com exceção do bootloader",
             "https://pyinstaller.org", onde="instalador", modulos=("PyInstaller",)),

@@ -1212,6 +1212,18 @@ class BarraMixin:
         den.setIcon(icon("app_densidade"))
         den.setIconText("Densidade")
         self._button(tb, den, menu_den, app="densidade")
+        # calcificações vasculares da mama (0.100.51)
+        menu_cv = self._menu()
+        a_cv2 = self._act("calc_vascular.segundo_plano", "Medir em segundo plano (fica salvo no exame)",
+                          self.calc_vascular_em_segundo_plano)
+        menu_cv.addAction(a_cv2)
+        a_cv = QAction("Medir e revisar…", self)
+        a_cv.triggered.connect(self.calc_vascular_do_exame)
+        menu_cv.addAction(a_cv)
+        cv = self._act("calc_vascular.medir", "Calcificações vasculares: medir e revisar", self.calc_vascular_do_exame)
+        cv.setIcon(icon("app_calc_vascular"))
+        cv.setIconText("Vasos")
+        self._button(tb, cv, menu_cv, app="calc_vascular")
         self._montar_bloco_de_aplicacoes(tb)
         self._button(tb, self._plain("Mais", "more", "Mais opções"), more, instant=True)
 

@@ -77,6 +77,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [SynthSeg](https://github.com/BBillot/SynthSeg) | segmentação do encéfalo em RM de qualquer contraste e resolução e em TC — índices do crânio (Evans, 3º ventrículo, ângulo calosal) e volumes dos hipocampos | Apache-2.0 |
 | [SynthSR](https://github.com/BBillot/SynthSR) | T1 sintético de 1 mm a partir de uma série 2D do crânio, para o MPR e os índices quando não há T1 3D (rede reescrita em PyTorch no Ipê, com os pesos originais da versão 1.0) | Apache-2.0 |
 | [Classificador de densidade da NYU](https://github.com/nyukat/breast_density_classifier) | categoria de densidade mamária (BI-RADS a–d) | BSD-2-Clause |
+| [SCU-Net (Emory HITI)](https://github.com/Emory-HITI/BAC_segmentation) | calcificações vasculares da mama na mamografia | MIT |
 
 ## Só para gerar o instalador
 
@@ -110,6 +111,7 @@ Os autores destas ferramentas pedem que trabalhos que as usam citem:
 - **DIPY:** Garyfallidis E, et al. Dipy, a library for the analysis of diffusion MRI data. Frontiers in Neuroinformatics. 2014;8:8.
 - **SciPy:** Virtanen P, et al. SciPy 1.0: fundamental algorithms for scientific computing in Python. Nature Methods. 2020;17:261-272.
 - **Classificador de densidade da NYU:** Wu N, et al. Breast density classification with deep convolutional neural networks. ICASSP 2018.
+- **SCU-Net (Emory HITI):** Guo X, et al. SCU-Net: A deep learning method for segmentation and quantification of breast arterial calcifications on mammograms. Med Phys 2021;48:5851-61.
 
 ## Inspiração
 

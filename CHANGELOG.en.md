@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.51 — Breast vascular calcifications
+- **Vessels** button in mammography (and **Vascular calcifications** in Ipê Web): the **SCU-Net** network (Emory, MIT
+  license, in the package) marks vascular calcifications on the four views; the window shows the views with the
+  marks, the area per breast and a provisional grade suggestion; the physician grades (**absent, mild, moderate or
+  marked**), confirms and can send the sentence to the report. Everything is saved in the exam, for validation and
+  calibration.
+- Only elongated segments (≥ 3 mm) count; the implant is found in the image and its edge is left out (exams with an
+  implant get no grade suggestion).
+
 ## 0.100.50 — Breast density in Ipê Web
 - **Breast density** button in the web viewer (exams with mammography): the NYU network measured on the server on
   the four views, the category with the probabilities, **Confirm** and **Confirm and send to the report** (the
