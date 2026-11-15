@@ -6844,7 +6844,13 @@
   "sem esta incidência",
   "sem o modelo",
   "sem sugestão",
-  "só imagem 2D"
+  "só imagem 2D",
+  "Compressão localizada e ampliação aparecem, mas não entram na área da mama.",
+  "Nenhuma imagem de mamografia 2D com lado no exame.",
+  "ampliação",
+  "compressão localizada",
+  "fora da conta",
+  "imagem não encontrada"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8736,6 +8742,8 @@
   "{} mm²",
   "{} {} {} mm²",
   "{} — {} mm²",
-  "a rede não rodou ({})"
+  "a rede não rodou ({})",
+  "Faltam incidências: {}.",
+  "sem a imagem {}"
  ]
 }

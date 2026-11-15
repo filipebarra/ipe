@@ -628,3 +628,5 @@ table.lista .selo-laudo.assinado { background: #2f6f46; color: #e9ffe9; }
 .painel-calcvasc .categorias { display: flex; gap: 12px; flex-wrap: wrap; }
 .painel-calcvasc .info, .painel-calcvasc .aviso { font-size: .85em; opacity: .8; }
 .painel-calcvasc .botoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.painel-calcvasc figcaption { display: flex; align-items: center; gap: 4px; justify-content: center; }
+.painel-calcvasc figcaption .rolar { padding: 0 6px; }

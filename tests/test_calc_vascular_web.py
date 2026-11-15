@@ -48,11 +48,13 @@ def test_api(servidor_mg, rede):
     r = _api(srv, "/api/web/calcvasc/medir", {"study": atual}, tk)
     m = r["medida"]
     assert set(m["vistas"]) == {"R-CC", "L-CC", "R-MLO", "L-MLO"} and m["sugestao"] in C.GRAUS
+    assert len(m["imagens"]) == 4 and {x["chave"] for x in m["imagens"]} == set(m["vistas"])
+    assert all(isinstance(i, int) for i in m["vistas"].values())
     assert "mascara" not in json.dumps(r)                                    # o navegador não precisa da máscara
     n = len(rede)
     _api(srv, "/api/web/calcvasc/medir", {"study": atual}, tk)
     assert len(rede) == n                                                   # guardada: não mede de novo
-    png = _api(srv, f"/api/web/calcvasc/previa?study={atual}&vista=R-CC", tok=tk, cru=True)
+    png = _api(srv, f"/api/web/calcvasc/previa?study={atual}&i={m['vistas']['R-CC']}", tok=tk, cru=True)
     assert png[:4] == b"\x89PNG"
     r = _api(srv, "/api/web/calcvasc/confirmar", {"study": atual, "grau": "acentuada"}, tk)
     assert r["medida"]["grau"] == "acentuada" and r["medida"]["revisor"] == "admin"
@@ -61,7 +63,7 @@ def test_api(servidor_mg, rede):
         _api(srv, "/api/web/calcvasc/confirmar", {"study": atual, "grau": "x"}, tk)
     assert e.value.code == 400
     with pytest.raises(urllib.error.HTTPError) as e:
-        _api(srv, f"/api/web/calcvasc/previa?study={atual}&vista=X-CC", tok=tk, cru=True)
+        _api(srv, f"/api/web/calcvasc/previa?study={atual}&i=99", tok=tk, cru=True)
     assert e.value.code == 400
 
 

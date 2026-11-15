@@ -15,13 +15,22 @@ interface Medida {
   grau?: string;
   revisor?: string;
   confirmado_em?: string;
-  vistas: Record<string, { area_mm2: number; protese: boolean }>;
+  // 0.100.52: todas as imagens 2D; `vistas` diz por qual começa cada incidência
+  imagens: { i: number; chave: string; area_mm2: number; extra: boolean; modificadores: string[]; serie: string; protese: boolean }[];
+  vistas: Record<string, number>;
 }
 interface Resposta { medida: Medida | null; pode_confirmar: boolean; frases?: Record<string, string> }
 
 const GRAUS = ["ausente", "leve", "moderada", "acentuada"] as const;
 const NOMES: Record<string, string> = { ausente: "Ausente", leve: "Leve", moderada: "Moderada", acentuada: "Acentuada" };
 const VISTAS: [string, string][] = [["R-CC", "CC direita"], ["L-CC", "CC esquerda"], ["R-MLO", "MLO direita"], ["L-MLO", "MLO esquerda"]];
+const LADOS: Record<string, string> = { R: "direita", L: "esquerda" };
+function rotulo(chave: string): string {
+  const v = VISTAS.find(([k]) => k === chave);
+  if (v) return tr(v[1]);
+  const [lado, inc] = chave.split("-");
+  return `${inc} ${tr(LADOS[lado] || lado)}`;
+}
 
 async function pedir(caminho: string, corpo?: unknown): Promise<Resposta> {
   const r = await fetch(`${location.origin}${caminho}`, {
@@ -94,15 +103,50 @@ export class PainelCalcVascular {
     }
   }
 
-  private async previa(img: HTMLImageElement, vista: string): Promise<void> {
+  private async previa(img: HTMLImageElement, indice: number): Promise<void> {
     try {
-      const r = await fetch(`${location.origin}/api/web/calcvasc/previa?study=${encodeURIComponent(this.study)}&vista=${vista}`,
+      const r = await fetch(`${location.origin}/api/web/calcvasc/previa?study=${encodeURIComponent(this.study)}&i=${indice}`,
         { headers: cabecalhos(), cache: "no-store" });
       if (!r.ok) return;
       const u = URL.createObjectURL(await r.blob());
       this.urls.push(u);
       img.src = u;
     } catch { /* sem prévia */ }
+  }
+
+  /** Um quadro por incidência; com mais de uma imagem (repetição, compressão, ampliação), ◀ ▶ e a rodinha. */
+  private quadro(chave: string, imgs: Medida["imagens"], inicio: number | undefined): HTMLElement {
+    const fig = document.createElement("figure");
+    fig.dataset.chave = chave;
+    const img = document.createElement("img");
+    img.alt = rotulo(chave);
+    const cap = document.createElement("figcaption");
+    let pos = Math.max(0, imgs.findIndex((x) => x.i === inicio));
+    const ant = document.createElement("button");
+    const prox = document.createElement("button");
+    ant.type = prox.type = "button";
+    ant.textContent = "◀";
+    prox.textContent = "▶";
+    ant.setAttribute("aria-label", tr("Imagem anterior"));
+    prox.setAttribute("aria-label", tr("Próxima imagem"));
+    ant.className = prox.className = "rolar";
+    const texto = document.createElement("span");
+    const mostrar = () => {
+      const v = imgs[pos];
+      if (!v) { texto.textContent = `${rotulo(chave)} — ${tr("sem esta incidência")}`; return; }
+      const partes = [rotulo(chave) + (imgs.length > 1 ? ` (${pos + 1}/${imgs.length})` : ""), `${Math.round(v.area_mm2)} mm²`];
+      if (v.modificadores.length) partes.push(`${v.modificadores.map((x) => tr(x)).join(", ")} — ${tr("fora da conta")}`);
+      texto.textContent = partes.join(" · ");
+      void this.previa(img, v.i);
+    };
+    const ir = (d: number) => { if (imgs.length > 1) { pos = (pos + d + imgs.length) % imgs.length; mostrar(); } };
+    ant.onclick = () => ir(-1);
+    prox.onclick = () => ir(1);
+    img.addEventListener("wheel", (e) => { e.preventDefault(); ir(e.deltaY > 0 ? 1 : -1); }, { passive: false });
+    if (imgs.length > 1) cap.append(ant, texto, prox); else cap.append(texto);
+    fig.append(img, cap);
+    mostrar();
+    return fig;
   }
 
   private desenhar(aviso = ""): void {
@@ -117,17 +161,9 @@ export class PainelCalcVascular {
     if (m) {
       const grade = document.createElement("div");
       grade.className = "previas";
-      for (const [k, rot] of VISTAS) {
-        const fig = document.createElement("figure");
-        const img = document.createElement("img");
-        img.alt = tr(rot);
-        const cap = document.createElement("figcaption");
-        const v = m.vistas?.[k];
-        cap.textContent = v ? `${tr(rot)} — ${Math.round(v.area_mm2)} mm²` : `${tr(rot)} — ${tr("sem esta incidência")}`;
-        fig.append(img, cap);
-        grade.append(fig);
-        if (v) void this.previa(img, k);
-      }
+      const imgs = m.imagens || [];
+      const chaves = [...VISTAS.map(([k]) => k), ...[...new Set(imgs.map((x) => x.chave))].filter((k) => !VISTAS.some(([v]) => v === k)).sort()];
+      for (const k of chaves) grade.append(this.quadro(k, imgs.filter((x) => x.chave === k), m.vistas?.[k]));
       r.append(grade);
       const linha = document.createElement("div");
       linha.className = "rede";

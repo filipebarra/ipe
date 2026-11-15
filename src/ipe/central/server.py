@@ -753,8 +753,8 @@ class _Handler(BaseHTTPRequestHandler):
             q = parse_qs(parts.query)
             try:
                 if method == "GET" and path == "/api/web/calcvasc/previa":
-                    return self._send(200, CW.previa(c, s, (q.get("study") or [""])[0], (q.get("vista") or [""])[0]),
-                                      "image/png")
+                    png = CW.previa(c, s, (q.get("study") or [""])[0], int((q.get("i") or ["-1"])[0]))
+                    return self._send(200, png, "image/png")
                 if method == "GET" and path == "/api/web/calcvasc":
                     r = CW.ver(c, s, (q.get("study") or [""])[0])
                 elif method == "POST":

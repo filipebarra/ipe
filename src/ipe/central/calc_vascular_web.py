@@ -30,8 +30,16 @@ def _saida(m: dict | None, s) -> dict:
         return {"medida": None, "pode_confirmar": s.can("report")}
     out = {k: m.get(k) for k in CAMPOS}
     out["avisos"] = list(out.get("avisos") or [])
-    out["vistas"] = {k: {"area_mm2": v.get("area_mm2"), "protese": bool(v.get("protese"))}
-                     for k, v in (m.get("vistas") or {}).items()}
+    imgs = C.imagens_guardadas(m)
+    # 0.100.52: todas as imagens 2D (o navegador rola entre as da mesma incidência); a máscara fica no servidor
+    out["imagens"] = [{"i": i, "chave": v["chave"], "area_mm2": v.get("area_mm2"), "extra": bool(v.get("extra")),
+                       "modificadores": v.get("modificadores") or [], "serie": v.get("serie", ""),
+                       "protese": bool(v.get("protese"))} for i, v in enumerate(imgs)]
+    sops = {k: (v or {}).get("sop") for k, v in (m.get("vistas") or {}).items()}
+    out["vistas"] = {}
+    for i, v in enumerate(imgs):
+        if v["chave"] not in out["vistas"] or (sops.get(v["chave"]) and v.get("sop") == sops[v["chave"]]):
+            out["vistas"][v["chave"]] = i
     return {"medida": out, "pode_confirmar": s.can("report"), "frases": {g: C.frase_do_laudo(g) for g in C.GRAUS}}
 
 
@@ -52,7 +60,7 @@ def medir(c, s, study: str, de_novo: bool = False) -> dict:
             if g:
                 return _saida(g, s)
         m = C.medir_exame(c.repo, study)
-        if m.get("vistas"):
+        if m.get("imagens"):
             C.guardar_medida(c.repo, study, m)
         c.repo.audit("calc_vascular", f"medida pelo navegador: {m.get('sugestao') or '—'}", user=s.username,
                      study_uid=study)
@@ -72,14 +80,17 @@ def confirmar(c, s, study: str, grau: str) -> dict:
     return _saida(C.guardada(c.repo, study), s)
 
 
-def previa(c, s, study: str, vista: str) -> bytes:
+def previa(c, s, study: str, indice: int) -> bytes:
+    """A imagem `indice` da medida (a ordem de `imagens`), com o que a rede marcou."""
     import pydicom
 
     from ipe.ai import calc_vascular as C
     _exame(c, s, study)
     m = C.guardada(c.repo, study)
-    v = ((m or {}).get("vistas") or {}).get(vista)
-    cam = C.arquivos_das_vistas(c.repo, study).get(vista)
-    if not v or not cam:
-        raise KeyError(f"sem a incidência {vista}")
-    return C.previa_png(pydicom.dcmread(cam, force=True), v, 420)
+    imgs = C.imagens_guardadas(m or {})
+    if not 0 <= indice < len(imgs):
+        raise KeyError(f"sem a imagem {indice}")
+    cam = C.arquivo_da_imagem(c.repo, study, imgs[indice])
+    if not cam:
+        raise KeyError(f"sem a imagem {indice}")
+    return C.previa_png(pydicom.dcmread(cam, force=True), imgs[indice], 420)

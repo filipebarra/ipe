@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.52 — Calcificações vasculares em todas as imagens; janela da mamografia no navegador
+- **Calcificações vasculares** em **todas as imagens 2D** do exame (repetição, outras incidências, compressão
+  localizada, ampliação); na janela de confirmação (e no Ipê Web), cada incidência rola entre as imagens dela (◀ ▶ ou
+  a rodinha). Compressão localizada e ampliação aparecem, mas ficam fora da área da mama.
+- **Ipê Web**: a mamografia fica com a janela do arquivo (a janela de uma imagem não passa para as outras, nem pelas
+  janelas ligadas); a janela posta num corte da tomossíntese vale para os outros cortes da série.
+
 ## 0.100.51 — Calcificações vasculares da mama
 - Botão **Vasos** na mamografia (e **Calcificações vasculares** no Ipê Web): a rede **SCU-Net** (Emory, licença MIT,
   no pacote) marca as calcificações vasculares nas quatro incidências; a janela mostra as incidências com as marcas,

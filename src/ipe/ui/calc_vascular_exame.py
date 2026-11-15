@@ -4,8 +4,9 @@ Pedido dele (15/11/2026): identificar as calcificações vasculares na mamografi
 rede mede, ele revisa e confirma, tudo fica guardado para validar. Graus combinados: **ausente, leve, moderada,
 acentuada** (a escala de pontos vem depois da validação).
 
-A rede (SCU-Net, `ai/calc_vascular.py`) mede as quatro incidências 2D do exame; a janela mostra as quatro com o que
-foi marcado em vermelho, a área por mama e a sugestão provisória de grau (pela área dos trechos alongados). O grau é
+A rede (SCU-Net, `ai/calc_vascular.py`) mede todas as imagens 2D do exame (0.100.52: também as repetidas, as outras
+incidências, a compressão localizada e a ampliação); a janela mostra um quadro por incidência, que rola entre as
+imagens dela (◀ ▶ ou a rodinha), com o que foi marcado em vermelho, a área por mama e a sugestão provisória de grau (pela área dos trechos alongados). O grau é
 do médico: a sugestão vem marcada de saída, ele troca se discordar e confirma.
 """
 from __future__ import annotations
@@ -25,6 +26,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QRadioButton,
     QVBoxLayout,
+    QWidget,
 )
 
 from ipe.ai import calc_vascular as C
@@ -80,6 +82,89 @@ def _pixmap(rgb) -> QPixmap:
     return QPixmap.fromImage(img.copy())
 
 
+def rotulo(chave: str) -> str:
+    if chave in ROTULO_VISTA:
+        return tr(ROTULO_VISTA[chave])
+    lado, _, inc = chave.partition("-")
+    return f"{inc} {tr(LADO.get(lado, lado))}"
+
+
+class QuadroIncidencia(QWidget):
+    """As imagens de uma incidência (repetição, compressão localizada, ampliação…), uma de cada vez: ◀ ▶ ou a
+    rodinha do mouse sobre a imagem."""
+
+    def __init__(self, chave: str, imagens: list[dict], inicio: int = 0, parent=None) -> None:
+        super().__init__(parent)
+        self.chave, self.imagens, self.i = chave, imagens, max(0, min(inicio, len(imagens) - 1))
+        self._cache: dict[int, QPixmap] = {}
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(2, 2, 2, 2)
+        self.imagem = QLabel()
+        self.imagem.setAlignment(Qt.AlignCenter)
+        self.imagem.setMinimumSize(200, 240)
+        self.imagem.setStyleSheet("background:black; color:gray")
+        lay.addWidget(self.imagem, 1)
+        linha = QHBoxLayout()
+        self.bt_ant = QPushButton("◀")
+        self.bt_prox = QPushButton("▶")
+        for b in (self.bt_ant, self.bt_prox):
+            b.setFixedWidth(28)
+        self.bt_ant.clicked.connect(lambda: self.ir(-1))
+        self.bt_prox.clicked.connect(lambda: self.ir(1))
+        self.legenda = QLabel("")
+        self.legenda.setAlignment(Qt.AlignCenter)
+        self.legenda.setWordWrap(True)
+        linha.addWidget(self.bt_ant)
+        linha.addWidget(self.legenda, 1)
+        linha.addWidget(self.bt_prox)
+        lay.addLayout(linha)
+        self.mostrar()
+
+    def ir(self, passo: int) -> None:
+        if len(self.imagens) > 1:
+            self.i = (self.i + passo) % len(self.imagens)
+            self.mostrar()
+
+    def wheelEvent(self, ev) -> None:  # noqa: D102, N802
+        self.ir(1 if ev.angleDelta().y() < 0 else -1)
+        ev.accept()
+
+    def atual(self) -> dict | None:
+        return self.imagens[self.i] if self.imagens else None
+
+    def mostrar(self) -> None:
+        varias = len(self.imagens) > 1
+        self.bt_ant.setVisible(varias)
+        self.bt_prox.setVisible(varias)
+        v = self.atual()
+        if v is None:
+            self.imagem.setPixmap(QPixmap())
+            self.imagem.setText(tr("sem esta incidência"))
+            self.legenda.setText(rotulo(self.chave))
+            return
+        partes = [rotulo(self.chave) + (f" ({self.i + 1}/{len(self.imagens)})" if varias else ""),
+                  f"{v.get('area_mm2', 0):.0f} mm²"]
+        if v.get("modificadores"):
+            partes.append(", ".join(tr(x) for x in v["modificadores"]) + " — " + tr("fora da conta"))
+        if v.get("serie"):
+            partes.append(v["serie"])
+        self.legenda.setText(" · ".join(partes))
+        if self.i not in self._cache:
+            try:
+                import pydicom
+                if not v.get("caminho"):
+                    raise FileNotFoundError(tr("imagem não encontrada"))
+                self._cache[self.i] = _pixmap(C.previa(pydicom.dcmread(v["caminho"], force=True), v, 420))
+            except Exception as e:  # noqa: BLE001
+                log.debug("prévia da calcificação vascular", exc_info=True)
+                self.imagem.setPixmap(QPixmap())
+                self.imagem.setText(str(e))
+                return
+        pm = self._cache[self.i]
+        self.imagem.setPixmap(pm.scaled(max(200, self.imagem.width()), max(240, self.imagem.height()),
+                                        Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+
 class CalcVascularJanela(QDialog):
     def __init__(self, tab, parent=None, dados=None) -> None:
         super().__init__(parent)
@@ -102,20 +187,10 @@ class CalcVascularJanela(QDialog):
         self.barra.setVisible(False)
         lay.addWidget(self.barra)
 
-        grade = QGridLayout()
-        self.quadros: dict[str, QLabel] = {}
-        self.legendas: dict[str, QLabel] = {}
-        for i, k in enumerate(("R-CC", "L-CC", "R-MLO", "L-MLO")):
-            q = QLabel()
-            q.setAlignment(Qt.AlignCenter)
-            q.setMinimumSize(200, 240)
-            q.setStyleSheet("background:black")
-            leg = QLabel(tr(ROTULO_VISTA[k]))
-            leg.setAlignment(Qt.AlignCenter)
-            grade.addWidget(q, (i // 2) * 2, i % 2)
-            grade.addWidget(leg, (i // 2) * 2 + 1, i % 2)
-            self.quadros[k], self.legendas[k] = q, leg
-        lay.addLayout(grade, 1)
+        # um quadro por incidência (as quatro de rotina e as outras que houver); cada um rola entre as imagens dela
+        self.grade = QGridLayout()
+        self.quadros: dict[str, QuadroIncidencia] = {}
+        lay.addLayout(self.grade, 1)
 
         self.lb_rede = QLabel("")
         self.lb_rede.setTextFormat(Qt.RichText)
@@ -214,26 +289,25 @@ class CalcVascularJanela(QDialog):
             self.lb_confirmado.setText(tr("Ainda não confirmado."))
 
     def _previas(self, m: dict) -> None:
+        for q in self.quadros.values():
+            q.setParent(None)
+            q.deleteLater()
+        self.quadros = {}
+        imagens = C.imagens_guardadas(m)
         try:
-            import pydicom
-            arquivos = C.arquivos_das_vistas(self.repo, self.uid)
+            caminhos = {x["sop"]: x["caminho"] for x in C.imagens_do_exame(self.repo, self.uid)}
         except Exception:  # noqa: BLE001
-            arquivos = {}
-        for k, q in self.quadros.items():
-            v = (m.get("vistas") or {}).get(k)
-            cam = arquivos.get(k)
-            if not v or not cam:
-                q.setPixmap(QPixmap())
-                q.setText(tr("sem esta incidência"))
-                self.legendas[k].setText(tr(ROTULO_VISTA[k]))
-                continue
-            try:
-                rgb = C.previa(pydicom.dcmread(cam, force=True), v, 420)
-                q.setPixmap(_pixmap(rgb).scaled(q.width(), q.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
-            except Exception as e:  # noqa: BLE001
-                log.debug("prévia da calcificação vascular", exc_info=True)
-                q.setText(str(e))
-            self.legendas[k].setText(f"{tr(ROTULO_VISTA[k])} — {v.get('area_mm2', 0):.0f} mm²")
+            caminhos = {}
+        antigas = C.arquivos_das_vistas(self.repo, self.uid) if any(not v.get("sop") for v in imagens) else {}
+        chaves = list(C.ORDEM) + sorted({v["chave"] for v in imagens} - set(C.ORDEM))
+        vistas = m.get("vistas") or {}
+        for n, k in enumerate(chaves):
+            da = [dict(v, caminho=caminhos.get(v.get("sop")) or antigas.get(k)) for v in imagens if v["chave"] == k]
+            sop = (vistas.get(k) or {}).get("sop")
+            inicio = next((i for i, v in enumerate(da) if sop and v.get("sop") == sop), 0)
+            q = QuadroIncidencia(k, da, inicio, self)
+            self.grade.addWidget(q, n // 2, n % 2)
+            self.quadros[k] = q
 
     def grau(self) -> str:
         return next((g for g, rb in self.radios.items() if rb.isChecked()), "")

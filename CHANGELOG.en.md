@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.52 — Vascular calcifications on every image; mammography window in the browser
+- **Vascular calcifications** on **every 2D image** of the exam (repeats, other views, spot compression,
+  magnification); in the confirmation window (and in Ipê Web) each view scrolls through its images (◀ ▶ or the
+  wheel). Spot and magnification views are shown but not counted in the breast area.
+- **Ipê Web**: mammograms keep the file's window (one image's window no longer spreads to the others, not even
+  through linked windows); a window set on a tomosynthesis slice applies to the other slices of the series.
+
 ## 0.100.51 — Breast vascular calcifications
 - **Vessels** button in mammography (and **Vascular calcifications** in Ipê Web): the **SCU-Net** network (Emory, MIT
   license, in the package) marks vascular calcifications on the four views; the window shows the views with the

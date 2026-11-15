@@ -9230,5 +9230,13 @@
  "{} mm²": "{} mm²",
  "{} {} {} mm²": "{} {} {} mm²",
  "{} — {} mm²": "{} — {} mm²",
- "a rede não rodou ({})": "the network did not run ({})"
+ "a rede não rodou ({})": "the network did not run ({})",
+ "Compressão localizada e ampliação aparecem, mas não entram na área da mama.": "Spot compression and magnification are shown but not counted in the breast area.",
+ "Nenhuma imagem de mamografia 2D com lado no exame.": "No 2D mammography image with laterality in the exam.",
+ "ampliação": "magnification",
+ "compressão localizada": "spot compression",
+ "fora da conta": "not counted",
+ "imagem não encontrada": "image not found",
+ "Faltam incidências: {}.": "Missing views: {}.",
+ "sem a imagem {}": "no image {}"
 }

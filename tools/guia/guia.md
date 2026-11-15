@@ -603,9 +603,9 @@ A revisão fica no banco (no servidor central, quando você usa um), uma por exa
 
 ### Calcificações vasculares (0.100.51)
 
-Num exame de mamografia, o botão **Vasos** (um vaso com trechos calcificados) procura calcificações vasculares da mama (calcificação arterial) nas quatro incidências 2D. A rede é a **SCU-Net** (Emory, licença MIT), que vem no pacote do Ipê.
+Num exame de mamografia, o botão **Vasos** (um vaso com trechos calcificados) procura calcificações vasculares da mama (calcificação arterial) em **todas as imagens 2D** do exame: as quatro de rotina, as repetidas, as outras incidências (perfil, XCCL…), a compressão localizada e a ampliação (a densidade, ao contrário, usa só as quatro de rotina). A tomossíntese fica de fora. A rede é a **SCU-Net** (Emory, licença MIT), que vem no pacote do Ipê.
 
-- **Medir e revisar** (o clique no botão): abre a janela com as quatro incidências e, em vermelho, o que a rede marcou; a área em mm² de cada incidência e de cada mama (a maior entre CC e MLO); e a **sugestão** de grau. Se o exame ainda não foi medido, mede na hora (alguns segundos).
+- **Medir e revisar** (o clique no botão): abre a janela com um quadro por incidência e, em vermelho, o que a rede marcou; a área em mm² de cada imagem e de cada mama (a maior entre as imagens de campo inteiro); e a **sugestão** de grau. Quando uma incidência tem mais de uma imagem, o quadro mostra *(1/3)* e as setas ◀ ▶ — ou a rodinha do mouse sobre a imagem — passam pelas outras. A compressão localizada e a ampliação aparecem marcadas *fora da conta* (a área nelas sai maior). Se o exame ainda não foi medido, mede na hora (alguns segundos).
 - **Medir em segundo plano** (no menu do botão): mede e guarda no exame sem abrir a janela.
 - **Seu grau**: **ausente, leve, moderada ou acentuada**. A sugestão vem marcada de saída; troque se discordar e clique **Confirmar** ou **Confirmar e mandar ao laudo** (a frase, por exemplo "Calcificações vasculares moderadas.", vai como texto para o laudo). **Medir de novo** refaz sem perder o grau confirmado.
 
@@ -613,7 +613,7 @@ A sugestão é **provisória**: conta só os trechos alongados (com 3 mm ou mais
 
 **Prótese**: a borda da prótese engana a rede. O Ipê acha a prótese na imagem (mesmo quando o aparelho não declara) e tira da conta o que cai nela e numa faixa de 5 mm em volta; mesmo assim, em exame com prótese não há sugestão de grau — confira nas imagens.
 
-No **Ipê Web**, o botão **Calcificações vasculares** (ao lado da Densidade mamária) faz o mesmo, medindo no servidor: as quatro prévias com as marcas, a sugestão, o grau e o laudo. Confirmar pede a permissão de escrever laudos.
+No **Ipê Web**, o botão **Calcificações vasculares** (ao lado da Densidade mamária) faz o mesmo, medindo no servidor: as prévias com as marcas (com ◀ ▶ e a rodinha quando a incidência tem mais de uma imagem), a sugestão, o grau e o laudo. Confirmar pede a permissão de escrever laudos.
 
 ## RM de mama dinâmica
 
@@ -1233,6 +1233,8 @@ Nesta primeira fase:
   - os **destinos de impressão do Ipê** (PDF ou imagens numa pasta, impressora do sistema, impressora DICOM).
 - **Só esta folha** imprime a folha da prévia. Cada impressão conta no painel de filmes (o filme fica salvo, com quem imprimiu e para onde) e no registro de acesso.
 - O zoom e o deslocamento vão como no Ipê, em relação a "caber na célula". Como a célula do filme tem outra proporção que o quadro da tela, o enquadramento pode mudar um pouco; a prévia mostra como vai sair.
+
+**Janela na mamografia e na tomossíntese (0.100.52).** No navegador, cada mamografia abre com a janela do próprio arquivo, e a janela de uma imagem não passa para as outras (nem pelas janelas ligadas). A janela que você põe com o mouse num corte da tomossíntese vale para os outros cortes da mesma série; ao rolar para a 2D (outra série da mesma pilha), ela volta à janela do arquivo dela, e ao voltar para a tomo a sua janela continua lá. A janela *Do arquivo* (no menu de janelas) desfaz a sua janela da série.
 
 **Densidade mamária no navegador (0.100.50).** Num exame com mamografia, o botão **Densidade mamária** (a gota, junto da Dinâmica) abre a mesma densidade do botão Densidade do Ipê: a **rede da NYU** nas quatro incidências 2D do exame, com a categoria e a probabilidade de cada uma. Se o exame ainda não foi medido, o servidor mede na hora (a medida fica guardada no exame, e o Ipê de mesa vê a mesma). A categoria marcada de saída é a da rede (ou a que já foi confirmada); troque se discordar e clique **Confirmar** ou **Confirmar e mandar ao laudo**, que abre o laudo ao lado e põe a composição no BI-RADS de mamografia (com outro tipo de BI-RADS, a frase vai como texto). **Medir de novo** refaz a conta sem perder a confirmação. Ver e medir pedem só a permissão de abrir exames; confirmar pede a de escrever laudos. As confirmações entram em *Densidades medidas* e na concordância, como as do Ipê.
 

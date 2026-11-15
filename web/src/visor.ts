@@ -396,6 +396,12 @@ export interface Quadro {
   suvMin: number;
   /** o último SUV máximo achado perto do cursor neste quadro */
   achado: string;
+  /** 0.100.52: a janela que o médico pôs, por série (na tomossíntese, vale para os outros cortes da série); a série
+   * sem janela do médico fica com a do arquivo */
+  janelas?: Map<string, { lower: number; upper: number }>;
+  serieDaImagem?: string;
+  arrastando?: boolean;
+  pondoJanela?: boolean;
 }
 
 export interface Spec {
@@ -533,6 +539,13 @@ export class Grade {
       // 0.100.20: o que o médico faz no quadro ativo segue para as outras janelas de visualização
       q.el.addEventListener(Enums.Events.STACK_NEW_IMAGE, () => this.contar(q, "pos"));
       q.el.addEventListener(Enums.Events.VOI_MODIFIED, () => this.contar(q, "voi"));
+      // 0.100.52: a janela do médico fica com a série (cortes da tomo), as outras séries ficam com a do arquivo
+      q.el.addEventListener("pointerdown", () => { q.arrastando = true; }, { capture: true });
+      const solta = () => { window.setTimeout(() => { q.arrastando = false; }, 60); };
+      q.el.addEventListener("pointerup", solta, { capture: true });
+      q.el.addEventListener("pointercancel", solta, { capture: true });
+      q.el.addEventListener(Enums.Events.VOI_MODIFIED, () => { if (q.arrastando) this.lembrarJanela(q); });
+      q.el.addEventListener(Enums.Events.STACK_NEW_IMAGE, () => this.janelaDaSerie(q));
       q.el.addEventListener(Enums.Events.CAMERA_MODIFIED, () => this.contar(q, "zoom"));
       q.el.addEventListener(Enums.Events.IMAGE_RENDERED, () => this.desenharLinhaDeFora(q));
     }
@@ -799,6 +812,8 @@ export class Grade {
         if (x === this.quadros[this.ativo]) this.ultimaPos = null;
       } else if (m.tipo === "voi") {
         if ((x.serie?.modalidade || "") !== m.modalidade) continue;
+        // 0.100.52: na mamografia cada imagem fica com a janela do arquivo (a de outra imagem não serve)
+        if (m.modalidade === "MG") continue;
         vp.setProperties({ voiRange: { lower: m.lower, upper: m.upper } });
         vp.render();
       } else {
@@ -1448,17 +1463,68 @@ export class Grade {
     vp.render();
   }
 
+  // -------------------------------------------------------------- 0.100.52: a janela de cada série
+  private serieDe(imageId: string | undefined): string {
+    const m = imageId ? META.get(imageId) : undefined;
+    return m ? String(valor(m, "0020000E") ?? "") : "";
+  }
+
+  /** Guarda a janela que o médico pôs na série da imagem mostrada. */
+  private lembrarJanela(q: Quadro): void {
+    if (q.tipo !== "pilha" || q.pondoJanela) return;
+    const vp = motor?.getViewport(q.id) as Types.IStackViewport | undefined;
+    const serie = this.serieDe(vp?.getCurrentImageId());
+    const v = vp?.getProperties().voiRange;
+    if (!serie || !v) return;
+    (q.janelas ??= new Map()).set(serie, { lower: v.lower, upper: v.upper });
+  }
+
+  /** Imagem nova no quadro: a janela do médico para esta série, se houver (os outros cortes da tomossíntese ficam
+   * com a janela posta num deles); se não, a do arquivo — sem herdar a janela de outra série da mesma pilha (a 2D
+   * depois da tomo, a imagem anterior). */
+  private janelaDaSerie(q: Quadro): void {
+    if (q.tipo !== "pilha") return;
+    const vp = motor?.getViewport(q.id) as Types.IStackViewport | undefined;
+    const serie = this.serieDe(vp?.getCurrentImageId());
+    if (!vp || !serie) return;
+    const antes = q.serieDaImagem;
+    q.serieDaImagem = serie;
+    const j = q.janelas?.get(serie);
+    q.pondoJanela = true;
+    try {
+      if (j) {
+        const v = vp.getProperties().voiRange;
+        if (!v || Math.abs(v.lower - j.lower) > 1e-6 || Math.abs(v.upper - j.upper) > 1e-6) {
+          vp.setProperties({ voiRange: { lower: j.lower, upper: j.upper } });
+          vp.render();
+        }
+      } else if (antes && antes !== serie) {
+        const inv = vp.getProperties().invert;
+        vp.resetProperties();
+        if (inv) vp.setProperties({ invert: inv });
+        vp.render();
+      }
+    } catch { /* a imagem ainda não chegou */ } finally {
+      q.pondoJanela = false;
+    }
+  }
+
   // -------------------------------------------------------------- comandos da barra
   janela(largura: number, nivel: number): void {
     const vp = this.viewport() as Types.IStackViewport | null;
     if (!vp) return;
     vp.setProperties({ voiRange: { lower: nivel - largura / 2, upper: nivel + largura / 2 } });
     vp.render();
+    const q = this.quadros[this.ativo];
+    if (q) this.lembrarJanela(q);
   }
 
   janelaDoArquivo(): void {
     const vp = this.viewport() as Types.IStackViewport | null;
     if (!vp) return;
+    const q = this.quadros[this.ativo];
+    const serie = this.serieDe(vp.getCurrentImageId());
+    if (q && serie) q.janelas?.delete(serie);
     vp.resetProperties();
     vp.render();
   }
@@ -1476,6 +1542,7 @@ export class Grade {
     if (!vp || !q) return;
     vp.resetCamera();
     vp.resetProperties();
+    q.janelas?.clear();
     if (q.tipo !== "pilha") {
       q.projecao = q.tipo === "mip" ? "mip" : "fino";
       q.espessura = 0;

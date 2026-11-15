@@ -38,7 +38,7 @@ log = logging.getLogger(__name__)
 
 ARQUIVO = "calc_vascular_scunet.onnx"
 MODULO = "calc_vascular"
-VERSAO = 1
+VERSAO = 2                 # 0.100.52: todas as imagens 2D, não só as quatro
 GRAUS = ("ausente", "leve", "moderada", "acentuada")
 NOMES = {"ausente": "Ausente", "leve": "Leve", "moderada": "Moderada", "acentuada": "Acentuada"}
 #: área (mm², na mama com mais) a partir da qual a sugestão sobe de grau — PROVISÓRIO, até as confirmações dele
@@ -279,45 +279,137 @@ def grau_pela_area(area_mm2: float, cortes=CORTES) -> str:
     return GRAUS[g]
 
 
-def medir_exame(repo, study_uid: str, dados=None, stop=None, cortes=CORTES) -> dict:
-    """As quatro incidências 2D do exame (as mesmas que a densidade usa)."""
-    import time
+ORDEM = ("R-CC", "L-CC", "R-MLO", "L-MLO")
+#: incidências que não são as quatro de rotina, pelo ViewPosition
+OUTRAS = ("ML", "LM", "XCCL", "XCCM", "FB", "SIO", "LMO", "AT", "CV")
 
+
+def _incidencia_livre(ds) -> str:
+    from ipe.imaging import densidade_revisao as R
+    v = R._incidencia(ds)
+    if v:
+        return v
+    vp = str(getattr(ds, "ViewPosition", "") or "").upper().strip()
+    return vp if vp in OUTRAS else (vp[:8] or "?")
+
+
+def _modificadores(ds) -> list[str]:
+    out = []
+    for it in getattr(ds, "ViewModifierCodeSequence", None) or []:
+        t = str(getattr(it, "CodeMeaning", "") or "").lower()
+        if "spot" in t or "compress" in t:
+            out.append("compressão localizada")
+        elif "magnif" in t:
+            out.append("ampliação")
+        elif t:
+            out.append(t)
+    try:
+        if float(getattr(ds, "EstimatedRadiographicMagnificationFactor", 1) or 1) > 1.3 and "ampliação" not in out:
+            out.append("ampliação")
+    except (TypeError, ValueError):
+        pass
+    return out
+
+
+def imagens_do_exame(repo, study_uid: str) -> list[dict]:
+    """0.100.52: **todas** as imagens 2D de mamografia do exame com lado — as de rotina, as repetidas, as outras
+    incidências, a compressão localizada e a ampliação (a densidade usa só as quatro). Fora: a tomossíntese (cortes), a
+    imagem "para processamento" e a sem lado. Em ordem: R-CC, L-CC, R-MLO, L-MLO, as outras; dentro, pela série e
+    pelo número da imagem. `extra`: compressão localizada ou ampliação (aparece, mas não entra na conta da mama, porque
+    a área sai maior)."""
     import pydicom
 
     from ipe.imaging import densidade_revisao as R
+    lista = []
+    for f in repo.files_for_study(study_uid):
+        if not f:
+            continue
+        try:
+            ds = pydicom.dcmread(str(f), stop_before_pixels=True, force=True)
+        except Exception:
+            log.debug("calcificação vascular: não li %s", f, exc_info=True)
+            continue
+        if str(getattr(ds, "Modality", "") or "").upper() != "MG":
+            continue
+        try:
+            quadros = int(getattr(ds, "NumberOfFrames", 1) or 1)
+        except (TypeError, ValueError):
+            quadros = 1
+        tipo = [str(x).upper() for x in (getattr(ds, "ImageType", None) or [])]
+        if quadros > 1 or any(t in ("TOMO", "TOMOSYNTHESIS", "VOLUME") for t in tipo):
+            continue
+        if str(getattr(ds, "PresentationIntentType", "") or "").upper() == "FOR PROCESSING":
+            continue
+        lado = R._lado(ds)
+        if not lado:
+            continue
+        inc = _incidencia_livre(ds)
+        mods = _modificadores(ds)
+        desc = str(getattr(ds, "SeriesDescription", "") or "").strip()
+        lista.append({
+            "caminho": str(f), "sop": str(getattr(ds, "SOPInstanceUID", "") or ""), "chave": f"{lado}-{inc}",
+            "lado": lado, "incidencia": inc, "extra": bool(mods), "modificadores": mods, "serie": desc,
+            "aparelho": " ".join(x for x in (str(getattr(ds, "Manufacturer", "") or "").strip(),
+                                             str(getattr(ds, "ManufacturerModelName", "") or "").strip()) if x),
+            "_ordem": (ORDEM.index(f"{lado}-{inc}") if f"{lado}-{inc}" in ORDEM else 9, inc, lado,
+                       int(getattr(ds, "SeriesNumber", 0) or 0), int(getattr(ds, "InstanceNumber", 0) or 0),
+                       str(getattr(ds, "AcquisitionTime", "") or "")),
+        })
+    lista.sort(key=lambda x: x["_ordem"])
+    for x in lista:
+        x.pop("_ordem")
+    return lista
+
+
+def medir_exame(repo, study_uid: str, dados=None, stop=None, cortes=CORTES) -> dict:
+    """Todas as imagens 2D do exame (`imagens_do_exame`). Por mama, a maior área entre as imagens de campo inteiro."""
+    import time
+    from collections import Counter
+
+    import pydicom
     if hasattr(repo, "is_cached") and not repo.is_cached(study_uid):
         repo.download(study_uid)
-    arquivos = [f for f in repo.files_for_study(study_uid) if f]
-    vistas, aparelho, avisos = R.escolher_vistas([R.cabecalho(f) for f in arquivos])
-    avisos = [a for a in avisos if "a rede pede as quatro" not in a] + (
-        ["Faltam incidências: " + ", ".join(k for k in ("R-CC", "L-CC", "R-MLO", "L-MLO") if k not in vistas) + "."]
-        if len(vistas) < 4 and vistas else [])
+    lista = imagens_do_exame(repo, study_uid)
+    chaves = {x["chave"] for x in lista}
+    faltam = [k for k in ORDEM if k not in chaves]
+    avisos = [f"Faltam incidências: {', '.join(faltam)}."] if lista and faltam else []
+    aparelho = Counter(x["aparelho"] or "?" for x in lista).most_common(1)[0][0] if lista else ""
     out = {"versao": VERSAO, "modelo": "SCU-Net (Emory, MIT)", "limiar": LIMIAR, "cortes": list(cortes),
-           "vistas": {}, "por_mama": {}, "area_mm2": None, "sugestao": None, "aviso": "", "avisos": avisos,
-           "aparelho": aparelho, "quando": time.strftime("%Y-%m-%d %H:%M")}
+           "imagens": [], "vistas": {}, "por_mama": {}, "area_mm2": None, "sugestao": None, "aviso": "",
+           "avisos": avisos, "aparelho": aparelho, "quando": time.strftime("%Y-%m-%d %H:%M")}
     ok, motivo = disponivel(dados)
     if not ok:
         out["aviso"] = motivo
         return out
-    if not vistas:
-        out["aviso"] = "Nenhuma incidência de mamografia 2D com lado e incidência no exame."
+    if not lista:
+        out["aviso"] = "Nenhuma imagem de mamografia 2D com lado no exame."
         return out
-    for chave, cam in sorted(vistas.items()):
+    for x in lista:
         try:
-            ds = pydicom.dcmread(cam, force=True)
-            out["vistas"][chave] = medir_imagem(ds, dados, stop)
+            v = medir_imagem(pydicom.dcmread(x["caminho"], force=True), dados, stop)
         except InterruptedError:
             raise
         except Exception as e:
-            log.warning("calcificação vascular: %s falhou", chave, exc_info=True)
-            out["avisos"].append(f"{chave}: {e}")
-    protese = any(v.get("protese") for v in out["vistas"].values())
+            log.warning("calcificação vascular: %s falhou", x["chave"], exc_info=True)
+            out["avisos"].append(f"{x['chave']}: {e}")
+            continue
+        v.update({k: x[k] for k in ("sop", "chave", "lado", "incidencia", "extra", "modificadores", "serie")})
+        out["imagens"].append(v)
+    # a de cada incidência que entra na tela de resumo: a de maior área (campo inteiro antes)
+    for v in out["imagens"]:
+        atual = out["vistas"].get(v["chave"])
+        if atual is None or (atual["extra"], -atual["area_mm2"]) > (v["extra"], -v["area_mm2"]):
+            out["vistas"][v["chave"]] = v
+    protese = any(v.get("protese") for v in out["imagens"])
     if protese:
         out["avisos"].append("Prótese: a borda da prótese engana a rede; o que cai nela e em volta fica fora da conta, "
                              "mas confira nas imagens. Sem sugestão de grau.")
+    if any(v["extra"] for v in out["imagens"]):
+        out["avisos"].append("Compressão localizada e ampliação aparecem, mas não entram na área da mama.")
     for lado in ("R", "L"):
-        areas = [v["area_mm2"] for k, v in out["vistas"].items() if k.startswith(lado + "-")]
+        areas = [v["area_mm2"] for v in out["imagens"] if v["lado"] == lado and not v["extra"]]
+        if not areas:
+            areas = [v["area_mm2"] for v in out["imagens"] if v["lado"] == lado]
         if areas:
             out["por_mama"][lado] = max(areas)
     if out["por_mama"]:
@@ -326,8 +418,33 @@ def medir_exame(repo, study_uid: str, dados=None, stop=None, cortes=CORTES) -> d
     return out
 
 
+def imagens_guardadas(m: dict) -> list[dict]:
+    """As imagens medidas, também numa medida da 0.100.51 (só as quatro, em "vistas")."""
+    if m.get("imagens"):
+        return list(m["imagens"])
+    out = []
+    for k in ORDEM:
+        v = (m.get("vistas") or {}).get(k)
+        if v:
+            out.append(dict(v, chave=k, lado=k[0], incidencia=k[2:], extra=False, modificadores=[], sop="", serie=""))
+    return out
+
+
+def arquivo_da_imagem(repo, study_uid: str, img: dict) -> str | None:
+    """O arquivo desta imagem neste computador (o caminho não vai guardado: no servidor e no cliente é outro)."""
+    lista = imagens_do_exame(repo, study_uid)
+    if img.get("sop"):
+        x = next((x for x in lista if x["sop"] == img["sop"]), None)
+        return x["caminho"] if x else None
+    from ipe.imaging import (
+        densidade_revisao as R,  # medida da 0.100.51: a última da incidência
+    )
+    arquivos = [f for f in repo.files_for_study(study_uid) if f]
+    return R.escolher_vistas([R.cabecalho(f) for f in arquivos])[0].get(img.get("chave", ""))
+
+
 def arquivos_das_vistas(repo, study_uid: str) -> dict:
-    """{"R-CC": caminho, ...} neste computador (o caminho não vai guardado: no servidor e no cliente é outro)."""
+    """{"R-CC": caminho, ...}: as quatro de rotina (a última de cada), como a densidade escolhe."""
     from ipe.imaging import densidade_revisao as R
     arquivos = [f for f in repo.files_for_study(study_uid) if f]
     return R.escolher_vistas([R.cabecalho(f) for f in arquivos])[0]
