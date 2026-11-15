@@ -376,6 +376,11 @@ class ImpressoesMixin:
         from ipe.ui.densidade_dialog import DensidadeDialog
         DensidadeDialog(aba, self).exec()
 
+    def abrir_densidades_medidas(self):
+        """0.100.46: todas as densidades guardadas nos exames, com as confirmações."""
+        from ipe.ui import densidades_medidas
+        return densidades_medidas.abrir(self)
+
     def abrir_revisao_densidade(self) -> None:
         """0.100.43: a fila de mamografias para o médico confirmar ou corrigir a densidade sugerida."""
         from ipe.ui import densidade_revisao

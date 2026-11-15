@@ -2594,6 +2594,41 @@ class Repository:
             s.flush()
             return r.id
 
+    def densidades_medidas(self, date_from: str = "", date_to: str = "", banco: str = "visivel",
+                           limit: int = 5000) -> list[dict]:
+        """0.100.46: as densidades guardadas nos exames (botão Densidade e fila), com o paciente e a confirmação —
+        para a tela "Densidades medidas". Só os exames que quem pede enxerga."""
+        import json
+
+        from ipe.auth import visibilidade as V
+        visao = V.visao_atual()
+        with self.db.session() as s:
+            q = (select(RevisaoIA, Study, Patient).join(Study, Study.study_uid == RevisaoIA.study_uid)
+                 .join(Patient, Study.patient_fk == Patient.id).where(RevisaoIA.modulo == "densidade"))
+            if date_from:
+                q = q.where(Study.study_date >= date_from)
+            if date_to:
+                q = q.where(Study.study_date <= date_to)
+            q = _filtro_de_banco(q, banco, visao).order_by(Study.study_date.desc(), RevisaoIA.quando.desc()).limit(limit)
+            out = []
+            for r, st, pa in s.execute(q):
+                if not _no_banco(st, banco, visao):
+                    continue
+                try:
+                    d = json.loads(r.dados or "{}")
+                except ValueError:
+                    d = {}
+                out.append({
+                    "study_uid": st.study_uid, "patient_name": pa.name or "", "patient_id": pa.patient_id or "",
+                    "study_date": st.study_date or "", "description": st.description or "",
+                    "estado": r.estado or "auto", "revisor": r.usuario or "",
+                    "quando": r.quando.strftime("%Y-%m-%d %H:%M") if r.quando else "",
+                    "medido_em": d.get("quando", ""), "aparelho": d.get("aparelho", ""), "nyu": d.get("nyu") or "",
+                    "nyu_probs": d.get("nyu_probs") or [], "area_pd": d.get("area_pd"), "area": d.get("area") or "",
+                    "fcm_pd": d.get("fcm_pd"), "fcm": d.get("fcm") or "", "categoria": d.get("categoria") or "",
+                    "avisos": d.get("avisos") or []})
+            return out
+
     def revisoes_densidade(self, usuario: str = "", todos: bool = False) -> list[dict]:
         """As revisões do revisor (ou de todos), da mais antiga à mais nova."""
         import json

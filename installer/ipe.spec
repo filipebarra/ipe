@@ -48,7 +48,7 @@ datas += collect_data_files("certifi")          # 0.100.31: o cacert.pem (HTTPS 
 # `resource_dir()/modelos`, que é para onde isto copia.
 MODELOS = RAIZ / "modelos"
 if MODELOS.is_dir() and any(MODELOS.glob("*.onnx")):
-    datas += [(str(MODELOS), "modelos")]
+    datas += [(str(MODELOS), "ipe/modelos")]     # 0.100.46: resource_dir() é _MEIPASS/ipe (antes ia para _MEIPASS/modelos)
 
 # --- módulos que só são importados na hora ---------------------------------
 # pydicom e pynetdicom escolhem o decodificador em tempo de execução; sem isto o pacote

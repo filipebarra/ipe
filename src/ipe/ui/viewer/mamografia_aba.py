@@ -441,6 +441,14 @@ class MamografiaMixin:
         t.start()
         self.status_message.emit("Densidade: medindo o exame em segundo plano…")
 
+    def densidades_medidas(self):
+        """0.100.46: a tela com todas as densidades medidas e confirmadas."""
+        main = self._janela_principal()
+        if main is None:
+            return None
+        from ipe.ui import densidades_medidas
+        return densidades_medidas.abrir(main)
+
     def revisar_densidade(self):
         """0.100.43: a fila de revisão da densidade (abre os exames nas abas da janela principal)."""
         main = self._janela_principal()

@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.46 — Measured densities; the NYU network ships in the package
+- **Measured densities** (Reports ▸ Breast density: measurements and confirmations…, and in the Density button): one
+  row per measured exam, with the NYU network, the % area by Otsu and by fuzzy, the confirmed category, who confirmed
+  it and when. Filters by period and status (not confirmed, same as the network, different from the network), each
+  method's agreement with the confirmations, double-click to open the exam, and CSV.
+- **The NYU network ships in the package** (Windows, Linux and macOS): before, the package did not include the model
+  file, and the network did not run ("did not run") unless it was copied by hand. BSD-2 license, with the attribution
+  in `modelos/LEIAME.md`.
+- Density and the review queue **left the File menu**: they live in the Density button.
+
 ## 0.100.45 — Server nodes in the client's PACS window
 - **The node shared by the server did not appear in the client** when the first request to the server failed (the
   list stayed empty until switching location). Now the list is requested again every time the PACS window opens,

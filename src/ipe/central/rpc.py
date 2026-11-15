@@ -69,6 +69,7 @@ RPC_METHODS: dict[str, str] = {
     "salvar_revisao_densidade": "view", "revisoes_densidade": "view",
     # 0.100.44: a medida de densidade guardada no exame (e as outras conferências de IA)
     "revisao_ia": "view", "salvar_revisao_ia": "view",
+    "densidades_medidas": "view",
 }
 
 # 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame

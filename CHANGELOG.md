@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.46 — Densidades medidas; a rede da NYU vai no pacote
+- **Densidades medidas** (Laudos ▸ Densidade mamária: medidas e confirmações…, e no botão Densidade): uma linha por
+  exame medido, com a rede da NYU, o % de área por Otsu e por fuzzy, a categoria confirmada, quem confirmou e quando.
+  Filtros por período e situação (não confirmada, igual à rede, diferente da rede), a concordância de cada método com
+  as confirmações, duplo clique para abrir o exame e CSV.
+- **A rede da NYU vai no pacote** (Windows, Linux e macOS): antes, o pacote não levava o arquivo do modelo, e a rede
+  não rodava ("did not run") sem copiá-lo à mão. Licença BSD-2, com a atribuição em `modelos/LEIAME.md`.
+- A densidade e a fila de revisão **saíram do menu Arquivo**: ficam no botão Densidade.
+
 ## 0.100.45 — Os nós do servidor na janela do PACS do cliente
 - **O nó compartilhado pelo servidor não aparecia no cliente** quando a primeira pergunta ao servidor falhava (a
   lista ficava vazia até trocar de local). Agora a lista é pedida de novo cada vez que a janela do PACS abre, a

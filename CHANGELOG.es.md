@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.46 — Densidades medidas; la red de la NYU va en el paquete
+- **Densidades medidas** (Informes ▸ Densidad mamaria: medidas y confirmaciones…, y en el botón Densidad): una fila
+  por examen medido, con la red de la NYU, el % de área por Otsu y por fuzzy, la categoría confirmada, quién la
+  confirmó y cuándo. Filtros por período y situación (no confirmada, igual a la red, distinta de la red), la
+  concordancia de cada método con las confirmaciones, doble clic para abrir el examen y CSV.
+- **La red de la NYU va en el paquete** (Windows, Linux y macOS): antes, el paquete no llevaba el archivo del modelo,
+  y la red no corría sin copiarlo a mano. Licencia BSD-2, con la atribución en `modelos/LEIAME.md`.
+- La densidad y la cola de revisión **salieron del menú Archivo**: quedan en el botón Densidad.
+
 ## 0.100.45 — Los nodos del servidor en la ventana PACS del cliente
 - **El nodo compartido por el servidor no aparecía en el cliente** cuando la primera consulta al servidor fallaba
   (la lista quedaba vacía hasta cambiar de ubicación). Ahora la lista se pide de nuevo cada vez que se abre la

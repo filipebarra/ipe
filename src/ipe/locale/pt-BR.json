@@ -6768,7 +6768,27 @@
   "densidade no laudo BI-RADS",
   "(nenhum nó: no servidor, marque “Compartilhar com os clientes” no nó DICOM)",
   "Pelo servidor: ele busca e baixa com o AE dele, e o exame vai para o banco do servidor.",
-  "Quais usuários DESTE programa usam o nó. Para o Ipê cliente e o Ipê Web buscarem por ele, marque “Compartilhar com os clientes” em Usos."
+  "Quais usuários DESTE programa usam o nó. Para o Ipê cliente e o Ipê Web buscarem por ele, marque “Compartilhar com os clientes” em Usos.",
+  "Concordância com as confirmações",
+  "Confirmada",
+  "Confirmadas",
+  "Confirmadas diferente da rede",
+  "Densidade mamária: medidas e confirmações…",
+  "Densidades medidas",
+  "Densidades medidas (todos os exames, com as confirmações)…",
+  "Diferente da rede",
+  "Duplo clique abre o exame (no botão Densidade dá para confirmar ou trocar a categoria).",
+  "Em",
+  "Exames de",
+  "Fuzzy",
+  "Igual à rede",
+  "Não confirmada",
+  "Não confirmadas",
+  "Não consegui ler as densidades: {} (num servidor central, atualize o servidor para a mesma versão).",
+  "Otsu",
+  "Por",
+  "densidades medidas",
+  "{} exame(s) medido(s), {} confirmado(s)."
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8636,6 +8656,8 @@
   "{}: {}% → {} {}",
   "{}: —",
   "(o servidor não mandou a lista de nós: {})",
-  "A medida não foi guardada no exame ({}). Num servidor central, atualize o servidor para a mesma versão deste computador."
+  "A medida não foi guardada no exame ({}). Num servidor central, atualize o servidor para a mesma versão deste computador.",
+  "{}% ({})",
+  "{}: {}% {} (kappa {}, n = {})"
  ]
 }

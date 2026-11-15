@@ -567,7 +567,7 @@ Este capítulo reúne o que o programa faz de específico para mama — a parte 
 
 ## Densidade mamária
 
-**Arquivo ▸ Densidade mamária das imagens na tela…**, o botão **Densidade…** da barra de mamografia, ou, desde a 0.100.43, a lista do botão **IA** num exame de mamografia ▸ **Densidade**. O item do menu só aparece com exame aberto: a densidade é medida no que está nos quadros, não no exame inteiro.
+O botão **Densidade** da barra, num exame de mamografia (a seguir), ou **Densidade…** na barra do protocolo de mamografia. A tabela por imagem (*Por imagem, com a máscara…*) mede o que está nos quadros; o resto mede o exame inteiro. Desde a 0.100.46 a densidade saiu do menu Arquivo.
 
 Três métodos aparecem lado a lado, com a máscara desenhada sobre a imagem. Os dois primeiros (limiar de Otsu e FCM) concordam quase perfeitamente entre si: isso é precisão, não acerto. O terceiro é uma rede neural em ONNX.
 
@@ -584,9 +584,15 @@ Nos exames de mamografia, o botão **Densidade** fica na barra (com o seu própr
 
 A medida é do exame inteiro, não só do que está na tela, e fica guardada no exame (no servidor central, quando você usa um), com quem confirmou e quando. Otsu e fuzzy aparecem por enquanto, para comparar; a decisão de deixar só a rede vem depois das conferências.
 
+### Densidades medidas (0.100.46)
+
+**Laudos ▸ Densidade mamária: medidas e confirmações…**, ou botão **Densidade** ▸ *Densidades medidas…*. Uma linha por exame medido: data, paciente, aparelho, a **rede da NYU** (categoria e confiança), o **% de área por Otsu e por fuzzy**, a categoria **confirmada**, quem confirmou e quando, e a situação (não confirmada, igual à rede, diferente da rede). Filtre pelo período e pela situação. Em cima, quantos exames foram medidos e confirmados e, para cada método, a porcentagem de iguais às confirmações e o kappa. Duplo clique abre o exame; *Exportar CSV…* leva a tabela, com as probabilidades da rede.
+
+A rede da NYU vai junto no pacote do Ipê desde a 0.100.46: não é preciso copiar nada para outros computadores.
+
 ### Revisar a densidade (fila de exames)
 
-**Arquivo ▸ Revisar a densidade mamária (fila de exames)…**, **Revisar densidade…** na barra de mamografia, ou IA ▸ Densidade ▸ *Revisar a densidade*. É o jeito de saber, nos seus exames e nos seus aparelhos, se a sugestão do programa serve.
+Botão **Densidade** ▸ *Revisar vários exames em fila…*, ou **Revisar densidade…** na barra de mamografia. É o jeito de saber, nos seus exames e nos seus aparelhos, se a sugestão do programa serve.
 
 1. Escolha o período e clique **Montar a fila**: entram as mamografias do banco nesse período (com *Só os que eu ainda não revisei*, as que você ainda não revisou), a mais recente primeiro.
 2. Cada exame abre numa aba do visualizador, e a janela mostra as sugestões: a **rede da NYU** (categoria A–D, com a confiança) e o **% de área por Otsu e por fuzzy** (o valor do exame, que é o da mama mais densa, a faixa de referência e o valor de cada mama). Embaixo, o aparelho e os avisos (incidência faltando, prótese). O exame que já foi medido (pelo botão Densidade) não é medido de novo, e a sua resposta vale também como a confirmação do exame.

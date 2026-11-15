@@ -11,7 +11,10 @@ dist/
 # NUNCA no repositório: exames, capturas de tela (podem ter dados de paciente) e modelos grandes
 exames_teste/
 _capturas/
-modelos/
+modelos/*
+# 0.100.46: a rede de densidade da NYU (BSD-2, 23 MB) vai no repositório e no pacote
+!modelos/densidade_nyu.onnx
+!modelos/LEIAME.md
 *.dcm
 *.DCM
 DICOMDIR

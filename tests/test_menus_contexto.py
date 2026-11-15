@@ -77,15 +77,15 @@ def test_trazer_de_volta_so_com_monitor_aberto(janela):
     assert "Trazer todos os estudos de volta" not in _visiveis(exibir)
 
 
-def test_densidade_so_com_exame_na_tela(janela):
+def test_densidade_saiu_do_menu_arquivo(janela):
+    """0.100.46: a densidade mora no botão Densidade (mamografia) e em Laudos ▸ Densidade mamária."""
     app, w = janela
     arquivo = _menu(w, "Arquivo")
-    w.ajustar_menu_arquivo(arquivo)
-    assert not any("Densidade" in t for t in _visiveis(arquivo))
     w.open_study(w.repo.search_studies()[0].study_uid)
     app.processEvents()
     w.ajustar_menu_arquivo(arquivo)
-    assert any("Densidade" in t for t in _visiveis(arquivo))
+    assert not any("ensidade" in a.text() for a in arquivo.actions())
+    assert any("Densidade mamária" in a.text() for a in _menu(w, "Laudos").actions())
 
 
 def test_fantomas_saiu_do_menu_arquivo(janela):

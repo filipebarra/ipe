@@ -52,6 +52,9 @@ def pastas(dados: Path | None = None) -> list:
         saida.append(Path(resource_dir()) / "modelos")
     except Exception:  # noqa: BLE001
         pass
+    import sys
+    if getattr(sys, "_MEIPASS", None):               # pacotes até a 0.100.45 punham o modelo aqui
+        saida.append(Path(sys._MEIPASS) / "modelos")
     saida.append(Path(__file__).resolve().parents[3] / "modelos")
     return saida
 

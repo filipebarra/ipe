@@ -280,8 +280,6 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
             ("Exportar (DICOM, CD/pendrive, imagens)…", self.export_current, None),
             (None, None, None),
             ("Relatório do acervo (formato e compressão)…", self.open_acervo_report, None),
-            ("Densidade mamária das imagens na tela…", self.open_densidade, None),
-            ("Revisar a densidade mamária (fila de exames)…", self.abrir_revisao_densidade, None),
             (None, None, None),
             ("Sair", self.quit_app, "Ctrl+Q"),
         ):
@@ -293,8 +291,6 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
                 a.setShortcut(QKeySequence(sc))
             a.triggered.connect(fn)
             m.addAction(a)
-            if text.startswith("Densidade"):
-                m._densidade = a                      # só com exame aberto: mede o que está na tela
             if text.startswith(("Impressões (recebidas", "Configurações de impressão")):
                 m.__dict__.setdefault("_impressao", []).append(a)   # somem com o módulo desligado
         m.aboutToShow.connect(lambda menu=m: self.ajustar_menu_arquivo(menu))
@@ -395,6 +391,9 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         lm.addAction(a)
         a = QAction("Produtividade…", j)
         a.triggered.connect(self.abrir_produtividade)
+        lm.addAction(a)
+        a = QAction("Densidade mamária: medidas e confirmações…", j)      # 0.100.46
+        a.triggered.connect(self.abrir_densidades_medidas)
         lm.addAction(a)
         if janela is None:
             self.laudos_menu = lm
@@ -692,9 +691,6 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
 
     def ajustar_menu_arquivo(self, menu) -> None:
         from ipe import modules as MOD
-        a = getattr(menu, "_densidade", None)
-        if a is not None:
-            a.setVisible(isinstance(self.aba_atual(), ViewerTab) and MOD.ligado(self.settings, "mamografia"))
         for a in getattr(menu, "_impressao", []):
             a.setVisible(MOD.ligado(self.settings, "impressao"))
 
