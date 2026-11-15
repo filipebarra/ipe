@@ -6799,7 +6799,10 @@
   "plataforma desconhecida",
   "Compartilhar com os clientes",
   "Impressoras DICOM (pelo servidor)",
-  "No servidor central: os clientes (Ipê e Ipê Web) imprimem nesta impressora pelo servidor, que manda com o IP e o AE dele. Os clientes não veem o endereço."
+  "No servidor central: os clientes (Ipê e Ipê Web) imprimem nesta impressora pelo servidor, que manda com o IP e o AE dele. Os clientes não veem o endereço.",
+  "categoria inválida (a, b, c ou d)",
+  "confirmar a densidade pede a permissão de escrever laudos",
+  "o exame ainda não foi medido"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8681,6 +8684,8 @@
   "cliente {}",
   "dicom_print pelo servidor: {}",
   "impressora DICOM não compartilhada pelo servidor: {}",
-  "{} ({}): {}"
+  "{} ({}): {}",
+  "confirmada pelo navegador: {} (rede {})",
+  "medida pelo navegador: {}"
  ]
 }

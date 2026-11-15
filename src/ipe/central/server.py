@@ -747,6 +747,26 @@ class _Handler(BaseHTTPRequestHandler):
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, r, raw=True)
+        if path in ("/api/web/densidade", "/api/web/densidade/medir", "/api/web/densidade/confirmar"):
+            from ipe.central import densidade_web as DW                     # 0.100.50: densidade mamária
+            try:
+                if method == "GET" and path == "/api/web/densidade":
+                    r = DW.ver(c, s, (parse_qs(parts.query).get("study") or [""])[0])
+                elif method == "POST":
+                    d = json.loads(self._body() or b"{}")
+                    if path == "/api/web/densidade/medir":
+                        r = DW.medir(c, s, str(d.get("study") or ""), bool(d.get("de_novo")))
+                    elif path == "/api/web/densidade/confirmar":
+                        r = DW.confirmar(c, s, str(d.get("study") or ""), str(d.get("categoria") or ""))
+                    else:
+                        return self._error(404, "rota")
+                else:
+                    return self._error(405, "método")
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            return self._json(200, r, raw=True)
         if path in ("/api/web/achados", "/api/web/achados/revisar"):      # 0.100.16: revisar achados de IA
             from ipe.central import achados_web as AW
             try:

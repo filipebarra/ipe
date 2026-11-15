@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.50 — Densidade mamária no Ipê Web
+- Botão **Densidade mamária** no visualizador web (exames com mamografia): a rede da NYU medida no servidor nas
+  quatro incidências, a categoria com as probabilidades, **Confirmar** e **Confirmar e mandar ao laudo** (a
+  composição no BI-RADS do laudo do navegador) e **Medir de novo**. A medida e a confirmação são as mesmas do Ipê de
+  mesa (entram em Densidades medidas e na concordância). Confirmar pede a permissão de escrever laudos.
+
 ## 0.100.49 — Imprimir pelo servidor
 - **Impressora DICOM compartilhada pelo servidor**, como os nós DICOM: no servidor, a impressora ganha a caixa
   *Compartilhar com os clientes*. No Ipê do cliente ela aparece na janela Imprimir do compositor como

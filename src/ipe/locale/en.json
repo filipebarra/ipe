@@ -9175,5 +9175,10 @@
  "cliente {}": "client {}",
  "dicom_print pelo servidor: {}": "dicom_print through the server: {}",
  "impressora DICOM não compartilhada pelo servidor: {}": "DICOM printer not shared by the server: {}",
- "{} ({}): {}": "{} ({}): {}"
+ "{} ({}): {}": "{} ({}): {}",
+ "categoria inválida (a, b, c ou d)": "invalid category (a, b, c or d)",
+ "confirmar a densidade pede a permissão de escrever laudos": "confirming the density requires the permission to write reports",
+ "o exame ainda não foi medido": "the exam has not been measured yet",
+ "confirmada pelo navegador: {} (rede {})": "confirmed in the browser: {} (network {})",
+ "medida pelo navegador: {}": "measured from the browser: {}"
 }

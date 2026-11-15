@@ -607,3 +607,14 @@ table.lista .selo-laudo.assinado { background: #2f6f46; color: #e9ffe9; }
 .downloads-pacs { max-width: 640px; max-height: none; }
 .filtros button.pacs-busca { margin-left: auto; }
 .filtros button.pacs-busca:not([hidden]) + button.janelas { margin-left: 6px; }
+/* 0.100.50: densidade mamária */
+.painel-densidade { display: flex; flex-direction: column; gap: 8px; min-width: 320px; max-width: 420px; padding: 4px; }
+.painel-densidade .rede { font-size: 1.15em; font-weight: 600; }
+.painel-densidade .probs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.painel-densidade .probs span { position: relative; padding: 2px 4px; border-radius: 4px; font-size: .9em; text-align: center;
+  background: linear-gradient(to right, rgba(120, 160, 255, .35) var(--p, 0%), transparent var(--p, 0%)); border: 1px solid var(--borda, #444); }
+.painel-densidade .probs span.maior { font-weight: 700; border-color: rgba(120, 160, 255, .9); }
+.painel-densidade .categorias { display: flex; gap: 12px; }
+.painel-densidade .info, .painel-densidade .aviso { font-size: .85em; opacity: .8; }
+.painel-densidade .botoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.painel-densidade .estado { font-size: .9em; }

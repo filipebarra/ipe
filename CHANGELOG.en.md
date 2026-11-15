@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.50 — Breast density in Ipê Web
+- **Breast density** button in the web viewer (exams with mammography): the NYU network measured on the server on
+  the four views, the category with the probabilities, **Confirm** and **Confirm and send to the report** (the
+  composition in the browser report's BI-RADS) and **Measure again**. The measurement and the confirmation are the
+  same as in desktop Ipê (they go into Measured densities and the agreement). Confirming requires the permission to
+  write reports.
+
 ## 0.100.49 — Printing through the server
 - **DICOM printer shared by the server**, like the DICOM nodes: on the server, the printer gets the *Share with
   clients* box. In the client Ipê it appears in the film composer's Print window as *Name (through the server)*; in

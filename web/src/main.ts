@@ -18,6 +18,7 @@ import { Disponiveis } from "./disponiveis";
 import { ModoMamografia, pedirToken } from "./mamografia";
 import { ModoDinamica, dinamicaDoExame, guardarTabelas } from "./dinamica";
 import { PainelLaudo } from "./laudo";
+import { PainelDensidade } from "./densidade";
 import { ListaEnvios, painelEnvio } from "./envio";
 import { AbaIA, TarefasIA } from "./ia";
 import * as JAN from "./janelas";
@@ -556,6 +557,7 @@ const IC: Record<string, string> = {
   obliquo: "M4 20L20 4M8 4h12v12",
   girar: "M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5",
   dinamica: "M3 20h18M4 17l4-8 3 4 4-9 5 13",
+  densidade: "M12 3c-4 5-7 8.5-7 12a7 7 0 0 0 14 0c0-3.5-3-7-7-12zM8.5 15.5a3.5 3.5 0 0 0 3.5 3.5",
   laudo: "M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7",
   petct: "M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0",
   seg: "M4 4h7v7H4zM13 13h7v7h-7zM11 7.5h5.5V13",
@@ -755,6 +757,9 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   const bPet = botaoIcone("PET/CT", IC.petct);
   const bDin = botaoIcone("Dinâmica da mama", IC.dinamica, { "aria-pressed": "false" });
   if (!todas.some((s) => API.texto(s, "00080060") === "MR")) bDin.disabled = true;
+  // 0.100.50: densidade mamária (a rede da NYU, medida no servidor) — só em exame com mamografia
+  const bDens = botaoIcone("Densidade mamária", IC.densidade);
+  if (!todas.some((s) => API.texto(s, "00080060") === "MG")) bDens.style.display = "none";
   const bSeg = botaoIcone("Segmentação (SEG)", IC.seg);
   bSeg.append(seta());
   if (!segs.length) bSeg.disabled = true;
@@ -802,7 +807,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   const nav = el("nav", { class: "barra", "aria-label": tr("Ferramentas") },
     el("div", { class: "grupo" }, voltar), el("div", { class: "grupo so-cel" }, bGavetaEsq, bGavetaDir), ferramentas, medicao,
     el("div", { class: "grupo" }, bLayout, bMpr, bEspessura, bObliquo, bGirar),
-    el("div", { class: "grupo" }, bPet, bDin, bSeg, bCine, bCineMenu),
+    el("div", { class: "grupo" }, bPet, bDin, bDens, bSeg, bCine, bCineMenu),
     el("div", { class: "grupo" }, bInverter, bRestaurar, bOverlay, bOverlayMenu),
     el("div", { class: "grupo" }, bLaudo, bEnviar, bIA),
     el("div", { class: "grupo" }, bLigar, bLeitura, bAparencia));
@@ -1229,6 +1234,11 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     requestAnimationFrame(() => grade?.redimensionar());
     await p.abrir();
     return p;
+  };
+  bDens.onclick = () => {
+    const p = new PainelDensidade(study, async (cat, frase) => (await abrirLaudo()).porComposicao(cat, frase));
+    abrirPainel(p.raiz, bDens, tr("Densidade mamária"));
+    void p.abrir();
   };
   bLaudo.onclick = async () => {
     if (painelLaudo) {

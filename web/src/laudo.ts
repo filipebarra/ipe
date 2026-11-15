@@ -518,6 +518,21 @@ export class PainelLaudo {
     this.mudou();
   }
 
+  /** 0.100.50: a densidade confirmada no laudo — no BI-RADS de mamografia (ou sem tipo: vira mamografia); com outro
+   * tipo de BI-RADS, a frase vai como texto. Laudo só de leitura: false. */
+  async porComposicao(categoria: string, frase: string): Promise<boolean> {
+    if (!this.podeEscrever()) return false;
+    const k = this.campos.kind || "";
+    if (this.dados?.birads && (k === "" || k === "mg")) {
+      this.campos = { ...this.campos, kind: "mg", findings: this.campos.findings || [], composition: categoria };
+      this.birads.open = true;
+      await this.birdsMudou();
+      this.mudou();
+      return true;
+    }
+    return this.inserirTexto(frase);
+  }
+
   private mudarCampo(k: keyof CamposBirads, v: string): void {
     (this.campos as Record<string, unknown>)[k] = v;
     void this.birdsMudou();

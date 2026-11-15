@@ -1220,6 +1220,8 @@ Nesta primeira fase:
 - **Só esta folha** imprime a folha da prévia. Cada impressão conta no painel de filmes (o filme fica salvo, com quem imprimiu e para onde) e no registro de acesso.
 - O zoom e o deslocamento vão como no Ipê, em relação a "caber na célula". Como a célula do filme tem outra proporção que o quadro da tela, o enquadramento pode mudar um pouco; a prévia mostra como vai sair.
 
+**Densidade mamária no navegador (0.100.50).** Num exame com mamografia, o botão **Densidade mamária** (a gota, junto da Dinâmica) abre a mesma densidade do botão Densidade do Ipê: a **rede da NYU** nas quatro incidências 2D do exame, com a categoria e a probabilidade de cada uma. Se o exame ainda não foi medido, o servidor mede na hora (a medida fica guardada no exame, e o Ipê de mesa vê a mesma). A categoria marcada de saída é a da rede (ou a que já foi confirmada); troque se discordar e clique **Confirmar** ou **Confirmar e mandar ao laudo**, que abre o laudo ao lado e põe a composição no BI-RADS de mamografia (com outro tipo de BI-RADS, a frase vai como texto). **Medir de novo** refaz a conta sem perder a confirmação. Ver e medir pedem só a permissão de abrir exames; confirmar pede a de escrever laudos. As confirmações entram em *Densidades medidas* e na concordância, como as do Ipê.
+
 **Laudo no navegador (0.99.98).**
 
 - **Laudo** (barra) abre o laudo ao lado das imagens, no mesmo registro de laudo do Ipê: o que se escreve num aparece no outro.
