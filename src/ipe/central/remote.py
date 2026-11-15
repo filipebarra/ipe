@@ -303,18 +303,21 @@ class RemoteClient:
         return self._retry(call)
 
     # ------------------------------------------------------------------ atualizações (0.99.56, onda B1)
-    def info_atualizacao(self, canal: str = "estavel") -> dict:
+    def info_atualizacao(self, canal: str = "estavel", plataforma: str = "") -> dict:
+        q = f"canal={canal}" + (f"&plataforma={plataforma}" if plataforma else "")
+
         def call():
-            with self._open(f"/api/atualizacao?canal={canal}", timeout=10) as r:
+            with self._open(f"/api/atualizacao?{q}", timeout=10) as r:
                 return json.loads(r.read() or b"{}")
         return self._retry(call)
 
-    def baixar_atualizacao(self, canal: str, dest: Path, progress=None) -> Path:
+    def baixar_atualizacao(self, canal: str, dest: Path, progress=None, plataforma: str = "") -> Path:
         dest = Path(dest)
         dest.parent.mkdir(parents=True, exist_ok=True)
+        q = f"canal={canal}" + (f"&plataforma={plataforma}" if plataforma else "")
 
         def call():
-            with self._open(f"/api/atualizacao/pacote?canal={canal}", timeout=max(self.timeout, 300)) as r:
+            with self._open(f"/api/atualizacao/pacote?{q}", timeout=max(self.timeout, 300)) as r:
                 total = int(r.headers.get("Content-Length") or 0)
                 feito = 0
                 with open(dest, "wb") as f:
@@ -329,10 +332,14 @@ class RemoteClient:
             return dest
         return self._retry(call)
 
-    def publicar_atualizacao(self, arquivo: Path, versao: str = "", canal: str = "teste", notas: str = "") -> dict:
+    def publicar_atualizacao(self, arquivo: Path, versao: str = "", canal: str = "teste", notas: str = "",
+                             plataforma: str = "") -> dict:
         from urllib.parse import urlencode
         arquivo = Path(arquivo)
-        q = urlencode({"canal": canal, "nome": arquivo.name, "versao": versao, "notas": notas})
+        campos = {"canal": canal, "nome": arquivo.name, "versao": versao, "notas": notas}
+        if plataforma:
+            campos["plataforma"] = plataforma
+        q = urlencode(campos)
 
         def call():
             with open(arquivo, "rb") as f:

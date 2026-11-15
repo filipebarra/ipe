@@ -1180,16 +1180,26 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
             return ""
         canal = (self._perfil or {}).get("canal") or "estavel"
         client = self._central[1].client
+        plat = AT.plataforma_deste()                          # 0.100.47: só o pacote deste sistema
         try:
-            info = client.info_atualizacao(canal)
+            info = client.info_atualizacao(canal, plat)
         except Exception as e:  # noqa: BLE001
             if not silencioso:
                 QMessageBox.warning(self, "Atualização", f"Não deu para falar com o servidor: {e}")
             return ""
+        if info and info.get("nome") and not AT.serve_para(info, plat):
+            # servidor até a 0.100.46: um pacote só, que pode ser de outro sistema — não baixar
+            log.info("atualização do servidor é para outro sistema (%s); este é %s", info.get("nome"), plat)
+            if not silencioso:
+                self._sem_pacote_deste_sistema(plat, info)
+            return "outro_sistema"
         if not AT.ha_versao_nova(info, __version__):
             if not silencioso:
-                QMessageBox.information(self, "Atualização", f"Você já está na versão mais nova do canal "
-                                        f"{'teste' if canal == 'teste' else 'estável'} ({__version__}).")
+                if info:
+                    QMessageBox.information(self, "Atualização", f"Você já está na versão mais nova do canal "
+                                            f"{'teste' if canal == 'teste' else 'estável'} ({__version__}).")
+                else:
+                    self._sem_pacote_deste_sistema(plat, None)
             return ""
         if silencioso and self.settings.get("central.atualizacao_adiada", "") == info["versao"]:
             return "adiada"
@@ -1211,7 +1221,7 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
                 prog.setValue(int(100 * feito / total))
             QApplication.processEvents()
         try:
-            arq = client.baixar_atualizacao(canal, destino, andou)
+            arq = client.baixar_atualizacao(canal, destino, andou, plat)
             AT.conferir_pacote(arq, info)
         except Exception as e:  # noqa: BLE001
             prog.close()
@@ -1227,9 +1237,32 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
             self.settings.save()
             QTimer.singleShot(0, self.quit_app)
             return "instalando"
+        if plat.startswith("macos") and arq.suffix.lower() == ".dmg":
+            from ipe.core import atualizar_github as GH
+            if GH.mac_troca_sozinho(GH.app_do_mac()):
+                try:
+                    GH.instalar_no_mac(arq)
+                except Exception as e:  # noqa: BLE001
+                    QMessageBox.warning(self, "Atualização", f"Não deu para trocar o aplicativo: {e}\n\n{arq}")
+                    AT.abrir_pasta(arq.parent)
+                    return "baixada"
+                self.settings.save()
+                QTimer.singleShot(0, self.quit_app)
+                return "instalando"
         QMessageBox.information(self, "Atualização", f"Pacote baixado em {arq}. Instale à mão (a pasta vai abrir).")
         AT.abrir_pasta(arq.parent)
         return "baixada"
+
+    def _sem_pacote_deste_sistema(self, plat: str, info: dict | None) -> None:
+        """0.100.47: o servidor não tem o pacote deste sistema — oferece o GitHub."""
+        from ipe.central import atualizacoes as AT
+        rot = AT.ROTULO.get(plat, plat)
+        txt = (f"O servidor central não tem o pacote para este computador ({rot})."
+               + (f" O que está publicado é {info['nome']}, de outro sistema — não foi baixado." if info else "")
+               + "\n\nQuem administra o servidor pode publicar o pacote deste sistema em Configurações ▸ "
+               "Rede ▸ Atualizações pelo servidor central.\n\nProcurar a versão nova no GitHub?")
+        if QMessageBox.question(self, "Atualização", txt) == QMessageBox.Yes:
+            self.procurar_versao_github(silencioso=False)
 
     def abrir_config_niveis(self):
         """Configurações ▸ Usuários ▸ Pessoais e compartilhadas (0.99.30)."""

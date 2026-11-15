@@ -229,6 +229,8 @@ class CentralServer:
             return self.repo.salvar_revisao_densidade(uid, dados, s.username)
         if method == "atualizacoes_todas":
             return self.atualizacoes.todas()
+        if method == "atualizacoes_por_plataforma":                     # 0.100.47
+            return self.atualizacoes.todas_por_plataforma()
         if method in ("atualizacao_promover", "atualizacao_retirar"):
             if not s.can("users"):
                 raise PermissionError("só quem gerencia usuários publica atualizações")
@@ -236,7 +238,8 @@ class CentralServer:
                 d = self.atualizacoes.promover(s.full_name or s.username)
             else:
                 canal = str(args[0] if args else kwargs.get("canal", ""))
-                d = self.atualizacoes.retirar(canal)
+                plat = str(args[1] if len(args) > 1 else kwargs.get("plataforma", "") or "")
+                d = self.atualizacoes.retirar(canal, plat or None)
             self.repo.audit("atualizacao", f"{method}: {d}", user=s.username, host=client_host)
             return d
         # 0.100.37: buscar e baixar do PACS pelo servidor (os nós que ele compartilha com os clientes)
@@ -903,15 +906,19 @@ class _Handler(BaseHTTPRequestHandler):
 
     # ------------------------------------------------------------------ atualizações (0.99.56, onda B1)
     def _atualizacao(self, method: str, path: str, q: dict, s: UserSession) -> None:
+        from ipe.central import atualizacoes as AT
         c = self.central
         first = lambda k: (q.get(k) or [""])[0]          # noqa: E731
         canal = first("canal") or "estavel"
         if canal not in ("estavel", "teste"):
             return self._error(400, "canal desconhecido")
+        plataforma = first("plataforma")                  # 0.100.47: o cliente diz o seu sistema
+        if plataforma and plataforma not in AT.PLATAFORMAS:
+            return self._error(400, "plataforma desconhecida")
         if method == "GET" and path == "/api/atualizacao":
-            return self._json(200, c.atualizacoes.info(canal) or {}, raw=True)
+            return self._json(200, c.atualizacoes.info(canal, plataforma or None) or {}, raw=True)
         if method == "GET" and path == "/api/atualizacao/pacote":
-            arq = c.atualizacoes.caminho(canal)
+            arq = c.atualizacoes.caminho(canal, plataforma or None)
             if arq is None:
                 return self._error(404, "nenhum pacote neste canal")
             self.send_response(200)
@@ -941,10 +948,11 @@ class _Handler(BaseHTTPRequestHandler):
                         falta -= len(bloco)
                 try:
                     d = c.atualizacoes.publicar(arq, first("nome") or "pacote", first("versao"), canal,
-                                                first("notas"), s.full_name or s.username)
+                                                first("notas"), s.full_name or s.username, plataforma)
                 except ValueError as e:
                     return self._error(400, str(e))
-                c.repo.audit("atualizacao", f"publicou {d['versao']} no canal {canal}", user=s.username,
+                c.repo.audit("atualizacao", f"publicou {d['versao']} ({d.get('plataforma', '')}) no canal {canal}",
+                             user=s.username,
                              host=self.client_address[0])
                 return self._json(200, d, raw=True)
             finally:

@@ -248,6 +248,15 @@ class _Remoto:
     def todas(self):
         return self.c.rpc("atualizacoes_todas")
 
+    def por_plataforma(self):
+        """0.100.47; um servidor mais antigo não tem: um pacote por canal, de sistema pelo nome."""
+        try:
+            return self.c.rpc("atualizacoes_por_plataforma")
+        except Exception:  # noqa: BLE001
+            from ipe.central import atualizacoes as AT
+            return {c: ({AT.plataforma_do_nome(d["nome"]) or "windows": d} if d else {})
+                    for c, d in (self.todas() or {}).items()}
+
     def publicar(self, arq: Path, versao: str, canal: str, notas: str):
         return self.c.publicar_atualizacao(arq, versao, canal, notas)
 
@@ -266,6 +275,9 @@ class _Local:
 
     def todas(self):
         return self.loja.todas()
+
+    def por_plataforma(self):
+        return self.loja.todas_por_plataforma()
 
     def publicar(self, arq: Path, versao: str, canal: str, notas: str):
         return self.loja.publicar(Path(arq), Path(arq).name, versao, canal, notas, self.quem)
@@ -295,9 +307,11 @@ class AtualizacoesDialog(QDialog):
             b = QPushButton(rot)
             b.clicked.connect(fn)
             h.addWidget(b)
-        nota = QLabel("Publique o instalador do Windows (Ipe-setup-x.y.z.exe): os computadores do canal recebem o "
-                      "aviso ao entrar e instalam com um clique. Quem está no canal “teste” se escolhe nos perfis "
-                      "(Configurações ▸ Usuários ▸ Perfis por grupo e computador).")
+        nota = QLabel("Publique um pacote por sistema, com o nome original do GitHub: o instalador do Windows "
+                      "(Ipe-x.y.z-installer.exe), o .dmg do macOS (arm64 = chip Apple, x86_64 = Intel) e o do Linux. "
+                      "Cada computador do canal só recebe o do seu sistema, com o aviso ao entrar (o Windows e o Mac "
+                      "instalam com um clique). Publicar um sistema não mexe nos outros. Quem está no canal “teste” "
+                      "se escolhe nos perfis (Configurações ▸ Usuários ▸ Perfis por grupo e computador).")
         nota.setWordWrap(True)
         bb = QDialogButtonBox(QDialogButtonBox.Close)
         bb.rejected.connect(self.reject)
@@ -315,23 +329,37 @@ class AtualizacoesDialog(QDialog):
         except Exception as e:  # noqa: BLE001
             self.texto.setText(f"Não deu para ler o servidor: {e}")
             return
-        linhas = [f"Este computador: versão <b>{__version__}</b>"]
+        from ipe.central import atualizacoes as AT
+        try:
+            por = self.b.por_plataforma() if hasattr(self.b, "por_plataforma") else None
+        except Exception:  # noqa: BLE001
+            por = None
+        if por is None:
+            por = {c: ({AT.plataforma_do_nome(d["nome"]) or "windows": d} if d else {}) for c, d in t.items()}
+        linhas = [f"Este computador: versão <b>{__version__}</b> ({AT.ROTULO.get(AT.plataforma_deste(), '')})"]
         for canal, rot in (("estavel", "Estável"), ("teste", "Teste")):
-            d = t.get(canal)
-            if d:
-                mb = d.get("tamanho", 0) / 1024 / 1024
-                linhas.append(f"<b>{rot}</b>: {d['versao']} — {d['nome']} ({mb:.0f} MB), publicada em "
-                              f"{d.get('publicado_em', '')} por {d.get('por', '') or '—'}"
-                              + (f"<br><small>{d['notas']}</small>" if d.get("notas") else ""))
-            else:
+            ps = por.get(canal) or {}
+            if not ps:
                 linhas.append(f"<b>{rot}</b>: nada publicado")
+                continue
+            itens = []
+            for plat in AT.PLATAFORMAS:
+                d = ps.get(plat)
+                if d:
+                    mb = d.get("tamanho", 0) / 1024 / 1024
+                    itens.append(f"{AT.ROTULO[plat]}: {d['versao']} — {d['nome']} ({mb:.0f} MB), publicada em "
+                                 f"{d.get('publicado_em', '')} por {d.get('por', '') or '—'}"
+                                 + (f"<br><small>{d['notas']}</small>" if d.get("notas") else ""))
+                else:
+                    itens.append(f"{AT.ROTULO[plat]}: <span style='color:gray'>—</span>")
+            linhas.append(f"<b>{rot}</b><br>" + "<br>".join(itens))
         self.texto.setText("<br><br>".join(linhas))
 
     def publicar(self, canal: str, arquivo: str = "", versao: str | None = None, notas: str | None = None) -> dict | None:
         from ipe.central import atualizacoes as AT
         if not arquivo:
             arquivo, _f = QFileDialog.getOpenFileName(self, "Pacote da atualização", "",
-                                                      "Instalador ou pacote (*.exe *.zip *.tgz *.tar.gz);;Todos (*)")
+                                                      "Instalador ou pacote (*.exe *.dmg *.deb *.zip *.tgz *.tar.gz);;Todos (*)")
             if not arquivo:
                 return None
         if versao is None:

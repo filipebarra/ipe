@@ -150,6 +150,7 @@ def test_janela_procura_atualizacao(env, monkeypatch, tmp_path):
     from ipe.ui.main_window import MainWindow
     paths, db, repo = env
     QApplication.instance() or QApplication([])
+    monkeypatch.setattr(AT, "plataforma_deste", lambda *a, **k: "windows")
     w = MainWindow(paths, Settings(paths.settings_file))
     try:
         assert w.procurar_atualizacao(silencioso=True) == ""              # sem servidor central
@@ -158,11 +159,11 @@ def test_janela_procura_atualizacao(env, monkeypatch, tmp_path):
         info = {"versao": "9.0.0", "nome": pac.name, "sha256": AT.sha256_de(pac), "notas": "n"}
 
         class Cli:
-            def info_atualizacao(self, canal):
+            def info_atualizacao(self, canal, plataforma=""):
                 assert canal == "teste"
                 return info
 
-            def baixar_atualizacao(self, canal, dest, progress=None):
+            def baixar_atualizacao(self, canal, dest, progress=None, plataforma=""):
                 Path(dest).parent.mkdir(parents=True, exist_ok=True)
                 Path(dest).write_bytes(pac.read_bytes())
                 return Path(dest)

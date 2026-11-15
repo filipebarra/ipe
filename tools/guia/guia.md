@@ -1252,9 +1252,11 @@ Ao entrar, valem os perfis que casam, na ordem da lista (o de baixo ganha). O pe
 
 ### Atualizações pelo servidor central
 
-**Configurações ▸ Rede ▸ Atualizações pelo servidor central…** (quem gerencia usuários, no servidor ou num cliente) publica o pacote de uma versão — de preferência o instalador do Windows, `Ipe-setup-x.y.z.exe` — num de dois canais: **teste**, que vai primeiro para os computadores e as pessoas dos perfis marcados *Atualizações: Teste*, e **estável**, para todos. **Promover teste → estável** libera para todos o que já foi testado; **Retirar** tira o pacote do canal.
+**Configurações ▸ Rede ▸ Atualizações pelo servidor central…** (quem gerencia usuários, no servidor ou num cliente) publica os pacotes de uma versão — **um por sistema**, com o nome original do GitHub: o instalador do Windows (`Ipe-x.y.z-installer.exe`), o `.dmg` do macOS (`arm64` para chip Apple, `x86_64` para Intel) e o do Linux — num de dois canais: **teste**, que vai primeiro para os computadores e as pessoas dos perfis marcados *Atualizações: Teste*, e **estável**, para todos. **Promover teste → estável** libera para todos o que já foi testado; **Retirar** tira o pacote do canal. Publicar o pacote de um sistema não mexe no dos outros; a janela mostra, em cada canal, o que há para cada sistema.
 
-Ao entrar no modo cliente, o programa confere o canal dele; havendo versão mais nova, pergunta se baixa e instala. Com o "sim", baixa, confere o SHA-256 e, sendo o instalador do Windows, fecha o programa e instala sem mais perguntas. Outro tipo de pacote (zip, tgz) é baixado e a pasta abre, para instalar à mão. Com o "não", não pergunta de novo a mesma versão; **Ajuda ▸ Procurar atualização no servidor central…** pergunta na hora. Cada publicação, promoção e retirada fica no registro de acesso.
+Cada computador só recebe o pacote do seu sistema. Se o servidor não tem o pacote dele (por exemplo, um Mac quando só o do Windows e o do Linux foram publicados), nada é baixado, e **Ajuda ▸ Procurar atualização no servidor central…** diz isso e oferece procurar a versão no GitHub.
+
+Ao entrar no modo cliente, o programa confere o canal dele; havendo versão mais nova, pergunta se baixa e instala. Com o "sim", baixa, confere o SHA-256 e, sendo o instalador do Windows (ou o `.dmg` num Mac com o Ipê na pasta Aplicativos), fecha o programa e instala sem mais perguntas. Outro tipo de pacote (zip, tgz) é baixado e a pasta abre, para instalar à mão. Com o "não", não pergunta de novo a mesma versão; **Ajuda ▸ Procurar atualização no servidor central…** pergunta na hora. Cada publicação, promoção e retirada fica no registro de acesso.
 
 ## Compressão sem perda
 

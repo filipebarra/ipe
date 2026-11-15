@@ -9152,5 +9152,19 @@
  "densidades medidas": "densidades medidas",
  "{} exame(s) medido(s), {} confirmado(s).": "{} exam(s) measured, {} confirmed.",
  "{}% ({})": "{}% ({})",
- "{}: {}% {} (kappa {}, n = {})": "{}: {}% {} (kappa {}, n = {})"
+ "{}: {}% {} (kappa {}, n = {})": "{}: {}% {} (kappa {}, n = {})",
+ "Instalador ou pacote (*.exe *.dmg *.deb *.zip *.tgz *.tar.gz);;Todos (*)": "Installer or package (*.exe *.dmg *.deb *.zip *.tgz *.tar.gz);;All (*)",
+ "Linux": "Linux",
+ "Windows": "Windows",
+ "macOS (Intel)": "macOS (Intel)",
+ "macOS (chip Apple)": "macOS (Apple chip)",
+ "Publique um pacote por sistema, com o nome original do GitHub: o instalador do Windows (Ipe-x.y.z-installer.exe), o .dmg do macOS (arm64 = chip Apple, x86_64 = Intel) e o do Linux. Cada computador do canal só recebe o do seu sistema, com o aviso ao entrar (o Windows e o Mac instalam com um clique). Publicar um sistema não mexe nos outros. Quem está no canal “teste” se escolhe nos perfis (Configurações ▸ Usuários ▸ Perfis por grupo e computador).": "Publish one package per system, with its original GitHub name: the Windows installer (Ipe-x.y.z-installer.exe), the macOS .dmg (arm64 = Apple chip, x86_64 = Intel) and the Linux one. Each computer in the channel only gets the one for its system, with the notice at login (Windows and Mac install with one click). Publishing one system does not touch the others. Who is in the “test” channel is chosen in the profiles (Settings ▸ Users ▸ Profiles by group and computer).",
+ "não sei para que sistema é o pacote (Windows, Linux ou macOS): use o nome original do pacote ou informe a plataforma": "I can't tell which system the package is for (Windows, Linux or macOS): use the package's original name or give the platform",
+ "plataforma desconhecida": "unknown platform",
+ " O que está publicado é {}, de outro sistema — não foi baixado.": " What is published is {}, for another system — it was not downloaded.",
+ "Este computador: versão <b>{}</b> ({})": "This computer: version <b>{}</b> ({})",
+ "O servidor central não tem o pacote para este computador ({}).": "The central server does not have the package for this computer ({}).",
+ "publicou {} ({}) no canal {}": "published {} ({}) in channel {}",
+ "{}: <span style='color:gray'>—</span>": "{}: <span style='color:gray'>—</span>",
+ "{}: {} — {} ({} MB), publicada em {} por {}": "{}: {} — {} ({} MB), published on {} by {}"
 }

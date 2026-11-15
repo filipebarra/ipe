@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.47 — Atualização pelo servidor: um pacote por sistema
+- **O Mac baixava o pacote do Linux** ao procurar versão nova num servidor central em Linux: o servidor guardava
+  um pacote só por canal e o entregava a qualquer computador. Agora cada canal guarda um pacote por sistema
+  (Windows, Linux, macOS chip Apple, macOS Intel, pelo nome do pacote) e cada computador só recebe o seu; publicar
+  um não apaga os outros. Se não há pacote para o sistema, nada é baixado e o aviso oferece o GitHub.
+- Com um servidor ainda antigo, o cliente confere o nome do pacote e não baixa o de outro sistema.
+- No Mac, o `.dmg` vindo do servidor instala como o do GitHub (troca o aplicativo e abre de novo).
+- A janela *Atualizações pelo servidor central* mostra o que está publicado para cada sistema.
+
 ## 0.100.46 — Densidades medidas; a rede da NYU vai no pacote
 - **Densidades medidas** (Laudos ▸ Densidade mamária: medidas e confirmações…, e no botão Densidade): uma linha por
   exame medido, com a rede da NYU, o % de área por Otsu e por fuzzy, a categoria confirmada, quem confirmou e quando.

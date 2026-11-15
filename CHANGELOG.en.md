@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.47 — Updates from the server: one package per system
+- **The Mac downloaded the Linux package** when checking for a new version on a central server running Linux: the
+  server kept a single package per channel and handed it to any computer. Each channel now keeps one package per
+  system (Windows, Linux, macOS Apple chip, macOS Intel, from the package name) and each computer only gets its
+  own; publishing one does not remove the others. With no package for the system, nothing is downloaded and the
+  notice offers GitHub.
+- With a server that is still older, the client checks the package name and does not download another system's.
+- On the Mac, the `.dmg` from the server installs like the GitHub one (replaces the app and reopens it).
+- The *Updates from the central server* window shows what is published for each system.
+
 ## 0.100.46 — Measured densities; the NYU network ships in the package
 - **Measured densities** (Reports ▸ Breast density: measurements and confirmations…, and in the Density button): one
   row per measured exam, with the NYU network, the % area by Otsu and by fuzzy, the confirmed category, who confirmed

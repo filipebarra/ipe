@@ -13,6 +13,10 @@ para instalar à mão. Nada é instalado sem o "sim" de quem está no computador
 
 Os pacotes ficam na pasta ``Atualizacoes`` ao lado da pasta das imagens do servidor; cada canal tem um
 ``<canal>.json`` com a versão, o nome, o SHA-256, o tamanho, as notas, quando e quem publicou.
+
+0.100.47: **um pacote por sistema** em cada canal (Windows, Linux, macOS chip Apple, macOS Intel; a plataforma sai
+do nome do pacote). O cliente diz o seu sistema e só recebe o pacote dele; se o servidor não tem, nada é baixado
+e o aviso oferece o GitHub.
 """
 from __future__ import annotations
 
@@ -55,8 +59,50 @@ def sha256_de(caminho: Path) -> str:
     return h.hexdigest()
 
 
+#: 0.100.47: um pacote por sistema em cada canal (antes era um só, e um Mac ligado a um servidor que publicara o
+#: pacote do Linux baixava o pacote do Linux)
+PLATAFORMAS = ("windows", "linux", "macos-arm64", "macos-x86_64")
+ROTULO = {"windows": "Windows", "linux": "Linux", "macos-arm64": "macOS (chip Apple)",
+          "macos-x86_64": "macOS (Intel)"}
+
+
+def plataforma_do_nome(nome: str) -> str:
+    """Para que sistema é o pacote, pelo nome do arquivo ("" = não dá para saber)."""
+    n = Path(str(nome or "")).name.lower()
+    if "macos" in n or "darwin" in n or n.endswith((".dmg", ".pkg")):
+        return "macos-x86_64" if ("x86_64" in n or "intel" in n or "x64" in n) else "macos-arm64"
+    if n.endswith((".exe", ".msi")) or "windows" in n or "win64" in n:
+        return "windows"
+    if "linux" in n or n.endswith((".deb", ".rpm", ".appimage", ".tar.gz", ".tgz")):
+        return "linux"
+    if n.endswith(".zip"):
+        return "windows"
+    return ""
+
+
+def plataforma_deste(plataforma: str | None = None, maquina: str | None = None) -> str:
+    """O sistema deste computador, no vocabulário de PLATAFORMAS."""
+    plataforma = plataforma or sys.platform
+    if plataforma.startswith("win"):
+        return "windows"
+    if plataforma == "darwin":
+        from ipe.core.atualizar_github import arquitetura_mac
+        return f"macos-{arquitetura_mac(maquina)}"
+    return "linux"
+
+
+def serve_para(info: dict | None, plataforma: str) -> bool:
+    """O pacote descrito em `info` é para este sistema? (um servidor antigo não diz a plataforma: vale o nome)"""
+    if not info or not info.get("nome"):
+        return False
+    p = info.get("plataforma") or plataforma_do_nome(info["nome"])
+    return p == plataforma
+
+
 class Atualizacoes:
-    """A pasta dos pacotes no servidor."""
+    """A pasta dos pacotes no servidor: ``<canal>/<plataforma>/<pacote>`` e ``<canal>.json`` (formato 2:
+    ``{"formato": 2, "pacotes": {plataforma: {...}}}``). O formato 1 (um pacote só, ``<canal>/<pacote>``) ainda é
+    lido; a plataforma dele sai do nome."""
 
     def __init__(self, pasta: Path):
         self.pasta = Path(pasta)
@@ -66,25 +112,58 @@ class Atualizacoes:
             raise ValueError(f"canal desconhecido: {canal}")
         return self.pasta / f"{canal}.json"
 
-    def info(self, canal: str) -> dict | None:
+    def _ler(self, canal: str) -> dict:
+        """{plataforma: (dados, caminho)} dos pacotes que existem de fato."""
         p = self._meta(canal)
         if not p.exists():
-            return None
+            return {}
         try:
             d = json.loads(p.read_text(encoding="utf-8"))
         except (OSError, ValueError):
-            return None
-        return d if (self.pasta / canal / d.get("nome", "")).exists() else None
+            return {}
+        out = {}
+        if isinstance(d, dict) and isinstance(d.get("pacotes"), dict):
+            for plat, x in d["pacotes"].items():
+                arq = self.pasta / canal / plat / str(x.get("nome", ""))
+                if x.get("nome") and arq.is_file():
+                    out[plat] = (dict(x, plataforma=plat), arq)
+        elif isinstance(d, dict) and d.get("nome"):                  # formato 1 (até a 0.100.46)
+            arq = self.pasta / canal / d["nome"]
+            if arq.is_file():
+                plat = plataforma_do_nome(d["nome"]) or "windows"
+                out[plat] = (dict(d, plataforma=plat), arq)
+        return out
+
+    def _gravar(self, canal: str, pacotes: dict) -> None:
+        self._meta(canal).write_text(json.dumps({"formato": 2, "pacotes": pacotes}, ensure_ascii=False, indent=1),
+                                     encoding="utf-8")
+
+    def info(self, canal: str, plataforma: str | None = None) -> dict | None:
+        """O pacote do canal para `plataforma`. Sem plataforma (clientes até a 0.100.46, quase todos Windows):
+        o do Windows — nunca o de outro sistema."""
+        e = self._ler(canal).get(plataforma or "windows")
+        return e[0] if e else None
+
+    def plataformas(self, canal: str) -> dict:
+        return {plat: e[0] for plat, e in self._ler(canal).items()}
 
     def todas(self) -> dict:
-        return {c: self.info(c) for c in CANAIS}
+        """Por canal, o pacote do Windows ou, sem ele, o primeiro (o que as telas até a 0.100.46 mostram)."""
+        out = {}
+        for c in CANAIS:
+            ps = self.plataformas(c)
+            out[c] = ps.get("windows") or (next(iter(ps.values())) if ps else None)
+        return out
 
-    def caminho(self, canal: str) -> Path | None:
-        d = self.info(canal)
-        return (self.pasta / canal / d["nome"]) if d else None
+    def todas_por_plataforma(self) -> dict:
+        return {c: self.plataformas(c) for c in CANAIS}
+
+    def caminho(self, canal: str, plataforma: str | None = None) -> Path | None:
+        e = self._ler(canal).get(plataforma or "windows")
+        return e[1] if e else None
 
     def publicar(self, origem: Path, nome: str, versao: str = "", canal: str = "teste", notas: str = "",
-                 por: str = "") -> dict:
+                 por: str = "", plataforma: str = "") -> dict:
         self._meta(canal)
         nome = Path(nome or origem.name).name
         if not nome or nome.startswith("."):
@@ -92,7 +171,24 @@ class Atualizacoes:
         versao = versao or versao_do_nome(nome)
         if not versao:
             raise ValueError("não achei a versão (x.y.z) no nome do pacote: informe a versão")
-        dest = self.pasta / canal
+        plataforma = plataforma or plataforma_do_nome(nome)
+        if plataforma not in PLATAFORMAS:
+            raise ValueError("não sei para que sistema é o pacote (Windows, Linux ou macOS): use o nome original "
+                             "do pacote ou informe a plataforma")
+        existentes = self._ler(canal)
+        pacotes = {}
+        for plat, (d, arq) in existentes.items():                     # os outros sistemas ficam
+            if plat == plataforma:
+                continue
+            certo = self.pasta / canal / plat / arq.name
+            if arq != certo:                                           # formato 1: muda para a pasta do sistema
+                certo.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(arq), str(certo))
+            pacotes[plat] = {k: v for k, v in d.items() if k != "plataforma"}
+        velho = existentes.get(plataforma)
+        if velho and velho[1].parent == self.pasta / canal:            # formato 1, mesmo sistema: sai
+            velho[1].unlink(missing_ok=True)
+        dest = self.pasta / canal / plataforma
         if dest.exists():
             shutil.rmtree(dest)
         dest.mkdir(parents=True)
@@ -101,19 +197,43 @@ class Atualizacoes:
         d = {"canal": canal, "versao": versao, "nome": nome, "sha256": sha256_de(alvo),
              "tamanho": alvo.stat().st_size, "notas": notas or "", "por": por or "",
              "publicado_em": datetime.now().strftime("%Y-%m-%d %H:%M")}
-        self._meta(canal).write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
-        log.info("atualização %s publicada no canal %s por %s", versao, canal, por)
-        return d
+        pacotes[plataforma] = d
+        self._gravar(canal, pacotes)
+        log.info("atualização %s (%s) publicada no canal %s por %s", versao, plataforma, canal, por)
+        return dict(d, plataforma=plataforma)
 
     def promover(self, por: str = "") -> dict:
-        """O que está no teste vai também para o estável."""
-        d, p = self.info("teste"), self.caminho("teste")
-        if not d or p is None:
+        """O que está no teste (todos os sistemas) vai também para o estável."""
+        teste = self._ler("teste")
+        if not teste:
             raise ValueError("não há pacote no canal de teste")
-        return self.publicar(p, d["nome"], d["versao"], "estavel", d.get("notas", ""), por or d.get("por", ""))
+        feitos = {}
+        for plat, (d, arq) in teste.items():
+            feitos[plat] = self.publicar(arq, d["nome"], d["versao"], "estavel", d.get("notas", ""),
+                                         por or d.get("por", ""), plat)
+        principal = feitos.get("windows") or next(iter(feitos.values()))
+        return dict(principal, plataformas=sorted(feitos))
 
-    def retirar(self, canal: str) -> bool:
+    def retirar(self, canal: str, plataforma: str | None = None) -> bool:
         self._meta(canal)
+        if plataforma:
+            existentes = self._ler(canal)
+            if plataforma not in existentes:
+                return False
+            arq = existentes.pop(plataforma)[1]
+            if arq.parent == self.pasta / canal:
+                arq.unlink(missing_ok=True)
+            else:
+                shutil.rmtree(arq.parent, ignore_errors=True)
+            if existentes:
+                for plat, (d, a) in list(existentes.items()):
+                    certo = self.pasta / canal / plat / a.name
+                    if a != certo:
+                        certo.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.move(str(a), str(certo))
+                self._gravar(canal, {p: {k: v for k, v in d.items() if k != "plataforma"}
+                                     for p, (d, _a) in existentes.items()})
+                return True
         ok = self._meta(canal).exists()
         shutil.rmtree(self.pasta / canal, ignore_errors=True)
         try:
