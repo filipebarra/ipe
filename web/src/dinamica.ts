@@ -415,6 +415,8 @@ export class ModoDinamica {
   /** 0.100.58: o índice para onde a sincronia mandou cada quadro (o eco desse movimento não volta) */
   private esperado = new Map<string, number>();
   private examesCarregados = new Map<string, SerieCarregada>();
+  /** 0.100.60: a série que a dinâmica pôs em cada quadro (para notar a que o médico pôs por fora) */
+  private montadas: (SerieCarregada | undefined)[] = [];
 
   constructor(private g: Grade, private dados: Dinamica, private op: OpcoesDin) {
     registrarCarregador();
@@ -793,6 +795,7 @@ export class ModoDinamica {
     const centro = this.centroDoCorte(Math.min(corte, n - 1));
     await Promise.all(this.quadros.map(async (q, i) => {
       await this.g.mostrar(i, series[i]);
+      this.montadas[i] = series[i];
       const vp = this.g.viewport(i) as Types.IStackViewport;
       if (!vp) return;
       if (q.v === "serie") {
@@ -881,7 +884,7 @@ export class ModoDinamica {
     if (!vp || !id) return;
     const mundo = vp.canvasToWorld([m.x, m.y] as Types.Point2);
     // 0.100.58: num quadro de série do exame, o corte da dinâmica mais perto do ponto
-    const k = this.quadros[m.i]?.v === "serie" ? indiceMaisPertoDosIds(this.fases[0], mundo as Types.Point3) : vp.getCurrentImageIdIndex();
+    const k = this.eSerie(m.i) ? indiceMaisPertoDosIds(this.fases[0], mundo as Types.Point3) : vp.getCurrentImageIdIndex();
     if (k < 0) return;
     const ij = utilities.worldToImageCoords(this.fases[0][k], mundo as Types.Point3) as unknown as number[] | undefined;
     if (!ij) return;
@@ -906,7 +909,8 @@ export class ModoDinamica {
       this.esperado.delete(origem);
       if (eco === idx0) return;                     // é o movimento que a própria sincronia pediu
     }
-    const deSerie = this.quadros[i0]?.v === "serie";
+    if (this.g.quadros[i0]?.tipo !== "pilha") return;
+    const deSerie = this.eSerie(i0);
     // 0.100.59: a série de outro plano (sagital, coronal…) não anda pela rolagem — nem a leva, nem é levada;
     // ela vai ao ponto só pelo clique das linhas de referência
     if (deSerie && !this.paraleloADinamica(vp0)) return;
@@ -918,9 +922,10 @@ export class ModoDinamica {
       this.g.quadros.forEach((q, i) => {
         if (q.id === origem) return;
         const vp = this.g.viewport(i) as Types.IStackViewport;
-        if (!vp) return;
-        if (this.quadros[i]?.v === "serie" && !this.paraleloADinamica(vp)) return;
-        const alvo = this.quadros[i]?.v === "serie"
+        if (!vp || q.tipo !== "pilha") return;
+        const serie = this.eSerie(i);
+        if (serie && !this.paraleloADinamica(vp)) return;
+        const alvo = serie
           ? (deSerie ? indiceMaisPertoDosIds(vp.getImageIds(), vp0.getCamera().focalPoint as Types.Point3)
             : centro ? indiceMaisPertoDosIds(vp.getImageIds(), centro) : -1)
           : k;
@@ -931,6 +936,26 @@ export class ModoDinamica {
     } finally {
       this.rolando = false;
     }
+  }
+
+  /** 0.100.60: o quadro mostra uma série do exame (e não uma fase ou um mapa)? Também nota a série que o médico pôs
+   * no quadro por fora do rótulo (arrastando da lista ou pelo menu do visualizador): a dinâmica passa a tratá-la
+   * como série do exame — antes ela seguia pelo número do corte, e a posição se perdia ao rolar. */
+  private eSerie(i: number): boolean {
+    const q = this.quadros[i];
+    const s = this.g.quadros[i]?.serie as SerieCarregada | null | undefined;
+    if (q && s && this.montadas[i] && s !== this.montadas[i]) {
+      this.montadas[i] = s;
+      const f = this.faseDaSerie.get(s.series);
+      if (f !== undefined && s.imageIds.length === this.fases[0].length) {
+        this.quadros[i] = { ...q, v: "fase", fase: f, sub: false, serie: undefined };
+      } else {
+        this.examesCarregados.set(s.series, s);
+        this.quadros[i] = { ...q, v: "serie", serie: s.series, sub: false, cor: "" };
+      }
+      this.rotuloNoQuadro(i);
+    }
+    return this.quadros[i]?.v === "serie";
   }
 
   /** 0.100.59: o quadro mostra cortes no mesmo plano da dinâmica (normais a menos de ~25°)? */

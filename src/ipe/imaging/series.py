@@ -157,10 +157,13 @@ def read_frame(frame: Frame) -> FrameImage:
     if frame.frame_index > 0 or frame.n_frames > 1 or (frame.n_frames == 0 and _is_multiframe(frame.path)):
         # multiframe (tomossíntese, cine…): decodifica só o quadro pedido, sem ler o arquivo todo
         try:
-            from pydicom.pixels import pixel_array
-            ds = pydicom.dcmread(frame.path, force=True, stop_before_pixels=True)
-            plug = decodificador_preferido(_ts_de(ds))
-            arr = pixel_array(frame.path, index=frame.frame_index, **({"decoding_plugin": plug} if plug else {}))
+            ds, arr = _quadro_jpegls_rapido(frame.path, frame.frame_index)
+            if arr is None:
+                from pydicom.pixels import pixel_array
+                if ds is None:
+                    ds = pydicom.dcmread(frame.path, force=True, stop_before_pixels=True)
+                plug = decodificador_preferido(_ts_de(ds))
+                arr = pixel_array(frame.path, index=frame.frame_index, **({"decoding_plugin": plug} if plug else {}))
         except Exception:  # noqa: BLE001 - arquivo sem meta-informação etc.: caminho antigo
             arr = None
     if arr is None:
@@ -397,6 +400,81 @@ def _jpegls_rapido(ds):
         return arr
     except Exception:  # noqa: BLE001
         return None
+
+
+_MULTI: dict = {}                      # (caminho, mtime, tamanho) → (cabeçalho, [(onde, quanto) de cada quadro] ou None)
+_MULTI_TRAVA = threading.Lock()
+_MULTI_MAX = 24
+
+
+def _indice_multiframe(path: str):
+    """0.100.60: o cabeçalho e onde está cada quadro de um multiframe encapsulado (tomossíntese), lidos **uma vez
+    por arquivo** — antes, cada corte relia o cabeçalho (com os grupos funcionais de todos os cortes) e reabria o
+    arquivo procurando o quadro. (cabeçalho, None) quando os quadros não são um fragmento cada."""
+    import os
+    st = os.stat(path)
+    chave = (str(path), st.st_mtime_ns, st.st_size)
+    with _MULTI_TRAVA:
+        achado = _MULTI.get(chave)
+    if achado is not None:
+        return achado
+    onde = None
+    with open(path, "rb") as fp:
+        ds = pydicom.dcmread(fp, force=True, stop_before_pixels=True)
+        try:
+            n = int(ds.get("NumberOfFrames", 1) or 1)
+            cab = fp.read(12)                              # (7FE0,0010) OB/OW 00 00 FFFFFFFF
+            if cab[:4] == b"\xe0\x7f\x10\x00" and cab[8:12] == b"\xff\xff\xff\xff":
+                itens = []
+                while True:
+                    it = fp.read(8)
+                    if len(it) < 8 or it[:4] != b"\xfe\xff\x00\xe0":
+                        break
+                    tam = int.from_bytes(it[4:8], "little")
+                    itens.append((fp.tell(), tam))
+                    fp.seek(tam, 1)
+                frag = itens[1:]                           # o primeiro item é a tabela de deslocamentos
+                if n >= 1 and len(frag) == n:
+                    onde = frag
+        except Exception:  # noqa: BLE001
+            onde = None
+    achado = (ds, onde)
+    with _MULTI_TRAVA:
+        if len(_MULTI) >= _MULTI_MAX:
+            _MULTI.pop(next(iter(_MULTI)))
+        _MULTI[chave] = achado
+    return achado
+
+
+def _quadro_jpegls_rapido(path: str, indice: int):
+    """0.100.60: um quadro de um multiframe JPEG-LS monocromático (a tomossíntese) pelo imagecodecs, direto do
+    lugar dele no arquivo — solta a trava do Python, como `_jpegls_rapido` faz no quadro único. Devolve
+    (cabeçalho, imagem); imagem None para o caminho de sempre."""
+    try:
+        ds, onde = _indice_multiframe(path)
+    except Exception:  # noqa: BLE001
+        return None, None
+    try:
+        if onde is None or _ts_de(ds) not in JPEGLS or int(ds.get("SamplesPerPixel", 1) or 1) != 1 \
+                or not 0 <= indice < len(onde):
+            return ds, None
+        aloc, guard = int(ds.BitsAllocated), int(ds.get("BitsStored", ds.BitsAllocated))
+        sinal = int(ds.get("PixelRepresentation", 0) or 0) == 1
+        if aloc not in (8, 16) or (sinal and guard != aloc):
+            return ds, None
+        import imagecodecs
+        pos, tam = onde[indice]
+        with open(path, "rb") as fp:
+            fp.seek(pos)
+            dados = fp.read(tam)
+        arr = np.asarray(imagecodecs.jpegls_decode(dados))
+        if arr.shape != (int(ds.Rows), int(ds.Columns)) or arr.dtype.itemsize * 8 != aloc:
+            return ds, None
+        if sinal:
+            arr = arr.view(arr.dtype.str.replace("u", "i"))
+        return ds, arr
+    except Exception:  # noqa: BLE001
+        return ds, None
 
 
 def decodificador_preferido(ts: str) -> str | None:

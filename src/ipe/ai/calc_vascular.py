@@ -38,7 +38,7 @@ log = logging.getLogger(__name__)
 
 ARQUIVO = "calc_vascular_scunet.onnx"
 MODULO = "calc_vascular"
-VERSAO = 3                 # 0.100.52: todas as imagens 2D; 0.100.55: dados das escalas (calc_vascular_escalas)
+VERSAO = 4                 # 0.100.52: todas as imagens 2D; 0.100.55: escalas; 0.100.60: refaz as automáticas que falharam
 GRAUS = ("ausente", "leve", "moderada", "acentuada")
 NOMES = {"ausente": "Ausente", "leve": "Leve", "moderada": "Moderada", "acentuada": "Acentuada"}
 #: área (mm², na mama com mais) a partir da qual a sugestão sobe de grau — PROVISÓRIO, até as confirmações dele
@@ -160,6 +160,9 @@ def mapa(img8: np.ndarray, dados=None, stop=None) -> np.ndarray:
             np.maximum(prob[i:i + PEDACO, j:j + PEDACO], p, out=prob[i:i + PEDACO, j:j + PEDACO])
         lote.clear()
         onde.clear()
+    # 0.100.60: `stop` pode ser uma função ou um threading.Event (a fila automática passava o Event e a conta falhava)
+    if stop is not None and hasattr(stop, "is_set"):
+        stop = stop.is_set
     for i in inicios(img8.shape[0]):
         for j in inicios(img8.shape[1]):
             if stop is not None and stop():

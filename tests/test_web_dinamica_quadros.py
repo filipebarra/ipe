@@ -241,3 +241,41 @@ def test_serie_de_outro_plano_nao_volta_ao_rolar(servidor_din, tmp_path):
         pg.wait_for_timeout(500)
         assert idx()[:3] == i[:3]
         b.close()
+
+
+@pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_dist) não foi construído")
+def test_serie_posta_por_fora_do_rotulo_anda_pela_posicao(servidor_din, tmp_path):
+    """0.100.60: a série posta no quadro pela lista de séries (e não pelo rótulo do quadro) — a dinâmica nota e a
+    trata como série do exame: anda pela posição (antes ia pelo número do corte e se perdia; com mais cortes que a
+    dinâmica, dava erro de índice)."""
+    pw = pytest.importorskip("playwright.sync_api")
+    t2 = _por_t2(servidor_din, tmp_path)
+    erros = []
+    with pw.sync_playwright() as p:
+        b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
+        pg = b.new_page(viewport={"width": 1600, "height": 950})
+        pg.on("pageerror", lambda e: erros.append(str(e)))
+        pg.goto(f"http://127.0.0.1:{servidor_din.port}/web/")
+        pg.fill("#usuario", "admin")
+        pg.fill("#senha", "admin123")
+        pg.click("button[type=submit]")
+        pg.wait_for_selector("table.lista tbody tr")
+        pg.locator("table.lista tbody tr").first.dblclick()
+        pg.wait_for_selector(".quadro canvas")
+        icone(pg, "Dinâmica da mama")
+        assert _esperar(lambda: pg.locator(".camada-din").count() == 1, 30)
+        est = lambda: pg.evaluate("() => window.__ipeDin.estado()")  # noqa: E731
+        idx = lambda: [pg.evaluate(f"() => window.__ipeGrade.viewport({i}).getCurrentImageIdIndex()") for i in range(4)]  # noqa: E731
+        pg.evaluate("() => window.__ipeGrade.ativar(3)")
+        pg.locator(f".tira .serie[data-serie='{t2}']").click()
+        assert _esperar(lambda: pg.evaluate("() => window.__ipeGrade.viewport(3).getImageIds().length") == NZ * 2)
+        # rolar o T2 até o fim (índice maior que os cortes da dinâmica): a dinâmica vai ao corte da mesma posição
+        pg.evaluate(f"() => window.__ipeGrade.viewport(3).setImageIdIndex({NZ * 2 - 1})")
+        assert _esperar(lambda: idx()[0] == NZ - 1 and idx()[1] == NZ - 1)
+        e = est()
+        assert e["detalhe"][3]["v"] == "serie" and e["detalhe"][3]["serie"] == t2 and "T2 STIR" in e["rotulos"][3]
+        # e rolar a dinâmica leva o T2 à posição (corte 1 = 3 mm → T2 corte 2), não ao mesmo número
+        pg.evaluate("() => window.__ipeGrade.viewport(0).setImageIdIndex(1)")
+        assert _esperar(lambda: idx() == [1, 1, 1, 2])
+        b.close()
+    assert not erros, erros

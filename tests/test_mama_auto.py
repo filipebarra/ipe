@@ -211,3 +211,32 @@ def test_motor_poe_na_fila_so_mamografia(servidor_mg, monkeypatch):
     assert not AutomationEngine.mama_ia(eng, "1.2.3", {"modalities": "CT"})
     eng.settings = _Prefs({MA.CHAVE: False})
     assert not AutomationEngine.mama_ia(eng, atual)
+
+
+def test_servidor_apaga_so_as_series_do_ipe_a_pedido_do_cliente(servidor_mg, redes):
+    """0.100.60: o cliente que regrava o SR pede ao servidor para apagar as séries "(Ipê)" de antes."""
+    import json
+    import urllib.request
+
+    from ipe.ai import calc_vascular as C
+    from ipe.ai import mama_sr as MS
+    from ipe.automation import mama_auto as MA
+    from ipe.imaging import densidade_revisao as R
+    from test_web_mamografia import _token
+    srv = servidor_mg
+    repo = srv.repo
+    atual, _ant = srv.estudos
+    MA.medir(repo, atual)
+    R.confirmar(repo, atual, R.guardada(repo, atual), "c", "dra.teste")
+    C.confirmar(repo, atual, C.guardada(repo, atual), "leve", "dra.teste")
+    assert MS.depois_de_confirmar(repo, srv.db, srv.storage, atual)
+    antes = [s.series_uid for s in repo.series_for_study(atual)]
+    nossas = [s.series_uid for s in repo.series_for_study(atual) if s.description in MS.NOSSAS]
+    assert len(nossas) == 3
+    req = urllib.request.Request(f"http://127.0.0.1:{srv.port}/api/rpc", method="POST",
+                                 data=json.dumps({"method": "apagar_series_da_mama", "args": [atual], "kwargs": {}}).encode(),
+                                 headers={"Content-Type": "application/json", "Authorization": f"Bearer {_token(srv)}"})
+    r = json.loads(urllib.request.urlopen(req).read())
+    assert r.get("result") == 3, r
+    depois = [s.series_uid for s in repo.series_for_study(atual)]
+    assert set(depois) == set(antes) - set(nossas) and len(depois) >= 4

@@ -9388,5 +9388,9 @@
  "{} {} · {} mm²{}": "{} {} · {} mm²{}",
  "{} — mamografias do banco": "{} — mamografías de la base",
  "{}: {} mm2 de calcificação vascular (SCU-Net)": "{}: {} mm2 de calcificación vascular (SCU-Net)",
- "as séries escolhidas não formam a dinâmica (são precisas a pré e duas pós-contraste; uma série só precisa ter as fases repetidas)": "las series elegidas no forman la dinámica (se necesitan la pre y dos post-contraste; una sola serie debe tener las fases repetidas)"
+ "as séries escolhidas não formam a dinâmica (são precisas a pré e duas pós-contraste; uma série só precisa ter as fases repetidas)": "las series elegidas no forman la dinámica (se necesitan la pre y dos post-contraste; una sola serie debe tener las fases repetidas)",
+ "o servidor não apagou o SR anterior da mamografia": "el servidor no borró el SR anterior de la mamografía",
+ " | {} {} | {}": " | {} {} | {}",
+ "Abertura web ({}): primeira imagem em {} s — {}{}": "Abertura web ({}): primeira imagem em {} s — {}{}",
+ "{}, {} séries": "{}, {} séries"
 }

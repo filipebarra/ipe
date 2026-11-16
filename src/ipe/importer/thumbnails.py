@@ -25,6 +25,9 @@ def generate_thumbnails(repo: Repository, series_uids: Iterable[str], force: boo
             repo.set_thumbnail(uid, make_thumbnail(img))
             done += 1
         except Exception as e:  # noqa: BLE001 - miniatura nunca pode travar importação
+            if isinstance(e, AttributeError):               # o pydicom: o arquivo não tem imagem
+                log.debug("Sem miniatura para %s (série sem imagem: SR, apresentação…)", uid)   # 0.100.60
+                continue
             log.warning("Miniatura falhou para %s: %s", uid, e)
     return done
 

@@ -6964,7 +6964,8 @@
   "sem categoria",
   "varrer as mamografias do banco",
   "vistas da densidade no SR",
-  "as séries escolhidas não formam a dinâmica (são precisas a pré e duas pós-contraste; uma série só precisa ter as fases repetidas)"
+  "as séries escolhidas não formam a dinâmica (são precisas a pré e duas pós-contraste; uma série só precisa ter as fases repetidas)",
+  "o servidor não apagou o SR anterior da mamografia"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8894,6 +8895,9 @@
   "{} mamografia(s) conferida(s)",
   "{} {} · {} mm²{}",
   "{} — mamografias do banco",
-  "{}: {} mm2 de calcificação vascular (SCU-Net)"
+  "{}: {} mm2 de calcificação vascular (SCU-Net)",
+  " | {} {} | {}",
+  "Abertura web ({}): primeira imagem em {} s — {}{}",
+  "{}, {} séries"
  ]
 }

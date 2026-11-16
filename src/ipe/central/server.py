@@ -37,6 +37,33 @@ class Bloqueado(AuthError):
     """Endereço bloqueado por senhas erradas demais (0.99.24)."""
 
 
+def log_abertura_web(d: dict, ip: str = "") -> str:
+    """0.100.60: a linha "Abertura web (…)" no registro, igual à "Abertura (…)" do Ipê de mesa — para comparar versões.
+    Sem dados do paciente: modalidade, contagens e tempos."""
+    import re
+
+    def num(v, casas=2) -> str:
+        try:
+            return f"{max(0.0, min(float(v), 99999.0)):.{casas}f}".replace(".", ",")
+        except (TypeError, ValueError):
+            return "?"
+
+    def txt(v, n) -> str:
+        return re.sub(r"[^A-Za-z0-9 ._\\/×x-]", "", str(v or ""))[:n]
+    rot = f"{txt(d.get('modalidades'), 24) or '?'}, {int(d.get('series') or 0)} séries"
+    fim = f" | {txt(d.get('navegador'), 24)} {txt(d.get('tela'), 12)} | {txt(d.get('versao'), 12)}"
+    if d.get("tipo") == "tudo":
+        linha = (f"Abertura web ({rot}): tudo disponível em {num(d.get('total'))} s — {int(d.get('imagens') or 0)} imagens · "
+                 f"{num(d.get('mb'), 1)} MB a {num(d.get('mb_s'), 1)} MB/s · decodificação {num(d.get('decod_ms'), 1)} ms · "
+                 f"do cache do navegador {int(d.get('do_cache') or 0)}{fim}")
+    else:
+        etapas = d.get("etapas") if isinstance(d.get("etapas"), dict) else {}
+        partes = " · ".join(f"{txt(k, 12)} {num(v)}" for k, v in list(etapas.items())[:8])
+        linha = f"Abertura web ({rot}): primeira imagem em {num(d.get('total'))} s — {partes}{fim}"
+    logging.getLogger("ipe.abertura").info("%s", linha)
+    return linha
+
+
 class CentralServer:
     def __init__(self, db, repo, storage_root: Path, port: int = 8043, host: str = "0.0.0.0",
                  certfile: str = "", keyfile: str = "", name: str = ""):
@@ -326,6 +353,9 @@ class CentralServer:
                 kwargs["banco"] = "visivel"
         if method == "retirar_do_servidor":
             return self.retirar(s, alvo)
+        if method == "apagar_series_da_mama":      # 0.100.60: só as séries "(Ipê)" da densidade e das calcificações
+            from ipe.ai import mama_sr as MS
+            return MS._apagar_anteriores(self.repo, str(alvo or ""), self.storage)
         if method == "receber_dados_do_exame":     # o banco do exame não muda por aqui (só por set_study_scope)
             pac = args[0] if args else kwargs.get("pacote_", {})
             if pac.get("study_uid") and not self.pode_ver(s, pac["study_uid"]):
@@ -962,6 +992,12 @@ class _Handler(BaseHTTPRequestHandler):
             msgs = LW.depois_de_assinar(c.repo, c.storage, rep, info, {**pref, "usuario": s.username},
                                         getattr(c, "settings", None))
             return self._json(200, {"mensagens": msgs}, raw=True)
+        if path == "/api/web/abertura" and method == "POST":                # 0.100.60: o tempo de abertura no navegador
+            try:
+                log_abertura_web(json.loads((self._body() or b"{}")[:4000]), self.client_address[0])
+            except Exception:  # noqa: BLE001
+                pass
+            return self._json(200, {"ok": True}, raw=True)
         if path == "/api/web/abriu" and method == "POST":
             data = json.loads(self._body() or b"{}")
             uid = str(data.get("study_uid", ""))

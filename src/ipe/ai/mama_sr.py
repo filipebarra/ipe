@@ -277,6 +277,13 @@ def _apagar_anteriores(repo, study_uid: str, storage_root) -> int:
                 n += 1
             except Exception:  # noqa: BLE001
                 log.warning("não apaguei a série anterior %s", se.series_uid, exc_info=True)
+    # 0.100.60: no modo cliente, o servidor apaga as dele (senão o SR regravado ficava duplicado lá)
+    cliente = getattr(repo, "client", None)
+    if cliente is not None and hasattr(cliente, "rpc"):
+        try:
+            cliente.rpc("apagar_series_da_mama", study_uid)
+        except Exception:  # noqa: BLE001 - servidor de versão anterior: fica como antes
+            log.info("o servidor não apagou o SR anterior da mamografia", exc_info=True)
     return n
 
 

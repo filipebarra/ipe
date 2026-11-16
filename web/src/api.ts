@@ -112,6 +112,19 @@ export async function avisarAbertura(studyUid: string): Promise<void> {
   });
 }
 
+/** 0.100.60: o tempo de abertura do exame vai para o registro do servidor ("Abertura web (…)"), para comparar
+ *  versões. Sem dados do paciente: modalidades, contagens e tempos. */
+export function relatarAbertura(dados: Record<string, unknown>): void {
+  try {
+    const ua = navigator.userAgent;
+    const m = /(Firefox|Edg|OPR|Chrome|Version)\/(\d+)/.exec(ua);
+    const nav = m ? `${m[1] === "Version" ? "Safari" : m[1] === "Edg" ? "Edge" : m[1]} ${m[2]}` : "?";
+    void fetch(`${location.origin}/api/web/abertura`, { method: "POST", headers: { ...cabecalhos(), "Content-Type": "application/json" },
+      body: JSON.stringify({ ...dados, navegador: nav, tela: `${window.innerWidth}x${window.innerHeight}` }),
+      cache: "no-store", keepalive: true }).catch(() => undefined);
+  } catch { /* nada a fazer */ }
+}
+
 export type DicomJson = Record<string, { vr: string; Value?: unknown[]; BulkDataURI?: string }>;
 
 export function valor(d: DicomJson, tag: string, i = 0): unknown {

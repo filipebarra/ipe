@@ -3,6 +3,20 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.60 — la tomosíntesis abre rápido; calcificaciones automáticas; serie puesta por fuera en la dinámica (Web)
+- **Abrir mamografía con tomosíntesis**: cada corte releía el encabezado entero del archivo y decodificaba reteniendo
+  el programa; ahora el encabezado y el lugar de los cortes se leen una vez y la decodificación corre en paralelo (en
+  la prueba: de ~8 s a ~1,5 s hasta la primera imagen; desplazar los cortes también es más ligero).
+- **Calcificaciones vasculares automáticas**: la medida a la llegada y en la revisión del banco fallaba en todas las
+  imágenes (error interno); corregido, y las mamografías del banco se revisan de nuevo en el próximo inicio.
+- **Ipê Web, dinámica**: la serie puesta en un cuadro desde la lista de series (y no desde el rótulo del cuadro) pasa
+  a acompañar por la posición en el paciente — antes seguía el número del corte y se perdía al desplazar.
+- Sin aviso de "miniatura falló" para series sin imagen (SR).
+- **Ipê Web: tiempo de apertura en el registro del servidor** — la línea "Abertura web (…)" (primera imagen, por
+  etapa, y todo disponible, con red y decodificación), como la "Abertura (…)" del Ipê de escritorio; solo modalidad,
+  recuentos y tiempos.
+- **Modo cliente**: volver a grabar el SR de densidad y calcificaciones ya no duplica las series en el servidor.
+
 ## 0.100.59 — Ipê Web: serie de otro plano en la dinámica
 - Una serie de otro plano (sagital, coronal) en un cuadro de la dinámica ya no vuelve al medio al desplazar la
   dinámica después del clic de las **Líneas de referencia**: no acompaña el desplazamiento (ni mueve la dinámica); va

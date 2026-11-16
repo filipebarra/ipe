@@ -24,7 +24,7 @@ CHAVE = "mg.ia_na_chegada"                  # Preferências ▸ Mamografia: medi
 CHAVE_ABRIR = "mg.ia_confirmar_ao_abrir"    # abrir as janelas de confirmação ao abrir o exame
 CHAVE_VARREDURA = "mg.ia_varredura"         # a última varredura do banco terminada (número do método)
 #: muda quando o método muda e o banco precisa ser varrido de novo
-VARREDURA = 1
+VARREDURA = 2
 TITULO = "Densidade e calcificações vasculares"
 
 

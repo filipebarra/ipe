@@ -678,7 +678,17 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
       `${tr("Este navegador não conseguiu iniciar o visualizador de imagens")}: ${erroDoVisor}`));
     return;
   }
+  // 0.100.60: o tempo de abertura (até a primeira imagem na tela e até tudo disponível) vai para o registro do servidor
+  const tAbrir = performance.now();
+  const etapasAbrir: Record<string, number> = {};
+  let marcaAbrir = tAbrir;
+  const marcarAbrir = (nome: string) => {
+    const agora = performance.now();
+    etapasAbrir[nome] = (etapasAbrir[nome] || 0) + (agora - marcaAbrir) / 1000;
+    marcaAbrir = agora;
+  };
   const todas = await API.qido(`/studies/${study}/series`);
+  marcarAbrir("series");
   const segs = todas.filter((s) => API.texto(s, "00080060") === "SEG");
   const series = todas
     .filter((s) => !NAO_MOSTRA.has(API.texto(s, "00080060")))
@@ -688,6 +698,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     app.replaceChildren(cabecalho(), el("div", { class: "estado" }, tr("Sem permissão para ver este exame.")));
     return;
   }
+  marcarAbrir("exame");
   void API.avisarAbertura(study);
   const caso = CASO.casoDoExame(study);   // 0.100.56: aberto de um pacote de casos
   painelCaso?.encerrar();
@@ -980,6 +991,20 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   grade.aviso = (m: string) => { aviso.textContent = m; };
   (window as unknown as Record<string, unknown>).__ipeGrade = grade; // para os testes de ponta a ponta
   const g = grade;
+  const rotuloAbrir = () => ({
+    modalidades: [...new Set(series.map((x) => API.texto(x, "00080060")).filter(Boolean))].sort().join("\\"),
+    series: series.length, versao: config?.versao || "" });
+  let abriuPrimeira = false;
+  const primeiraImagem = () => {
+    if (abriuPrimeira || grade !== g) return;
+    abriuPrimeira = true;
+    g.raiz.removeEventListener("CORNERSTONE_IMAGE_RENDERED", primeiraImagem, true);
+    marcarAbrir("imagem");
+    API.relatarAbertura({ tipo: "primeira", ...rotuloAbrir(), total: (performance.now() - tAbrir) / 1000, etapas: etapasAbrir });
+  };
+  g.raiz.addEventListener("CORNERSTONE_IMAGE_RENDERED", primeiraImagem, true);
+  let abriuTudo = false;
+  let tudoPedido = false;           // todas as séries já entraram na fila de pré-carga
   {
     // com janelas separadas, ligado de saída (como antes); numa janela só, desligado até o médico ligar
     const chaveLigar = janela ? "janelasLigadas" : "quadrosLigados";
@@ -1038,6 +1063,11 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     geral.textContent = g0.porcentagem >= 100 ? ""
       : `${tr("Imagens disponíveis:")} ${g0.porcentagem}%${d.cheio ? ` (${tr("memória do navegador cheia; o resto vem ao mostrar")})` : ""}`;
     const r = cron.resumo();
+    if (g0.porcentagem >= 100 && tudoPedido && !abriuTudo && abriuPrimeira && r.imagens > 0) {
+      abriuTudo = true;
+      API.relatarAbertura({ tipo: "tudo", ...rotuloAbrir(), total: (performance.now() - tAbrir) / 1000, imagens: g0.total,
+        mb: r.bytesRede / 1e6, mb_s: r.mbPorSegundo, decod_ms: r.decodificacaoMediaMs, do_cache: r.doCache });
+    }
     cargaCurta.textContent = r.pedidos ? `${tr("Rede")} ${r.mbPorSegundo.toFixed(1)} MB/s · ${tr("decodificação")} ${r.decodificacaoMediaMs.toFixed(1)} ms` : "";
   };
   (window as unknown as Record<string, unknown>).__ipeDisp = d; // testes
@@ -1743,8 +1773,12 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   const inicial: [number, number] = confJanela?.layout && !celular() ? confJanela.layout
     : series.length >= 2 && !celular() ? [1, 2] : [1, 1];
   // 0.99.98 (W4): exame de mamografia abre no protocolo do Ipê (uma ou duas telas)
-  const dadosMg = await API.mamografia(study).catch(() => null);
+  marcarAbrir("tela");
+  // 0.100.60: só a mamografia pergunta pelo protocolo (os outros exames não esperam essa ida ao servidor)
+  const temMg = todas.some((x) => API.texto(x, "00080060") === "MG");
+  const dadosMg = temMg ? await API.mamografia(study).catch(() => null) : null;
   if (grade !== g) return;
+  marcarAbrir("protocolo");
   if (dadosMg) {
     const modo = new ModoMamografia(g, dadosMg, { study, tela, aviso: (m) => { aviso.textContent = m; },
       aoSair: () => { mg = null; montar(...inicial); } });
@@ -1777,6 +1811,8 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
       pedirMais();
       if (s && disp === d) d.preCarregar(s.imageIds);
     }
+    tudoPedido = true;
+    if (disp === d) d.aoMudar?.();
   })();
 }
 

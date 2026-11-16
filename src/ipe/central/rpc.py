@@ -70,6 +70,8 @@ RPC_METHODS: dict[str, str] = {
     # 0.100.44: a medida de densidade guardada no exame (e as outras conferências de IA)
     "revisao_ia": "view", "salvar_revisao_ia": "view",
     "densidades_medidas": "view",
+    # 0.100.60: regravar o SR da mamografia pelo cliente — o servidor apaga só as séries que o próprio Ipê gravou
+    "apagar_series_da_mama": "view",
 }
 
 # 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame
@@ -79,6 +81,7 @@ POR_EXAME = {
     "comments", "mark_opened", "key_images", "key_image_set", "toggle_key_image", "count_annotations",
     "series_groups", "save_series_group", "reports", "lists_of_study", "set_locked", "delete_study",
     "dados_do_exame", "retirar_do_servidor", "historico_do_exame", "revisao_ia", "salvar_revisao_ia",
+    "apagar_series_da_mama",
 }
 
 # 0.99.30: o primeiro argumento é a lista de casos; o servidor confere se quem pede enxerga a lista

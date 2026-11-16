@@ -3,6 +3,19 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.60 — tomosynthesis opens fast; automatic calcifications; series placed from outside in the dynamic (Web)
+- **Opening mammography with tomosynthesis**: each slice re-read the whole file header and decoded while holding the
+  program; the header and slice locations are now read once and decoding runs in parallel (in the test: from ~8 s to
+  ~1.5 s to the first image; scrolling slices is lighter too).
+- **Automatic vascular calcifications**: the measurement on arrival and in the database check failed on every image
+  (internal error); fixed, and the mammograms in the database are checked again on the next start.
+- **Ipê Web, dynamic**: a series placed in a frame from the series list (not from the frame label) now follows by
+  patient position — it used to follow the slice number and got lost when scrolling.
+- No "thumbnail failed" warning for series without images (SR).
+- **Ipê Web: opening time in the server log** — the "Abertura web (…)" line (first image, by stage, and everything
+  available, with network and decoding), like desktop Ipê's "Abertura (…)"; only modality, counts and times.
+- **Client mode**: re-saving the density and calcification SR no longer duplicates the series on the server.
+
 ## 0.100.59 — Ipê Web: series in another plane in the dynamic view
 - A series in another plane (sagittal, coronal) in a dynamic frame no longer jumps back to the middle when you scroll
   the dynamic after clicking with **Reference lines**: it does not follow scrolling (nor drives the dynamic); it moves
