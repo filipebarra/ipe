@@ -93,7 +93,7 @@ def test_navegador_mostra_niveis_selo_e_interruptor(env, tmp_path):
     try:
         with pw.sync_playwright() as p:
             b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
-            pg = b.new_page(viewport={"width": 1400, "height": 900})
+            pg = b.new_page(viewport={"width": 1920, "height": 1080})
             pg.on("pageerror", lambda e: erros.append(str(e)))
             pg.goto(f"http://127.0.0.1:{srv.port}/web/")
             pg.evaluate("localStorage.clear()")

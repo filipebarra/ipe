@@ -3,6 +3,24 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.55 — Vascular calcifications: four scales; attachments and larger panel in Ipê Web
+- **Ipê Web: attach PDFs and images to the study** — drag the files onto the open study (as in desktop Ipê) or use
+  **Attach PDF or image…** below the series. They become DICOM inside the study on the server, follow the study's
+  routing rules and show up right away. The study's PDFs are listed under **Documents** and open in a new tab.
+- **Ipê Web: real monitors** — the Monitors panel no longer always shows 3 windows: with the browser's permission
+  (Chrome/Edge, on HTTPS or on the server itself) it detects **all** monitors, with each one's resolution and
+  orientation, and you choose what goes on each. Without it, choose how many windows (1 to 8).
+- **Ipê Web: Link** now also works in a single window — the viewports scroll together (same plane), with the same
+  window/level (same modality, not MG) and zoom.
+- The **Vascular calcifications** window (desktop and Ipê Web) also shows the published scales, estimated from what
+  the network marked: **Margolies** (0–12: vessels + extent + density, per breast), **CSBI** (0–3), **Loberant** (0–3)
+  and **BAC-SS** (Nv + Ov + L, on the MLO). Hover to see how each one works. They are estimates — check the images.
+  Studies measured before this version: **Measure again** to get the scales.
+- The **Vascular calcifications** panel in Ipê Web opened narrow and cut off the previews, the "Marked" grade and the
+  buttons. It now opens large (fitting the screen), the previews grow with it, and it can be **resized by dragging the
+  bottom-right corner**; the browser remembers the size. The Breast density panel can be resized too.
+- The panel's warnings (implant, spot/magnification views, missing views) are translated.
+
 ## 0.100.54 — Updates: GitHub rate limit and "the version does not change"
 - **"HTTP Error 403: rate limit exceeded"** when checking for a new version: the GitHub API limits requests per
   internet address (in a clinic, every computer shares one). Ipê now finds the version on the release page, which

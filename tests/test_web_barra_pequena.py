@@ -39,6 +39,8 @@ def test_barra_em_telas_menores(servidor_mg):
             pg.set_viewport_size({"width": w, "height": h})
             assert _esperar(lambda: pg.evaluate(ESTADO)["mais"], 10)
             pg.wait_for_timeout(200)
+            # com a máquina carregada a conta pode sair um quadro depois: espera assentar
+            _esperar(lambda: not (lambda x: x["cortados"] or x["rolagem"])(pg.evaluate(ESTADO)), 5)
             e = pg.evaluate(ESTADO)
             assert not e["cortados"] and not e["rolagem"] and e["escondidos"] > 0, (w, e)
         # 1366 × 768: o Laudo está no "»" e abre de lá

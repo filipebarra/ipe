@@ -9,7 +9,7 @@ import { tr } from "./i18n";
 
 const CHAVE = "ipe.web.janelas";
 const CANAL = "ipe-web-janelas";
-export const MAX_JANELAS = 3;
+export const MAX_JANELAS = 8;   // 0.100.55: tantas quantas os monitores (era 3)
 
 export type Recado = { tipo: "abrir"; study: string } | { tipo: "fechar" } | { tipo: "sair" } | { tipo: "aberto"; study: string; janela: number }
   | { tipo: "ato"; study: string; janela: number; ato: unknown };
@@ -24,7 +24,7 @@ export function canalJanelas(): BroadcastChannel | null {
 /** O que cada janela de visualização apresenta. A ordem da lista é a ordem das janelas (Janela 1, 2, 3). */
 export type Papel = "viewer" | "compare" | "off";
 export interface ConfJanela { papel: Papel; layout: [number, number] | null; tela: string }
-export interface TelaVista { chave: string; rotulo: string; left: number; top: number; w: number; h: number }
+export interface TelaVista { chave: string; rotulo: string; left: number; top: number; w: number; h: number; atual?: boolean; principal?: boolean }
 export interface ConfMonitores { separadas: boolean; janelas: ConfJanela[]; telas: TelaVista[] }
 const CHAVE_MON = "ipe.web.monitores";
 
@@ -35,9 +35,10 @@ export function lerMonitores(): ConfMonitores {
     // a escolha antiga (0.100.18): só o número de janelas
     let n = 0;
     try { n = Math.max(0, Math.min(MAX_JANELAS, Math.round(Number(localStorage.getItem(CHAVE) || 0)) || 0)); } catch { n = 0; }
-    c = { separadas: n > 0, janelas: [1, 2, 3].map((k) => ({ papel: (k <= Math.max(1, n) ? "viewer" : "off") as Papel, layout: null, tela: "" })), telas: [] };
+    c = { separadas: n > 0, janelas: Array.from({ length: Math.max(1, n) }, () => ({ papel: "viewer" as Papel, layout: null, tela: "" })), telas: [] };
   }
-  const janelas = [0, 1, 2].map((k) => {
+  const n = Math.max(1, Math.min(MAX_JANELAS, c.janelas?.length || 1));
+  const janelas = Array.from({ length: n }, (_x, k) => {
     const j = (c!.janelas![k] || {}) as Partial<ConfJanela>;
     const papel: Papel = j.papel === "compare" || j.papel === "off" ? j.papel : "viewer";
     const l = Array.isArray(j.layout) && j.layout.length === 2 ? [Number(j.layout[0]) || 1, Number(j.layout[1]) || 1] as [number, number] : null;
@@ -120,10 +121,22 @@ export function podeVerMonitores(): boolean {
 export async function detectarMonitores(): Promise<TelaVista[]> {
   const sd = await detalhes();
   if (!sd) return [];
-  return [...sd.screens].sort((a, b) => a.availLeft - b.availLeft || a.availTop - b.availTop).map((t, i) => ({
-    chave: `${t.availLeft},${t.availTop},${t.availWidth}x${t.availHeight}`,
-    rotulo: `${i + 1} — ${t.label || tr("Monitor")} ${t.availWidth}×${t.availHeight}${t.isPrimary ? ` (${tr("principal")})` : ""}${t === sd.currentScreen ? ` · ${tr("o desta janela")}` : ""}`,
-    left: t.availLeft, top: t.availTop, w: t.availWidth, h: t.availHeight }));
+  return [...sd.screens].sort((a, b) => a.availLeft - b.availLeft || a.availTop - b.availTop).map((t, i) => {
+    const w = (t as Tela & { width?: number }).width || t.availWidth, h = (t as Tela & { height?: number }).height || t.availHeight;
+    const orient = h > w ? tr("retrato") : tr("paisagem");
+    return {
+      chave: `${t.availLeft},${t.availTop},${t.availWidth}x${t.availHeight}`,
+      rotulo: `${i + 1} — ${t.label || tr("Monitor")} ${w}×${h} (${orient})${t.isPrimary ? ` · ${tr("principal")}` : ""}${t === sd.currentScreen ? ` · ${tr("o desta janela")}` : ""}`,
+      left: t.availLeft, top: t.availTop, w: t.availWidth, h: t.availHeight, atual: t === sd.currentScreen, principal: !!t.isPrimary };
+  });
+}
+
+/** 0.100.55: o navegador já deu a permissão de ver os monitores? (então o painel detecta sozinho, sem perguntar) */
+async function permissaoDada(): Promise<boolean> {
+  try {
+    const st = await navigator.permissions.query({ name: "window-management" as PermissionName });
+    return st.state === "granted";
+  } catch { return false; }
 }
 
 /** Abre (ou reaproveita) as janelas de visualização com o exame. A primeira abre no próprio clique; as outras, uma
@@ -216,64 +229,149 @@ export function painelMonitores(aoMudar: () => void): HTMLElement {
     onde.onchange = () => { c.separadas = onde.value === "1"; gravar(); desenhar(); };
     raiz.append(onde);
     if (!c.separadas) return;
-    const tab = el("div", "tabela-monitores");
-    for (const t of [tr("Ordem"), tr("Apresenta"), tr("Layout"), tr("Monitor")]) tab.append(el("div", "th", t));
-    c.janelas.forEach((j, k) => {
-      const ordem = el("div", "ordem");
-      ordem.append(el("b", "", `${tr("Janela")} ${k + 1}`));
-      const sobe = el("button", "link", "▲"), desce = el("button", "link", "▼");
-      sobe.type = desce.type = "button";
-      sobe.title = tr("Trocar com a janela de cima");
-      desce.title = tr("Trocar com a janela de baixo");
-      sobe.disabled = k === 0;
-      desce.disabled = k === c.janelas.length - 1;
-      const trocar = (a: number, b: number) => { [c.janelas[a], c.janelas[b]] = [c.janelas[b], c.janelas[a]]; gravar(); desenhar(); };
-      sobe.onclick = () => trocar(k, k - 1);
-      desce.onclick = () => trocar(k, k + 1);
-      ordem.append(sobe, desce);
-      const papel = el("select");
-      papel.setAttribute("aria-label", `${tr("Apresenta")}: ${tr("Janela")} ${k + 1}`);
-      papel.append(new Option(tr("Exame (visualização)"), "viewer", false, j.papel === "viewer"),
-        new Option(tr("Exame anterior (comparação)"), "compare", false, j.papel === "compare"),
-        new Option(tr("Não usar"), "off", false, j.papel === "off"));
-      papel.onchange = () => { j.papel = papel.value as Papel; gravar(); desenhar(); };
+    const LAYOUTS: [number, number][] = [[1, 1], [1, 2], [2, 1], [2, 2], [1, 3], [2, 3], [3, 3]];
+    const seletorLayout = (j: ConfJanela, rotulo: string) => {
       const layout = el("select");
-      layout.setAttribute("aria-label", `${tr("Layout")}: ${tr("Janela")} ${k + 1}`);
+      layout.setAttribute("aria-label", `${tr("Layout")}: ${rotulo}`);
       layout.append(new Option(tr("Padrão"), "", false, !j.layout));
-      for (const [r, cc] of [[1, 1], [1, 2], [2, 1], [2, 2], [1, 3], [2, 3], [3, 3]]) {
+      for (const [r, cc] of LAYOUTS) {
         layout.append(new Option(`${r} × ${cc}`, `${r},${cc}`, false, !!j.layout && j.layout[0] === r && j.layout[1] === cc));
       }
       layout.onchange = () => { j.layout = layout.value ? layout.value.split(",").map(Number) as [number, number] : null; gravar(); };
-      const tela = el("select");
-      tela.setAttribute("aria-label", `${tr("Monitor")}: ${tr("Janela")} ${k + 1}`);
-      tela.append(new Option(tr("Onde eu deixar a janela (lembra a posição)"), "", false, !j.tela));
-      for (const t of c.telas) tela.append(new Option(t.rotulo, t.chave, false, j.tela === t.chave));
-      tela.onchange = () => { j.tela = tela.value; gravar(); };
-      layout.disabled = tela.disabled = j.papel === "off";
-      tab.append(ordem, papel, layout, tela);
-    });
-    raiz.append(tab);
-    const b = el("button", "", tr("Detectar os monitores"));
-    b.type = "button";
+      layout.disabled = j.papel === "off";
+      return layout;
+    };
     const nota = el("div", "dica");
-    if (podeVerMonitores()) {
-      b.onclick = async () => {
-        nota.textContent = tr("Pedindo ao navegador…");
-        const telas = await detectarMonitores();
-        if (!telas.length) { nota.textContent = tr("O navegador não deu a lista de monitores (a permissão foi negada?)."); return; }
-        c.telas = telas;
-        for (const j of c.janelas) if (j.tela && !telas.some((t) => t.chave === j.tela)) j.tela = "";
+    if (c.telas.length) {
+      // 0.100.55: com os monitores detectados, uma linha por monitor (resolução e orientação) e o que vai em cada um
+      const tab = el("div", "tabela-monitores por-monitor");
+      for (const t of [tr("Monitor"), tr("Apresenta"), tr("Layout")]) tab.append(el("div", "th", t));
+      const outros = c.telas.filter((t) => !t.atual);
+      const papelDe = (t: TelaVista): Papel | "lista" => {
+        if (t.atual) return "lista";
+        const j = c.janelas.find((x) => x.tela === t.chave);
+        return j ? j.papel : "off";
+      };
+      const refazer = (mudado: TelaVista, papel: Papel) => {
+        // as janelas na ordem dos monitores, da esquerda para a direita (Janela 1 = o primeiro monitor em uso)
+        const antigas = new Map(c.janelas.map((x) => [x.tela, x] as const));
+        const novas: ConfJanela[] = [];
+        for (const t of outros) {
+          const p = t === mudado ? papel : papelDe(t);
+          if (p === "off" || p === "lista") continue;
+          novas.push({ papel: p, layout: antigas.get(t.chave)?.layout ?? null, tela: t.chave });
+        }
+        c.janelas = novas.length ? novas : [{ papel: "viewer", layout: null, tela: "" }];
         gravar();
         desenhar();
       };
-      nota.textContent = c.telas.length ? `${c.telas.length} ${tr("monitor(es) detectado(s), numerados da esquerda para a direita.")}`
-        : tr("O navegador pergunta uma vez se o Ipê Web pode gerenciar janelas em todas as telas.");
-      raiz.append(b);
+      c.telas.forEach((t) => {
+        const nome = el("div", "ordem");
+        nome.append(el("b", "", t.rotulo));
+        const papel = el("select");
+        papel.setAttribute("aria-label", `${tr("Apresenta")}: ${tr("Monitor")} ${t.rotulo.split(" ")[0]}`);
+        const atual = papelDe(t);
+        if (t.atual) {
+          papel.append(new Option(tr("A lista (esta janela)"), "lista", false, true));
+          papel.disabled = true;
+          tab.append(nome, papel, el("div"));
+          return;
+        }
+        const k = c.janelas.findIndex((x) => x.tela === t.chave);
+        papel.append(new Option(tr("Exame (visualização)"), "viewer", false, atual === "viewer"),
+          new Option(tr("Exame anterior (comparação)"), "compare", false, atual === "compare"),
+          new Option(tr("Não usar"), "off", false, atual === "off"));
+        papel.onchange = () => refazer(t, papel.value as Papel);
+        const j = k >= 0 ? c.janelas[k] : { papel: "off" as Papel, layout: null, tela: t.chave };
+        if (k >= 0) nome.append(el("small", "", ` · ${tr("Janela")} ${k + 1}`));
+        tab.append(nome, papel, seletorLayout(j, t.rotulo));
+      });
+      raiz.append(tab);
+      if (!outros.length) {
+        nota.textContent = tr("Só um monitor: as janelas de visualização abrem neste mesmo monitor (arraste-as para onde quiser — a posição fica guardada).");
+        raiz.append(seletorQuantas());
+      } else {
+        nota.textContent = `${c.telas.length} ${tr("monitor(es) detectado(s), numerados da esquerda para a direita.")}`;
+      }
     } else {
-      nota.textContent = tr("Este navegador não informa os monitores (só o Chrome e o Edge, em HTTPS ou no próprio computador): arraste cada janela para o monitor dela uma vez — a posição fica guardada.");
+      raiz.append(seletorQuantas());
+      const tab = el("div", "tabela-monitores");
+      for (const t of [tr("Ordem"), tr("Apresenta"), tr("Layout")]) tab.append(el("div", "th", t));
+      c.janelas.forEach((j, k) => {
+        const ordem = el("div", "ordem");
+        ordem.append(el("b", "", `${tr("Janela")} ${k + 1}`));
+        const sobe = el("button", "link", "▲"), desce = el("button", "link", "▼");
+        sobe.type = desce.type = "button";
+        sobe.title = tr("Trocar com a janela de cima");
+        desce.title = tr("Trocar com a janela de baixo");
+        sobe.disabled = k === 0;
+        desce.disabled = k === c.janelas.length - 1;
+        const trocar = (a: number, b: number) => { [c.janelas[a], c.janelas[b]] = [c.janelas[b], c.janelas[a]]; gravar(); desenhar(); };
+        sobe.onclick = () => trocar(k, k - 1);
+        desce.onclick = () => trocar(k, k + 1);
+        ordem.append(sobe, desce);
+        const papel = el("select");
+        papel.setAttribute("aria-label", `${tr("Apresenta")}: ${tr("Janela")} ${k + 1}`);
+        papel.append(new Option(tr("Exame (visualização)"), "viewer", false, j.papel === "viewer"),
+          new Option(tr("Exame anterior (comparação)"), "compare", false, j.papel === "compare"),
+          new Option(tr("Não usar"), "off", false, j.papel === "off"));
+        papel.onchange = () => { j.papel = papel.value as Papel; gravar(); desenhar(); };
+        tab.append(ordem, papel, seletorLayout(j, `${tr("Janela")} ${k + 1}`));
+      });
+      raiz.append(tab);
+      nota.textContent = podeVerMonitores()
+        ? tr("O navegador pergunta uma vez se o Ipê Web pode gerenciar janelas em todas as telas — aí o Ipê vê quantos monitores há, a resolução e a orientação de cada um.")
+        : tr("Este navegador não informa os monitores: só o Chrome e o Edge, e só com o Ipê Web em HTTPS (ou aberto no próprio servidor). Escolha quantas janelas quer e arraste cada uma para o monitor dela uma vez — a posição fica guardada.");
+    }
+    if (podeVerMonitores()) {
+      const b = el("button", "", c.telas.length ? tr("Detectar de novo") : tr("Detectar os monitores"));
+      b.type = "button";
+      b.onclick = () => void detectar(true);
+      raiz.append(b);
     }
     raiz.append(nota, el("div", "dica", tr("A Janela 1 começa nas primeiras séries, a 2 nas seguintes. Na mamografia, a Janela 2 é a segunda tela do protocolo. Permita os pop-ups deste endereço para abrir mais de uma janela por clique.")));
   };
+  /** Sem a lista dos monitores: quantas janelas de visualização (1 a 8). */
+  const seletorQuantas = () => {
+    const q = el("select");
+    q.setAttribute("aria-label", tr("Quantas janelas de visualização"));
+    for (let n = 1; n <= MAX_JANELAS; n++) q.append(new Option(`${n} ${tr(n === 1 ? "janela de visualização" : "janelas de visualização")}`, String(n), false, c.janelas.length === n));
+    q.onchange = () => {
+      const n = Number(q.value);
+      while (c.janelas.length < n) c.janelas.push({ papel: "viewer", layout: null, tela: "" });
+      c.janelas = c.janelas.slice(0, n);
+      gravar();
+      desenhar();
+    };
+    return q;
+  };
+  /** Pede os monitores ao navegador; `perguntar` = o médico clicou (sem isso, só se a permissão já foi dada). */
+  const detectar = async (perguntar: boolean) => {
+    if (!perguntar && !(await permissaoDada())) return;
+    const telas = await detectarMonitores();
+    if (!telas.length) {
+      if (perguntar) {
+        const n = raiz.querySelector(".dica");
+        if (n) n.textContent = tr("O navegador não deu a lista de monitores (a permissão foi negada?).");
+      }
+      return;
+    }
+    const mudou = JSON.stringify(telas.map((t) => t.chave)) !== JSON.stringify(c.telas.map((t) => t.chave));
+    c.telas = telas;
+    const chaves = new Set(telas.filter((t) => !t.atual).map((t) => t.chave));
+    // primeira vez (ou monitores trocados): cada monitor que não é o da lista vira uma janela de visualização
+    if (mudou && !c.janelas.some((j) => j.tela && chaves.has(j.tela))) {
+      const outros = telas.filter((t) => !t.atual);
+      c.janelas = outros.length ? outros.map((t, k) => ({ papel: (c.janelas[k]?.papel ?? "viewer") === "off" ? "viewer" : (c.janelas[k]?.papel ?? "viewer"), layout: c.janelas[k]?.layout ?? null, tela: t.chave }))
+        : [{ papel: "viewer", layout: null, tela: "" }];
+    } else {
+      for (const j of c.janelas) if (j.tela && !chaves.has(j.tela)) j.tela = "";
+    }
+    gravar();
+    desenhar();
+  };
   desenhar();
+  if (podeVerMonitores()) void detectar(false);
   return raiz;
 }
+

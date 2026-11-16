@@ -86,7 +86,7 @@ def test_laudo_no_navegador(servidor):
     erros = []
     with pw.sync_playwright() as p:
         b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
-        pg = b.new_page(viewport={"width": 1500, "height": 950})
+        pg = b.new_page(viewport={"width": 1920, "height": 1080})
         pg.on("pageerror", lambda e: erros.append(str(e)))
         _entrar(pg, servidor)
         icone(pg, "Laudo")
@@ -115,7 +115,7 @@ def test_laudo_no_navegador(servidor):
         r = repo.reports(study)[0]
         assert r["status"] == "draft" and "IMPRESSÃO: nódulo pulmonar" in r["text"] and r["author"] == "Administrador"
         # outra médica abre o mesmo exame: o laudo é só leitura (com o aviso de quem está laudando)
-        pg2 = b.new_page(viewport={"width": 1500, "height": 950})
+        pg2 = b.new_page(viewport={"width": 1920, "height": 1080})
         pg2.on("pageerror", lambda e: erros.append("2: " + str(e)))
         _entrar(pg2, servidor, "medica2", "outra123")
         icone(pg2, "Laudo")
@@ -171,7 +171,7 @@ def test_tecnico_so_le(servidor):
     study = _preparar(servidor)
     with pw.sync_playwright() as p:
         b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
-        pg = b.new_page(viewport={"width": 1500, "height": 950})
+        pg = b.new_page(viewport={"width": 1920, "height": 1080})
         _entrar(pg, servidor, "tec", "tec12345")
         icone(pg, "Laudo")
         pg.wait_for_selector("aside.laudo")
@@ -224,7 +224,7 @@ def test_birads_pdf_sr_e_busca_ativa_no_navegador(servidor):
     erros = []
     with pw.sync_playwright() as p:
         b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
-        pg = b.new_page(viewport={"width": 1500, "height": 1000}, accept_downloads=True)
+        pg = b.new_page(viewport={"width": 1920, "height": 1080}, accept_downloads=True)
         pg.on("pageerror", lambda e: erros.append(str(e)))
         _entrar(pg, servidor)
         icone(pg, "Laudo")

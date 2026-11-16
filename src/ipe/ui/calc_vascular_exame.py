@@ -196,6 +196,11 @@ class CalcVascularJanela(QDialog):
         self.lb_rede.setTextFormat(Qt.RichText)
         self.lb_rede.setWordWrap(True)
         lay.addWidget(self.lb_rede)
+        # 0.100.55: as escalas publicadas, estimadas pelo que a rede marcou
+        self.lb_escalas = QLabel("")
+        self.lb_escalas.setTextFormat(Qt.RichText)
+        self.lb_escalas.setWordWrap(True)
+        lay.addWidget(self.lb_escalas)
         self.lb_avisos = QLabel("")
         self.lb_avisos.setWordWrap(True)
         self.lb_avisos.setStyleSheet("color:#b8860b")
@@ -276,6 +281,7 @@ class CalcVascularJanela(QDialog):
                 f"<b>{tr('Rede (SCU-Net)')}:</b> " + (lados or "—")
                 + f"<br><b>{tr('Sugestão')}:</b> " + (tr(C.NOMES[sug]) if sug else tr("nenhuma"))
                 + " <span style='color:gray'>(" + tr("provisória, pela área dos trechos alongados") + ")</span>")
+        self._escalas(m)
         self.lb_avisos.setText("\n".join(tr(a) for a in (m.get("avisos") or [])))
         marcado = m.get("grau") or m.get("sugestao") or ""
         self.grupo.setExclusive(False)
@@ -287,6 +293,27 @@ class CalcVascularJanela(QDialog):
                 tr(C.NOMES[m["grau"]]), m.get("revisor", ""), m.get("confirmado_em", "")).strip())
         else:
             self.lb_confirmado.setText(tr("Ainda não confirmado."))
+
+    def _escalas(self, m: dict) -> None:
+        import html
+
+        from ipe.ai import calc_vascular_escalas as E
+        if m.get("aviso"):
+            self.lb_escalas.setText("")
+            return
+        e = m.get("escalas") if "escalas" in m else C.escalas(m)
+        if not e:
+            self.lb_escalas.setText("<span style='color:gray'>" + tr(
+                "Escalas (Margolies, CSBI, Loberant, BAC-SS): meça de novo para calcular.") + "</span>")
+            return
+        res = E.resumo(e, tr)
+        linhas = "".join(f"<tr><td><b>{html.escape(n)}</b>&nbsp;&nbsp;</td><td>{html.escape(v)}</td></tr>"
+                         for n, v, _d in res)
+        self.lb_escalas.setToolTip("\n\n".join(f"{n}: {d}" for n, _v, d in res))
+        self.lb_escalas.setText(
+            "<b>" + tr("Escalas") + "</b> <span style='color:gray'>(" + tr(
+                "estimadas pelo que a rede marcou — confira; passe o mouse para ver como cada uma é feita") + ")</span>"
+            + f"<table>{linhas}</table>")
 
     def _previas(self, m: dict) -> None:
         for q in self.quadros.values():

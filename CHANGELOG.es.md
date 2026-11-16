@@ -3,6 +3,26 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.55 — Calcificaciones vasculares: cuatro escalas; adjuntos y panel más grande en Ipê Web
+- **Ipê Web: adjuntar PDF e imágenes al estudio** — arrastre los archivos sobre el estudio abierto (como en Ipê de
+  escritorio) o use **Adjuntar PDF o imagen…** debajo de las series. Se convierten en DICOM dentro del estudio en el
+  servidor, siguen las reglas de envío del estudio y aparecen enseguida. Los PDF del estudio se listan en
+  **Documentos** y se abren en una pestaña nueva.
+- **Ipê Web: monitores reales** — el panel Monitores ya no muestra siempre 3 ventanas: con el permiso del navegador
+  (Chrome/Edge, en HTTPS o en el propio servidor) detecta **todos** los monitores, con la resolución y orientación de
+  cada uno, y usted elige qué va en cada uno. Sin el permiso, elija cuántas ventanas (1 a 8).
+- **Ipê Web: Vincular** ahora funciona también en una sola ventana — los cuadros se desplazan juntos (mismo plano),
+  con la misma ventana (misma modalidad, no en MG) y el mismo zoom.
+- La ventana de **Calcificaciones vasculares** (escritorio e Ipê Web) muestra también las escalas publicadas,
+  estimadas por lo que marcó la red: **Margolies** (0–12: vasos + extensión + densidad, por mama), **CSBI** (0–3),
+  **Loberant** (0–3) y **BAC-SS** (Nv + Ov + L, en la MLO). Pase el ratón para ver cómo se calcula cada una. Son
+  estimaciones — revise las imágenes. Estudios medidos antes de esta versión: **Medir de nuevo** para obtener las escalas.
+- El panel de **Calcificaciones vasculares** en Ipê Web abría estrecho y cortaba las vistas previas, el grado
+  "Acentuada" y los botones. Ahora abre grande (cabe en la pantalla), las vistas previas crecen con él y se puede
+  **redimensionar arrastrando la esquina inferior derecha**; el navegador recuerda el tamaño. El panel de Densidad
+  mamaria también se puede redimensionar.
+- Los avisos del panel (prótesis, compresión localizada/ampliación, incidencias faltantes) aparecen traducidos.
+
 ## 0.100.54 — Actualización: límite de GitHub y "la versión no cambia"
 - **"HTTP Error 403: rate limit exceeded"** al buscar versión nueva: la API de GitHub limita las consultas por
   dirección de internet (en una clínica, todos salen por la misma). Ahora Ipê encuentra la versión en la página del

@@ -116,7 +116,7 @@ header .quem, header .sair { flex: none; }
 .paciente strong { color: var(--texto); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .paciente span { color: var(--suave); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .barra { flex: 1 1 auto; flex-wrap: nowrap; gap: 0; }
-.barra .grupo { display: flex; align-items: center; gap: 2px; padding: 0 6px; border-right: 1px solid var(--borda); }
+.barra .grupo { display: flex; align-items: center; gap: 2px; padding: 0 4px; border-right: 1px solid var(--borda); }
 .barra .grupo.fim { margin-left: auto; border-right: 0; }
 button.ic { position: relative; height: 38px; min-width: 38px; padding: 0 6px 4px; display: inline-flex; align-items: center;
   justify-content: center; gap: 1px; background: transparent; border: 1px solid transparent; color: #cfd3d8; border-radius: 6px; }
@@ -608,7 +608,7 @@ table.lista .selo-laudo.assinado { background: #2f6f46; color: #e9ffe9; }
 .filtros button.pacs-busca { margin-left: auto; }
 .filtros button.pacs-busca:not([hidden]) + button.janelas { margin-left: 6px; }
 /* 0.100.50: densidade mamária */
-.painel-densidade { display: flex; flex-direction: column; gap: 8px; min-width: 320px; max-width: 420px; padding: 4px; }
+.painel-densidade { display: flex; flex-direction: column; gap: 8px; min-width: 320px; max-width: none; padding: 4px; }
 .painel-densidade .rede { font-size: 1.15em; font-weight: 600; }
 .painel-densidade .probs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
 .painel-densidade .probs span { position: relative; padding: 2px 4px; border-radius: 4px; font-size: .9em; text-align: center;
@@ -619,10 +619,17 @@ table.lista .selo-laudo.assinado { background: #2f6f46; color: #e9ffe9; }
 .painel-densidade .botoes { display: flex; flex-wrap: wrap; gap: 6px; }
 .painel-densidade .estado { font-size: .9em; }
 /* 0.100.51: calcificações vasculares */
-.painel-calcvasc { display: flex; flex-direction: column; gap: 8px; min-width: 340px; max-width: 520px; padding: 4px; }
+.painel-calcvasc { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 4px; }
+/* 0.100.55: o painel das calcificações abre grande e o médico pode puxar o canto para aumentar ou diminuir */
+.menu.painel:has(.painel-calcvasc) { width: min(820px, calc(100vw - 16px)); height: min(760px, calc(100vh - 16px));
+  min-width: 340px; min-height: 260px; max-width: calc(100vw - 8px); max-height: calc(100vh - 8px);
+  resize: both; overflow: auto; container-type: size; }
+.menu.painel:has(.painel-densidade) { width: auto; max-width: calc(100vw - 16px); resize: both; overflow: auto; }
 .painel-calcvasc .previas { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .painel-calcvasc figure { margin: 0; background: #000; text-align: center; }
-.painel-calcvasc figure img { width: 100%; height: 200px; object-fit: contain; display: block; }
+.painel-calcvasc .previas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.painel-calcvasc figure { min-width: 0; }
+.painel-calcvasc figure img { width: 100%; height: max(150px, calc((100cqh - 360px) / 2)); object-fit: contain; display: block; }
 .painel-calcvasc figcaption { font-size: .8em; padding: 2px; }
 .painel-calcvasc .rede { font-weight: 600; }
 .painel-calcvasc .categorias { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -630,8 +637,23 @@ table.lista .selo-laudo.assinado { background: #2f6f46; color: #e9ffe9; }
 .painel-calcvasc .botoes { display: flex; flex-wrap: wrap; gap: 6px; }
 .painel-calcvasc figcaption { display: flex; align-items: center; gap: 4px; justify-content: center; }
 .painel-calcvasc figcaption .rolar { padding: 0 6px; }
+.painel-calcvasc .escalas table { border-collapse: collapse; font-size: .9em; }
+.painel-calcvasc .escalas th { text-align: left; padding: 1px 12px 1px 0; white-space: nowrap; font-weight: 600; }
+.painel-calcvasc .escalas td { padding: 1px 0; }
+.painel-calcvasc .escalas tr { cursor: help; }
 /* 0.100.53: a barra mostra o que cabe; o resto vai para o "»" */
 header .barra { overflow: hidden; }
 header .barra .transbordou { display: none !important; }
 header .barra .mais { margin-left: auto; flex: 0 0 auto; }
 header .barra .mais[hidden] { display: none; }
+
+/* ================================================================ 0.100.55: anexar PDF/imagens e documentos */
+.capa-soltar { position: fixed; inset: 0; z-index: 80; background: rgba(224, 165, 38, 0.12); border: 3px dashed var(--acento);
+  display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.capa-soltar div { background: #1d2026; color: #f2c04f; padding: 14px 22px; border-radius: 10px; font-size: 1.1em; font-weight: 600; }
+.documentos { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.documentos .lista-docs { display: flex; flex-direction: column; gap: 2px; }
+.documentos button.doc { text-align: left; background: transparent; border: 0; padding: 4px 6px; border-radius: 6px;
+  color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.documentos button.doc:hover { background: rgba(224, 165, 38, 0.16); color: #f2c04f; }
+.documentos button.anexar { margin-top: 2px; }

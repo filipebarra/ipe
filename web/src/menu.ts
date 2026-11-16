@@ -201,7 +201,7 @@ export function abrirMenu(itens: ItemMenu[], x: number, y: number, rotulo = "Men
 }
 
 /** Abre um painel livre (a grade de layout, por exemplo) abaixo de um botão, com as mesmas regras de fechar. */
-export function abrirPainel(conteudo: HTMLElement, ancora: HTMLElement, rotulo: string): HTMLElement {
+export function abrirPainel(conteudo: HTMLElement, ancora: HTMLElement, rotulo: string, lembrarTamanho = ""): HTMLElement {
   fecharMenus();
   const m = document.createElement("div");
   m.className = "menu painel";
@@ -209,8 +209,31 @@ export function abrirPainel(conteudo: HTMLElement, ancora: HTMLElement, rotulo: 
   m.setAttribute("aria-label", rotulo);
   m.append(conteudo);
   aberto = [m];
+  // painel que o médico redimensiona: abre do tamanho que ele deixou da última vez (só neste navegador)
+  const chave = lembrarTamanho ? `ipe.painel.${lembrarTamanho}` : "";
+  if (chave) {
+    try {
+      const t = JSON.parse(localStorage.getItem(chave) || "null") as { w: number; h: number } | null;
+      if (t && t.w > 0 && t.h > 0) { m.style.width = `${t.w}px`; m.style.height = `${t.h}px`; }
+    } catch { /* sem armazenamento: tamanho padrão */ }
+  }
   const r = alvo(ancora).getBoundingClientRect();
   posicionar(m, r.left, r.bottom + 4);
+  if (chave && typeof ResizeObserver !== "undefined") {
+    let espera = 0;
+    new ResizeObserver(() => {
+      clearTimeout(espera);
+      espera = window.setTimeout(() => {
+        if (!m.isConnected || !m.style.width) return;
+        const q = m.getBoundingClientRect();
+        try { localStorage.setItem(chave, JSON.stringify({ w: Math.round(q.width), h: Math.round(q.height) })); } catch { /* */ }
+        // se cresceu além da tela, volta para dentro
+        const W = window.innerWidth, H = window.innerHeight;
+        if (q.right > W - 4) m.style.left = `${Math.max(4, W - q.width - 4)}px`;
+        if (q.bottom > H - 4) m.style.top = `${Math.max(4, H - q.height - 4)}px`;
+      }, 250);
+    }).observe(m);
+  }
   const fora = (e: MouseEvent) => {
     if (m.contains(e.target as Node) || ancora.contains(e.target as Node)) return;
     fecharMenus();

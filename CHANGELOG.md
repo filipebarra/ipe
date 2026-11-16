@@ -3,6 +3,28 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.55 — Calcificações vasculares: quatro escalas; anexos e painel maior no Ipê Web
+- **Ipê Web: anexar PDF e imagens ao exame** — arraste os arquivos do computador para cima do exame aberto (como no
+  Ipê de mesa) ou use **Anexar PDF ou imagem…** embaixo das séries. Viram DICOM dentro do exame no servidor (PDF na
+  série "Documentos anexados", imagem na "Imagens anexadas"), seguem as regras de envio do exame e aparecem na hora.
+  Os PDFs do exame ficam listados em **Documentos** e abrem numa aba nova. Pede a permissão de importar.
+- **Ipê Web: monitores de verdade** — o painel Monitores não mostra mais sempre 3 janelas: com a permissão do
+  navegador (Chrome/Edge, em HTTPS ou no próprio servidor) ele detecta **todos** os monitores, com a resolução e a
+  orientação (paisagem/retrato) de cada um, e você escolhe o que vai em cada monitor (exame, exame anterior ou nada).
+  Sem essa permissão, você escolhe quantas janelas quer (1 a 8). O Ipê de mesa já detectava todos.
+- **Ipê Web: Ligar** agora funciona também numa janela só — os quadros da tela rolam juntos (mesmo plano), com a
+  mesma janela (mesma modalidade, não na MG) e o mesmo zoom. Numa janela só começa desligado; entre janelas, ligado.
+- A janela das **Calcificações vasculares** (Ipê de mesa e Ipê Web) mostra também as escalas publicadas, estimadas
+  pelo que a rede marcou: **Margolies** (0–12: vasos + extensão + densidade, por mama), **CSBI** (0–3),
+  **Loberant** (0–3) e **BAC-SS** (Nv + Ov + L, na MLO). Passe o mouse para ver como cada uma é feita. São
+  estimativas (o que é "vaso", "trilho" e "sem luz" a máquina deduz pela forma do que marcou) — confira nas imagens.
+  Exames medidos antes desta versão: **Medir de novo** para calcular as escalas.
+- O painel das **Calcificações vasculares** no Ipê Web abria estreito e cortava as prévias, o grau "Acentuada" e os
+  botões. Agora abre grande (cabe na tela), as prévias crescem com ele e dá para **redimensionar puxando o canto de
+  baixo à direita**; o navegador lembra o tamanho para a próxima vez. A Densidade mamária também pode ser redimensionada.
+- Os avisos do painel (prótese, compressão localizada/ampliação, incidências faltando) aparecem traduzidos em inglês e
+  espanhol.
+
 ## 0.100.54 — Atualização: limite do GitHub e "a versão não muda"
 - **"HTTP Error 403: rate limit exceeded"** ao procurar versão nova: a API do GitHub tem limite de consultas por
   endereço de internet (numa clínica, todos saem pelo mesmo). Agora o Ipê acha a versão pela página do release, que

@@ -18,6 +18,59 @@ interface Medida {
   // 0.100.52: todas as imagens 2D; `vistas` diz por qual começa cada incidência
   imagens: { i: number; chave: string; area_mm2: number; extra: boolean; modificadores: string[]; serie: string; protese: boolean }[];
   vistas: Record<string, number>;
+  escalas?: Escalas | null; // 0.100.55
+}
+interface Escalas {
+  margolies: { total: number; categoria: string; por_mama: Record<string, { vasos: number; extensao: number; densidade: number; total: number }> };
+  csbi: { grau: number };
+  loberant: { grau: number };
+  bacss: { maior: number; por_mama: Record<string, { nv: number; ov: number; l: number; total: number }> };
+}
+const CATEGORIAS: Record<string, string> = { negativa: "Negativa", leve: "Leve", moderada_acentuada: "Moderada a acentuada" };
+const NOMES_CSBI = ["Nenhuma", "Leve", "Moderada", "Acentuada"];
+const DICAS: Record<string, string> = {
+  margolies: "Por mama: vasos (até 6) + extensão no vaso mais acometido (0–3) + densidade da pior área (0–3); vale a pior mama. 0 negativa, 1–3 leve, 4–12 moderada a acentuada. Margolies et al., JACC Cardiovasc Imaging 2016.",
+  csbi: "0 nenhuma; 1 algumas puntiformes, sem trilho; 2 grosseiras ou em trilho em menos de 3 vasos; 3 três ou mais vasos. Canadian Society of Breast Imaging, 2023.",
+  loberant: "0 nenhuma; 1 poucas puntiformes ou lineares curtas; 2 mais abundantes; 3 contínuas, circunferenciais. Loberant et al., J Clin Imaging Sci 2013.",
+  bacss: "Na MLO de cada mama: Nv (vasos) + Ov (1 se o cálcio cobre a artéria de lado a lado por 1 mm ou mais) + L (comprimento somado: 1 até 12 mm, 2 até 33, 3 até 84, 4 acima). Trimboli et al., Quant Imaging Med Surg 2021.",
+};
+
+/** As quatro escalas publicadas (estimadas no servidor pelo que a rede marcou), numa tabelinha com a explicação no título. */
+function tabelaEscalas(e: Escalas | null | undefined): HTMLElement {
+  const caixa = document.createElement("div");
+  caixa.className = "escalas";
+  const t = document.createElement("div");
+  t.className = "info";
+  if (!e) {
+    t.textContent = tr("Escalas (Margolies, CSBI, Loberant, BAC-SS): meça de novo para calcular.");
+    caixa.append(t);
+    return caixa;
+  }
+  t.textContent = `${tr("Escalas")} — ${tr("estimadas pelo que a rede marcou — confira; passe o mouse para ver como cada uma é feita")}`;
+  const lado = (k: string) => (k === "R" ? tr("D") : k === "L" ? tr("E") : k);
+  const ordem = (o: Record<string, unknown>) => Object.keys(o).sort().reverse();
+  const mg = e.margolies, bc = e.bacss;
+  const pm = ordem(mg.por_mama).map((k) => { const x = mg.por_mama[k]; return `${lado(k)} ${x.total} (${x.vasos}+${x.extensao}+${x.densidade})`; }).join(", ");
+  const pb = ordem(bc.por_mama).map((k) => { const x = bc.por_mama[k]; return `${lado(k)} ${x.total} (${x.nv}+${x.ov}+${x.l})`; }).join(", ");
+  const linhas: [string, string, string][] = [
+    ["Margolies (0–12)", `${mg.total} — ${tr(CATEGORIAS[mg.categoria] || mg.categoria)} · ${pm}`, DICAS.margolies],
+    ["CSBI (0–3)", `${e.csbi.grau} — ${tr(NOMES_CSBI[e.csbi.grau] || "")}`, DICAS.csbi],
+    ["Loberant (0–3)", `${e.loberant.grau}`, DICAS.loberant],
+    ["BAC-SS", `${bc.maior} · ${pb}`, DICAS.bacss],
+  ];
+  const tab = document.createElement("table");
+  for (const [n, v, d] of linhas) {
+    const tr_ = document.createElement("tr");
+    tr_.title = tr(d);
+    const a = document.createElement("th");
+    a.textContent = n;
+    const b = document.createElement("td");
+    b.textContent = v;
+    tr_.append(a, b);
+    tab.append(tr_);
+  }
+  caixa.append(t, tab);
+  return caixa;
 }
 interface Resposta { medida: Medida | null; pode_confirmar: boolean; frases?: Record<string, string> }
 
@@ -173,6 +226,7 @@ export class PainelCalcVascular {
         linha.textContent = `${tr("Sugestão")}: ${sug} (${tr("provisória, pela área dos trechos alongados")})`;
       }
       r.append(linha);
+      if (!m.aviso) r.append(tabelaEscalas(m.escalas));
       const atual = this.escolhido || m.grau || m.sugestao || "";
       const grupo = document.createElement("div");
       grupo.className = "categorias";
@@ -202,7 +256,8 @@ export class PainelCalcVascular {
       for (const a of m.avisos || []) {
         const d = document.createElement("div");
         d.className = "aviso";
-        d.textContent = tr(a);
+        const falta = /^Faltam incidências: (.*)\.$/.exec(a);
+        d.textContent = falta ? `${tr("Faltam incidências:")} ${falta[1]}.` : tr(a);
         r.append(d);
       }
       const botoes = document.createElement("div");

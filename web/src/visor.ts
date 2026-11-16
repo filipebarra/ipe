@@ -426,6 +426,8 @@ export class Grade {
   colunas = 1;
   paciente = "";
   aoMudar: () => void = () => {};
+  /** 0.100.55: a grade foi (re)montada — quantos quadros há agora */
+  aoMontar: () => void = () => {};
   /** 0.100.2: cada vez que um quadro desenha (para a camada do overlay) */
   aoDesenhar: (q: Quadro) => void = () => {};
   aviso: (msg: string) => void = () => {};
@@ -553,6 +555,7 @@ export class Grade {
     this.sincronizar();
     this.ativo = Math.min(this.ativo, this.quadros.length - 1);
     this.marcarAtivo();
+    this.aoMontar();
     this.fonteDasLinhas();
     antigas.forEach((s, i) => { if (s?.serie && i < this.quadros.length) void this.mostrar(i, s.serie); });
   }
@@ -675,6 +678,8 @@ export class Grade {
   // ---------------------------------------------------------------- 0.100.20: janelas ligadas (sincronizadas)
   /** Chamado quando o médico rola, janela ou amplia no quadro ativo (não quando a mudança veio de outra janela). */
   aoAto: ((m: Sinc) => void) | null = null;
+  /** 0.100.55: os quadros desta janela também andam juntos (rolagem no mesmo plano, janela, zoom) */
+  ligarQuadros = false;
   private mudoAte = 0;
   private ultimaPos: number[] | null = null;
   private ultimoZoom = 0;
@@ -689,28 +694,32 @@ export class Grade {
   }
 
   private contar(q: Quadro, tipo: "pos" | "voi" | "zoom"): void {
-    if (!this.aoAto || q !== this.quadros[this.ativo] || q.tipo !== "pilha" || performance.now() < this.mudoAte) return;
+    if ((!this.aoAto && !this.ligarQuadros) || q !== this.quadros[this.ativo] || q.tipo !== "pilha" || performance.now() < this.mudoAte) return;
     if (this.pendentes.has(tipo)) return;
     this.pendentes.add(tipo);
     requestAnimationFrame(() => {
       this.pendentes.delete(tipo);
       const vp = motor?.getViewport(q.id) as Types.IStackViewport | undefined;
-      if (!vp?.getCurrentImageId() || !this.aoAto || performance.now() < this.mudoAte) return;
+      if (!vp?.getCurrentImageId() || (!this.aoAto && !this.ligarQuadros) || performance.now() < this.mudoAte) return;
+      const emitir = (m: Sinc) => {
+        this.aoAto?.(m);
+        if (this.ligarQuadros) this.aplicarNosQuadros(m, q);
+      };
       if (tipo === "pos") {
         const p = this.planoDe(vp);
         if (!p) return;
         const antes = this.ultimaPos;
         this.ultimaPos = p.ipp;
         const delta = antes ? (p.ipp[0] - antes[0]) * p.n[0] + (p.ipp[1] - antes[1]) * p.n[1] + (p.ipp[2] - antes[2]) * p.n[2] : 0;
-        this.aoAto({ tipo: "pos", ponto: p.ipp, normal: p.n, delta, cantos: this.cantosDe(vp) });
+        emitir({ tipo: "pos", ponto: p.ipp, normal: p.n, delta, cantos: this.cantosDe(vp) });
       } else if (tipo === "voi") {
         const v = vp.getProperties().voiRange;
-        if (v) this.aoAto({ tipo: "voi", lower: v.lower, upper: v.upper, modalidade: q.serie?.modalidade || "" });
+        if (v) emitir({ tipo: "voi", lower: v.lower, upper: v.upper, modalidade: q.serie?.modalidade || "" });
       } else {
         const z = vp.getZoom();
         if (Math.abs(z - this.ultimoZoom) < 1e-4) return;
         this.ultimoZoom = z;
-        this.aoAto({ tipo: "zoom", zoom: z });
+        emitir({ tipo: "zoom", zoom: z });
       }
     });
   }
@@ -814,6 +823,35 @@ export class Grade {
         if ((x.serie?.modalidade || "") !== m.modalidade) continue;
         // 0.100.52: na mamografia cada imagem fica com a janela do arquivo (a de outra imagem não serve)
         if (m.modalidade === "MG") continue;
+        vp.setProperties({ voiRange: { lower: m.lower, upper: m.upper } });
+        vp.render();
+      } else {
+        vp.setZoom(m.zoom);
+        vp.render();
+      }
+    }
+  }
+
+  /** 0.100.55: o ato do quadro ativo nos outros quadros desta janela — rolagem pela posição (no mesmo exame; noutro,
+   *  os mesmos milímetros), janela da mesma modalidade (não na MG) e zoom. */
+  private aplicarNosQuadros(m: Sinc, origem: Quadro): void {
+    // só o quadro ativo emite (contar), então mexer nos outros não volta para cá
+    for (const x of this.quadros) {
+      if (x === origem || x.tipo !== "pilha") continue;
+      const vp = motor?.getViewport(x.id) as Types.IStackViewport | undefined;
+      if (!vp?.getCurrentImageId()) continue;
+      if (m.tipo === "pos") {
+        const p = this.planoDe(vp);
+        if (!p || Math.abs(p.n[0] * m.normal[0] + p.n[1] * m.normal[1] + p.n[2] * m.normal[2]) < 0.9) continue;
+        const mesmo = !!x.serie && !!origem.serie && x.serie.study === origem.serie.study;
+        const sinal = p.n[0] * m.normal[0] + p.n[1] * m.normal[1] + p.n[2] * m.normal[2] < 0 ? -1 : 1;
+        if (!mesmo && !m.delta) continue;
+        const alvo = mesmo ? m.ponto
+          : [p.ipp[0] + p.n[0] * m.delta * sinal, p.ipp[1] + p.n[1] * m.delta * sinal, p.ipp[2] + p.n[2] * m.delta * sinal];
+        const k = indiceMaisPerto(vp, alvo as Types.Point3);
+        if (k !== null && k >= 0 && k !== vp.getCurrentImageIdIndex()) void vp.setImageIdIndex(k);
+      } else if (m.tipo === "voi") {
+        if ((x.serie?.modalidade || "") !== m.modalidade || m.modalidade === "MG") continue;
         vp.setProperties({ voiRange: { lower: m.lower, upper: m.upper } });
         vp.render();
       } else {

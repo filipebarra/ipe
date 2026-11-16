@@ -24,6 +24,7 @@ import { barraComTransbordo } from "./transborda";
 import { ListaEnvios, painelEnvio } from "./envio";
 import { AbaIA, TarefasIA } from "./ia";
 import * as JAN from "./janelas";
+import { PainelDocumentos, anexar as anexarArquivos } from "./anexos";
 import { PainelFilme } from "./filme";
 import { nosDoServidor, telaPacs as montarTelaPacs } from "./pacs";
 import {
@@ -70,6 +71,7 @@ function tarja(): HTMLElement {
 // ------------------------------------------------------------------ login
 function telaLogin(msg = ""): void {
   pararDisponiveis();
+  soltarArquivos = null;
   mg?.encerrar();
   mg = null;
   din?.encerrar();
@@ -128,6 +130,29 @@ async function prepararVisor(): Promise<void> {
 
 /** A página foi recarregada (ou é uma janela de visualização aberta pela lista) com a sessão ainda válida. */
 let retomando = false;
+
+// 0.100.55: arrastar PDF/imagens do computador para o exame aberto anexa ao exame (como no Ipê de mesa)
+let soltarArquivos: ((fs: File[]) => void) | null = null;
+let capaSoltar: HTMLElement | null = null;
+const temArquivos = (e: DragEvent) => !!e.dataTransfer?.types.includes("Files");
+const tirarCapa = () => { capaSoltar?.remove(); capaSoltar = null; };
+document.addEventListener("dragover", (e) => {
+  if (!temArquivos(e)) return;
+  e.preventDefault();                       // soltar um arquivo nunca troca a página pelo arquivo
+  if (e.dataTransfer) e.dataTransfer.dropEffect = soltarArquivos ? "copy" : "none";
+  if (soltarArquivos && !capaSoltar) {
+    capaSoltar = el("div", { class: "capa-soltar" }, el("div", {}, tr("Solte para anexar ao exame (PDF ou imagens)")));
+    document.body.append(capaSoltar);
+  }
+});
+document.addEventListener("dragleave", (e) => { if (!e.relatedTarget) tirarCapa(); });
+document.addEventListener("drop", (e) => {
+  tirarCapa();
+  if (!temArquivos(e)) return;
+  e.preventDefault();
+  const fs = [...(e.dataTransfer?.files || [])];
+  if (soltarArquivos && fs.length) soltarArquivos(fs);
+});
 async function retomar(): Promise<void> {
   if (retomando) return;
   retomando = true;
@@ -181,6 +206,7 @@ function cabecalho(...extra: Node[]): HTMLElement {
 /** Fechar o exame: na janela comum, volta à lista; numa janela de visualização, fecha o exame em todas e elas ficam à
  *  espera do próximo (a lista está na outra janela). */
 function voltarALista(): void {
+  soltarArquivos = null;
   const k = JAN.estaJanela();
   if (!k) { location.hash = "#/lista"; return; }
   JAN.fecharNasJanelas();
@@ -803,9 +829,8 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   const trilhoDir = el("div", { class: "trilho" }, botaoIcone("Abrir o painel de ferramentas", "M15 6l-6 6 6 6"));
   // 0.100.19: a aparência é do usuário — onde ficam as séries e os botões, e o modo leitura
   // 0.100.20: janelas ligadas — rolar, janela e zoom desta janela seguem para as outras janelas de visualização
-  const bLigar = botaoIcone("Ligar as janelas: rolagem, janela e zoom juntos nas janelas de visualização", "M9 15l6-6M10 6l2-2a4 4 0 0 1 6 6l-2 2M14 18l-2 2a4 4 0 0 1-6-6l2-2");
-  bLigar.hidden = !janela;
-  if (!janela) bLigar.style.display = "none";
+  // 0.100.55: ligar vale também para os quadros desta janela (com um monitor só), não só entre janelas
+  const bLigar = botaoIcone("Ligar os quadros e as janelas: rolagem, janela e zoom juntos", "M9 15l6-6M10 6l2-2a4 4 0 0 1 6 6l-2 2M14 18l-2 2a4 4 0 0 1-6-6l2-2");
   const bLeitura = botaoIcone("Modo leitura (só as imagens) — tecla F", "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5");
   const bAparencia = botaoIcone("Aparência: posição das séries e dos botões", "M4 5h16v14H4zM9 5v14M4 10h5");
   const bGavetaEsq = botaoIcone("Séries", "M4 5h16v4H4zM4 11h16v4H4zM4 17h16v2H4z");
@@ -825,7 +850,24 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     el("div", { class: "dica" }, tr("Clique numa série para mostrar no quadro ativo, ou arraste-a até um quadro.")));
   const listaSeries = el("div", { class: "series" });
   const anteriores = el("div", { class: "anteriores" });
-  tira.append(listaSeries, el("div", { class: "titulo-painel" }, tr("Exames anteriores")), anteriores);
+  // 0.100.55: documentos do exame e anexar PDF/imagens (arrastando ou pelo botão)
+  const podeAnexar = !!config?.usuario.perms?.includes("import");
+  const enviarAnexos = async (fs: File[]) => {
+    aviso.textContent = tr("Anexando…");
+    try {
+      const r = await anexarArquivos(study, fs, nomePac.replace(/\^/g, " ").trim());
+      aviso.textContent = r.texto;
+      if (r.ok) {
+        await novasSeries();
+        await docs.carregar();
+      }
+    } catch (e) {
+      aviso.textContent = `${tr("Não deu para anexar:")} ${(e as Error).message}`;
+    }
+  };
+  const docs = new PainelDocumentos(study, podeAnexar, (fs) => void enviarAnexos(fs), (t) => { aviso.textContent = t; });
+  soltarArquivos = podeAnexar ? (fs) => void enviarAnexos(fs) : null;
+  tira.append(listaSeries, docs.raiz, el("div", { class: "titulo-painel" }, tr("Exames anteriores")), anteriores);
   const telas = el("section", { class: "grade" });
   const painelCarga = el("pre", { class: "painel-carga", hidden: true });
 
@@ -928,24 +970,36 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   grade.aviso = (m: string) => { aviso.textContent = m; };
   (window as unknown as Record<string, unknown>).__ipeGrade = grade; // para os testes de ponta a ponta
   const g = grade;
-  if (janela) {
-    let ligadas = lerPreferencia("janelasLigadas", true);
-    const marcarLigar = () => bLigar.classList.toggle("ligado", ligadas);
+  {
+    // com janelas separadas, ligado de saída (como antes); numa janela só, desligado até o médico ligar
+    const chaveLigar = janela ? "janelasLigadas" : "quadrosLigados";
+    let ligadas = lerPreferencia(chaveLigar, !!janela);
+    const marcarLigar = () => {
+      bLigar.classList.toggle("ligado", ligadas);
+      bLigar.setAttribute("aria-pressed", String(ligadas));
+      g.ligarQuadros = ligadas;
+    };
     marcarLigar();
+    // numa janela só, o botão aparece quando há mais de um quadro (não ocupa a barra à toa)
+    const verLigar = () => { bLigar.style.display = janela || g.quadros.length > 1 ? "" : "none"; };
+    g.aoMontar = verLigar;
+    verLigar();
     bLigar.onclick = () => {
       ligadas = !ligadas;
-      gravarPreferencia("janelasLigadas", ligadas);
+      gravarPreferencia(chaveLigar, ligadas);
       marcarLigar();
       if (!ligadas) g.porLinhaDeFora(null);
     };
-    g.aoAto = (ato) => { if (ligadas) JAN.canalJanelas()?.postMessage({ tipo: "ato", study, janela, ato } satisfies JAN.Recado); };
-    const ouvirAto = (e: MessageEvent) => {
-      if (grade !== g) { JAN.canalJanelas()?.removeEventListener("message", ouvirAto); return; }
-      const m = e.data as JAN.Recado;
-      if (m.tipo !== "ato" || !ligadas || m.janela === janela) return;
-      g.aplicarAto(m.ato as Sinc, m.study === study);
-    };
-    JAN.canalJanelas()?.addEventListener("message", ouvirAto);
+    if (janela) {
+      g.aoAto = (ato) => { if (ligadas) JAN.canalJanelas()?.postMessage({ tipo: "ato", study, janela, ato } satisfies JAN.Recado); };
+      const ouvirAto = (e: MessageEvent) => {
+        if (grade !== g) { JAN.canalJanelas()?.removeEventListener("message", ouvirAto); return; }
+        const m = e.data as JAN.Recado;
+        if (m.tipo !== "ato" || !ligadas || m.janela === janela) return;
+        g.aplicarAto(m.ato as Sinc, m.study === study);
+      };
+      JAN.canalJanelas()?.addEventListener("message", ouvirAto);
+    }
   }
   // 0.100.2: o overlay (CAD/IA, GSPS, RTSTRUCT, SEG nas pilhas, textos, medidas, linhas de referência)
   const ov = new Overlay(g, study, () => {
@@ -1249,7 +1303,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   };
   bVasos.onclick = () => {
     const p = new PainelCalcVascular(study, async (frase) => (await abrirLaudo()).inserirTexto(frase));
-    abrirPainel(p.raiz, bVasos, tr("Calcificações vasculares"));
+    abrirPainel(p.raiz, bVasos, tr("Calcificações vasculares"), "calcvasc");
     void p.abrir();
   };
   bLaudo.onclick = async () => {

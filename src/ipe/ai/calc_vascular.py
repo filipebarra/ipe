@@ -38,7 +38,7 @@ log = logging.getLogger(__name__)
 
 ARQUIVO = "calc_vascular_scunet.onnx"
 MODULO = "calc_vascular"
-VERSAO = 2                 # 0.100.52: todas as imagens 2D, não só as quatro
+VERSAO = 3                 # 0.100.52: todas as imagens 2D; 0.100.55: dados das escalas (calc_vascular_escalas)
 GRAUS = ("ausente", "leve", "moderada", "acentuada")
 NOMES = {"ausente": "Ausente", "leve": "Leve", "moderada": "Moderada", "acentuada": "Acentuada"}
 #: área (mm², na mama com mais) a partir da qual a sugestão sobe de grau — PROVISÓRIO, até as confirmações dele
@@ -263,6 +263,11 @@ def medir_imagem(ds, dados=None, stop=None) -> dict:
         out["descartado_protese_mm2"] = round(float((m & reg).sum()) * passo * passo, 2)
         m &= ~reg
     longos, lista = pedacos(m, passo)
+    from ipe.ai import calc_vascular_escalas as E
+    try:
+        out["tracado"] = E.caracteristicas(m, img8, passo)
+    except Exception:
+        log.warning("calcificação vascular: escalas", exc_info=True)
     total = float(m.sum()) * passo * passo
     area = float(longos.sum()) * passo * passo if lista else total
     red = reduzir(m)
@@ -415,7 +420,18 @@ def medir_exame(repo, study_uid: str, dados=None, stop=None, cortes=CORTES) -> d
     if out["por_mama"]:
         out["area_mm2"] = max(out["por_mama"].values())
         out["sugestao"] = None if protese else grau_pela_area(out["area_mm2"], cortes)
+    out["escalas"] = escalas(out)
     return out
+
+
+def escalas(m: dict) -> dict | None:
+    """Margolies, CSBI, Loberant e BAC-SS estimadas (`calc_vascular_escalas`); None numa medida de antes da 0.100.55."""
+    from ipe.ai import calc_vascular_escalas as E
+    try:
+        return E.calcular(imagens_guardadas(m))
+    except Exception:
+        log.warning("calcificação vascular: escalas", exc_info=True)
+        return None
 
 
 def imagens_guardadas(m: dict) -> list[dict]:

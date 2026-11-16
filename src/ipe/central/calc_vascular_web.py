@@ -30,6 +30,7 @@ def _saida(m: dict | None, s) -> dict:
         return {"medida": None, "pode_confirmar": s.can("report")}
     out = {k: m.get(k) for k in CAMPOS}
     out["avisos"] = list(out.get("avisos") or [])
+    out["escalas"] = m["escalas"] if "escalas" in m else C.escalas(m)  # 0.100.55
     imgs = C.imagens_guardadas(m)
     # 0.100.52: todas as imagens 2D (o navegador rola entre as da mesma incidência); a máscara fica no servidor
     out["imagens"] = [{"i": i, "chave": v["chave"], "area_mm2": v.get("area_mm2"), "extra": bool(v.get("extra")),

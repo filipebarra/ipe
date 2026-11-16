@@ -747,6 +747,27 @@ class _Handler(BaseHTTPRequestHandler):
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, r, raw=True)
+        if path in ("/api/web/anexos", "/api/web/documentos", "/api/web/documento"):
+            from ipe.central import anexos_web as AW                        # 0.100.55: anexar PDF/imagens
+            q = parse_qs(parts.query)
+            try:
+                if method == "POST" and path == "/api/web/anexos":
+                    n = int(self.headers.get("Content-Length") or 0)
+                    if n > AW.LIMITE_BYTES * 4 // 3 + (1 << 20):
+                        return self._error(413, "arquivos grandes demais (até 80 MB de uma vez)")
+                    r = AW.anexar(c, s, json.loads(self._body() or b"{}"))
+                elif method == "GET" and path == "/api/web/documentos":
+                    r = AW.documentos(c, s, (q.get("study") or [""])[0])
+                elif method == "GET" and path == "/api/web/documento":
+                    dados, mime, _t = AW.documento(c, s, (q.get("study") or [""])[0], (q.get("sop") or [""])[0])
+                    return self._send(200, dados, mime)
+                else:
+                    return self._error(405, "método")
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (KeyError, TypeError, ValueError) as e:
+                return self._error(400, f"{type(e).__name__}: {e}")
+            return self._json(200, r, raw=True)
         if path in ("/api/web/calcvasc", "/api/web/calcvasc/medir", "/api/web/calcvasc/confirmar",
                     "/api/web/calcvasc/previa"):
             from ipe.central import calc_vascular_web as CW                 # 0.100.51: calcificações vasculares

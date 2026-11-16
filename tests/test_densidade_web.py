@@ -87,7 +87,7 @@ def test_no_navegador(servidor_mg, rede):
     erros = []
     with pw.sync_playwright() as p:
         b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
-        pg = b.new_page(viewport={"width": 1400, "height": 900})
+        pg = b.new_page(viewport={"width": 1920, "height": 1080})
         pg.on("pageerror", lambda e: erros.append(str(e)))
         _abrir(pg, servidor_mg, atual)
         pg.click("nav.barra button[aria-label='Densidade mamária']")

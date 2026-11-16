@@ -27,8 +27,9 @@ def test_lista_numa_janela_e_exame_em_duas(servidor):
         # 0.100.19: o painel Monitores — janelas separadas; Janela 1 e 2 em uso, a 3 não; layout 1×1 na Janela 2
         pg.click("button.janelas")
         pg.select_option(".painel-monitores select[aria-label='Onde os exames abrem']", "1")
-        assert pg.input_value(".painel-monitores select[aria-label='Apresenta: Janela 2']") == "off"   # de início, uma janela
-        pg.select_option(".painel-monitores select[aria-label='Apresenta: Janela 2']", "viewer")
+        # 0.100.55: sem a lista dos monitores (o navegador não deu a permissão), escolhe-se quantas janelas
+        assert pg.input_value(".painel-monitores select[aria-label='Quantas janelas de visualização']") == "1"
+        pg.select_option(".painel-monitores select[aria-label='Quantas janelas de visualização']", "2")
         pg.select_option(".painel-monitores select[aria-label='Layout: Janela 2']", "1,1")
         assert "posição fica guardada" in pg.inner_text(".painel-monitores") or pg.locator(".painel-monitores button:has-text('Detectar')").count() == 1
         pg.keyboard.press("Escape")
@@ -113,11 +114,14 @@ def test_lista_numa_janela_e_exame_em_duas(servidor):
         # desligando na segunda janela, ela para de seguir
         j2.set_viewport_size({"width": 1920, "height": 1080})   # 0.100.53: na janela pequena o botão vai para o "»"
         j2.wait_for_timeout(300)
-        j2.click("nav.barra button[aria-label^='Ligar as janelas']")
+        j2.click("nav.barra button[aria-label^='Ligar os quadros']")
+        assert _esperar(lambda: j2.get_attribute("nav.barra button[aria-label^='Ligar os quadros']", "aria-pressed") == "false")
+        j2.wait_for_timeout(500)          # os recados que já estavam a caminho chegam antes
+        antes = j2.evaluate(idx)
         j1.evaluate("() => window.__ipeGrade.viewport(0).setImageIdIndex(12)")
         j1.wait_for_timeout(1200)
-        assert j2.evaluate(idx) == 7
-        j2.click("nav.barra button[aria-label^='Ligar as janelas']")
+        assert j2.evaluate(idx) == antes
+        j2.click("nav.barra button[aria-label^='Ligar os quadros']")
         # fechar o exame numa janela fecha nas duas: ficam à espera, sem fechar
         j1.click("header button.sair")
         assert _esperar(lambda: j1.locator(".espera").count() == 1 and j2.locator(".espera").count() == 1)
@@ -133,3 +137,73 @@ def test_lista_numa_janela_e_exame_em_duas(servidor):
     # (um desenho do vtk.js que chega depois de o quadro ser desmontado, ao fechar o exame ainda carregando: sem efeito)
     erros = [e for e in erros if "isAttributeUsed" not in e]
     assert not erros, erros
+
+
+@pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_dist) não foi construído")
+def test_monitores_detectados(servidor):
+    """0.100.55: com a permissão do navegador, uma linha por monitor (resolução e orientação), quantos houver."""
+    pw = pytest.importorskip("playwright.sync_api")
+    with pw.sync_playwright() as p:
+        b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
+        ctx = b.new_context(viewport={"width": 1600, "height": 900})
+        # quatro monitores (um em retrato), como o navegador os daria pela API de várias telas
+        ctx.add_init_script("""(() => {
+          const t = (l, w, h, nome, pri) => ({availLeft: l, availTop: 0, availWidth: w, availHeight: h, width: w, height: h,
+                                              label: nome, isPrimary: pri});
+          const telas = [t(0, 1920, 1080, 'A', true), t(1920, 1080, 1920, 'B', false), t(3000, 2048, 2560, 'C', false),
+                         t(5048, 2048, 2560, 'D', false)];
+          window.getScreenDetails = async () => ({screens: telas, currentScreen: telas[0]});
+          const q = navigator.permissions.query.bind(navigator.permissions);
+          navigator.permissions.query = (d) => d && d.name === 'window-management' ? Promise.resolve({state: 'granted'}) : q(d);
+        })()""")
+        pg = ctx.new_page()
+        pg.goto(f"http://127.0.0.1:{servidor.port}/web/")
+        pg.fill("#usuario", "admin")
+        pg.fill("#senha", "admin123")
+        pg.click("button[type=submit]")
+        pg.wait_for_selector("table.lista tbody tr")
+        pg.click("button.janelas")
+        pg.select_option(".painel-monitores select[aria-label='Onde os exames abrem']", "1")
+        assert _esperar(lambda: pg.locator(".tabela-monitores.por-monitor").count() == 1, 10)
+        texto = pg.inner_text(".tabela-monitores")
+        assert "1080×1920 (retrato)" in texto and "1920×1080 (paisagem)" in texto and "4 —" in texto
+        assert pg.locator(".tabela-monitores select[aria-label^='Apresenta']").count() == 4
+        # cada outro monitor virou uma janela de visualização; o primeiro é o da lista
+        assert pg.evaluate("() => JSON.parse(localStorage.getItem('ipe.web.monitores')).janelas.length") == 3
+        pg.select_option(".tabela-monitores select[aria-label='Apresenta: Monitor 3']", "off")
+        assert pg.evaluate("() => JSON.parse(localStorage.getItem('ipe.web.monitores')).janelas.length") == 2
+        pg.select_option(".tabela-monitores select[aria-label='Apresenta: Monitor 4']", "compare")
+        js = pg.evaluate("() => JSON.parse(localStorage.getItem('ipe.web.monitores')).janelas")
+        assert [j["papel"] for j in js] == ["viewer", "compare"] and js[1]["tela"].startswith("5048,")
+        b.close()
+
+
+@pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_dist) não foi construído")
+def test_ligar_quadros_numa_janela(servidor):
+    """0.100.55: com um monitor só, o botão Ligar faz os quadros desta janela rolarem juntos."""
+    pw = pytest.importorskip("playwright.sync_api")
+    with pw.sync_playwright() as p:
+        b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
+        pg = b.new_page(viewport={"width": 1920, "height": 1080})
+        pg.goto(f"http://127.0.0.1:{servidor.port}/web/")
+        pg.fill("#usuario", "admin")
+        pg.fill("#senha", "admin123")
+        pg.click("button[type=submit]")
+        pg.wait_for_selector("table.lista tbody tr")
+        pg.locator("table.lista tbody tr").first.dblclick()
+        assert _esperar(lambda: pg.evaluate("() => window.__ipeGrade && window.__ipeGrade.quadros.length >= 2 && "
+                                            "window.__ipeGrade.quadros.every(q => !!q.serie)"), 30)
+        # a mesma série nos dois quadros
+        pg.evaluate("""async () => { const g = window.__ipeGrade; const s = g.quadros[0].serie;
+                       if (g.quadros[1].serie.series !== s.series) await g.mostrar(1, s); }""")
+        idx = "(i) => window.__ipeGrade.viewport(i).getCurrentImageIdIndex()"
+        bt = "nav.barra button[aria-label^='Ligar os quadros']"
+        assert pg.get_attribute(bt, "aria-pressed") == "false"        # numa janela só, começa desligado
+        pg.evaluate("() => { window.__ipeGrade.ativar(0); window.__ipeGrade.viewport(0).setImageIdIndex(3); }")
+        pg.wait_for_timeout(800)
+        antes = pg.evaluate(idx, 1)
+        assert antes != 3
+        pg.click(bt)
+        pg.evaluate("() => { window.__ipeGrade.ativar(0); window.__ipeGrade.viewport(0).setImageIdIndex(9); }")
+        assert _esperar(lambda: pg.evaluate(idx, 1) == 9, 10), pg.evaluate(idx, 1)
+        b.close()
