@@ -1123,6 +1123,8 @@ class Browser(QWidget):
             m.addSeparator()
             if node["kind"] not in ("folder",):
                 m.addAction("Exportar lista…", lambda: self._export(lid))
+                if node["kind"] != "smart":
+                    m.addAction("Exportar pacote de casos (abre no navegador)…", lambda: self._pacote_casos(lid))
             m.addAction("Excluir…", lambda: self._delete_list(lid))
         m.addSeparator()
         dest = lid if node is not None and node["kind"] == "folder" else None
@@ -1242,6 +1244,10 @@ class Browser(QWidget):
     def _export(self, lid) -> None:
         from ipe.ui.caselists import export_dialog
         export_dialog(self, self.repo, lid)
+
+    def _pacote_casos(self, lid) -> None:
+        from ipe.ui.caselists import pacote_casos_dialog
+        pacote_casos_dialog(self, self.repo, lid, getattr(self, "settings", None))
 
     def _studies_dropped(self, lid: int, uids: list[str]) -> None:
         if (self.tree.node(lid) or {}).get("kind") == "smart":

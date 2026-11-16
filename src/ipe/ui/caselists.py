@@ -326,8 +326,21 @@ class ListEditorDialog(QDialog):
         self.f_dx.setPlaceholderText("Resposta: diagnóstico, anatomopatológico (fica oculto até “Revelar”)")
         self.f_note = QPlainTextEdit()
         self.f_note.setPlaceholderText("Notas de ensino / pontos-chave")
+        # 0.100.56: pacote de casos — o resultado completo
+        self.f_result = QPlainTextEdit()
+        self.f_result.setPlaceholderText("Laudo / resultado do caso (vai no resultado do pacote de casos). Sem nomes!")
+        self.b_laudo = QPushButton("Usar o laudo do exame")
+        self.b_laudo.setToolTip("Copia o texto do laudo deste exame para cá — confira e tire nomes e datas")
+        self.b_laudo.clicked.connect(self._usar_laudo)
+        self.f_path = QPlainTextEdit()
+        self.f_path.setPlaceholderText("Biópsia / anatomopatológico")
+        for w in (self.f_hist, self.f_dx, self.f_note, self.f_result, self.f_path):
+            w.setMinimumHeight(54)
         self.f_series = QListWidget()
         self.f_series.setToolTip("Marque as séries que abrem na reunião. Nenhuma marcada = todas.")
+        self.f_res_series = QListWidget()
+        self.f_res_series.setToolTip("Pacote de casos: as séries marcadas só aparecem quando se pede o resultado "
+                                     "(ex.: a peça cirúrgica, o PDF do anatomopatológico, a imagem com a marcação).")
         self.f_exam = QLabel()
         self.f_exam.setWordWrap(True)
         self.f_exam.setStyleSheet("color:#9a9a9a")
@@ -337,8 +350,17 @@ class ListEditorDialog(QDialog):
         form.addRow("Tags:", self.f_tags)
         form.addRow("História:", self.f_hist)
         form.addRow("Resposta:", self.f_dx)
+        lr = QVBoxLayout()
+        lr.setContentsMargins(0, 0, 0, 0)
+        lr.addWidget(self.f_result)
+        lr.addWidget(self.b_laudo, 0, Qt.AlignLeft)
+        wr = QWidget()
+        wr.setLayout(lr)
+        form.addRow("Laudo / resultado:", wr)
+        form.addRow("Biópsia / AP:", self.f_path)
         form.addRow("Notas de ensino:", self.f_note)
         form.addRow("Séries a abrir:", self.f_series)
+        form.addRow("Séries do resultado:", self.f_res_series)
         rw = QWidget()
         rw.setLayout(form)
 
@@ -392,13 +414,15 @@ class ListEditorDialog(QDialog):
     def _show(self, uid: str | None) -> None:
         self._cur = uid
         it = self._item(uid) if uid else None
-        for w in (self.f_name, self.f_tags, self.f_hist, self.f_dx, self.f_note, self.f_series):
+        for w in (self.f_name, self.f_tags, self.f_hist, self.f_dx, self.f_note, self.f_series, self.f_result,
+                  self.f_path, self.f_res_series, self.b_laudo):
             w.setEnabled(it is not None)
         self.f_series.clear()
+        self.f_res_series.clear()
         if it is None:
             for w in (self.f_name, self.f_tags):
                 w.clear()
-            for w in (self.f_hist, self.f_dx, self.f_note):
+            for w in (self.f_hist, self.f_dx, self.f_note, self.f_result, self.f_path):
                 w.clear()
             self.f_exam.clear()
             return
@@ -409,24 +433,50 @@ class ListEditorDialog(QDialog):
         self.f_hist.setPlainText(it["clinical_summary"])
         self.f_dx.setPlainText(it["hidden_diagnosis"])
         self.f_note.setPlainText(it["note"])
+        self.f_result.setPlainText(it.get("result_text", ""))
+        self.f_path.setPlainText(it.get("pathology", ""))
         chosen = set(it["show_series"])
+        do_resultado = set(it.get("result_series") or [])
         for s in (self.repo.series_for_study(uid) if it["present"] else []):
-            li = QListWidgetItem(f"{s.series_number} {s.modality} — {s.description} ({s.num_images} im)")
-            li.setData(Qt.UserRole, s.series_uid)
-            li.setFlags(li.flags() | Qt.ItemIsUserCheckable)
-            li.setCheckState(Qt.Checked if s.series_uid in chosen else Qt.Unchecked)
-            self.f_series.addItem(li)
+            for lista, marcadas in ((self.f_series, chosen), (self.f_res_series, do_resultado)):
+                li = QListWidgetItem(f"{s.series_number} {s.modality} — {s.description} ({s.num_images} im)")
+                li.setData(Qt.UserRole, s.series_uid)
+                li.setFlags(li.flags() | Qt.ItemIsUserCheckable)
+                li.setCheckState(Qt.Checked if s.series_uid in marcadas else Qt.Unchecked)
+                lista.addItem(li)
 
     def _save_case(self, uid: str | None) -> None:
         if not uid:
             return
-        series = [self.f_series.item(i).data(Qt.UserRole) for i in range(self.f_series.count())
-                  if self.f_series.item(i).checkState() == Qt.Checked]
+        def marcadas(lista):
+            return [lista.item(i).data(Qt.UserRole) for i in range(lista.count())
+                    if lista.item(i).checkState() == Qt.Checked]
         self.repo.update_list_item(
             self.list_id, uid, friendly_name=self.f_name.text().strip(),
             tags=[t.strip() for t in self.f_tags.text().split(",") if t.strip()],
             clinical_summary=self.f_hist.toPlainText().strip(), hidden_diagnosis=self.f_dx.toPlainText().strip(),
-            note=self.f_note.toPlainText().strip(), show_series=series)
+            note=self.f_note.toPlainText().strip(), show_series=marcadas(self.f_series),
+            result_text=self.f_result.toPlainText().strip(), pathology=self.f_path.toPlainText().strip(),
+            result_series=marcadas(self.f_res_series))
+
+    def _usar_laudo(self) -> None:
+        """0.100.56: o texto do laudo do exame no campo do resultado (o médico confere e tira os nomes)."""
+        if not self._cur:
+            return
+        try:
+            laudos = [r for r in self.repo.reports(self._cur) if (r.get("text") or "").strip()]
+        except Exception:  # noqa: BLE001
+            laudos = []
+        if not laudos:
+            QMessageBox.information(self, "Laudo", "Este exame não tem laudo com texto no Ipê.")
+            return
+        texto = laudos[-1]["text"]
+        if "<" in texto and ">" in texto:              # laudo em HTML (rich text): só o texto
+            from PySide6.QtGui import QTextDocument
+            doc = QTextDocument()
+            doc.setHtml(texto)
+            texto = doc.toPlainText()
+        self.f_result.setPlainText(texto.strip())
 
     def save_all(self) -> None:
         self._save_case(self._cur)
@@ -737,6 +787,77 @@ def export_dialog(parent, repo, list_id: int) -> None:
     QMessageBox.information(parent, "Exportar lista",
                             f"{r.cases} caso(s) exportado(s)" + (f", {r.files} imagem(ns)" if with_images else "")
                             + f".\n{path}{extra}")
+
+
+def pacote_casos_dialog(parent, repo, list_id: int, settings=None) -> None:
+    """0.100.56: a lista como um pacote de casos — uma pasta que abre no navegador (o Ipê Web em modo caso), pelo
+    lançador de cada sistema (pen drive) ou copiada para um site."""
+    from pathlib import Path
+
+    from PySide6.QtWidgets import QApplication, QProgressDialog
+
+    from ipe.casos import pacote as PC
+    info = repo.case_list_info(list_id) or {}
+    box = QMessageBox(parent)
+    box.setWindowTitle("Pacote de casos")
+    box.setText(f"Exportar “{info.get('name', '')}” ({info.get('count', 0)} caso(s)) como pacote de casos.")
+    box.setInformativeText(
+        "Uma pasta com o visualizador completo (o mesmo do Ipê Web) e os exames, para abrir em qualquer computador "
+        "(Windows, Mac ou Linux, pelo “Abrir casos”) ou copiar para um site.\n\n"
+        "Cada caso: a história clínica e as imagens; depois, com “Mostrar o resultado”, a resposta, o laudo/resultado, "
+        "a biópsia, as notas de ensino, as séries do resultado e as marcações (setas, medidas). Preencha em "
+        "“Organizar lista”.\n\n"
+        "Os exames vão anonimizados (nome “Caso N”, datas deslocadas, sem instituição e médicos; texto gravado "
+        "tarjado nas capturas). PDFs e fotos anexados vão como estão — confira se não têm nomes.")
+    box.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+    box.button(QMessageBox.Ok).setText("Escolher a pasta…")
+    box.button(QMessageBox.Cancel).setText("Cancelar")
+    if box.exec() != QMessageBox.Ok:
+        return
+    raiz = QFileDialog.getExistingDirectory(parent, "Onde criar o pacote de casos")
+    if not raiz:
+        return
+    safe = "".join(ch if ch.isalnum() or ch in " -_" else "_" for ch in info.get("name", "Casos")).strip() or "Casos"
+    destino = Path(raiz) / safe
+    k = 2
+    while destino.exists() and any(destino.iterdir()):
+        destino = Path(raiz) / f"{safe} ({k})"
+        k += 1
+    dlg = QProgressDialog("Montando o pacote de casos…", "Cancelar", 0, 100, parent)
+    dlg.setWindowModality(Qt.WindowModal)
+    dlg.setMinimumDuration(300)
+
+    def prog(feito, total, texto=""):
+        dlg.setMaximum(max(1, total))
+        dlg.setValue(feito)
+        if texto:
+            dlg.setLabelText(texto)
+        QApplication.processEvents()
+    try:
+        r = PC.exportar(repo, list_id, destino, titulo=info.get("name", ""), settings=settings, progresso=prog,
+                        cancelar=dlg.wasCanceled)
+    except PC.Cancelado:
+        dlg.close()
+        return
+    except Exception as e:  # noqa: BLE001
+        log.exception("pacote de casos")
+        dlg.close()
+        QMessageBox.warning(parent, "Pacote de casos", f"Não deu para montar o pacote: {e}")
+        return
+    dlg.close()
+    extra = ("\n\n" + "\n".join(r.avisos[:8])) if r.avisos else ""
+    m = QMessageBox(parent)
+    m.setWindowTitle("Pacote de casos")
+    m.setText(f"{r.casos} caso(s), {r.series} série(s), {r.imagens} imagem(ns) — {r.bytes / 1e6:.0f} MB.")
+    m.setInformativeText(f"{destino}\n\nPara abrir: “Abrir casos” do sistema, dentro da pasta (leia o LEIA-ME)."
+                         + extra)
+    b_abrir = m.addButton("Abrir a pasta", QMessageBox.AcceptRole)
+    m.addButton("Fechar", QMessageBox.RejectRole)
+    m.exec()
+    if m.clickedButton() is b_abrir:
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(destino)))
 
 
 def import_dialog(parent, repo, db, storage_root, parent_folder: int | None = None) -> int | None:

@@ -3,6 +3,17 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.56 — Pacote de casos (a lista abre no navegador)
+- **Exportar pacote de casos** (botão direito na lista): uma pasta com o visualizador completo do Ipê Web e os exames
+  anonimizados, para aula, congresso ou colegas. Abre pelo **Abrir casos** do Windows, Mac ou Linux (sem instalar
+  nada) ou copiada para qualquer site de arquivos estáticos.
+- Cada caso tem a **apresentação** (história clínica, séries, documentos) e o **resultado** — com **Mostrar o
+  resultado**: diagnóstico, laudo/resultado, biópsia/anatomopatológico, notas de ensino, as séries e documentos do
+  resultado e as **marcações** (setas, medidas, ROIs) nas imagens.
+- **Organizar lista**: campos novos **Laudo / resultado** (com **Usar o laudo do exame**), **Biópsia / AP** e
+  **Séries do resultado**.
+- Ipê Web: o site agora usa endereços relativos (o mesmo serve no servidor e no pacote).
+
 ## 0.100.55 — Calcificações vasculares: quatro escalas; anexos e painel maior no Ipê Web
 - **Ipê Web: anexar PDF e imagens ao exame** — arraste os arquivos do computador para cima do exame aberto (como no
   Ipê de mesa) ou use **Anexar PDF ou imagem…** embaixo das séries. Viram DICOM dentro do exame no servidor (PDF na

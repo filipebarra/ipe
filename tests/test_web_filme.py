@@ -238,7 +238,7 @@ def test_pelo_navegador(servidor):
         pg.click(".abas button[data-aba='Filme']")
         assert _esperar(srv, lambda: pg.locator(".painel-filme button:has-text('+ Quadro ativo')").count() == 1, 30)
         # ajuste do quadro: janela, zoom 2 e um deslocamento
-        pg.evaluate("""() => { const vp = window.__ipeGrade.viewport(0);
+        pg.evaluate("""() => { window.__ipeGrade.ativar(0); const vp = window.__ipeGrade.viewport(0);
             vp.setProperties({ voiRange: { lower: -100, upper: 300 } }); vp.setZoom(vp.getZoom() * 2);
             const c = vp.getCamera(); vp.setCamera({ focalPoint: [c.focalPoint[0] + 5, c.focalPoint[1], c.focalPoint[2]],
               position: [c.position[0] + 5, c.position[1], c.position[2]] }); vp.render(); }""")

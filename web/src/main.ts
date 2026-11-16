@@ -10,6 +10,8 @@ import {
   medidaPorUid, type ResumoMedida,
 } from "./medidas";
 import { Overlay } from "./overlay";
+import * as CASO from "./caso";
+import { carregarMedidas } from "./medidas";
 import { abrirMenu, abrirPainel, fecharMenus, icone, type ItemMenu } from "./menu";
 import { META, partesDoImageId } from "./meta";
 import { COR_PADRAO, SUV_PADRAO, registrarCores } from "./pet";
@@ -130,6 +132,7 @@ async function prepararVisor(): Promise<void> {
 
 /** A página foi recarregada (ou é uma janela de visualização aberta pela lista) com a sessão ainda válida. */
 let retomando = false;
+let painelCaso: CASO.PainelCaso | null = null;   // 0.100.56: o painel do caso aberto (pacote de casos)
 
 // 0.100.55: arrastar PDF/imagens do computador para o exame aberto anexa ao exame (como no Ipê de mesa)
 let soltarArquivos: ((fs: File[]) => void) | null = null;
@@ -189,10 +192,10 @@ function cabecalho(...extra: Node[]): HTMLElement {
   app.classList.remove("leitura");
   const quem = config?.usuario.full_name || config?.usuario.username || "";
   // 0.100.5: com um exame aberto, "Sair" fecha o exame e volta à lista; na lista, sai do Ipê Web
-  const noExame = /^#\/(exame|mg)\//.test(location.hash);
+  const noExame = /^#\/(exame|mg|caso)\//.test(location.hash);
   const b = el("button", { class: "sair", title: noExame ? tr("Fechar o exame e voltar à lista") : quem,
     onclick: async () => {
-      if (noExame) { voltarALista(); return; }
+      if (noExame || CASO.emModoCaso()) { voltarALista(); return; }
       JAN.sairDasJanelas();
       await API.sair();
       try { sessionStorage.removeItem(CHAVE_BUSCA); } catch { /* sem armazenamento */ }
@@ -207,6 +210,7 @@ function cabecalho(...extra: Node[]): HTMLElement {
  *  espera do próximo (a lista está na outra janela). */
 function voltarALista(): void {
   soltarArquivos = null;
+  if (CASO.emModoCaso()) { location.hash = "#/casos"; return; }     // 0.100.56: pacote de casos
   const k = JAN.estaJanela();
   if (!k) { location.hash = "#/lista"; return; }
   JAN.fecharNasJanelas();
@@ -685,6 +689,9 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     return;
   }
   void API.avisarAbertura(study);
+  const caso = CASO.casoDoExame(study);   // 0.100.56: aberto de um pacote de casos
+  painelCaso?.encerrar();
+  painelCaso = caso ? new CASO.PainelCaso(caso, (n) => { location.hash = `#/caso/${n}`; }) : null;
   const nomePac = API.texto(estudo, "00100010");
   const idPac = API.texto(estudo, "00100020");
   // 0.100.19: a janela de comparação mostra o exame anterior mais recente do paciente (se houver)
@@ -871,7 +878,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   const telas = el("section", { class: "grade" });
   const painelCarga = el("pre", { class: "painel-carga", hidden: true });
 
-  const ABAS = ["Imagem", "Medidas", "DICOM", "PET", "Filme", "IA"] as const;
+  const ABAS = ["Caso", "Imagem", "Medidas", "DICOM", "PET", "Filme", "IA"] as const;
   type Aba = typeof ABAS[number];
   const corpoAba = el("div", { class: "corpo-aba", role: "tabpanel" });
   const botoesAba = new Map<Aba, HTMLButtonElement>();
@@ -881,6 +888,8 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     b.onclick = () => mostrarAba(a);
     if (a === "Filme" && !config?.usuario.perms?.includes("print")) b.style.display = "none";   // 0.100.11
     if (a === "IA" && !abaIAVisivel) b.style.display = "none";                                   // 0.100.12
+    if (a === "Caso" && !caso) b.style.display = "none";                                        // 0.100.56
+    if (caso && (a === "Filme" || a === "IA")) b.style.display = "none";
     botoesAba.set(a, b);
     abas.append(b);
   }
@@ -940,7 +949,8 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   };
 
   const esqAberto = lerPreferencia("painelEsq", true);
-  const dirAberto = lerPreferencia("painelDir", false);        // 0.100.19: recolhido por padrão
+  // 0.100.19: recolhido por padrão; 0.100.56: no caso, aberto (é onde estão a história e o resultado)
+  const dirAberto = caso ? !celular() : lerPreferencia("painelDir", false);
   const ajustarPaineis = (esq: boolean, dir: boolean) => {
     if (celular() && esq && dir) { if (tira.hidden) dir = false; else esq = false; }   // uma gaveta por vez
     tira.hidden = !esq;
@@ -1091,6 +1101,23 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     }
     return segsNovas;
   };
+  // 0.100.56: no pacote de casos, o que precisa do servidor some; "Mostrar o resultado" traz as séries, os documentos e
+  // as marcações do resultado (esconder de novo reabre o caso)
+  if (caso) {
+    const FORA = new Set(["CAD/IA neste exame", "Calcificações vasculares", "Densidade mamária", "Enviar a um destino DICOM",
+      "Laudo", "Dinâmica da mama", "Segmentação (SEG)"].map((x) => tr(x)));
+    for (const b of nav.querySelectorAll("button")) if (FORA.has(b.getAttribute("aria-label") || "")) b.classList.add("fora-do-caso");
+    for (const b of [bTarefasIA, bEnvios]) b.classList.add("fora-do-caso");
+    const parar = CASO.quandoRevelar((st) => {
+      if (st !== study || grade !== g) { if (grade !== g) parar(); return; }
+      if (!CASO.revelado(study)) { rota(); return; }
+      void (async () => {
+        await novasSeries();
+        await docs.carregar();
+        for (const q of g.quadros) if (q.serie && q.serie.imageIds.length) void carregarMedidas(q.serie.study, q.serie.series, q.serie.imageIds, q.el);
+      })();
+    });
+  }
   // 0.100.14: o selo "IA" nas séries com resultado de IA ou analisadas por uma (como no Ipê)
   const marcarIA = () => void API.seriesIA(study).then((m) => {
     for (const [uid, info] of Object.entries(m)) {
@@ -1391,7 +1418,8 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   // ---------------------------------------------------------------- abas da direita
   let abaAtual: Aba = lerPreferencia<Aba>("aba", "Medidas");
   if (!ABAS.includes(abaAtual) || (abaAtual === "Filme" && !config?.usuario.perms?.includes("print"))
-    || (abaAtual === "IA" && !abaIAVisivel)) abaAtual = "Medidas";
+    || (abaAtual === "IA" && !abaIAVisivel) || (abaAtual === "Caso" && !caso)) abaAtual = "Medidas";
+  if (caso) abaAtual = "Caso";             // 0.100.56: o caso abre na aba do caso (história e resultado)
   // 0.100.12: a aba IA — todas as ferramentas de CAD/IA, a escolhida roda para o exame aberto
   const serieDoQuadro = () => {
     const q = g.quadros[g.ativo];
@@ -1446,6 +1474,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     csTools.annotation.selection.setAnnotationSelected(m.uid, true, false);
   };
   const conteudoAba: Record<Aba, () => Node[]> = {
+    Caso: () => (painelCaso ? [painelCaso.raiz] : []),
     Filme: () => [filme().raiz],
     IA: () => { abaIA.mostrar(); return [abaIA.raiz]; },
     Imagem: () => {
@@ -1742,6 +1771,13 @@ function rota(): void {
     return;
   }
   if (!config) { void retomar(); return; }
+  if (CASO.emModoCaso()) {                            // 0.100.56: pacote de casos — a lista dos casos e cada caso
+    const mc = location.hash.match(/^#\/caso\/(\d+)$/);
+    const c = mc ? CASO.PACOTE!.casos.find((x) => x.n === Number(mc[1])) : null;
+    if (c) { void telaExame(c.study); return; }
+    telaDeCasos();
+    return;
+  }
   const h = location.hash || "#/lista";
   const m = h.match(/^#\/exame\/([0-9.]+)(?:\/j([1-9]))?$/);
   const m2 = h.match(/^#\/mg\/([0-9.]+)\/2$/);
@@ -1751,6 +1787,17 @@ function rota(): void {
   else if (/^#\/espera\/j[1-9]$/.test(h)) telaEspera();
   else if (h === "#/pacs") void telaPacs();
   else void telaLista();
+}
+
+function telaDeCasos(): void {
+  pararDisponiveis();
+  mg?.encerrar(); mg = null;
+  din?.encerrar(); din = null;
+  grade?.encerrar(); grade = null;
+  painelCaso?.encerrar(); painelCaso = null;
+  soltarArquivos = null;
+  document.title = `${CASO.PACOTE!.titulo} — ${tr("Ipê Web")}`;
+  app.replaceChildren(CASO.telaCasos((c) => { location.hash = `#/caso/${c.n}`; }));
 }
 
 window.addEventListener("hashchange", rota);
@@ -1763,4 +1810,8 @@ window.addEventListener("beforeunload", (e) => {
 });
 (window as unknown as Record<string, unknown>).__ipeIdioma = (l: string) => { setLang(l); rota(); }; // testes
 window.addEventListener("resize", () => grade?.redimensionar());
-rota();
+// 0.100.56: aberto de um pacote de casos (casos/casos.json ao lado)? então sem login nem servidor
+void CASO.detectarPacote().then((ok) => {
+  if (ok) API.usarToken("caso");
+  rota();
+});

@@ -29,6 +29,8 @@ datas = [(str(SRC / "ipe" / "locale"), "ipe/locale")]
 datas += [(str(SRC / "ipe" / "ajuda"), "ipe/ajuda")]
 if (SRC / "ipe" / "web_dist").is_dir():          # 0.99.91: o visualizador web do servidor central
     datas += [(str(SRC / "ipe" / "web_dist"), "ipe/web_dist")]
+if (SRC / "ipe" / "casos" / "lancadores").is_dir():   # 0.100.56: os lançadores do pacote de casos (tools/lancador)
+    datas += [(str(SRC / "ipe" / "casos" / "lancadores"), "ipe/casos/lancadores")]
 # o trabalhador do TotalSegmentator (0.98) roda num Python separado: vai como arquivo .py, não
 # compilado dentro do pacote — é o ambiente da segmentação que o executa
 datas += [(str(SRC / "ipe" / "ai" / "totalseg_worker.py"), "ipe/ai")]

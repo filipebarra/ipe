@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.56 — Case pack (the list opens in the browser)
+- **Export case pack** (right-click a list): a folder with the full Ipê Web viewer and the anonymized studies, for
+  teaching, congresses or colleagues. Opens with **Abrir casos** on Windows, Mac or Linux (nothing to install) or
+  copied to any static file website.
+- Each case has the **presentation** (clinical history, series, documents) and the **result** — with **Show the
+  result**: diagnosis, report/result, biopsy/pathology, teaching notes, the result series and documents and the
+  **annotations** (arrows, measurements, ROIs) on the images.
+- **Organize list**: new fields **Report / result** (with **Use the study's report**), **Biopsy / pathology** and
+  **Result series**.
+
 ## 0.100.55 — Vascular calcifications: four scales; attachments and larger panel in Ipê Web
 - **Ipê Web: attach PDFs and images to the study** — drag the files onto the open study (as in desktop Ipê) or use
   **Attach PDF or image…** below the series. They become DICOM inside the study on the server, follow the study's

@@ -18,11 +18,12 @@ from ipe.db.models import (
 )
 from ipe.db.session import Database
 
-_ITEM_FIELDS = {"friendly_name", "clinical_summary", "hidden_diagnosis", "note", "tags", "show_series", "position"}
+_ITEM_FIELDS = {"friendly_name", "clinical_summary", "hidden_diagnosis", "note", "tags", "show_series", "position",
+                "result_text", "pathology", "result_series"}
 
 
 def _item_value(key: str, value):
-    if key in ("tags", "show_series") and isinstance(value, (list, tuple, set)):
+    if key in ("tags", "show_series", "result_series") and isinstance(value, (list, tuple, set)):
         return ",".join(str(v).strip().replace(",", " ") for v in value if str(v).strip())
     return value
 
@@ -824,7 +825,8 @@ class Repository:
                 s.add(CaseListItem(list_fk=cl.id, study_uid=it.study_uid, position=it.position, note=it.note,
                                    friendly_name=it.friendly_name, clinical_summary=it.clinical_summary,
                                    hidden_diagnosis=it.hidden_diagnosis, saved_view=it.saved_view,
-                                   tags=it.tags, show_series=it.show_series))
+                                   tags=it.tags, show_series=it.show_series, result_text=it.result_text,
+                                   pathology=it.pathology, result_series=it.result_series))
             return cl.id
 
     def add_to_case_list(self, list_id: int, study_uid: str, friendly_name: str = "", **fields) -> bool:
@@ -870,6 +872,7 @@ class Repository:
                 i = self.study_info(u) or {}
                 infos.append({"n": n, "study_uid": u, "friendly_name": "", "clinical_summary": "",
                               "hidden_diagnosis": "", "note": "", "tags": [], "show_series": [], "present": True,
+                              "result_text": "", "pathology": "", "result_series": [],
                               "description": i.get("description", ""), "modalities": i.get("modalities", ""),
                               "study_date": i.get("study_date", ""), "patient_name": i.get("patient_name", ""),
                               "patient_id": i.get("patient_id", "")})
@@ -886,6 +889,8 @@ class Repository:
                     "clinical_summary": it.clinical_summary or "", "hidden_diagnosis": it.hidden_diagnosis or "",
                     "note": it.note or "", "tags": [t for t in (it.tags or "").split(",") if t.strip()],
                     "show_series": [u for u in (it.show_series or "").split(",") if u],
+                    "result_text": it.result_text or "", "pathology": it.pathology or "",
+                    "result_series": [u for u in (it.result_series or "").split(",") if u],
                     "present": st is not None,
                     "description": st.description if st else "", "modalities": st.modalities if st else "",
                     "study_date": st.study_date if st else "",

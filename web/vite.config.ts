@@ -1,8 +1,8 @@
 import { defineConfig } from "vite";
 
-// O site é servido pelo servidor central em /web/ (src/ipe/web_dist). Sem mapas de fonte no pacote.
+// O site é servido pelo servidor central em /web/ (src/ipe/web_dist) e vai nos pacotes de casos. Sem mapas de fonte.
 export default defineConfig({
-  base: "/web/",
+  base: "./",   // 0.100.56: relativo — o mesmo site serve em /web/ (servidor) e na pasta de um pacote de casos
   // o vtk.js (por baixo do Cornerstone3D) usa o xmlbuilder2, que estende o EventEmitter do Node
   resolve: { alias: { events: "events/" } },
   build: {

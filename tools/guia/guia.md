@@ -845,6 +845,38 @@ Serve para percorrer os casos de uma lista um a um com os dados do paciente ocul
 
 O botão **Ocultar** da tela inicial faz o mesmo esconder dos dados fora de uma reunião.
 
+## Pacote de casos (abre no navegador)
+
+A partir da 0.100.56 uma lista vira um **pacote de casos**: uma pasta com o visualizador completo — o mesmo do Ipê Web, com MPR, MIP, fusão, mamografia e medidas — e os exames anonimizados, para aula, congresso ou para mandar a colegas. Quem recebe não instala nada.
+
+### Preparar os casos
+
+Em **Organizar lista** (botão direito na lista), cada caso tem duas partes:
+
+| Parte | Campos |
+|---|---|
+| Apresentação | Nome do caso, Tags, **História** (clínica, dados, a pergunta), **Séries a abrir** (nenhuma marcada = todas) |
+| Resultado | **Resposta** (diagnóstico), **Laudo / resultado** (o botão **Usar o laudo do exame** copia o texto do laudo — confira e tire nomes), **Biópsia / AP**, **Notas de ensino**, **Séries do resultado** (só aparecem ao mostrar o resultado: a peça, o PDF do anatomopatológico, a imagem com a marcação) |
+
+As **marcações** feitas no Ipê (setas, medidas, ROIs) vão no pacote e só aparecem no resultado. PDFs e fotos anexados ao exame entram como documentos do caso (os de uma série do resultado, só no resultado).
+
+### Exportar
+
+Botão direito na lista → **Exportar pacote de casos (abre no navegador)…** → escolha a pasta. O Ipê cria uma pasta com o nome da lista contendo:
+
+- `Abrir casos (Windows).exe`, `Abrir casos (Mac Apple)`, `Abrir casos (Mac Intel)`, `Abrir casos (Linux)` — dois cliques abrem o navegador com os casos (um servidorzinho só deste computador; a janela preta fica aberta enquanto se vê os casos);
+- `LEIA-ME.txt` (em português, inglês e espanhol);
+- o site e a pasta `casos` com os exames.
+
+Os exames saem **anonimizados**: nome "Caso N", sem nascimento, instituição, médicos e accession, datas deslocadas (mantendo o intervalo entre exames), UIDs novas sem volta, texto gravado tarjado nas capturas e no ultrassom. PDFs e fotos anexados vão como estão — confira. As imagens vão comprimidas sem perda (HTJ2K).
+
+### Abrir
+
+- **Pen drive ou arquivo**: copie a pasta e use o "Abrir casos" do sistema. No Mac, se ele não deixar abrir, botão direito ▸ Abrir.
+- **Num site**: copie a pasta inteira para qualquer hospedagem de arquivos estáticos (o endereço da pasta abre os casos). Não precisa de servidor do Ipê.
+
+Abre a lista dos casos (com busca); cada caso abre no visualizador com a aba **Caso** à direita: a história e o botão **Mostrar o resultado**, que traz o diagnóstico, o laudo, a biópsia, as notas, as séries e os documentos do resultado e as marcações nas imagens (**Esconder o resultado** volta). **Anterior / Próximo** passam de caso. Laudo, IA, envio, PACS e filme ficam escondidos — o pacote não tem servidor. As medidas que se fizer ficam só naquela aba do navegador.
+
 ### Perfis de ocultação
 
 A seta do botão **Ocultar** (no visualizador) escolhe **o que** fica escondido. A escolha vale para todas as abas e para a lista do banco (botão Ocultar da tela inicial); a reunião usa sempre *Ocultar tudo*, com o nome do caso.

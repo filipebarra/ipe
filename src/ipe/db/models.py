@@ -172,6 +172,10 @@ class CaseListItem(Base):
     saved_view: Mapped[str] = mapped_column(Text, default="")             # JSON
     tags: Mapped[str | None] = mapped_column(Text, nullable=True)         # separadas por vírgula
     show_series: Mapped[str | None] = mapped_column(Text, nullable=True)  # séries a abrir (vírgula); vazio = todas
+    # 0.100.56: pacote de casos — a parte do resultado
+    result_text: Mapped[str | None] = mapped_column(Text, nullable=True)     # laudo / resultado
+    pathology: Mapped[str | None] = mapped_column(Text, nullable=True)       # biópsia / anatomopatológico
+    result_series: Mapped[str | None] = mapped_column(Text, nullable=True)   # séries que só aparecem no resultado
 
     case_list: Mapped[CaseList] = relationship(back_populates="items")
     __table_args__ = (UniqueConstraint("list_fk", "study_uid"),)
