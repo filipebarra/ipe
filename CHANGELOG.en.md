@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.61 — opening time of desktop Ipê in client mode in the server log
+- In client mode, each "Abertura (…)" line of desktop Ipê (first image, by stage — including the wait for the server —
+  and what arrives later) also goes to the server log, as "Abertura cliente (…) | user@computer | version". Versions
+  and computers can be compared without going to the client machine.
+
 ## 0.100.60 — tomosynthesis opens fast; automatic calcifications; series placed from outside in the dynamic (Web)
 - **Opening mammography with tomosynthesis**: each slice re-read the whole file header and decoded while holding the
   program; the header and slice locations are now read once and decoding runs in parallel (in the test: from ~8 s to

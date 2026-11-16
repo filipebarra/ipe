@@ -64,6 +64,19 @@ def log_abertura_web(d: dict, ip: str = "") -> str:
     return linha
 
 
+def log_abertura_cliente(texto: str, usuario: str = "", host: str = "", versao: str = "") -> str:
+    """0.100.61: a linha "Abertura (…)" de um Ipê de mesa em modo cliente, no registro do servidor como
+    "Abertura cliente (…) | usuário@computador | versão"."""
+    import re
+    limpo = re.sub(r"[\x00-\x1f\x7f]+", " ", str(texto or ""))[:500].strip()
+    if not limpo.startswith("Abertura ("):
+        return ""
+    quem = re.sub(r"[^\w.@:-]", "", f"{usuario}@{host}")[:60]
+    linha = "Abertura cliente (" + limpo[len("Abertura ("):] + f" | {quem} | {re.sub(r'[^0-9A-Za-z.]', '', versao)[:12]}"
+    logging.getLogger("ipe.abertura").info("%s", linha)
+    return linha
+
+
 class CentralServer:
     def __init__(self, db, repo, storage_root: Path, port: int = 8043, host: str = "0.0.0.0",
                  certfile: str = "", keyfile: str = "", name: str = ""):
@@ -314,6 +327,10 @@ class CentralServer:
             motivo = self.leituras.bloqueia(uid, s.username) if uid else ""
             if motivo:
                 raise PermissionError(motivo + " (para gravar, abra o laudo e escolha assumir)")
+        if method == "abertura_cliente":           # 0.100.61
+            log_abertura_cliente(str(args[0] if args else kwargs.get("texto", "")),
+                                 s.username, client_host, str(args[1] if len(args) > 1 else kwargs.get("versao", "")))
+            return None
         if method == "audit":
             action = args[0] if args else kwargs.get("action", "")
             detail = args[1] if len(args) > 1 else kwargs.get("detail", "")

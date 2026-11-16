@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.61 — tiempo de apertura del Ipê de escritorio en modo cliente en el registro del servidor
+- En modo cliente, cada línea "Abertura (…)" del Ipê de escritorio (primera imagen, por etapa — con la espera del
+  servidor — y lo que llega después) también va al registro del servidor, como "Abertura cliente (…) |
+  usuario@computadora | versión". Se pueden comparar versiones y computadoras sin ir a la máquina del cliente.
+
 ## 0.100.60 — la tomosíntesis abre rápido; calcificaciones automáticas; serie puesta por fuera en la dinámica (Web)
 - **Abrir mamografía con tomosíntesis**: cada corte releía el encabezado entero del archivo y decodificaba reteniendo
   el programa; ahora el encabezado y el lugar de los cortes se leen una vez y la decodificación corre en paralelo (en

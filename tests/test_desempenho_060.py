@@ -134,3 +134,65 @@ def test_sr_da_mama_regravado_pelo_cliente_apaga_no_servidor():
             def rpc(metodo, *a):
                 raise RuntimeError("método desconhecido")
     assert MS._apagar_anteriores(Antigo(), "9.9", "/tmp") == 2
+
+
+def test_abertura_do_cliente_vai_para_o_registro_do_servidor(monkeypatch):
+    """0.100.61: no modo cliente, a linha "Abertura (…)" do Ipê de mesa também é mandada ao servidor."""
+    import logging
+    import time
+
+    from ipe.central.server import log_abertura_cliente
+    from ipe.core import cronometro as CR
+    a = log_abertura_cliente("Abertura (MG MAMOGRAFIA DIGITAL): primeira imagem em 2,90 s — servidor 0,63 · banco 0,08",
+                             "dra.ana", "192.168.1.20", "0.100.61")
+    assert a == ("Abertura cliente (MG MAMOGRAFIA DIGITAL): primeira imagem em 2,90 s — servidor 0,63 · banco 0,08"
+                 " | dra.ana@192.168.1.20 | 0.100.61")
+    assert log_abertura_cliente("2026 INFO falso", "x", "y", "z") == ""                  # só a linha da abertura
+    assert "\n" not in log_abertura_cliente("Abertura (CT): a\nb", "u\nv", "h", "1")
+    # o cronômetro manda a primeira imagem e o que chega depois; sem servidor (ou com erro), só o registro local
+    mandadas = []
+    monkeypatch.setattr(CR, "enviar", mandadas.append)
+    c = CR.iniciar("CT TORAX")
+    c.marca("servidor")
+    CR.primeira_imagem()
+    CR.depois("download", 1.5)
+    fim = time.time() + 3
+    while len(mandadas) < 2 and time.time() < fim:
+        time.sleep(0.02)
+    assert len(mandadas) == 2 and mandadas[0].startswith("Abertura (CT TORAX): primeira imagem em ")
+    assert "download pronto em " in mandadas[1]
+    monkeypatch.setattr(CR, "enviar", lambda t: (_ for _ in ()).throw(RuntimeError("servidor antigo")))
+    CR.iniciar("CT")
+    CR.primeira_imagem()
+    monkeypatch.setattr(CR, "enviar", None)
+    CR.iniciar("CT")
+    CR.primeira_imagem()
+    assert logging.getLogger("ipe.abertura") is CR.log
+
+
+def test_rpc_da_abertura_do_cliente(env):
+    import logging
+
+    from ipe.auth.session import UserSession
+    from ipe.central.rpc import RPC_METHODS
+    from ipe.central.server import CentralServer
+    assert RPC_METHODS["abertura_cliente"] == ""
+    linhas = []
+
+    class H(logging.Handler):
+        def emit(self, rec):
+            linhas.append(rec.getMessage())
+    h = H()
+    reg = logging.getLogger("ipe.abertura")
+    nivel = reg.level
+    reg.addHandler(h)
+    reg.setLevel(logging.INFO)
+    try:
+        s = UserSession.__new__(UserSession)
+        s.username, s.perms, s.role, s.user_id, s.full_name = "dr.teste", set(), "medico", 0, ""
+        CentralServer.rpc(CentralServer.__new__(CentralServer), s, "abertura_cliente",
+                          ["Abertura (MR CRANIO): primeira imagem em 1,10 s — servidor 0,40", "0.100.61"], {}, "10.0.0.7")
+    finally:
+        reg.removeHandler(h)
+        reg.setLevel(nivel)
+    assert linhas == ["Abertura cliente (MR CRANIO): primeira imagem em 1,10 s — servidor 0,40 | dr.teste@10.0.0.7 | 0.100.61"]

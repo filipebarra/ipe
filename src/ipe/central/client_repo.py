@@ -35,6 +35,12 @@ class ClientRepository:
 
     def __init__(self, local, client: RemoteClient, storage_root: Path, settings=None):
         self.local, self.client = local, client
+        # 0.100.61: o tempo de abertura deste computador vai também para o registro do servidor
+        try:
+            from ipe.core import cronometro as CR
+            CR.enviar = self.relatar_abertura
+        except Exception:  # noqa: BLE001
+            pass
         self.db = local.db
         self.storage = Path(storage_root)
         self.settings = settings
@@ -60,6 +66,10 @@ class ClientRepository:
                     shutil.rmtree(p, ignore_errors=True)
         except OSError:
             pass
+
+    def relatar_abertura(self, texto: str) -> None:
+        from ipe import __version__
+        self.client.rpc("abertura_cliente", texto, __version__)
 
     # ------------------------------------------------------------------ roteamento
     def __getattr__(self, name: str):

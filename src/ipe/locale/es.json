@@ -9392,5 +9392,10 @@
  "o servidor não apagou o SR anterior da mamografia": "el servidor no borró el SR anterior de la mamografía",
  " | {} {} | {}": " | {} {} | {}",
  "Abertura web ({}): primeira imagem em {} s — {}{}": "Abertura web ({}): primeira imagem em {} s — {}{}",
- "{}, {} séries": "{}, {} séries"
+ "{}, {} séries": "{}, {} séries",
+ "Abertura (": "Abertura (",
+ "Abertura ({}): {} pronto em {} s{}": "Abertura ({}): {} pronto em {} s{}",
+ "Abertura cliente (": "Abertura cliente (",
+ "abertura para o servidor": "tiempo de apertura al servidor",
+ " | {} | {}": " | {} | {}"
 }

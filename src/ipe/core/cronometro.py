@@ -18,6 +18,24 @@ log = logging.getLogger("ipe.abertura")
 
 _atual: "Cronometro | None" = None
 
+# 0.100.61: no modo cliente, cada linha da abertura vai também para o registro do servidor (para comparar versões e
+# computadores sem ir à máquina do cliente). Quem liga é o ClientRepository; a chamada sai numa linha à parte.
+enviar = None
+
+
+def _mandar(texto: str) -> None:
+    fn = enviar
+    if fn is None:
+        return
+    import threading
+
+    def ir():
+        try:
+            fn(texto)
+        except Exception:  # noqa: BLE001 - servidor de versão anterior, rede: o registro local já tem a linha
+            log.debug("abertura para o servidor", exc_info=True)
+    threading.Thread(target=ir, name="abertura-servidor", daemon=True).start()
+
 
 class Cronometro:
     def __init__(self, rotulo: str):
@@ -70,7 +88,9 @@ def primeira_imagem() -> None:
         return
     c.marca("imagem")
     c.fechado = True
-    log.info(c.texto())
+    texto = c.texto()
+    log.info(texto)
+    _mandar(texto)
     _depois = c
 
 
@@ -84,7 +104,9 @@ def depois(nome: str, segundos: float | None = None) -> None:
         return
     c._ditos.add(nome)
     extra = f" ({segundos:.2f} s)".replace(".", ",") if segundos is not None else ""
-    log.info("Abertura (%s): %s pronto em %s s%s", c.rotulo, nome, f"{c.total():.2f}".replace(".", ","), extra)
+    texto = "Abertura ({}): {} pronto em {} s{}".format(c.rotulo, nome, f"{c.total():.2f}".replace(".", ","), extra)
+    log.info(texto)
+    _mandar(texto)
 
 
 def cancelar() -> None:

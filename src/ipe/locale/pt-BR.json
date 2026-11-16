@@ -6965,7 +6965,11 @@
   "varrer as mamografias do banco",
   "vistas da densidade no SR",
   "as séries escolhidas não formam a dinâmica (são precisas a pré e duas pós-contraste; uma série só precisa ter as fases repetidas)",
-  "o servidor não apagou o SR anterior da mamografia"
+  "o servidor não apagou o SR anterior da mamografia",
+  "Abertura (",
+  "Abertura ({}): {} pronto em {} s{}",
+  "Abertura cliente (",
+  "abertura para o servidor"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8898,6 +8902,7 @@
   "{}: {} mm2 de calcificação vascular (SCU-Net)",
   " | {} {} | {}",
   "Abertura web ({}): primeira imagem em {} s — {}{}",
-  "{}, {} séries"
+  "{}, {} séries",
+  " | {} | {}"
  ]
 }

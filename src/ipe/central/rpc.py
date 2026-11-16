@@ -72,6 +72,8 @@ RPC_METHODS: dict[str, str] = {
     "densidades_medidas": "view",
     # 0.100.60: regravar o SR da mamografia pelo cliente — o servidor apaga só as séries que o próprio Ipê gravou
     "apagar_series_da_mama": "view",
+    # 0.100.61: a linha da abertura do Ipê de mesa no modo cliente, para o registro do servidor
+    "abertura_cliente": "",
 }
 
 # 0.99.28: o primeiro argumento é o exame; o servidor confere se quem pede enxerga o exame
