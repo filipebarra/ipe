@@ -18,7 +18,7 @@ import { COR_PADRAO, SUV_PADRAO, registrarCores } from "./pet";
 import { Cronometro } from "./carga";
 import { Disponiveis } from "./disponiveis";
 import { ModoMamografia, pedirToken } from "./mamografia";
-import { ModoDinamica, dinamicaDoExame, guardarTabelas } from "./dinamica";
+import { type Dinamica, ModoDinamica, dinamicaDoExame, escolhaDeSeries, guardarTabelas } from "./dinamica";
 import { PainelLaudo } from "./laudo";
 import { PainelDensidade } from "./densidade";
 import { PainelCalcVascular } from "./calcvasc";
@@ -1366,23 +1366,30 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     bDin.setAttribute("aria-pressed", "false");
     bDin.classList.remove("ligado");
   };
-  bDin.onclick = async () => {
-    if (din) {
-      fecharDin();
-      montar(...inicial);
-      return;
-    }
+  // 0.100.58: as séries do exame (para pôr num quadro da dinâmica) e a escolha das séries que entram na conta
+  const seriesParaDin = series.map((x) => ({ uid: API.texto(x, "0020000E"),
+    rotulo: [API.texto(x, "00200011") ? `Se ${API.texto(x, "00200011")}` : "", API.texto(x, "0008103E")].filter(Boolean).join(" · ") }));
+  const escolherSeriesDin = (dd: Dinamica) => {
+    const caixa = escolhaDeSeries(dd, (uids) => { fecharMenus(); void abrirDin(uids); });
+    abrirPainel(caixa, bDin, tr("Séries da dinâmica"));
+  };
+  const abrirDin = async (escolhidas: string[] | null = null) => {
+    if (din) fecharDin();
     mg?.encerrar();
     mg = null;
     aviso.textContent = tr("Procurando as fases da dinâmica…");
-    const dd = await dinamicaDoExame(study).catch(() => null);
+    const dd = await dinamicaDoExame(study, escolhidas || []).catch(() => null);
     if (!dd || dd.motivo) {
       aviso.textContent = dd?.motivo ? `${tr("Dinâmica:")} ${tr(dd.motivo)}` : tr("Não foi possível falar com o servidor.");
+      // sem as fases (ou as escolhidas não servem): o médico marca as séries
+      if (dd?.candidatas?.length) escolherSeriesDin(dd);
+      if (escolhidas) montar(...inicial);
       return;
     }
     guardarTabelas(config?.tabelas_cores);
     const modo = new ModoDinamica(g, dd, { study, aviso: (m) => { aviso.textContent = m; },
-      aoSair: () => { fecharDin(); montar(...inicial); } });
+      aoSair: () => { fecharDin(); montar(...inicial); }, series: seriesParaDin, pegar: (uid) => pegar(uid).catch(() => null),
+      reabrir: (uids) => void abrirDin(uids) });
     din = modo;
     aviso.textContent = tr("Calculando os mapas…");
     area.prepend(modo.barra);
@@ -1396,6 +1403,14 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     modo.ouvir(aoMudarMedidas(() => void modo.atualizarCurvas()));
     bDin.setAttribute("aria-pressed", "true");
     bDin.classList.add("ligado");
+  };
+  bDin.onclick = async () => {
+    if (din) {
+      fecharDin();
+      montar(...inicial);
+      return;
+    }
+    await abrirDin();
   };
   bPet.onclick = async () => {
     const maior = (mod: string) => series.filter((x) => API.texto(x, "00080060") === mod)
@@ -1458,6 +1473,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     const p = a.posicao as [number, number, number];
     g.irAoPontoNasPilhas(p as unknown as Parameters<typeof g.irAoPontoNasPilhas>[0]);
     g.irAoPonto(p);
+    g.marcarPonto(p);
   };
   abaIA.achados.mandarAoLaudo = async (texto) => {
     const p = await abrirLaudo();

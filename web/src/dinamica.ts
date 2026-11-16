@@ -12,8 +12,8 @@ import { Enums, type Types, cache, imageLoader, metaData, utilities } from "@cor
 import * as API from "./api";
 import { tr } from "./i18n";
 import { estatRoi, roisDaTela } from "./medidas";
-import { type ItemMenu, abrirMenu } from "./menu";
-import { type Grade, type SerieCarregada, type Spec, carregarSerie } from "./visor";
+import { type ItemMenu, abrirMenu, abrirPainel, fecharMenus } from "./menu";
+import { type Grade, type SerieCarregada, type Spec, carregarSerie, indiceMaisPertoDosIds } from "./visor";
 
 type P2 = [number, number];
 
@@ -30,6 +30,10 @@ export interface Dinamica {
   classes: string[];
   mapas: Record<string, { nome: string; descricao: string; unidade: string; cores: string }>;
   movimento?: "" | "translacao" | "rigido";
+  /** 0.100.58: as séries de RM do exame que podem entrar, as que entraram e se foi o médico quem escolheu */
+  candidatas?: { series: string; numero: number; descricao: string; imagens: number }[];
+  escolhidas?: string[];
+  escolha_do_medico?: boolean;
 }
 
 /** 0.100.8: a correção de movimento do servidor (DynamicMaps.estimate_motion). */
@@ -47,8 +51,8 @@ export interface Movimento {
   fases_giradas?: number[];
 }
 
-export async function movimentoDoExame(study: string, pre: number, modo: string): Promise<Movimento | null> {
-  const r = await fetch(`${location.origin}/api/web/dinamica_movimento?study=${encodeURIComponent(study)}&pre=${pre}&modo=${modo}`,
+export async function movimentoDoExame(study: string, pre: number, modo: string, series: string[] = []): Promise<Movimento | null> {
+  const r = await fetch(`${location.origin}/api/web/dinamica_movimento?study=${encodeURIComponent(study)}&pre=${pre}&modo=${modo}${seriesNaUrl(series)}`,
     { headers: API.cabecalhos(), cache: "no-store" });
   if (!r.ok) return null;
   return (await r.json()) as Movimento;
@@ -113,8 +117,13 @@ export async function cortePelaMatriz(ler: (z: number) => Promise<Float32Array>,
   return out;
 }
 
-export async function dinamicaDoExame(study: string): Promise<Dinamica | null> {
-  const r = await fetch(`${location.origin}/api/web/dinamica?study=${encodeURIComponent(study)}`,
+function seriesNaUrl(series: string[]): string {
+  return series.length ? `&series=${encodeURIComponent(series.join(","))}` : "";
+}
+
+/** As fases da dinâmica: das séries escolhidas pelo médico ou, sem escolha, as que o servidor detectou. */
+export async function dinamicaDoExame(study: string, series: string[] = []): Promise<Dinamica | null> {
+  const r = await fetch(`${location.origin}/api/web/dinamica?study=${encodeURIComponent(study)}${seriesNaUrl(series)}`,
     { headers: API.cabecalhos(), cache: "no-store" });
   if (!r.ok) return null;
   return (await r.json()) as Dinamica;
@@ -309,15 +318,71 @@ function pixelsDa(img: Types.IImage): Float32Array {
   return out;
 }
 
-/** 0.100.2: o que cada quadro mostra — um mapa ou uma fase (com subtração e paisagem, como no Ipê), e a cor. */
-export interface QuadroDin { v: Chave | "fase"; fase: number; sub: boolean; pais: number; cor: string }
+/** 0.100.2: o que cada quadro mostra — um mapa ou uma fase (com subtração e paisagem, como no Ipê), e a cor.
+ * 0.100.58: ou uma série qualquer do exame (`v: "serie"`, com `serie` = o UID), que anda junto pela posição. */
+export interface QuadroDin { v: Chave | "fase" | "serie"; fase: number; sub: boolean; pais: number; cor: string; serie?: string }
 
 const PAISAGENS = [0, 0.1, 0.2, 0.3, 0.5];
+
+/** 0.100.58: os layouts da dinâmica (linhas × colunas) */
+export const LAYOUTS_DIN: [number, number][] = [[1, 1], [1, 2], [1, 3], [2, 2], [2, 3], [3, 3]];
+const CHAVE_LAYOUT = "ipe.din.layout";
 
 export interface OpcoesDin {
   study: string;
   aviso: (m: string) => void;
   aoSair: () => void;
+  /** 0.100.58: as séries do exame (para pôr num quadro) e como carregá-las */
+  series?: { uid: string; rotulo: string }[];
+  pegar?: (uid: string) => Promise<SerieCarregada | null>;
+  /** 0.100.58: abrir de novo a dinâmica com outras séries (nulo = deixar o servidor detectar) */
+  reabrir?: (series: string[] | null) => void;
+}
+
+/** 0.100.58: a lista das séries de RM do exame para o médico marcar as que entram na dinâmica (como a janela da
+ * dinâmica do Ipê de mesa). `usar` recebe as marcadas, ou nulo para "detectar sozinho". */
+export function escolhaDeSeries(d: Dinamica, usar: (series: string[] | null) => void): HTMLElement {
+  const caixa = document.createElement("div");
+  caixa.className = "escolha-series-din";
+  const t = document.createElement("strong");
+  t.textContent = tr("Séries da dinâmica");
+  const nota = document.createElement("p");
+  nota.className = "nota-din";
+  nota.textContent = tr("Marque a pré-contraste e as pós-contraste, na ordem da aquisição (ou uma série só, com as fases repetidas).");
+  const lista = document.createElement("div");
+  lista.className = "lista-series-din";
+  const marcadas = new Set(d.escolhidas || []);
+  const caixas: HTMLInputElement[] = [];
+  for (const c of d.candidatas || []) {
+    const l = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = c.series;
+    cb.checked = marcadas.has(c.series);
+    caixas.push(cb);
+    const n = c.numero ? `Se ${c.numero}` : "";
+    l.append(cb, document.createTextNode(` ${[n, c.descricao].filter(Boolean).join(" · ")} (${c.imagens} ${tr("imagens")})`));
+    lista.append(l);
+  }
+  if (!caixas.length) lista.textContent = tr("Sem séries de RM neste exame.");
+  const botoes = document.createElement("div");
+  botoes.className = "botoes";
+  const auto = document.createElement("button");
+  auto.type = "button";
+  auto.textContent = tr("Detectar sozinho");
+  auto.onclick = () => usar(null);
+  const ok = document.createElement("button");
+  ok.type = "button";
+  ok.className = "primario";
+  ok.textContent = tr("Usar estas séries");
+  ok.onclick = () => {
+    const uids = caixas.filter((c) => c.checked).map((c) => c.value);
+    if (!uids.length) { nota.textContent = tr("Marque ao menos uma série."); return; }
+    usar(uids);
+  };
+  botoes.append(auto, ok);
+  caixa.append(t, nota, lista, botoes);
+  return caixa;
 }
 
 export class ModoDinamica {
@@ -343,6 +408,13 @@ export class ModoDinamica {
   private w = 0;
   private h = 0;
   private notaMov: HTMLSelectElement | null = null;
+  /** 0.100.58: linhas × colunas */
+  private layout: [number, number] = [2, 2];
+  /** 0.100.58: a fase de cada série do exame que é uma fase da dinâmica (para "mostrar a série" virar a fase) */
+  private faseDaSerie = new Map<string, number>();
+  /** 0.100.58: o índice para onde a sincronia mandou cada quadro (o eco desse movimento não volta) */
+  private esperado = new Map<string, number>();
+  private examesCarregados = new Map<string, SerieCarregada>();
 
   constructor(private g: Grade, private dados: Dinamica, private op: OpcoesDin) {
     registrarCarregador();
@@ -377,7 +449,7 @@ export class ModoDinamica {
     this.h = plano0?.rows || 0;
     this.w = plano0?.columns || 0;
     if (d.movimento) {
-      const m = await movimentoDoExame(this.op.study, d.pre, d.movimento);
+      const m = await movimentoDoExame(this.op.study, d.pre, d.movimento, this.seriesPedidas());
       if (m && m.modo && !m.motivo) this.mov = m;
     }
     const pa = d.parametros;
@@ -399,12 +471,39 @@ export class ModoDinamica {
     this.par.ruido = ref * Number(pa.noise_pct ?? 5) / 100;
     await this.prepararJanelas();
     for (const ch of CALCULADOS) this.registrarChave(ch);
-    const q = (v: Chave | "fase"): QuadroDin => ({ v, fase: this.par.inicial, sub: false, pais: 0, cor: "" });
-    this.quadros = [q("fase"), q("cin"), q("ser"), q("sub")];
+    const seriesDasFases = new Set(d.fases.map((f) => f.quadros[0]?.series));
+    if (seriesDasFases.size === d.fases.length) d.fases.forEach((f, i) => this.faseDaSerie.set(f.quadros[0].series, i));
+    try {
+      const l = JSON.parse(localStorage.getItem(CHAVE_LAYOUT) || "null") as [number, number] | null;
+      if (l && LAYOUTS_DIN.some(([a, b]) => a === l[0] && b === l[1])) this.layout = l;
+    } catch { /* sem armazenamento: 2 × 2 */ }
+    this.quadros = this.padroes(this.layout[0] * this.layout[1]);
     this.montarBarra();
     atual = this;
     await this.montar();
     return true;
+  }
+
+  /** 0.100.58: o que vai em cada quadro de fábrica: fase inicial, cinético, SER, subtração da inicial e, nos layouts
+   * maiores, a tardia, a subtração da tardia, MSI, PEI e TTP. */
+  private padroes(n: number): QuadroDin[] {
+    const p = this.par;
+    const q = (v: Chave | "fase", fase = p.inicial, sub = false): QuadroDin => ({ v, fase, sub, pais: 0, cor: "" });
+    const todos = [q("fase"), q("cin"), q("ser"), q("fase", p.inicial, true), q("fase", p.tardia), q("fase", p.tardia, true),
+      q("msi"), q("pei"), q("ttp")];
+    return todos.slice(0, n);
+  }
+
+  /** 0.100.58: outro layout — os quadros que já estavam ficam como estão; os novos vêm dos de fábrica. */
+  async mudarLayout(linhas: number, colunas: number): Promise<void> {
+    this.layout = [linhas, colunas];
+    try { localStorage.setItem(CHAVE_LAYOUT, JSON.stringify(this.layout)); } catch { /* */ }
+    const n = linhas * colunas;
+    const fab = this.padroes(9);
+    const novos = this.quadros.slice(0, n);
+    for (let i = novos.length; i < n; i++) novos.push(fab[i]);
+    this.quadros = novos;
+    await this.montar();
   }
 
   /** A janela dos mapas que não têm janela fixa: o percentil de três cortes (DynamicMaps.window). */
@@ -457,12 +556,17 @@ export class ModoDinamica {
     }));
   }
 
+  /** 0.100.58: as séries que o médico escolheu (vão também para a conta da correção de movimento) */
+  private seriesPedidas(): string[] {
+    return this.dados.escolha_do_medico ? this.dados.escolhidas || [] : [];
+  }
+
   /** 0.100.8: liga ou desliga a correção de movimento e refaz os mapas. */
   async mudarMovimento(modo: "" | "translacao" | "rigido"): Promise<boolean> {
     let m: Movimento | null = null;
     if (modo) {
       if (this.notaMov) this.notaMov.title = tr("Calculando o movimento…");
-      m = await movimentoDoExame(this.op.study, this.par.pre, modo);
+      m = await movimentoDoExame(this.op.study, this.par.pre, modo, this.seriesPedidas());
       if (!m || m.motivo) {
         this.op.aviso(m?.motivo || tr("Não consegui calcular o movimento."));
         if (this.notaMov) this.notaMov.title = "";
@@ -598,6 +702,12 @@ export class ModoDinamica {
   }
 
   private async serieDoQuadro(q: QuadroDin): Promise<SerieCarregada> {
+    if (q.v === "serie") {
+      const ex = q.serie ? await this.serieDoExame(q.serie) : null;
+      if (ex) return ex;
+      q.v = "fase";
+      q.serie = undefined;
+    }
     if (q.v !== "fase") return this.serieDoMapa(q.v);
     if (!q.sub) return this.serieDaFase(q.fase);
     const ch = await this.chaveDaSubtracao(q);
@@ -606,8 +716,18 @@ export class ModoDinamica {
       modalidade: "MR", descricao: this.rotuloDoQuadro(q), numero: "", semVolume: "fase", bytes: 0, suv: null, suvMotivo: "" };
   }
 
-  /** "Fase 3/5 · 180 s · subtração + 20% anatomia", ou o nome do mapa. */
+  private async serieDoExame(uid: string): Promise<SerieCarregada | null> {
+    let s = this.examesCarregados.get(uid);
+    if (!s) {
+      s = (await (this.op.pegar ? this.op.pegar(uid) : carregarSerie(this.op.study, uid)).catch(() => null)) || undefined;
+      if (s) this.examesCarregados.set(uid, s);
+    }
+    return s || null;
+  }
+
+  /** "Fase 3/5 · 180 s · subtração + 20% anatomia", ou o nome do mapa, ou a série do exame. */
   rotuloDoQuadro(q: QuadroDin): string {
+    if (q.v === "serie") return this.op.series?.find((x) => x.uid === q.serie)?.rotulo || this.examesCarregados.get(q.serie || "")?.descricao || tr("Série");
     if (q.v !== "fase") return tr(this.dados.mapas[q.v]?.nome || q.v);
     const f = this.dados.fases[q.fase];
     let s = `${tr("Fase")} ${q.fase + 1}/${this.dados.fases.length} · ${Math.round(f.tempo - this.par.tempos[this.par.pre])} s`;
@@ -617,7 +737,14 @@ export class ModoDinamica {
 
   private corDoQuadro(q: QuadroDin): string {
     if (q.cor) return q.cor === "gray" ? "" : q.cor;
-    return q.v === "fase" ? "" : this.dados.mapas[q.v]?.cores || "";
+    return q.v === "fase" || q.v === "serie" ? "" : this.dados.mapas[q.v]?.cores || "";
+  }
+
+  /** 0.100.58: pôr no quadro uma série do exame — a que é fase da dinâmica vira a fase (com ◂ ▸). */
+  private quadroDaSerie(q: QuadroDin, uid: string): QuadroDin {
+    const f = this.faseDaSerie.get(uid);
+    if (f !== undefined) return { ...q, v: "fase", fase: f, sub: false, serie: undefined };
+    return { ...q, v: "serie", serie: uid, sub: false, cor: "" };
   }
 
   /** O menu do quadro (botão direito no rótulo): o que mostrar, a fase, a subtração, a paisagem e a cor. */
@@ -628,12 +755,20 @@ export class ModoDinamica {
       { rotulo: tr("Cinza"), marcado: q.cor === "gray", acao: () => mudar({ cor: "gray" }) },
       ...Object.entries(tabelasIpe).map(([k, tb]) => ({ rotulo: tr((tb as { nome?: string }).nome || k), marcado: q.cor === k,
         acao: () => mudar({ cor: k }) }))];
+    const faseAtual = q.v === "fase" ? q.fase : this.par.inicial;
+    const doExame: ItemMenu[] = (this.op.series || []).map((x) => ({ rotulo: x.rotulo,
+      marcado: (q.v === "serie" && q.serie === x.uid) || (q.v === "fase" && !q.sub && this.faseDaSerie.get(x.uid) === q.fase),
+      acao: () => void this.trocarQuadro(i, this.quadroDaSerie(q, x.uid)) }));
     const itens: ItemMenu[] = [
       { rotulo: tr("Mostrar"), sub: [
         ...this.dados.fases.map((f, k) => ({ rotulo: `${tr("Fase")} ${k + 1}: ${f.rotulo} (${Math.round(f.tempo)} s)`,
-          marcado: q.v === "fase" && q.fase === k, acao: () => mudar({ v: "fase", fase: k }) })),
+          marcado: q.v === "fase" && !q.sub && q.fase === k, acao: () => mudar({ v: "fase", fase: k, sub: false }) })),
+        { rotulo: tr("Subtração (fase − pré)"), marcado: q.v === "fase" && q.sub,
+          acao: () => mudar({ v: "fase", fase: faseAtual, sub: true }) },
         { separador: true },
-        ...CALCULADOS.map((c) => ({ rotulo: tr(this.dados.mapas[c]?.nome || c), marcado: q.v === c, acao: () => mudar({ v: c }) })),
+        ...CALCULADOS.filter((c) => c !== "sub").map((c) => ({ rotulo: tr(this.dados.mapas[c]?.nome || c), marcado: q.v === c,
+          acao: () => mudar({ v: c }) })),
+        ...(doExame.length ? [{ separador: true } as ItemMenu, { rotulo: tr("Séries do exame"), sub: doExame }] : []),
       ] },
     ];
     if (q.v === "fase") {
@@ -651,13 +786,24 @@ export class ModoDinamica {
     const corte = this.g.quadros.length && this.g.raiz.classList.contains("din") ? this.corte() : Math.floor(n / 2);
     const series = await Promise.all(this.quadros.map((q) => this.serieDoQuadro(q)));
     const vazios: Spec[] = this.quadros.map(() => ({ serie: null, tipo: "pilha", plano: "AXIAL", projecao: "fino", espessura: 0 }));
-    const linhas = this.quadros.length > 2 ? 2 : 1;
-    this.g.montar(linhas, Math.ceil(this.quadros.length / linhas), vazios);
+    const [linhas, colunas] = this.layout;
+    this.g.montar(linhas, colunas, vazios);
     this.g.raiz.classList.add("din");
+    this.esperado.clear();
+    const centro = this.centroDoCorte(Math.min(corte, n - 1));
     await Promise.all(this.quadros.map(async (q, i) => {
       await this.g.mostrar(i, series[i]);
       const vp = this.g.viewport(i) as Types.IStackViewport;
       if (!vp) return;
+      if (q.v === "serie") {
+        // a série do exame vai ao corte mais perto da posição do corte da dinâmica
+        const j = centro ? indiceMaisPertoDosIds(vp.getImageIds(), centro) : -1;
+        if (j >= 0) { this.esperado.set(this.g.quadros[i].id, j); await vp.setImageIdIndex(j); }
+        const cor = this.corDoQuadro(q);
+        if (cor) { vp.setProperties({ colormap: { name: `ipe-${cor}` } }); vp.render(); }
+        this.rotuloNoQuadro(i);
+        return;
+      }
       await vp.setImageIdIndex(Math.min(corte, n - 1));
       const cor = this.corDoQuadro(q);
       const chave = q.v !== "fase" ? q.v : q.sub ? `fs${q.fase}p${Math.round(q.pais * 100)}` : "";
@@ -705,7 +851,7 @@ export class ModoDinamica {
     texto.type = "button";
     texto.className = "texto-rotulo";
     texto.textContent = this.rotuloDoQuadro(q);
-    texto.title = tr("Fase, subtração, paisagem e cor (também no botão direito)");
+    texto.title = tr("O que mostrar (fase, subtração, mapa ou série do exame), paisagem e cor (também no botão direito)");
     texto.setAttribute("aria-label", `${tr("Quadro")} ${i + 1}: ${texto.textContent}`);
     texto.onclick = (e) => { e.stopPropagation(); this.menuDoQuadro(i, texto); };
     if (q.v === "fase") caixa.append(passo(-1, "◂", "Fase anterior"), texto, passo(1, "▸", "Próxima fase"));
@@ -733,8 +879,10 @@ export class ModoDinamica {
     const vp = this.g.viewport(m.i) as Types.IStackViewport | null;
     const id = vp?.getCurrentImageId();
     if (!vp || !id) return;
-    const k = vp.getCurrentImageIdIndex();
     const mundo = vp.canvasToWorld([m.x, m.y] as Types.Point2);
+    // 0.100.58: num quadro de série do exame, o corte da dinâmica mais perto do ponto
+    const k = this.quadros[m.i]?.v === "serie" ? indiceMaisPertoDosIds(this.fases[0], mundo as Types.Point3) : vp.getCurrentImageIdIndex();
+    if (k < 0) return;
     const ij = utilities.worldToImageCoords(this.fases[0][k], mundo as Types.Point3) as unknown as number[] | undefined;
     if (!ij) return;
     const plano = metaData.get("imagePlaneModule", this.fases[0][k]) as { rows: number; columns: number };
@@ -746,26 +894,53 @@ export class ModoDinamica {
     this.desenharCurvas();
   }
 
+  /** Os quadros andam juntos: os da dinâmica pelo número do corte; os de série do exame (0.100.58) pela posição. */
   private sincronizar(origem: string): void {
     if (this.rolando) return;
-    const q0 = this.g.quadros.find((q) => q.id === origem);
-    const vp0 = q0 ? this.g.viewport(this.g.quadros.indexOf(q0)) as Types.IStackViewport : null;
+    const i0 = this.g.quadros.findIndex((q) => q.id === origem);
+    const vp0 = i0 >= 0 ? this.g.viewport(i0) as Types.IStackViewport : null;
     if (!vp0) return;
-    const k = vp0.getCurrentImageIdIndex();
+    const idx0 = vp0.getCurrentImageIdIndex();
+    const eco = this.esperado.get(origem);
+    if (eco !== undefined) {
+      this.esperado.delete(origem);
+      if (eco === idx0) return;                     // é o movimento que a própria sincronia pediu
+    }
+    const deSerie = this.quadros[i0]?.v === "serie";
+    const k = deSerie ? indiceMaisPertoDosIds(this.fases[0], vp0.getCamera().focalPoint as Types.Point3) : idx0;
+    if (k < 0) return;
+    const centro = this.centroDoCorte(k);
     this.rolando = true;
     try {
       this.g.quadros.forEach((q, i) => {
         if (q.id === origem) return;
         const vp = this.g.viewport(i) as Types.IStackViewport;
-        if (vp && vp.getCurrentImageIdIndex() !== k) void vp.setImageIdIndex(k);
+        if (!vp) return;
+        const alvo = this.quadros[i]?.v === "serie"
+          ? (deSerie ? indiceMaisPertoDosIds(vp.getImageIds(), vp0.getCamera().focalPoint as Types.Point3)
+            : centro ? indiceMaisPertoDosIds(vp.getImageIds(), centro) : -1)
+          : k;
+        if (alvo < 0 || vp.getCurrentImageIdIndex() === alvo) return;
+        this.esperado.set(q.id, alvo);
+        void vp.setImageIdIndex(alvo);
       });
     } finally {
       this.rolando = false;
     }
   }
 
+  /** O centro (mm, paciente) do corte k da dinâmica. */
+  private centroDoCorte(k: number): Types.Point3 | null {
+    const id = this.fases[0]?.[k];
+    const p = id ? metaData.get("imagePlaneModule", id) as { rows: number; columns: number } | undefined : undefined;
+    if (!id || !p) return null;
+    return utilities.imageToWorldCoords(id, [p.columns / 2, p.rows / 2]) as Types.Point3;
+  }
+
+  /** O corte da dinâmica de agora (o do primeiro quadro que não é série do exame). */
   corte(): number {
-    return (this.g.viewport(0) as Types.IStackViewport)?.getCurrentImageIdIndex() ?? 0;
+    const i = Math.max(0, this.quadros.findIndex((q) => q.v !== "serie"));
+    return (this.g.viewport(i) as Types.IStackViewport)?.getCurrentImageIdIndex() ?? 0;
   }
 
   // ---------------------------------------------------------------- a barra
@@ -788,12 +963,20 @@ export class ModoDinamica {
     const sPre = escolha(fases, this.par.pre, (i) => void this.mudarFases(i, this.par.inicial, this.par.tardia), "Pré-contraste");
     const sIni = escolha(fases, this.par.inicial, (i) => void this.mudarFases(this.par.pre, i, this.par.tardia), "Fase inicial");
     const sTar = escolha(fases, this.par.tardia, (i) => void this.mudarFases(this.par.pre, this.par.inicial, i), "Fase tardia");
-    // o que vai em cada quadro
-    const opcoesQuadro: (Chave | "fase")[] = ["fase", ...CALCULADOS];
-    const nomeQ = (q: Chave | "fase") => (q === "fase" ? tr("Fase") : tr(this.dados.mapas[q]?.nome || q));
-    const quadros = this.quadros.map((q, i) => escolha(opcoesQuadro.map(nomeQ), opcoesQuadro.indexOf(q.v),
-      (j) => void this.trocarQuadro(i, { ...this.quadros[i], v: opcoesQuadro[j] }), `Quadro ${i + 1}`));
-    this.selectsQuadro = quadros;
+    // 0.100.58: o layout (o que vai em cada quadro se escolhe no rótulo do próprio quadro) e as séries da dinâmica
+    const sLayout = escolha(LAYOUTS_DIN.map(([a, b]) => `${a} × ${b}`),
+      LAYOUTS_DIN.findIndex(([a, b]) => a === this.layout[0] && b === this.layout[1]),
+      (j) => void this.mudarLayout(...LAYOUTS_DIN[j]), "Layout da dinâmica");
+    const bSeries = document.createElement("button");
+    bSeries.type = "button";
+    bSeries.textContent = tr("Séries…");
+    bSeries.title = tr("Escolher as séries que entram na dinâmica");
+    bSeries.setAttribute("aria-label", tr("Séries da dinâmica"));
+    bSeries.onclick = () => {
+      const caixa = escolhaDeSeries(this.dados, (series) => { fecharMenus(); this.op.reabrir?.(series); });
+      abrirPainel(caixa, bSeries, tr("Séries da dinâmica"));
+    };
+    if (!this.op.reabrir) bSeries.hidden = true;
     // a fusão sobre a fase
     const opcoesSobre: { rotulo: string; valor: ModoDinamica["sobre"] }[] = [
       { rotulo: tr("Nada"), valor: null },
@@ -834,7 +1017,7 @@ export class ModoDinamica {
     this.notaMov = sMov;
     sMov.title = this.notaDoMovimento();
     this.barra.append(titulo, rotulo("Pré", sPre), rotulo("Inicial", sIni), rotulo("Tardia", sTar),
-      ...quadros.map((q, i) => rotulo(`Q${i + 1}`, q)), rotulo("Sobre a fase", sSobre), rotulo("Cor", sCorSobre),
+      bSeries, rotulo("Layout", sLayout), rotulo("Sobre a fase", sSobre), rotulo("Cor da fusão", sCorSobre),
       rotulo("Opacidade", op), rotulo("Curva sob o cursor", cCurva), sMov, aviso, sair);
   }
 
@@ -847,7 +1030,7 @@ export class ModoDinamica {
     this.par = { ...this.par, pre, inicial, tardia };
     if (this.mov && pre !== prePrevio) {
       // a correção é sobre a pré: outra pré, outra conta
-      const m = await movimentoDoExame(this.op.study, pre, this.mov.modo);
+      const m = await movimentoDoExame(this.op.study, pre, this.mov.modo, this.seriesPedidas());
       this.mov = m && m.modo && !m.motivo ? m : null;
     }
     await this.refazer();
@@ -868,26 +1051,34 @@ export class ModoDinamica {
     await this.montar();
   }
 
+  /** Troca o que o quadro i mostra. "sub" (a subtração) vira a fase com subtração — com ◂ ▸ no quadro. */
   async trocarQuadro(i: number, q: QuadroDin | Chave | "fase"): Promise<void> {
-    const novo = typeof q === "string" ? { ...this.quadros[i], v: q } : q;
+    const antes = this.quadros[i];
+    let novo: QuadroDin;
+    if (q === "sub") novo = { ...antes, v: "fase", sub: true, fase: antes.v === "fase" ? antes.fase : this.par.inicial };
+    else if (typeof q === "string") novo = { ...antes, v: q, ...(q === "fase" ? { sub: false } : {}) };
+    else novo = q;
+    if (novo.v !== "serie") novo.serie = undefined;
     this.quadros[i] = novo;
-    const s = this.selectsQuadro?.[i];
-    if (s) s.value = String(["fase", ...CALCULADOS].indexOf(novo.v));
     await this.montar();
   }
-
-  private selectsQuadro: HTMLSelectElement[] = [];
 
   // ---------------------------------------------------------------- o mapa por cima da fase (fusão)
   private criarCamada(): void {
     this.camada?.remove();
-    const i = this.quadros.findIndex((q) => q.v === "fase");
+    const i = this.quadroDaFusao();
     if (i < 0) { this.camada = null; return; }
     const c = document.createElement("canvas");
     c.className = "camada-din";
     this.g.quadros[i].el.parentElement!.insertBefore(c, this.g.quadros[i].textos);
     this.camada = c;
     this.desenharSobre();
+  }
+
+  /** O quadro onde vai a fusão: a primeira fase sem subtração (ou a primeira fase). */
+  private quadroDaFusao(): number {
+    const i = this.quadros.findIndex((q) => q.v === "fase" && !q.sub);
+    return i >= 0 ? i : this.quadros.findIndex((q) => q.v === "fase");
   }
 
   async mudarSobre(v: ModoDinamica["sobre"]): Promise<void> {
@@ -923,7 +1114,7 @@ export class ModoDinamica {
     const c = this.camada;
     if (!c) return;
     const n = ++this.desenhando;
-    const i = this.quadros.findIndex((q) => q.v === "fase");
+    const i = this.quadroDaFusao();
     const vp = this.g.viewport(i) as Types.IStackViewport | null;
     const id = vp?.getCurrentImageId();
     const ctx = c.getContext("2d")!;
@@ -1136,7 +1327,7 @@ export class ModoDinamica {
 
   /** Para os testes: os parâmetros e o corte de agora. */
   estado(): Record<string, unknown> {
-    return { par: this.par, corte: this.corte(), quadros: this.quadros.map((q) => q.v), detalhe: this.quadros,
+    return { par: this.par, corte: this.corte(), quadros: this.quadros.map((q) => (q.v === "fase" && q.sub ? "sub" : q.v)), layout: this.layout, detalhe: this.quadros,
       sobre: this.sobre, corSobre: this.corSobre, desenhado: this.camada?.dataset.desenhado ?? null, movimento: this.mov?.modo || "",
       rotulos: this.g.quadros.map((q) => q.el.parentElement?.querySelector(".rotulo-din .texto-rotulo")?.textContent || "") };
   }

@@ -6963,7 +6963,8 @@
   "pendentes da mama",
   "sem categoria",
   "varrer as mamografias do banco",
-  "vistas da densidade no SR"
+  "vistas da densidade no SR",
+  "as séries escolhidas não formam a dinâmica (são precisas a pré e duas pós-contraste; uma série só precisa ter as fases repetidas)"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

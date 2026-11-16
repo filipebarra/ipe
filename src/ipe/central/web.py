@@ -997,23 +997,46 @@ def dinamica(repo, s, q: dict, pode_ver, settings, prefs: dict | None = None) ->
         fr = build_frames(repo.instances_for_series(r.series_uid), r.series_uid)
         quadros[r.series_uid] = fr
         cands.append((r.series_uid, fr, r.series_number or 0, r.modality, r.description or ""))
-    grupos = PH.detect(cands)
-    escolha = max(grupos, key=len) if grupos else []
-    fases, rotulos = [], []
     numero = {r.series_uid: r.series_number for r in series}
-    if len(escolha) >= 2:
-        for uid in escolha:
-            fases.append(quadros[uid])
-            rotulos.append(f"Se {numero.get(uid, '')}")
-    else:
-        for uid, fr, *_ in cands:
-            ph = split_single_series(fr)
-            if ph and len(ph) > len(fases):
+    # 0.100.58: as séries que o médico escolheu (como a lista da janela da dinâmica do Ipê); sem escolha, a detecção
+    pedidas = [u for u in ",".join(q.get("series") or []).split(",") if u]
+    fases, rotulos, usadas = [], [], []
+    if pedidas:
+        uids = sorted({u for u in pedidas if u in quadros}, key=lambda u: (numero.get(u) or 0, pedidas.index(u)))
+        if len(uids) == 1:
+            ph = split_single_series(quadros[uids[0]])
+            if ph:
                 fases = ph
-                rotulos = [f"Fase {i + 1} (Se {numero.get(uid, '')})" for i in range(len(ph))]
+                rotulos = [f"Fase {i + 1} (Se {numero.get(uids[0], '')})" for i in range(len(ph))]
+        else:
+            for uid in uids:
+                fases.append(quadros[uid])
+                rotulos.append(f"Se {numero.get(uid, '')}")
+        usadas = uids
+    else:
+        grupos = PH.detect(cands)
+        escolha = max(grupos, key=len) if grupos else []
+        if len(escolha) >= 2:
+            for uid in escolha:
+                fases.append(quadros[uid])
+                rotulos.append(f"Se {numero.get(uid, '')}")
+            usadas = list(escolha)
+        else:
+            for uid, fr, *_ in cands:
+                ph = split_single_series(fr)
+                if ph and len(ph) > len(fases):
+                    fases = ph
+                    rotulos = [f"Fase {i + 1} (Se {numero.get(uid, '')})" for i in range(len(ph))]
+                    usadas = [uid]
     base = {"fases": [], "mapas_salvos": salvos, "classes": CLASSES,
-            "mapas": {k: {"nome": v[0], "descricao": v[1], "unidade": v[2], "cores": v[4]} for k, v in MAPS.items()}}
+            "mapas": {k: {"nome": v[0], "descricao": v[1], "unidade": v[2], "cores": v[4]} for k, v in MAPS.items()},
+            "candidatas": [{"series": uid, "numero": num or 0, "descricao": desc, "imagens": len(fr)}
+                           for uid, fr, num, _m, desc in sorted(cands, key=lambda c: (c[2] or 0))],
+            "escolhidas": usadas, "escolha_do_medico": bool(pedidas)}
     if len(fases) < 3:
+        if pedidas:
+            return {**base, "motivo": "as séries escolhidas não formam a dinâmica (são precisas a pré e duas "
+                                      "pós-contraste; uma série só precisa ter as fases repetidas)"}
         return {**base, "motivo": "não achei as fases da dinâmica (são precisas a pré e duas pós-contraste)"}
     dset = DynamicSet(fases, rotulos)
     motivo = dset.check()

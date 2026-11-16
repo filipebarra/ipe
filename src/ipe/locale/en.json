@@ -9387,5 +9387,6 @@
  "{} mamografia(s) conferida(s)": "{} mammogram(s) checked",
  "{} {} · {} mm²{}": "{} {} · {} mm²{}",
  "{} — mamografias do banco": "{} — database mammograms",
- "{}: {} mm2 de calcificação vascular (SCU-Net)": "{}: {} mm2 of vascular calcification (SCU-Net)"
+ "{}: {} mm2 de calcificação vascular (SCU-Net)": "{}: {} mm2 of vascular calcification (SCU-Net)",
+ "as séries escolhidas não formam a dinâmica (são precisas a pré e duas pós-contraste; uma série só precisa ter as fases repetidas)": "the chosen series do not form a dynamic study (a pre-contrast and two post-contrast are needed; a single series must have repeated phases)"
 }

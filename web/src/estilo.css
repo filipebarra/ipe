@@ -261,7 +261,14 @@ header:has(.barra) .quem { display: none; }
 .barra-din select { padding: 2px 4px; max-width: 170px; }
 .barra-din input[type=range] { width: 90px; }
 .barra-din .nota-din { color: var(--suave); }
-.barra-din button { margin-left: auto; }
+.barra-din button:last-child { margin-left: auto; }
+/* 0.100.58: a escolha das séries da dinâmica */
+.escolha-series-din { display: flex; flex-direction: column; gap: 6px; min-width: 300px; max-width: 460px; padding: 4px; }
+.escolha-series-din .nota-din { margin: 0; color: var(--suave); font-size: 12px; }
+.lista-series-din { display: flex; flex-direction: column; gap: 2px; max-height: 50vh; overflow: auto; }
+.lista-series-din label { display: flex; gap: 6px; align-items: center; padding: 2px 4px; border-radius: 4px; cursor: pointer; }
+.lista-series-din label:hover { background: var(--fundo-hover, rgba(255,255,255,0.06)); }
+.escolha-series-din .botoes { display: flex; gap: 8px; justify-content: flex-end; }
 .rotulo-din { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; gap: 2px;
   background: rgba(10, 12, 16, 0.72); border-radius: 6px; padding: 1px 2px; max-width: 90%; }
 .rotulo-din button { background: none; border: 0; color: #e8eaed; font: inherit; font-size: 12px; padding: 2px 6px; cursor: pointer;

@@ -249,19 +249,32 @@ export interface SerieCarregada {
  *  getClosestStackImageIndexForPoint do Cornerstone só vê os cortes já carregados — com a série ainda chegando, não
  *  saía do lugar). */
 function indiceMaisPerto(vp: Types.IStackViewport, p: Types.Point3): number | null {
-  const ids = vp.getImageIds();
+  const melhor = indiceMaisPertoDosIds(vp.getImageIds(), p);
+  if (melhor >= 0) return melhor;
+  return csUtils.getClosestStackImageIndexForPoint(p, vp);
+}
+
+/** 0.100.58: o índice da imagem (pelos metadados) cujo plano passa mais perto do ponto; -1 se nenhuma tem posição.
+ * Também serve para imagens calculadas, que têm o imagePlaneModule no provedor de metadados. */
+export function indiceMaisPertoDosIds(ids: string[], p: Types.Point3): number {
   let melhor = -1, dmin = Infinity;
   ids.forEach((id, i) => {
     const m = META.get(id);
-    const ipp = (m?.["00200032"]?.Value as number[] | undefined)?.map(Number);
-    const iop = (m?.["00200037"]?.Value as number[] | undefined)?.map(Number);
+    let ipp = (m?.["00200032"]?.Value as number[] | undefined)?.map(Number);
+    let iop = (m?.["00200037"]?.Value as number[] | undefined)?.map(Number);
+    if (!m) {
+      const pl = metaData.get("imagePlaneModule", id) as { imagePositionPatient?: number[]; rowCosines?: number[]; columnCosines?: number[] } | undefined;
+      if (pl?.imagePositionPatient && pl.rowCosines && pl.columnCosines) {
+        ipp = pl.imagePositionPatient.map(Number);
+        iop = [...pl.rowCosines, ...pl.columnCosines].map(Number);
+      }
+    }
     if (!ipp || !iop || ipp.length !== 3 || iop.length !== 6) return;
     const n = [iop[1] * iop[5] - iop[2] * iop[4], iop[2] * iop[3] - iop[0] * iop[5], iop[0] * iop[4] - iop[1] * iop[3]];
     const d = Math.abs((p[0] - ipp[0]) * n[0] + (p[1] - ipp[1]) * n[1] + (p[2] - ipp[2]) * n[2]);
     if (d < dmin) { dmin = d; melhor = i; }
   });
-  if (melhor >= 0) return melhor;
-  return csUtils.getClosestStackImageIndexForPoint(p, vp);
+  return melhor;
 }
 
 /** 0.100.20: um ato do médico que segue para as outras janelas de visualização */
@@ -447,6 +460,9 @@ export class Grade {
       this.aoMenu(d.i, e.clientX, e.clientY, d.el);
     };
     window.addEventListener("mouseup", this.soltouDireito, true);
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && this.pontoMarcado && !desenhando()) this.marcarPonto(null);
+    });
   }
 
   private soltouDireito: (e: MouseEvent) => void;
@@ -550,6 +566,7 @@ export class Grade {
       q.el.addEventListener(Enums.Events.STACK_NEW_IMAGE, () => this.janelaDaSerie(q));
       q.el.addEventListener(Enums.Events.CAMERA_MODIFIED, () => this.contar(q, "zoom"));
       q.el.addEventListener(Enums.Events.IMAGE_RENDERED, () => this.desenharLinhaDeFora(q));
+      q.el.addEventListener(Enums.Events.IMAGE_RENDERED, () => this.desenharPonto(q));
     }
     this.configurarMip();
     this.sincronizar();
@@ -664,6 +681,7 @@ export class Grade {
       const ponto = vp.canvasToWorld([ev.clientX - r.left, ev.clientY - r.top] as Types.Point2);
       this.irAoPontoNasPilhas(ponto as Types.Point3, q.id);
       this.irAoPonto(ponto as unknown as V3);
+      this.marcarPonto(ponto as unknown as V3);
     };
     ir(e);
     const mover = (ev: MouseEvent) => ir(ev);
@@ -738,6 +756,75 @@ export class Grade {
     const r = o.slice(0, 3), c = o.slice(3, 6);
     const b = soma(ipp, r, w);
     return [ipp, b, soma(b, c, h), soma(ipp, c, h)];
+  }
+
+  // ---------------------------------------------------------------- 0.100.58: o ponto da correlação
+  /** O ponto (mm, paciente) que o médico clicou com a ferramenta de correlação: uma cruz em cada quadro cujo corte
+   * passa por ele (como o Shift do Ipê de mesa). Fica até o próximo clique de correlação ou Esc. */
+  pontoMarcado: V3 | null = null;
+
+  marcarPonto(p: V3 | null): void {
+    this.pontoMarcado = p;
+    for (const q of this.quadros) this.desenharPonto(q);
+  }
+
+  /** A distância (mm) do ponto ao corte mostrado no quadro e a tolerância (meia espessura, no mínimo 1,5 mm). */
+  private distanciaAoCorte(q: Quadro, p: V3): { d: number; tol: number } | null {
+    const vp = motor?.getViewport(q.id);
+    if (!vp || (q.tipo !== "pilha" && q.tipo !== "plano")) return null;
+    if (q.tipo === "pilha" && !(vp as Types.IStackViewport).getCurrentImageId()) return null;
+    // o plano da imagem mostrada: a câmera olha pelo foco, que está no corte (também nas imagens calculadas)
+    const cam = vp.getCamera();
+    const n = cam.viewPlaneNormal as V3;
+    const d = Math.abs(dot(sub(p, cam.focalPoint as V3), n));
+    if (q.tipo === "plano") return { d, tol: Math.max(1.5, (q.espessura || 0) / 2 + 1) };
+    const id = (vp as Types.IStackViewport).getCurrentImageId() || "";
+    const m = META.get(id);
+    const pl = metaData.get("imagePlaneModule", id) as { sliceThickness?: number } | undefined;
+    const esp = Number(m?.["00180050"]?.Value?.[0]) || Number(pl?.sliceThickness) || 3;
+    return { d, tol: Math.max(1.5, esp * 0.6) };
+  }
+
+  private desenharPonto(q: Quadro): void {
+    const pai = q.el.parentElement;
+    if (!pai) return;
+    let c = pai.querySelector<HTMLCanvasElement>("canvas.ponto-marcado");
+    const p = this.pontoMarcado;
+    const dist = p ? this.distanciaAoCorte(q, p) : null;
+    if (!p || !dist || dist.d > dist.tol) { if (c && c.dataset.ponto === "1") { c.width = c.width; c.dataset.ponto = "0"; } return; }
+    if (!c) {
+      c = document.createElement("canvas");
+      c.className = "ponto-marcado";
+      c.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3";
+      pai.append(c);
+    }
+    const dpr = window.devicePixelRatio || 1;
+    const w = q.el.clientWidth, h = q.el.clientHeight;
+    c.width = Math.round(w * dpr);
+    c.height = Math.round(h * dpr);
+    const vp = motor!.getViewport(q.id)!;
+    const [x, y] = vp.worldToCanvas(p as unknown as Types.Point3);
+    const ctx = c.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cruz = (cor: string, lw: number) => {
+      ctx.strokeStyle = cor;
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      for (const [a, b] of [[-12, -4], [4, 12]]) {
+        ctx.moveTo(x + a, y); ctx.lineTo(x + b, y);
+        ctx.moveTo(x, y + a); ctx.lineTo(x, y + b);
+      }
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.stroke();
+    };
+    cruz("rgba(0,0,0,0.8)", 4);
+    cruz("#ffd400", 2);
+    c.dataset.ponto = "1";
+    c.dataset.x = String(Math.round(x));
+    c.dataset.y = String(Math.round(y));
   }
 
   /** O corte que a outra janela mostra (os quatro cantos), ou nulo para apagar a linha. */

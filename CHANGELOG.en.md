@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.58 — Ipê Web: dynamic with chosen series, layout and frames; the correlation point
+- **Breast dynamic**: **Series…** picks the series used in the analysis (or **Detect automatically**); when the
+  server cannot find the phases, the list opens for you to check them.
+- Dynamic **layout** (1 × 1 to 3 × 3) and, in each frame, **any phase, subtraction, map or study series** (a series
+  outside the dynamic follows by patient position).
+- **Subtraction with ◂ ▸** in the frame itself, as in desktop Ipê (the fourth default frame is already the
+  subtraction).
+- **Correlation**: clicking with **Reference lines** marks the point with a cross in every frame that passes through
+  it (like Shift in desktop Ipê); **Esc** clears it.
+
 ## 0.100.57 — Automatic density and calcifications, confirm on open, and SR
 - Every **mammogram that arrives** (network, PACS, import, upload to the server) has its **density** and **vascular
   calcifications** measured automatically in the background (AI tasks). Nothing is confirmed automatically.

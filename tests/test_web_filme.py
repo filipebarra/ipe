@@ -237,7 +237,10 @@ def test_pelo_navegador(servidor):
         assert _esperar(srv, lambda: pg.locator(".quadro canvas").count() > 0)
         pg.click(".abas button[data-aba='Filme']")
         assert _esperar(srv, lambda: pg.locator(".painel-filme button:has-text('+ Quadro ativo')").count() == 1, 30)
-        # ajuste do quadro: janela, zoom 2 e um deslocamento
+        # ajuste do quadro: janela, zoom 2 e um deslocamento (com a imagem já na tela: a que chega depois põe a
+        # janela dela)
+        assert _esperar(srv, lambda: pg.evaluate("() => { try { return !!window.__ipeGrade.viewport(0)?.getImageData(); } catch { return false; } }"), 30)
+        time.sleep(0.5)
         pg.evaluate("""() => { window.__ipeGrade.ativar(0); const vp = window.__ipeGrade.viewport(0);
             vp.setProperties({ voiRange: { lower: -100, upper: 300 } }); vp.setZoom(vp.getZoom() * 2);
             const c = vp.getCamera(); vp.setCamera({ focalPoint: [c.focalPoint[0] + 5, c.focalPoint[1], c.focalPoint[2]],

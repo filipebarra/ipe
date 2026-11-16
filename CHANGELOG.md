@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.58 — Ipê Web: dinâmica com séries, layout e quadros à escolha; o ponto da correlação
+- **Dinâmica da mama**: **Séries…** escolhe as séries que entram na conta (ou **Detectar sozinho**); quando o
+  servidor não acha as fases, a lista abre para marcar.
+- **Layout** da dinâmica (1 × 1 a 3 × 3) e, em cada quadro, **qualquer fase, subtração, mapa ou série do exame** (a
+  série que não é da dinâmica anda junto pela posição no paciente).
+- **Subtração com ◂ ▸** no próprio quadro, como no Ipê de mesa (o quarto quadro de fábrica já é a subtração).
+- **Correlação**: clicar com as **Linhas de referência** marca o ponto com uma cruz em todos os quadros que passam
+  por ele (como o Shift do Ipê de mesa); **Esc** tira.
+
 ## 0.100.57 — Densidade e calcificações automáticas, confirmação ao abrir e SR
 - Toda **mamografia que chega** (rede, PACS, importação, envio ao servidor) tem a **densidade** e as
   **calcificações vasculares** medidas sozinhas, em segundo plano (Tarefas de IA). Nada é confirmado sozinho.
