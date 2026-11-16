@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.59 — Ipê Web: series in another plane in the dynamic view
+- A series in another plane (sagittal, coronal) in a dynamic frame no longer jumps back to the middle when you scroll
+  the dynamic after clicking with **Reference lines**: it does not follow scrolling (nor drives the dynamic); it moves
+  to the point only on the click.
+
 ## 0.100.58 — Ipê Web: dynamic with chosen series, layout and frames; the correlation point
 - **Breast dynamic**: **Series…** picks the series used in the analysis (or **Detect automatically**); when the
   server cannot find the phases, the list opens for you to check them.

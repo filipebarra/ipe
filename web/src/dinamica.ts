@@ -907,6 +907,9 @@ export class ModoDinamica {
       if (eco === idx0) return;                     // é o movimento que a própria sincronia pediu
     }
     const deSerie = this.quadros[i0]?.v === "serie";
+    // 0.100.59: a série de outro plano (sagital, coronal…) não anda pela rolagem — nem a leva, nem é levada;
+    // ela vai ao ponto só pelo clique das linhas de referência
+    if (deSerie && !this.paraleloADinamica(vp0)) return;
     const k = deSerie ? indiceMaisPertoDosIds(this.fases[0], vp0.getCamera().focalPoint as Types.Point3) : idx0;
     if (k < 0) return;
     const centro = this.centroDoCorte(k);
@@ -916,6 +919,7 @@ export class ModoDinamica {
         if (q.id === origem) return;
         const vp = this.g.viewport(i) as Types.IStackViewport;
         if (!vp) return;
+        if (this.quadros[i]?.v === "serie" && !this.paraleloADinamica(vp)) return;
         const alvo = this.quadros[i]?.v === "serie"
           ? (deSerie ? indiceMaisPertoDosIds(vp.getImageIds(), vp0.getCamera().focalPoint as Types.Point3)
             : centro ? indiceMaisPertoDosIds(vp.getImageIds(), centro) : -1)
@@ -927,6 +931,18 @@ export class ModoDinamica {
     } finally {
       this.rolando = false;
     }
+  }
+
+  /** 0.100.59: o quadro mostra cortes no mesmo plano da dinâmica (normais a menos de ~25°)? */
+  private paraleloADinamica(vp: Types.IStackViewport): boolean {
+    const id = this.fases[0]?.[0];
+    const pl = id ? metaData.get("imagePlaneModule", id) as { rowCosines?: number[]; columnCosines?: number[] } | undefined : undefined;
+    const n = vp.getCamera().viewPlaneNormal;
+    if (!pl?.rowCosines || !pl.columnCosines || !n) return true;
+    const r = pl.rowCosines.map(Number), c = pl.columnCosines.map(Number);
+    const nd = [r[1] * c[2] - r[2] * c[1], r[2] * c[0] - r[0] * c[2], r[0] * c[1] - r[1] * c[0]];
+    const tam = Math.hypot(nd[0], nd[1], nd[2]) * Math.hypot(n[0], n[1], n[2]) || 1;
+    return Math.abs(nd[0] * n[0] + nd[1] * n[1] + nd[2] * n[2]) / tam >= 0.9;
   }
 
   /** O centro (mm, paciente) do corte k da dinâmica. */

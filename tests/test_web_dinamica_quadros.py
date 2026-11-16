@@ -46,6 +46,25 @@ def _por_t2(srv, tmp_path):
     return series["uid"]
 
 
+def _sagital(srv, tmp_path):
+    from ipe.core.sample_data import _base, _mono, _save
+    from ipe.importer.scanner import Importer
+    st = srv.estudo
+    series = {"uid": generate_uid(), "number": 6, "description": "T2 SAG"}
+    for k in range(20):
+        ds = _base(MRImageStorage, PAT, st, series, "MR")
+        ds.InstanceNumber = k + 1
+        ds.ImagePositionPatient = [k * 1.0, 0.0, 0.0]
+        ds.ImageOrientationPatient = [0, 1, 0, 0, 0, 1]
+        ds.PixelSpacing = [0.5, PX]
+        ds.SliceThickness = 1.0
+        ds.FrameOfReferenceUID = st["for"]
+        _mono(ds, np.full((40, 40), 100 + k * 10, np.uint16), signed=False)
+        _save(ds, tmp_path / "sag")
+    Importer(srv.repo_.db, Path(srv.storage)).import_paths([tmp_path / "sag"])
+
+
+
 def test_servidor_usa_as_series_escolhidas(servidor_din, tmp_path):
     t2 = _por_t2(servidor_din, tmp_path)
     d = _din(servidor_din)
@@ -174,3 +193,51 @@ def test_quadros_layout_series_e_ponto(servidor_din, tmp_path):
         assert _esperar(lambda: pg.evaluate("() => window.__ipeDin && window.__ipeDin.estado().par.tempos.length") == 5, 30)
         b.close()
     assert not erros, erros
+
+
+@pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_dist) não foi construído")
+def test_serie_de_outro_plano_nao_volta_ao_rolar(servidor_din, tmp_path):
+    """0.100.59: uma série sagital num quadro da dinâmica axial: o clique das linhas de referência a leva ao ponto, e
+    rolar a dinâmica não a devolve (de outro plano ela não anda pela rolagem); rolar a sagital não mexe na dinâmica."""
+    pw = pytest.importorskip("playwright.sync_api")
+    _sagital(servidor_din, tmp_path)
+    with pw.sync_playwright() as p:
+        b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
+        pg = b.new_page(viewport={"width": 1600, "height": 950})
+        pg.goto(f"http://127.0.0.1:{servidor_din.port}/web/")
+        pg.fill("#usuario", "admin")
+        pg.fill("#senha", "admin123")
+        pg.click("button[type=submit]")
+        pg.wait_for_selector("table.lista tbody tr")
+        pg.locator("table.lista tbody tr").first.dblclick()
+        pg.wait_for_selector(".quadro canvas")
+        icone(pg, "Dinâmica da mama")
+        assert _esperar(lambda: pg.locator(".camada-din").count() == 1, 30)
+        pg.click(".quadro >> nth=3 >> .rotulo-din .texto-rotulo")
+        menu(pg, "Mostrar")
+        menu(pg, "Séries do exame")
+        menu(pg, "Se 6 · T2 SAG")
+        assert _esperar(lambda: pg.evaluate("() => window.__ipeDin.estado().detalhe[3].v") == "serie")
+        idx = lambda: [pg.evaluate(f"() => window.__ipeGrade.viewport({i}).getCurrentImageIdIndex()") for i in range(4)]  # noqa: E731
+        ferramenta(pg, "linhas")
+        box = pg.locator(".quadro").nth(0).bounding_box()
+        cx, cy = box["x"] + box["width"] * 0.3, box["y"] + box["height"] * 0.6
+        pg.mouse.click(cx, cy)
+        assert _esperar(lambda: idx()[3] not in (-1, 19))
+        sag = idx()[3]
+        for _ in range(3):
+            pg.mouse.wheel(0, 120)
+            pg.wait_for_timeout(300)
+        assert _esperar(lambda: idx()[0] != 3)
+        pg.wait_for_timeout(500)
+        i = idx()
+        assert i[0] == i[1] == i[2] and i[3] == sag, i
+        box = pg.locator(".quadro").nth(3).bounding_box()
+        pg.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+        for _ in range(2):
+            pg.mouse.wheel(0, 120)
+            pg.wait_for_timeout(300)
+        assert _esperar(lambda: idx()[3] != sag)
+        pg.wait_for_timeout(500)
+        assert idx()[:3] == i[:3]
+        b.close()

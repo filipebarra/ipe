@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.59 — Ipê Web: série de outro plano na dinâmica
+- Uma série de outro plano (sagital, coronal) num quadro da dinâmica não volta mais para o meio ao rolar a dinâmica
+  depois do clique das **Linhas de referência**: ela não anda pela rolagem (nem leva a dinâmica); vai ao ponto só pelo
+  clique.
+
 ## 0.100.58 — Ipê Web: dinâmica com séries, layout e quadros à escolha; o ponto da correlação
 - **Dinâmica da mama**: **Séries…** escolhe as séries que entram na conta (ou **Detectar sozinho**); quando o
   servidor não acha as fases, a lista abre para marcar.
