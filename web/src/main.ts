@@ -1323,11 +1323,30 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     await p.abrir();
     return p;
   };
-  bDens.onclick = () => {
+  const abrirDensidade = (depois: (() => void) | null = null) => {
     const p = new PainelDensidade(study, async (cat, frase) => (await abrirLaudo()).porComposicao(cat, frase));
+    p.aoConfirmar = depois;
     abrirPainel(p.raiz, bDens, tr("Densidade mamária"));
     void p.abrir();
   };
+  bDens.onclick = () => abrirDensidade();
+  // 0.100.57: medidas na chegada e ainda não confirmadas — ao abrir a mamografia, pede a confirmação (a densidade e,
+  // confirmada ela, as calcificações)
+  const confirmarMamaPendente = async () => {
+    if (caso || !config?.usuario.perms?.includes("report") || bDens.style.display === "none") return;
+    try {
+      const q = `?study=${encodeURIComponent(study)}`;
+      type R = { medida: { estado?: string; nyu?: string; aviso?: string; imagens?: unknown[] } | null };
+      const ler = async (u: string) => { const r = await API.pedir(u); return r.ok ? (await r.json()) as R : null; };
+      const [d, c] = await Promise.all([ler(`${location.origin}/api/web/densidade${q}`), ler(`${location.origin}/api/web/calcvasc${q}`)]);
+      if (grade !== g) return;
+      const dP = !!d?.medida && d.medida.estado === "auto" && !!d.medida.nyu;
+      const cP = !!c?.medida && c.medida.estado === "auto" && !c.medida.aviso && !!c.medida.imagens?.length;
+      if (dP) abrirDensidade(cP ? () => setTimeout(() => { if (grade === g) bVasos.click(); }, 1200) : null);
+      else if (cP) bVasos.click();
+    } catch { /* servidor antigo: nada */ }
+  };
+  setTimeout(() => void confirmarMamaPendente(), 1500);
   bVasos.onclick = () => {
     const p = new PainelCalcVascular(study, async (frase) => (await abrirLaudo()).inserirTexto(frase));
     abrirPainel(p.raiz, bVasos, tr("Calcificações vasculares"), "calcvasc");

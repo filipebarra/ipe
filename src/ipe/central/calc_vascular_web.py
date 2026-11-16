@@ -78,6 +78,8 @@ def confirmar(c, s, study: str, grau: str) -> dict:
         raise ValueError("o exame ainda não foi medido")
     C.confirmar(c.repo, study, m, str(grau or "").lower(), s.username)
     c.repo.audit("calc_vascular", f"confirmada pelo navegador: {grau}", user=s.username, study_uid=study)
+    from ipe.central.densidade_web import gravar_sr
+    gravar_sr(c, s, study)                        # 0.100.57: tudo confirmado → o SR no exame
     return _saida(C.guardada(c.repo, study), s)
 
 
@@ -95,3 +97,4 @@ def previa(c, s, study: str, indice: int) -> bytes:
     if not cam:
         raise KeyError(f"sem a imagem {indice}")
     return C.previa_png(pydicom.dcmread(cam, force=True), imgs[indice], 420)
+

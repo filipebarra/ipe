@@ -87,6 +87,13 @@ def _banco_postgres(request, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _sem_mama_automatica(monkeypatch):
+    """0.100.57: a medida automática da mama (densidade e calcificações) não roda sozinha nos testes de outras
+    coisas — as redes de verdade numa linha solta atrás do teste. Os testes dela usam a fila direto."""
+    monkeypatch.setenv("IPE_SEM_MAMA_AUTO", "1")
+
+
+@pytest.fixture(autouse=True)
 def _sem_github(monkeypatch):
     """0.99.70: a janela não procura versão nova no GitHub durante os testes."""
     monkeypatch.setenv("IPE_SEM_GITHUB", "1")

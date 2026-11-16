@@ -419,7 +419,10 @@ class ImpressoesMixin:
                 srv = CentralServer(self.db, self.repo, self.storage, port=int(self.settings.get("central.port", 8043)),
                                     certfile=self.settings.get("central.certfile", "") or "",
                                     keyfile=self.settings.get("central.keyfile", "") or "")
-                srv.on_import = lambda _s: self._refresh_timer.start()
+                def chegou(estudos):
+                    self._refresh_timer.start()
+                    self.auto.mama_chegada(estudos)      # 0.100.57: densidade e calcificações na chegada
+                srv.on_import = chegou
                 srv.settings = self.settings
                 srv.net = self.net        # 0.100.9: o navegador envia ao PACS pela fila deste computador
                 srv.auto = self.auto      # 0.100.10: e pede CAD/IA pela fila de IA deste computador

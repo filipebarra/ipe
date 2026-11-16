@@ -80,4 +80,17 @@ def confirmar(c, s, study: str, categoria: str) -> dict:
     R.confirmar(c.repo, study, m, categoria, s.username)
     c.repo.audit("densidade", f"confirmada pelo navegador: {categoria.upper()} (rede {(m.get('nyu') or '—').upper()})",
                  user=s.username, study_uid=study)
+    gravar_sr(c, s, study)                        # 0.100.57: tudo confirmado → o SR no exame
     return _saida(R.guardada(c.repo, study), s)
+
+
+def gravar_sr(c, s, study: str) -> None:
+    """0.100.57: com a densidade e as calcificações confirmadas, grava o SR e as imagens marcadas (em segundo plano)."""
+    import threading
+
+    from ipe.ai import mama_sr as MS
+    db, storage = getattr(c, "db", None), getattr(c, "storage", None)
+    if db is None or storage is None:
+        return
+    threading.Thread(target=MS.depois_de_confirmar, args=(c.repo, db, storage, study, s.full_name or s.username),
+                     daemon=True, name="mama-sr").start()

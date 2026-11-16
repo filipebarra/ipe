@@ -57,6 +57,9 @@ export class PainelDensidade {
   private escolhida = "";
   private ocupado = false;
 
+  /** 0.100.57: depois de confirmar (o Ipê Web abre as calcificações em seguida, quando também esperam) */
+  aoConfirmar: (() => void) | null = null;
+
   constructor(private study: string, private aoLaudo: (categoria: string, frase: string) => Promise<boolean>) {
     this.raiz.className = "painel-densidade";
     (window as unknown as Record<string, unknown>).__ipeDensidade = this; // testes
@@ -102,6 +105,7 @@ export class PainelDensidade {
       }
       this.ocupado = false;
       this.desenhar(msg);
+      this.aoConfirmar?.();
     } catch (e) {
       this.ocupado = false;
       this.desenhar(`${tr("Não confirmou:")} ${(e as Error).message}`);

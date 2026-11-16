@@ -70,6 +70,9 @@ def run_server(args) -> int:
         auto = AutomationEngine(repo, db, net, settings, paths)
         auto.start()
         srv.auto = auto                  # 0.100.10: CAD/IA pedida pelo navegador
+        # 0.100.57: mamografia enviada ao servidor também mede densidade e calcificações; e o banco, uma vez
+        srv.on_import = auto.mama_chegada
+        QTimer.singleShot(30_000, auto.varrer_mamografias)
         print(net.server.status_text())
         # impressora DICOM (Print SCP): só liga se estiver ativada nas configurações
         if net.start_print_servers():

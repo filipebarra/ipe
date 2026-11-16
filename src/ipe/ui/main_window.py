@@ -2547,6 +2547,8 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         self._update_net_label()
         if not getattr(self.repo, "remote", False):     # no modo cliente a automação roda no servidor
             self.auto.start()
+            # 0.100.57: as mamografias do banco sem densidade/calcificações medidas, uma vez, em segundo plano
+            QTimer.singleShot(60_000, self.auto.varrer_mamografias)
         self.start_central_server()
         # bancos de versões antigas: lê operador/estação/aparelho das séries em segundo plano
         from ipe.importer.backfill import backfill_nm_key_images, backfill_series_details

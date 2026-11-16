@@ -3,6 +3,17 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.57 — Densidade e calcificações automáticas, confirmação ao abrir e SR
+- Toda **mamografia que chega** (rede, PACS, importação, envio ao servidor) tem a **densidade** e as
+  **calcificações vasculares** medidas sozinhas, em segundo plano (Tarefas de IA). Nada é confirmado sozinho.
+- **Ao abrir a mamografia** (Ipê e Ipê Web), a janela da densidade abre para confirmar; depois, a das calcificações.
+- **Confirmadas as duas**, o exame ganha um **SR** com tudo (composição e probabilidades, grau e sugestão, áreas por
+  mama e por imagem, escalas, quem confirmou), as **imagens com as calcificações marcadas** e um **resumo** em
+  tabela.
+- **As mamografias que já estavam no banco** são conferidas uma vez, em segundo plano, depois de abrir esta versão
+  (no servidor também).
+- Preferências ▸ CAD/IA ▸ **Densidade e calcificações (mama)**.
+
 ## 0.100.56 — Pacote de casos (a lista abre no navegador)
 - **Exportar pacote de casos** (botão direito na lista): uma pasta com o visualizador completo do Ipê Web e os exames
   anonimizados, para aula, congresso ou colegas. Abre pelo **Abrir casos** do Windows, Mac ou Linux (sem instalar

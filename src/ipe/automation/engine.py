@@ -51,6 +51,9 @@ class AutomationEngine(QObject):
         self._gestao_tentativas: dict[int, int] = {}  # regra -> repetições depois de erro
         self._last_retention = 0.0
         self._last_disk_check = 0.0
+        # 0.100.57: densidade e calcificações vasculares de toda mamografia que chega (e do banco, uma vez)
+        from ipe.automation import mama_auto as MA
+        self.mama = MA.Fila(repo, settings=settings)
         self.timer = QTimer(self)
         self.timer.setInterval(30_000)
         self.timer.timeout.connect(self.tick)
@@ -63,6 +66,9 @@ class AutomationEngine(QObject):
     def set_source(self, repo, db, trash_root=None) -> None:
         """Troca o banco (troca de local); a lixeira passa a ser a do local."""
         self.repo, self.db = repo, db
+        self.mama.parar()
+        from ipe.automation import mama_auto as MA
+        self.mama = MA.Fila(repo, settings=self.settings)
         if trash_root is not None:
             self.trash_root = trash_root
 
@@ -85,6 +91,42 @@ class AutomationEngine(QObject):
 
     def stop(self) -> None:
         self.timer.stop()
+        self.mama.parar()
+
+    # ------------------------------------------------------------ 0.100.57: densidade e calcificações na chegada
+    def mama_ia(self, study_uid: str, info: dict | None = None) -> bool:
+        """Mamografia que chegou (rede, PACS, importação, envio ao servidor): mede a densidade e as calcificações
+        vasculares em segundo plano, para o médico confirmar ao abrir. Pode ser chamada de outra linha."""
+        from ipe.automation import mama_auto as MA
+        if not MA.ligado(self.settings) or not MA.local(self.repo):
+            return False
+        info = info if info is not None else self.repo.study_info(study_uid)
+        if not MA.e_mamografia(info):
+            return False
+        return self.mama.pedir(study_uid)
+
+    def mama_chegada(self, study_uids) -> None:
+        for u in study_uids or []:
+            try:
+                self.mama_ia(u)
+            except Exception:  # noqa: BLE001
+                pass
+
+    def varrer_mamografias(self) -> int:
+        """Uma vez por versão do método: as mamografias do banco que ainda não têm a medida (ver mama_auto)."""
+        from ipe.automation import mama_auto as MA
+        if not MA.ligado(self.settings) or not MA.local(self.repo):
+            return 0
+        fila, settings = self.mama, self.settings
+
+        def varrer():                       # a conta de milhares de exames não trava a tela
+            try:
+                MA.varrer_banco(fila, settings)
+            except Exception:  # noqa: BLE001
+                log.exception("varrer as mamografias do banco")
+        import threading
+        threading.Thread(target=varrer, name="mama-varredura", daemon=True).start()
+        return 1
 
     def _search_nodes(self, node_id=None) -> list[dict]:
         nodes = [n for n in self.repo.nodes(only_active=True, todos=True) if n["kind"] in NODES.CONSULTA]
@@ -208,6 +250,7 @@ class AutomationEngine(QObject):
         self.prefetch(study_uid, "receive")
         self.precalcular_dinamica(study_uid, info)
         self.corrigir_implantes(study_uid, info)
+        self.mama_ia(study_uid, info)
         self.segmentar_orgaos(study_uid, info)
         self.segmentar_coluna(study_uid, info)
         self.cefalometria(study_uid, info)
@@ -237,6 +280,7 @@ class AutomationEngine(QObject):
             if info is None:
                 continue
             self.corrigir_implantes(uid, info)
+            self.mama_ia(uid, info)
             self.segmentar_orgaos(uid, info)
             self.segmentar_coluna(uid, info)
             self.cefalometria(uid, info)

@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.57 — Automatic density and calcifications, confirm on open, and SR
+- Every **mammogram that arrives** (network, PACS, import, upload to the server) has its **density** and **vascular
+  calcifications** measured automatically in the background (AI tasks). Nothing is confirmed automatically.
+- **When the mammogram is opened** (Ipê and Ipê Web), the density window opens to confirm; then the calcifications.
+- **With both confirmed**, the study gets an **SR** with everything, the **images with the calcifications marked**
+  and a **summary** table.
+- **Mammograms already in the database** are checked once, in the background, after this version starts.
+- Preferences ▸ CAD/AI ▸ **Density and calcifications (breast)**.
+
 ## 0.100.56 — Case pack (the list opens in the browser)
 - **Export case pack** (right-click a list): a folder with the full Ipê Web viewer and the anonymized studies, for
   teaching, congresses or colleagues. Opens with **Abrir casos** on Windows, Mac or Linux (nothing to install) or

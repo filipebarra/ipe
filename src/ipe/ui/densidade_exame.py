@@ -213,6 +213,10 @@ class DensidadeExameJanela(QDialog):
             return False
         self.medida = R.guardada(self.repo, self.uid) or dict(self.medida, categoria=cat)
         self.mostrar()
+        try:                     # 0.100.57: tudo confirmado → o SR e as imagens marcadas no exame
+            self.tab.mama_confirmada(self.uid)
+        except Exception:  # noqa: BLE001
+            log.debug("SR da mamografia", exc_info=True)
         if laudo:
             mandar_ao_laudo(self.tab, self.uid, cat)
         return True

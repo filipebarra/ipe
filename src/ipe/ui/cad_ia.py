@@ -20,6 +20,7 @@ from ipe.ai import linfonodos as LN
 from ipe.ai import neuro as NE
 from ipe.ai import totalseg as TS
 from ipe.automation import implante as IMP
+from ipe.automation import mama_auto as MA
 
 
 def _lista_de_nos(repo, marcados) -> QListWidget:
@@ -60,6 +61,7 @@ class CadIaTab(QWidget):
     FERRAMENTAS = (("Segmentação abdominal", "_grupo_segmentacao", TS.CHAVE_AUTO),
                    ("Níveis da coluna", "_grupo_coluna", COL.CHAVE_AUTO),
                    ("Implante de silicone", "_grupo_implante", IMP.CHAVE),
+                   ("Densidade e calcificações (mama)", "_grupo_mama", MA.CHAVE),
                    ("Cefalometria do cavum", "_grupo_cefalometria", CF.CHAVE_AUTO),
                    ("Índices do crânio", "_grupo_neuro", NE.CHAVE_AUTO),
                    ("Níveis linfonodais", "_grupo_linfonodos", LN.CHAVE_AUTO))
@@ -125,7 +127,8 @@ class CadIaTab(QWidget):
             self.l_ferramentas.item(k).setText(f"{nome}\n   {'automático na chegada' if auto else 'só à mão'}")
 
     def _caixas_auto(self) -> list:
-        return [self.c_seg_auto, self.c_col_auto, self.c_imp_auto, self.c_cef_auto, self.c_neu_auto, self.c_lin_auto,
+        return [self.c_seg_auto, self.c_col_auto, self.c_imp_auto, self.c_mama_auto, self.c_cef_auto, self.c_neu_auto,
+                self.c_lin_auto,
                 *[w["auto"] for w in self._gen.values()]]
 
     # ------------------------------------------------------------ IAs do contrato comum (0.99.46)
@@ -534,6 +537,40 @@ class CadIaTab(QWidget):
         f.addRow("Depois de fazer, enviar para:", self.l_lin_dest)
         return g
 
+    # ------------------------------------------------------------ 0.100.57: densidade e calcificações vasculares
+    def _grupo_mama(self) -> QGroupBox:
+        g = QGroupBox("Densidade mamária e calcificações vasculares (mamografia)")
+        f = QFormLayout(g)
+        self.c_mama_auto = QCheckBox("Medir automaticamente quando a mamografia chegar (rede, PACS, importação)")
+        self.c_mama_auto.setChecked(MA.ligado(self.settings))
+        self.c_mama_abrir = QCheckBox("Ao abrir a mamografia, pedir a confirmação do que foi medido")
+        self.c_mama_abrir.setChecked(MA.confirmar_ao_abrir(self.settings))
+        f.addRow(self.c_mama_auto)
+        f.addRow(self.c_mama_abrir)
+        texto = QLabel("A densidade (rede da NYU) e as calcificações vasculares (SCU-Net) são medidas em segundo plano, "
+                       "um exame por vez, e ficam esperando a sua confirmação. Ao abrir o exame, a janela da "
+                       "densidade abre e, fechada ela, a das calcificações. Confirmadas as duas, o Ipê grava no "
+                       "exame um SR com tudo, as imagens com as calcificações marcadas e um resumo.\n\n"
+                       "As mamografias que já estavam no banco são conferidas uma vez, depois de abrir o programa "
+                       "(acompanhe e cancele em Tarefas de IA). No computador ligado a um servidor central, quem "
+                       "mede é o servidor.")
+        texto.setWordWrap(True)
+        texto.setStyleSheet("color:#9a9a9a")
+        f.addRow(texto)
+        b = QPushButton("Conferir o banco de novo na próxima abertura")
+        b.setToolTip("Volta a procurar, no banco inteiro, as mamografias sem a densidade ou as calcificações medidas.")
+
+        def de_novo():
+            try:
+                self.settings.set_do_computador(MA.CHAVE_VARREDURA, 0)
+            except Exception:  # noqa: BLE001
+                self.settings.set(MA.CHAVE_VARREDURA, 0)
+            b.setText("Combinado: na próxima abertura")
+            b.setEnabled(False)
+        b.clicked.connect(de_novo)
+        f.addRow(b)
+        return g
+
     # ------------------------------------------------------------ implante
     def _grupo_implante(self) -> QGroupBox:
         g = QGroupBox("Implante de silicone (mamografia)")
@@ -621,6 +658,8 @@ class CadIaTab(QWidget):
         s.set(LN.CHAVE_MIN_CORTES, self.s_lin_min.value())
         s.set(LN.CHAVE_DESTINOS, _marcados(self.l_lin_dest))
         s.set(IMP.CHAVE, self.c_imp_auto.isChecked())
+        s.set(MA.CHAVE, self.c_mama_auto.isChecked())
+        s.set(MA.CHAVE_ABRIR, self.c_mama_abrir.isChecked())
         s.set(IMP.CHAVE_ANTERIORES, self.c_imp_ant.isChecked())
         s.set(IMP.CHAVE_SO_COM_MARCA, self.r_imp_marca.isChecked())
         s.set(IMP.CHAVE_SALVAR_BOTAO, self.c_imp_botao.isChecked())

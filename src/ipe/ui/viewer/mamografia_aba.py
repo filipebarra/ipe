@@ -178,7 +178,70 @@ class MamografiaMixin:
         if propagar:
             for t in self.irmaos():
                 t.start_mg(proto, propagar=False)
+            # 0.100.57: densidade e calcificações medidas na chegada e ainda não confirmadas: abre para confirmar
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(900, self.confirmar_mama_pendente)
         return True
+
+    # ------------------------------------------------------------- 0.100.57: confirmar ao abrir; SR depois
+    def confirmar_mama_pendente(self) -> None:
+        """Ao abrir a mamografia: a janela da densidade e, fechada ela, a das calcificações — só o que foi medido
+        sozinho (na chegada ou na varredura do banco) e ainda espera a confirmação. Uma vez por aba."""
+        from ipe.automation import mama_auto as MA
+        uid = self.study_uid
+        if not uid or getattr(self, "_mama_perguntado", None) == uid or self.repo is None:
+            return
+        if not MA.confirmar_ao_abrir(self.settings):
+            return
+        self._mama_perguntado = uid
+        try:
+            pend = MA.pendentes(self.repo, uid)
+        except Exception:  # noqa: BLE001
+            log.debug("pendentes da mama", exc_info=True)
+            return
+        self._mama_fila = [k for k in ("densidade", "calc_vascular") if k in pend]
+        self._mama_proxima()
+
+    def _mama_proxima(self, *_a) -> None:
+        fila = getattr(self, "_mama_fila", None) or []
+        if not fila or self.study_uid is None:
+            return
+        k = fila.pop(0)
+        d = self.densidade_do_exame() if k == "densidade" else self.calc_vascular_do_exame()
+        if d is not None and fila:
+            d.finished.connect(self._mama_proxima)
+
+    def mama_confirmada(self, study_uid: str) -> None:
+        """Chamado pelas janelas depois de cada confirmação: com tudo confirmado, grava o SR e as imagens marcadas
+        no exame (em segundo plano)."""
+        storage = getattr(self, "storage_root", None)
+        if storage is None or self.repo is None:
+            return
+        repo, db = self.repo, getattr(self.repo, "db", None)
+        if db is None:
+            return
+        from ipe.ai import mama_sr as MS
+        from ipe.ui.viewer.estado_analise import usuario_atual
+        quem = usuario_atual()
+
+        def trabalho():
+            return MS.depois_de_confirmar(repo, db, storage, study_uid, quem)
+
+        def pronto(out, err) -> None:
+            if err is not None:
+                self.status_message.emit(f"Não gravei o SR da mamografia: {err}")
+            elif out:
+                self.status_message.emit(MS.resumo_texto(out))
+                try:
+                    self.recarregar_series()
+                except Exception:  # noqa: BLE001
+                    pass
+        net = getattr(self, "net", None)
+        if net is not None and hasattr(net, "run_async"):
+            net.run_async(trabalho, pronto)
+        else:
+            import threading
+            threading.Thread(target=trabalho, daemon=True).start()
 
     def mg_step(self, i: int, propagar: bool = True) -> None:
         """Vai para a etapa `i` — **em todos os monitores do conjunto**, ao mesmo tempo."""

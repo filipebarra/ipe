@@ -352,6 +352,10 @@ class CalcVascularJanela(QDialog):
             return False
         self.medida = C.guardada(self.repo, self.uid) or dict(self.medida, grau=g)
         self.mostrar()
+        try:                     # 0.100.57: tudo confirmado → o SR e as imagens marcadas no exame
+            self.tab.mama_confirmada(self.uid)
+        except Exception:  # noqa: BLE001
+            log.debug("SR da mamografia", exc_info=True)
         if laudo:
             self.tab.mandar_texto_ao_laudo(C.frase_do_laudo(g))
         return True

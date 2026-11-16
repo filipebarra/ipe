@@ -631,6 +631,16 @@ São estimativas: "vaso" são os trechos a até 2,5 mm uns dos outros; "trilho",
 
 No **Ipê Web**, o botão **Calcificações vasculares** (ao lado da Densidade mamária) faz o mesmo, medindo no servidor: as prévias com as marcas (com ◀ ▶ e a rodinha quando a incidência tem mais de uma imagem), a sugestão, o grau e o laudo. Confirmar pede a permissão de escrever laudos. O painel abre grande e pode ser **redimensionado pelo canto de baixo à direita**; o navegador lembra o tamanho.
 
+### Automático: medir na chegada, confirmar ao abrir, SR no exame (0.100.57)
+
+Toda mamografia que chega — recebida pela rede, baixada do PACS (Q/R), importada ou enviada ao servidor central — tem a **densidade** e as **calcificações vasculares** medidas sozinhas, em segundo plano, um exame por vez (acompanhe e cancele em **Tarefas de IA**). Nada é confirmado sozinho: as medidas ficam esperando.
+
+- **Ao abrir o exame** (no Ipê ou no Ipê Web), abre a janela da **densidade** com a sugestão marcada; confirmada (ou fechada) ela, abre a das **calcificações**. Só aparece o que ainda não foi confirmado, e uma vez por exame aberto.
+- **Confirmadas as duas**, o Ipê grava no exame três séries: o **SR** (*Densidade e calcificações (Ipê) SR*: a composição confirmada e as probabilidades da rede, o grau confirmado e a sugestão, a área por mama e por imagem, as escalas, quem confirmou e as referências às imagens), as **imagens com as calcificações marcadas** em vermelho (*Calcificações vasculares (Ipê)*, uma por imagem com calcificação) e um **resumo** em tabela (*Densidade e calcificações (Ipê)*, para PACS que não mostram SR). Confirmar de novo (outro grau) refaz as três.
+- **As mamografias que já estavam no banco** são conferidas uma vez, em segundo plano, depois de abrir o programa (ou o servidor) nesta versão: a tarefa *Densidade e calcificações vasculares — mamografias do banco* mostra quantas faltam; as mais novas primeiro. O que não terminar continua na próxima abertura.
+- Preferências ▸ CAD/IA ▸ **Densidade e calcificações (mama)**: ligar/desligar a medida na chegada e a confirmação ao abrir; **Conferir o banco de novo na próxima abertura**.
+- No computador ligado a um servidor central, quem mede é o servidor; a confirmação é feita em qualquer um.
+
 ## RM de mama dinâmica
 
 O programa reproduz o fluxo do CADstream: detecta as fases, corrige movimento, calcula os mapas paramétricos, classifica a cinética em seis cores e mede a lesão sobre o realce.
