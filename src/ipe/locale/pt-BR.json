@@ -6969,7 +6969,10 @@
   "Abertura (",
   "Abertura ({}): {} pronto em {} s{}",
   "Abertura cliente (",
-  "abertura para o servidor"
+  "abertura para o servidor",
+  "Connection",
+  "Host",
+  "fechada sem dizer nada"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.62 — servidor HTTPS: el Ipê Web ya no desaparece; http:// lleva a https://
+- **Servidor con certificado (HTTPS)**: una conexión que se abría y no decía nada (el navegador adelantando
+  conexiones, un celular dormido) detenía el servidor entero hasta cerrarse — el Ipê Web y los clientes dejaban de ser
+  atendidos y solo volvían al reiniciar. La negociación del HTTPS ahora se hace en cada conexión, con plazo de 20 s.
+- **http:// en el servidor HTTPS**: en lugar de fallar, el navegador es llevado al https:// de la misma dirección.
+
 ## 0.100.61 — tiempo de apertura del Ipê de escritorio en modo cliente en el registro del servidor
 - En modo cliente, cada línea "Abertura (…)" del Ipê de escritorio (primera imagen, por etapa — con la espera del
   servidor — y lo que llega después) también va al registro del servidor, como "Abertura cliente (…) |

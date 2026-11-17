@@ -1323,6 +1323,8 @@ Sem certificado, o servidor central usa HTTP e a senha de cada login passa abert
 2. **Em cada cliente:** troque o endereço para `https://…` e clique em **Confiar no certificado deste servidor…**. O Ipê baixa a AC do servidor e mostra a impressão digital: confira que é a mesma do servidor e confirme. Daí em diante o cliente só aceita aquele servidor (outro computador na rede não consegue se passar por ele).
 3. **Navegadores e outros visualizadores DICOMweb:** **Salvar a AC (.crt)…** no servidor e, no Windows de cada cliente, duplo clique no arquivo ▸ Instalar certificado ▸ Máquina local (ou Usuário atual) ▸ Autoridades de Certificação Raiz Confiáveis.
 
+Com o certificado, o servidor só fala HTTPS: quem digita `http://` no navegador é levado sozinho ao `https://` do mesmo endereço (0.100.62), e os clientes do Ipê devem ter o endereço em `https://`. Desde a 0.100.62 a negociação do HTTPS é feita em cada conexão, com prazo — antes, uma conexão que abria e ficava calada (o navegador adianta conexões; um celular que dorme) podia parar o servidor até ser fechada, e o Ipê Web só voltava reiniciando o programa.
+
 Gerar de novo (por exemplo, quando o servidor mudar de IP) troca só o certificado do servidor; a AC continua a mesma e os clientes não precisam fazer nada. A chave da AC fica só no servidor, na pasta `certificados` das configurações; guarde uma cópia dela junto com o backup.
 
 ### Perfis por grupo e computador

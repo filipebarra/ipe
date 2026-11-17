@@ -144,7 +144,11 @@ class CentralServer:
         if self.certfile:
             ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             ctx.load_cert_chain(self.certfile, self.keyfile or None)
-            httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
+            # 0.100.62: a negociação do HTTPS é feita na linha de cada conexão (`_Servidor.process_request_thread`).
+            # Antes a porta inteira era embrulhada: a negociação corria na linha que aceita as conexões, e uma
+            # conexão que abria e não dizia nada (o navegador adiantando conexões, um celular que dormiu) parava
+            # o servidor inteiro até ser fechada — o Ipê Web "sumia" e só voltava reiniciando.
+            httpd.tls = ctx
         self.port = httpd.server_address[1]
         self._httpd = httpd
         self._thread = threading.Thread(target=httpd.serve_forever, name="central-http", daemon=True)
@@ -496,10 +500,46 @@ class _Servidor(ThreadingHTTPServer):
     """0.100.38: as conexões ficam abertas entre pedidos — então desligar o servidor também fecha as que estão
     abertas (senão, uma conexão guardada por um cliente continuaria sendo atendida pelo servidor já desligado)."""
 
+    #: 0.100.62: o contexto do HTTPS (None = servidor em HTTP)
+    tls = None
+    #: quanto esperar pelo começo da conversa e pela negociação do HTTPS, em segundos
+    ESPERA_TLS = 20
+
     def __init__(self, *a, **k):
         self._abertas: set = set()
         self._trava_abertas = threading.Lock()
+        self.sem_tls: set = set()          # conexões que chegaram em HTTP puro num servidor HTTPS
         super().__init__(*a, **k)
+
+    def process_request_thread(self, request, client_address) -> None:
+        """0.100.62: num servidor HTTPS, olha o primeiro byte da conexão **na linha dela**: 0x16 é o começo do
+        HTTPS (negocia aqui, com prazo); outra coisa é HTTP puro — atendido só para mandar o navegador para o
+        https:// do mesmo endereço. Quem não diz nada em `ESPERA_TLS` segundos é desligado."""
+        if self.tls is None:
+            return super().process_request_thread(request, client_address)
+        try:
+            request.settimeout(self.ESPERA_TLS)
+            primeiro = request.recv(1, socket.MSG_PEEK)
+            if not primeiro:
+                raise ConnectionError("fechada sem dizer nada")
+            if primeiro == b"\x16":
+                seguro = self.tls.wrap_socket(request, server_side=True)
+                with self._trava_abertas:
+                    self._abertas.discard(request)
+                    self._abertas.add(seguro)
+                request = seguro
+            else:
+                with self._trava_abertas:
+                    self.sem_tls.add(request)
+        except Exception as e:  # noqa: BLE001 - negociação recusada, prazo, conexão fechada
+            log.debug("conexão com %s sem HTTPS: %s", client_address[0], e)
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            with self._trava_abertas:
+                self.sem_tls.discard(request)
 
     def get_request(self):
         sock, endereco = super().get_request()
@@ -615,7 +655,22 @@ class _Handler(BaseHTTPRequestHandler):
         return s
 
     # ------------------------------------------------------------------ rotas
+    def _para_https(self) -> bool:
+        """0.100.62: pedido em HTTP puro a um servidor HTTPS → o mesmo endereço em https:// (308)."""
+        if self.request not in getattr(self.server, "sem_tls", ()):
+            return False
+        host = (self.headers.get("Host") or "").strip() or f"{self.server.server_address[0]}:{self.server.server_address[1]}"
+        self.send_response(308)
+        self.send_header("Location", f"https://{host}{self.path}")
+        self.send_header("Content-Length", "0")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.close_connection = True
+        return True
+
     def do_GET(self) -> None:  # noqa: N802
+        if self._para_https():
+            return
         try:
             self._route("GET")
         except (BrokenPipeError, ConnectionResetError):
@@ -625,6 +680,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._error(500, str(e))
 
     def do_POST(self) -> None:  # noqa: N802
+        if self._para_https():
+            return
         self._corpo_lido = False
         try:
             self._route("POST")

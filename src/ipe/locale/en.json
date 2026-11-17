@@ -9397,5 +9397,8 @@
  "Abertura ({}): {} pronto em {} s{}": "Abertura ({}): {} pronto em {} s{}",
  "Abertura cliente (": "Abertura cliente (",
  "abertura para o servidor": "opening time to the server",
- " | {} | {}": " | {} | {}"
+ " | {} | {}": " | {} | {}",
+ "Connection": "Connection",
+ "Host": "Host",
+ "fechada sem dizer nada": "closed without saying anything"
 }

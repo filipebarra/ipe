@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.62 — HTTPS server: Ipê Web no longer disappears; http:// leads to https://
+- **Server with a certificate (HTTPS)**: a connection that opened and said nothing (the browser pre-opening
+  connections, a phone that went to sleep) stalled the whole server until it was closed — Ipê Web and the clients
+  stopped being served and only came back after a restart. The HTTPS handshake now runs per connection, with a 20 s
+  deadline.
+- **http:// on the HTTPS server**: instead of failing, the browser is sent to https:// at the same address.
+
 ## 0.100.61 — opening time of desktop Ipê in client mode in the server log
 - In client mode, each "Abertura (…)" line of desktop Ipê (first image, by stage — including the wait for the server —
   and what arrives later) also goes to the server log, as "Abertura cliente (…) | user@computer | version". Versions
