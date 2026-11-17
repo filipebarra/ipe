@@ -34,7 +34,7 @@ jobs:
         id: v
         shell: bash
         run: echo "versao=$(python -c 'import ipe;print(ipe.__version__)')" >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-go@v5        # 0.100.56: os lançadores do pacote de casos (tools/lancador)
+      - uses: actions/setup-go@v6        # 0.100.56: os lançadores do pacote de casos (tools/lancador)
         with:
           go-version: "1.22"
           cache: false
@@ -93,7 +93,7 @@ jobs:
       - name: Versão
         id: v
         run: echo "versao=$(python -c 'import ipe;print(ipe.__version__)')" >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-go@v5        # 0.100.56: os lançadores do pacote de casos (tools/lancador)
+      - uses: actions/setup-go@v6        # 0.100.56: os lançadores do pacote de casos (tools/lancador)
         with:
           go-version: "1.22"
           cache: false
@@ -159,7 +159,7 @@ jobs:
             d=$((t*2)); sips -z $d $d installer/linux/ipe.png --out ipe.iconset/icon_${t}x${t}@2x.png >/dev/null
           done
           iconutil -c icns ipe.iconset -o installer/ipe.icns
-      - uses: actions/setup-go@v5        # 0.100.56: os lançadores do pacote de casos (tools/lancador)
+      - uses: actions/setup-go@v6        # 0.100.56: os lançadores do pacote de casos (tools/lancador)
         with:
           go-version: "1.22"
           cache: false
@@ -265,4 +265,9 @@ jobs:
           # 0.100.54: as somas SHA-256 num arquivo do release — o Ipê confere o download mesmo quando a API do GitHub
           # recusa (limite de pedidos por IP) e ele acha a versão pela página
           for f in pacotes/*/*; do echo "$(sha256sum "$f" | cut -d' ' -f1)  $(basename "$f")"; done > SHA256SUMS.txt
-          gh release create "v$V" pacotes/*/* SHA256SUMS.txt --title "Ipê $V" --notes-file notas.md --target "$GITHUB_SHA" $RASC
+          # 0.100.65: se o release já existe (um pacote falhou e a compilação foi refeita), só completa os arquivos
+          if gh release view "v$V" >/dev/null 2>&1; then
+            gh release upload "v$V" pacotes/*/* SHA256SUMS.txt --clobber
+          else
+            gh release create "v$V" pacotes/*/* SHA256SUMS.txt --title "Ipê $V" --notes-file notas.md --target "$GITHUB_SHA" $RASC
+          fi
