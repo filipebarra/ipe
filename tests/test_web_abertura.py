@@ -51,3 +51,13 @@ def test_navegador_registra_o_tempo_de_abertura(servidor_din):
         assert etapa in primeira[0], primeira[0]
     assert "Chrome" in primeira[0] and "1400x" in primeira[0]
     assert "30 imagens" in tudo[0] and "MB/s" in tudo[0], tudo[0]
+
+
+def test_pagina_pede_para_nao_ser_traduzida():
+    """0.100.64: o tradutor do navegador trocava os textos do Ipê Web por outros sem sentido."""
+    from ipe.central import web as WEB
+    if not WEB.site_instalado():
+        pytest.skip("site não construído")
+    import ipe
+    html = (Path(ipe.__file__).parent / "web_dist" / "index.html").read_text(encoding="utf-8")
+    assert 'translate="no"' in html and 'name="google" content="notranslate"' in html and 'lang="pt-BR"' in html

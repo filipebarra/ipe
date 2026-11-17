@@ -1175,7 +1175,7 @@ No servidor sem janela, o mesmo pela linha de comando: `ipe banco status`, `ipe 
 
 ### Visualizador web (0.99.91)
 
-O servidor central traz um **visualizador no navegador**: em qualquer computador da rede, abra **`http://IP-do-servidor:8043/web/`** (ou `https://…`, com o certificado do Ipê) no Chrome ou no Edge e entre com o mesmo usuário e senha do Ipê. Não precisa instalar nada. O endereço aparece em Configurações ▸ Rede ▸ Servidor central, com o link.
+O servidor central traz um **visualizador no navegador**: em qualquer computador da rede, abra **`http://IP-do-servidor:8043/web/`** (ou `https://…`, com o certificado do Ipê) no Chrome ou no Edge e entre com o mesmo usuário e senha do Ipê. Não precisa instalar nada. Se o navegador oferecer **traduzir a página**, recuse: desde a 0.100.64 a página já pede para não ser traduzida (o tradutor trocava os textos por outros sem sentido); o idioma do Ipê Web é o do próprio programa. O endereço aparece em Configurações ▸ Rede ▸ Servidor central, com o link.
 
 Nesta primeira fase:
 

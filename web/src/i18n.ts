@@ -968,6 +968,7 @@ let lang: "pt" | "en" | "es" = (() => {
 export function setLang(l: string): void {
   lang = l === "pt" ? "pt" : l === "es" ? "es" : "en";
   document.documentElement.lang = lang === "pt" ? "pt-BR" : lang;
+  document.documentElement.setAttribute("translate", "no");          // 0.100.64: sem o tradutor do navegador
 }
 
 export function getLang(): string {

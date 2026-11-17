@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.64 — Ipê Web: el traductor del navegador ya no toca la página
+- El navegador ofrecía (o hacía solo) la traducción de la página y cambiaba los textos del Ipê Web por otros sin
+  sentido. La página ahora le dice al navegador que no traduzca; los idiomas del Ipê Web siguen siendo los del
+  propio programa.
+
 ## 0.100.63 — Gestión DICOM en el Ipê Web (administradores)
 - **Gestión DICOM… en la lista de estudios del Ipê Web**, solo para administradores: comprobar si los estudios de las
   modalidades están en el PACS (por estudio y por serie) y enviar lo que falta o el estudio entero, al PACS o a otro
