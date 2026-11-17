@@ -187,7 +187,7 @@ class MPRMixin:
         sess = getattr(self, "dyn", None)
         if sess is None or vp is None:
             return None
-        from ipe.imaging.dynamic import MAPS
+        from ipe.imaging.dynamic import TODOS_OS_MAPAS as MAPS
         chave = getattr(vp, "dyn_key", None)
         if chave not in MAPS:
             return None
@@ -210,7 +210,7 @@ class MPRMixin:
         chave = f"{id(sess.maps)}:{kind}"
         if chave in cache:
             return cache[chave]
-        from ipe.imaging.dynamic import MAPS
+        from ipe.imaging.dynamic import TODOS_OS_MAPAS as MAPS
         from ipe.imaging.volume import VolumeError
         # Um mapa de RM de mama do acervo dele dá ~105 MB (100 cortes de 512²) e leva uns 7 s.
         # Com quatro mapas reorientados isso passa de 400 MB, então o cache guarda só os dois
@@ -304,7 +304,7 @@ class MPRMixin:
         A segmentação da lesão, ao contrário, funciona em qualquer plano: a semente é um ponto do
         paciente.
         """
-        from ipe.imaging.dynamic import MAPS
+        from ipe.imaging.dynamic import TODOS_OS_MAPAS as MAPS
         e_fase = kind.startswith("ph:")
         if nome == "Original":
             # Volta no corte que ele está olhando, não no que o índice do plano novo calhar de ser:
@@ -350,7 +350,7 @@ class MPRMixin:
 
     def _mostrar_plano_dyn(self, vp, sess, kind: str, plano, centro) -> None:
         """Põe no quadro um plano reconstruído da dinâmica (mapa, subtração ou fase)."""
-        from ipe.imaging.dynamic import MAPS
+        from ipe.imaging.dynamic import TODOS_OS_MAPAS as MAPS
         info = self.study_infos.get(getattr(sess, "study_uid", self.study_uid), self.study_info)
         largura, nivel, janela_ok = vp.state.width, vp.state.level, vp.state.window_set
         vp.mpr_plane = plano

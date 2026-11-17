@@ -52,6 +52,15 @@ MAPS: dict[str, tuple[str, str, str, str, str]] = {
     "fases": ("Fases em cor", "Vermelho = fase inicial, verde = intermediária, azul = tardia (realce de cada uma)",
               "", "", ""),
 }
+#: 0.100.67: os mapas da farmacocinética (Tofts) — só existem com `DynamicMaps.set_tofts`; ficam fora de MAPS para
+#: quem lista os mapas de sempre (o Ipê Web) não oferecer o que não foi calculado
+MAPAS_TOFTS: dict[str, tuple[str, str, str, str, str]] = {
+    "ktrans": ("Ktrans", "Passagem do plasma para o interstício (Tofts)", "1/min", "1/min", "rainbow"),
+    "ve": ("ve", "Fração do espaço extravascular extracelular (Tofts)", "", "", "rainbow"),
+    "kep": ("kep", "Volta do interstício para o plasma: Ktrans / ve (Tofts)", "1/min", "1/min", "rainbow"),
+    "vp": ("vp", "Fração de plasma (Tofts estendido)", "", "", "rainbow"),
+}
+TODOS_OS_MAPAS = {**MAPS, **MAPAS_TOFTS}
 #: 0.99.64: mapas compostos (imagem colorida); não entram nas contas por ROI nem no volume do mapa
 COMPOSTOS = ("tcor", "fases")
 #: os descritores da curva, na ordem da tabela
@@ -306,6 +315,7 @@ class DynamicMaps:
         self.motion_modo = "rigido" if motion == "rigido" else ("translacao" if motion else "")
         self.matrizes: dict[int, np.ndarray] = {}
         self.rotacoes: list[float] = [0.0] * len(dset.phases)
+        self.tofts = None                       # 0.100.67: a configuração da farmacocinética (imaging.tofts.Config)
         if motion:
             self.estimate_motion(progress)
         if excluidas:
@@ -604,7 +614,11 @@ class DynamicMaps:
                "cin": self._cinetica(st, s0, base, valid, early_i, late_i),
                "mipt": pos_fases.max(axis=0) - s0, "medt": pos_fases.mean(axis=0) - s0,
                **descritores(e_desc, tp - tp[0])}
-        for key in ("msi", "pei", "ei", "ttp", *DESCRITORES):
+        chaves_tofts = ()
+        if self.tofts is not None:
+            out.update(self._tofts(post, tp - tp[0], s0))
+            chaves_tofts = tuple(MAPAS_TOFTS)
+        for key in ("msi", "pei", "ei", "ttp", *DESCRITORES, *chaves_tofts):
             m = enh if self.threshold_all else valid
             out[key] = np.where(m, out[key], 0.0).astype(np.float32)
         out["ser"] = out["ser"].astype(np.float32)
@@ -615,6 +629,39 @@ class DynamicMaps:
         while len(self._maps) > 24:
             self._maps.popitem(last=False)
         return out
+
+    # ------------------------------------------------------------ farmacocinética (0.100.67)
+    def set_tofts(self, cfg) -> None:
+        """Liga (ou desliga, com None) os mapas de Tofts: Ktrans, ve, kep e vp."""
+        self.tofts = cfg
+        self._maps.clear()
+        for k in MAPAS_TOFTS:
+            self._windows.pop(k, None)
+
+    def _aif_reduzida(self):
+        """(sinal da ROI arterial nas fases a partir da pré, pré dela) ou (None, None)."""
+        cfg = self.tofts
+        if cfg is None or cfg.aif != "roi" or len(cfg.aif_sinal) != len(self.dset.phases):
+            return None, None
+        v, _t, pre_i, _e, _l, s0 = self._reduzir(np.asarray(cfg.aif_sinal, np.float64))
+        return v[pre_i:], float(s0)
+
+    def _tofts(self, post: np.ndarray, t_min: np.ndarray, s0: np.ndarray) -> dict:
+        from ipe.imaging import tofts as TF
+        aif, s0_aif = self._aif_reduzida()
+        r = TF.mapas(post, np.asarray(t_min, np.float64), np.maximum(s0, max(self.noise_level(), 1e-6)), self.tofts,
+                     aif, s0_aif)
+        return {k: r[k] for k in MAPAS_TOFTS}
+
+    def tofts_da_curva(self, valores: np.ndarray) -> dict | None:
+        """Ktrans, ve, kep e vp da curva de uma ROI (a média dela), com a mesma conta dos mapas."""
+        if self.tofts is None:
+            return None
+        from ipe.imaging import tofts as TF
+        v, t, pre_i, _e, _l, s0 = self._reduzir(np.asarray(valores, np.float64))
+        aif, s0_aif = self._aif_reduzida()
+        tp = np.asarray(t[pre_i:], np.float64)
+        return TF.da_curva(v[pre_i:], tp - tp[0], float(s0), self.tofts, aif, s0_aif)
 
     def _cinetica(self, st: np.ndarray, s0: np.ndarray, base: np.ndarray, valid: np.ndarray,
                   early_i: int | None = None, late_i: int | None = None) -> np.ndarray:
@@ -679,6 +726,8 @@ class DynamicMaps:
             return 7.0, 3.0
         if kind == "ser":
             return 2.0, 1.0               # 0 a 2: < 0,9 persistente, > 1,1 washout
+        if kind in ("ve", "vp"):
+            return (1.0, 0.5) if kind == "ve" else (0.2, 0.1)      # frações: escala fixa, comparável entre exames
         if kind not in self._windows:
             n = self.n
             vals = []
@@ -995,7 +1044,7 @@ class DynamicMaps:
                 # a mesma régua do mapa: o número da tabela e a cor do pixel não podem divergir
                 "cinetica": self.classe_cinetica(cheio),
                 "bat": float(d["bat"]), "wash": float(d["wash"]), "iauc": float(d["iauc"]),
-                "mrt": float(d["mrt"])}
+                "mrt": float(d["mrt"]), "tofts": self.tofts_da_curva(cheio)}
 
 
 def _hsv_para_rgb(h: np.ndarray, s_: np.ndarray, v: np.ndarray) -> np.ndarray:
@@ -1021,7 +1070,7 @@ class MapPlane:
                                    origem_sops=[(f.sop_uid, int(f.frame_index or 0)) for f in pre
                                                 if getattr(f, "sop_uid", "")])
         self.axis = f"dyn-{kind}-{id(maps)}"
-        self.name = MAPS[kind][0]
+        self.name = TODOS_OS_MAPAS[kind][0]
         self.label = f"{self.name} (dinâmica)"
         self.image_type = ["DERIVED", "SECONDARY", "DYNAMIC", kind.upper()]
         self.slab_mm, self.mode = 0.0, "avg"

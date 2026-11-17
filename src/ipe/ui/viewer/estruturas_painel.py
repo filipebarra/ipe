@@ -26,18 +26,19 @@ from PySide6.QtGui import QColor, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QDoubleSpinBox, QGridLayout,
     QGroupBox, QHBoxLayout, QHeaderView, QLabel, QMenu, QMessageBox, QPushButton, QTableWidget,
-    QTableWidgetItem, QVBoxLayout,
+    QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget,
 )
 
 from ipe.imaging import estruturas as ES
 from ipe.imaging import overlays as O
+from ipe.ui.viewer.estruturas_mais_painel import MaisFerramentas
 
 log = logging.getLogger(__name__)
 FONTE = "Estruturas"
 COL_VIS, COL_NOME, COL_TIPO, COL_ML, COL_TRAVA, COL_FONTE = range(6)
 
 
-class EstruturasPainel(QDialog):
+class EstruturasPainel(MaisFerramentas, QDialog):
     def __init__(self, tab, vp=None):
         super().__init__(tab, Qt.Window)
         self.tab = tab
@@ -53,6 +54,7 @@ class EstruturasPainel(QDialog):
         self._ocultados: list = []          # objetos do exame escondidos enquanto editados aqui
         self._ferramenta_antes = None
         self._gravado = True
+        self._iniciar_mais()
         self.obj = O.OverlayObject(f"estruturas:{id(self)}", FONTE, "Estruturas em edição", (255, 255, 255))
         self._montar()
         self.usar_quadro(vp)
@@ -93,6 +95,13 @@ class EstruturasPainel(QDialog):
         for b in (self.b_nova, self.b_importar, self.b_dup, self.b_apagar):
             bar.addWidget(b)
         lay.addLayout(bar)
+
+        self.abas = QTabWidget()
+        pag = QWidget()
+        lay_fora, lay = lay, QVBoxLayout(pag)
+        self.abas.addTab(pag, "Pintar e corrigir")
+        self.abas.addTab(self._montar_mais(), "Mais ferramentas")
+        lay_fora.addWidget(self.abas)
 
         # ---------------- pincel
         gp = QGroupBox("Pincel")
@@ -201,9 +210,13 @@ class EstruturasPainel(QDialog):
         self.b_desfazer.clicked.connect(self.desfazer)
         self.b_refazer = QPushButton("Refazer")
         self.b_refazer.clicked.connect(self.refazer)
-        o.addWidget(self.b_desfazer, 5, 0, 1, 2)
-        o.addWidget(self.b_refazer, 5, 2, 1, 2)
         lay.addWidget(go)
+        lay.addStretch(1)
+        lay = lay_fora
+        des = QHBoxLayout()
+        des.addWidget(self.b_desfazer)
+        des.addWidget(self.b_refazer)
+        lay.addLayout(des)
         QShortcut(QKeySequence.Undo, self, activated=self.desfazer)
         QShortcut(QKeySequence.Redo, self, activated=self.refazer)
 
@@ -235,7 +248,7 @@ class EstruturasPainel(QDialog):
         for b in (self.b_seg, self.b_rt, self.b_lesao, self.b_laudo, self.b_copiar):
             sai.addWidget(b)
         lay.addLayout(sai)
-        self.resize(560, 720)
+        self.resize(600, 820)
 
     # ================================================================ referência
     def usar_quadro(self, vp) -> bool:
@@ -270,6 +283,8 @@ class EstruturasPainel(QDialog):
         self.s_hi.setValue(hi)
         self.s_lim_lo.setValue(lo)
         self.s_lim_hi.setValue(hi)
+        self.s_f_lo.setValue(lo)
+        self.s_f_hi.setValue(hi)
         nz, ny, nx = self.grade.forma
         dx, dy, dz = self.grade.espacamento
         desc = ""
@@ -575,6 +590,7 @@ class EstruturasPainel(QDialog):
     def _ferramenta(self, on: bool, apagar: bool) -> None:
         outro = self.b_borracha if not apagar else self.b_pincel
         if on:
+            self._soltar_modos()
             outro.blockSignals(True)
             outro.setChecked(False)
             outro.blockSignals(False)
@@ -586,7 +602,7 @@ class EstruturasPainel(QDialog):
             self._raio_nos_quadros()
             if self.atual() is None and not apagar:
                 self.nova()
-        elif not self.b_pincel.isChecked() and not self.b_borracha.isChecked():
+        elif not self.b_pincel.isChecked() and not self.b_borracha.isChecked() and not self.modo():
             self._soltar_ferramenta()
 
     def _soltar_ferramenta(self) -> None:
@@ -595,6 +611,7 @@ class EstruturasPainel(QDialog):
         self._ferramenta_antes = None
         for vp in self.tab.viewports:
             vp.pincel_raio_mm = 0.0
+            vp.traco_temp = None
             vp.update()
 
     def _raio_nos_quadros(self) -> None:
@@ -608,6 +625,9 @@ class EstruturasPainel(QDialog):
         if vp.study_uid != self.study_uid:
             if etapa == "ini":
                 self.tab.status_message.emit("O pincel pinta só no exame da série de referência.")
+            return
+        if self.modo():
+            self._pincel_mais(vp, u, v, etapa)
             return
         apagar = self.b_borracha.isChecked()
         if not self.b_pincel.isChecked() and not apagar:
@@ -887,6 +907,7 @@ class EstruturasPainel(QDialog):
 
     def encerrar(self) -> None:
         """Tira o desenho, devolve à tela o que estava oculto e solta o pincel."""
+        self._soltar_modos()
         self._soltar_ferramenta()
         for b in (self.b_pincel, self.b_borracha):
             b.blockSignals(True)

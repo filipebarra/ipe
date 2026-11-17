@@ -171,7 +171,7 @@ def test_nenhum_botao_do_painel_fica_cortado():
     from PySide6.QtWidgets import QPushButton
     from ipe.ui.viewer import dynamic as D
     app = QApplication.instance() or QApplication([])
-    vazio = SimpleNamespace(reconfigure=lambda: 0, numeros_do_exame=lambda: 0, fgt_do_exame=lambda: 0, save_maps=lambda: 0,
+    vazio = SimpleNamespace(reconfigure=lambda: 0, farmacocinetica=lambda: 0, numeros_do_exame=lambda: 0, fgt_do_exame=lambda: 0, save_maps=lambda: 0,
                             clear_slice=lambda: 0, chart_to_film=lambda: 0, close=lambda: 0,
                             refresh=lambda: 0, maps=None)
     for largura in (320, 360, 480):

@@ -892,8 +892,31 @@ class VpDesenhoMixin:
     pincel_raio_mm: float = 0.0
     _pincel_pos = None
 
+    #: o traço provisório das ferramentas do painel Estruturas (0.100.67: tesoura, diâmetro): pontos em pixels da
+    #: imagem e se a forma é fechada; None = nada
+    traco_temp = None
+
+    def _desenhar_traco_temp(self, p: QPainter) -> None:
+        t = self.traco_temp
+        if not t or self._capturando or len(t[0]) < 2:
+            return
+        from PySide6.QtGui import QPolygonF
+        pts, fechado = t
+        poli = QPolygonF([self.image_to_widget(QPointF(float(u), float(v))) for u, v in pts])
+        p.save()
+        p.setRenderHint(QPainter.Antialiasing, True)
+        p.setBrush(Qt.NoBrush)
+        for caneta in (QPen(QColor(0, 0, 0, 180), 3), QPen(QColor(255, 230, 80), 1.5, Qt.DashLine)):
+            p.setPen(caneta)
+            if fechado:
+                p.drawPolygon(poli)
+            else:
+                p.drawPolyline(poli)
+        p.restore()
+
     def _desenhar_pincel(self, p: QPainter) -> None:
         """O círculo do pincel de estruturas em volta do mouse, do tamanho que ele pinta."""
+        self._desenhar_traco_temp(p)
         if self.left_tool != "pincel" or not self.pincel_raio_mm or self._pincel_pos is None \
                 or self._capturando or not self.underMouse():
             return

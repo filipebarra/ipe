@@ -3,6 +3,25 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.67 — Estructuras: tijera, contorno con un clic, semillas; farmacocinética (Tofts, Ktrans)
+- **Panel Estructuras, pestaña nueva "Más herramientas"** (Deshacer/Rehacer valen para las dos pestañas):
+  - **Tijera**: dibuje una forma (libre, rectángulo o elipse) y la estructura se corta con ella — borrar dentro, borrar
+    fuera o rellenar —, solo en el corte o en todos los cortes, en cualquier plano.
+  - **Contorno por nivel**: haga clic y arrastre sobre la lesión; entra la región limitada por la línea de la misma
+    intensidad del punto (lesión clara u oscura), siguiendo el ratón.
+  - **Por el diámetro mayor**: trace el diámetro mayor y reciba el contorno 3D en una estructura nueva, con diámetro
+    mayor, eje corto y volumen; el **Ajuste** rehace el contorno al instante, y aparece un aviso si hay poco contraste.
+  - **Hueco (cáscara)** hacia dentro, hacia fuera o mitad a cada lado; **Suavizar** (mediana, apertura, cierre).
+  - **Umbral automático (Otsu)** y **Rellenar por el rango**; **Dividir islas en estructuras** (una lesión por línea).
+  - **Crecer desde las semillas**: trazos en la lesión y trazos en el fondo; cada vóxel queda con la semilla a la que
+    se une por el camino de menor cambio de intensidad.
+- **Dinámica: botón Ktrans (Tofts)…** — mapas de **Ktrans**, **ve**, **kep** (y **vp** en el Tofts extendido) y los
+  mismos números por ROI en la tabla y en *Copiar valores*. Entrada arterial poblacional (Parker) o de una ROI en una
+  arteria; TR y ángulo leídos del examen; T1 del tejido supuesto (editable). La ventana y el panel **avisan** cuando
+  la resolución temporal es de rutina (una fase por minuto): el Ktrans es entonces indicativo, no absoluto.
+- Las cuentas nuevas se verificaron con datos sintéticos (formas y curvas simuladas); en un examen real, revise el
+  contorno y lea el aviso del Tofts.
+
 ## 0.100.66 — Gestión en el Web en el idioma de la página; días de la semana en las reglas
 - **Gestión DICOM en el Ipê Web**: el progreso, los resúmenes, los detalles de cada estudio, la cola y los informes de
   las reglas ahora salen en el idioma de la página (inglés o español) — antes venían del servidor solo en portugués.

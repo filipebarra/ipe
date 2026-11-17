@@ -17,7 +17,8 @@ from PySide6.QtWidgets import (
 from ipe.core.i18n import tr
 from ipe.imaging import measure as M
 from ipe.imaging import phases as PH
-from ipe.imaging.dynamic import MAPS, DynamicMaps, DynamicSet, split_single_series
+from ipe.imaging.dynamic import MAPAS_TOFTS, DynamicMaps, DynamicSet, split_single_series
+from ipe.imaging.dynamic import TODOS_OS_MAPAS as MAPS
 from ipe.imaging.series import build_frames
 from ipe.ui.tabelas import colunas_ajustaveis
 
@@ -475,6 +476,8 @@ class DynamicPanel(QWidget):
                   ("Fibroglandular e realce…", self.s.fgt_do_exame,
                    "Quanto da mama é tecido fibroglandular (no T1 sem saturação, no Dixon ou, sem eles, na "
                    "pré-contraste) e quanto ele realça na primeira fase."),
+                  ("Ktrans (Tofts)…", self.s.farmacocinetica,
+                   "Mapas de Ktrans, ve e kep pelo modelo de Tofts, e os mesmos números para cada ROI."),
                   ("Salvar mapas…", self.s.save_maps, "Grava os mapas dos quadros como séries novas."),
                   ("Apagar curvas", self.s.clear_slice, "Apaga as curvas e ROIs deste corte."),
                   ("Gráfico no filme", self.s.chart_to_film, "Põe o gráfico numa folha de filme."),
@@ -492,9 +495,12 @@ class DynamicPanel(QWidget):
     # ------------------------------------------------------------------
     def fill_views(self, current: str) -> None:
         self.c_view.clear()
-        for key, (name, desc, *_r) in MAPS.items():
-            self.c_view.addItem(f"{name} — {desc}", key)
         mp = self.s.maps
+        cfg = getattr(mp, "tofts", None)
+        for key, (name, desc, *_r) in MAPS.items():
+            if key in MAPAS_TOFTS and (cfg is None or (key == "vp" and cfg.modelo != "estendido")):
+                continue
+            self.c_view.addItem(f"{name} — {desc}", key)
         for i, (lab, t) in enumerate(zip(mp.dset.labels, mp.dset.times)):
             tag = " (pré)" if i == mp.pre else " (inicial)" if i == mp.early else " (tardia)" if i == mp.late else ""
             if i in getattr(mp, "excluidas", ()):
@@ -524,6 +530,11 @@ class DynamicPanel(QWidget):
         mp = self.s.maps
         unit_msi = MAPS["msi"][2] if mp.relative else MAPS["msi"][3]
         unit_pei = MAPS["pei"][2] if mp.relative else MAPS["pei"][3]
+        com_tofts = getattr(mp, "tofts", None) is not None
+        cols = self.COLS + (["Ktrans (1/min)", "ve", "kep (1/min)"] if com_tofts else [])
+        if self.table.columnCount() != len(cols):
+            self.table.setColumnCount(len(cols))
+            self.table.setHorizontalHeaderLabels(cols)
         self.table.setRowCount(len(rows))
         self.rows = []
         for r, (color, label, st) in enumerate(rows):
@@ -532,6 +543,12 @@ class DynamicPanel(QWidget):
                     st.get("cinetica", "—"), f"{st['msi']:.0f} {unit_msi}", f"{st['pei']:.0f} {unit_pei}",
                     f"{st.get('bat', 0):.0f} s", f"{st.get('wash', 0):.0f} {unit_msi}",
                     f"{st.get('iauc', 0):.0f} {unit_pei}", f"{st.get('mrt', 0):.0f} s"]
+            if com_tofts:
+                tf = st.get("tofts") or {}
+                if tf.get("ok"):
+                    vals += [f"{tf['ktrans']:.3f}", f"{tf['ve']:.2f}" if tf["ve"] else "—", f"{tf['kep']:.2f}"]
+                else:
+                    vals += ["—", "—", "—"]
             for c, v in enumerate(vals):
                 it = QTableWidgetItem(v)
                 if c == 0:
@@ -544,6 +561,9 @@ class DynamicPanel(QWidget):
         mp = self.s.maps
         head = ["curva"] + [f"{lab} ({fmt_time(t)})" for lab, t in zip(mp.dset.labels, mp.dset.times)] + \
             ["inicial %", "pico %", "SER", "tipo", "cinética", "MSI", "PEI", "BAT s", "lavagem", "iAUC90", "MRT s"]
+        com_tofts = getattr(mp, "tofts", None) is not None
+        if com_tofts:
+            head += ["Ktrans (1/min)", "ve", "kep (1/min)"]
         lines = ["\t".join(head)]
         for label, st, vals in self.rows:
             ser = "" if st["ser"] is None else f"{st['ser']:.3f}"
@@ -551,7 +571,9 @@ class DynamicPanel(QWidget):
                                    [f"{st['initial']:.1f}", f"{st['peak']:.1f}", ser, st["type"],
                                     st.get("cinetica", ""), f"{st['msi']:.2f}", f"{st['pei']:.2f}",
                                     f"{st.get('bat', 0):.1f}", f"{st.get('wash', 0):.2f}", f"{st.get('iauc', 0):.2f}",
-                                    f"{st.get('mrt', 0):.1f}"]))
+                                    f"{st.get('mrt', 0):.1f}"] +
+                                   ([f"{(st.get('tofts') or {}).get(k, 0):.4f}" for k in ("ktrans", "ve", "kep")]
+                                    if com_tofts else [])))
         QApplication.clipboard().setText("\n".join(lines))
         self.s.tab.status_message.emit("Valores das curvas copiados (cole numa planilha).")
 
@@ -755,7 +777,73 @@ class DynamicSession:
             + ("" if d.timed else " · <span style='color:#fc6'>sem horários (1 min/fase)</span>")
             + (self._motion_text() if mp.motion_corrected else "")
             + "".join(f"<br><span style='color:#fc6'>{tr(a)}</span>" for a in mp.avisos_das_fases())
-            + (f"<br>{mp.legenda_cinetica()}" if self._mostra_cinetica() else "") + "</small>")
+            + (f"<br>{mp.legenda_cinetica()}" if self._mostra_cinetica() else "")
+            + (f"<br><span style='color:#fc6'>{self.legenda_tofts()}</span>" if getattr(mp, "tofts", None) else "")
+            + "</small>")
+
+    # ------------------------------------------------------------------ farmacocinética (0.100.67)
+    def legenda_tofts(self) -> str:
+        """O que valeu para os mapas de Tofts, sempre à vista com eles."""
+        from ipe.imaging import tofts as TF
+        mp = self.maps
+        cfg = mp.tofts
+        res = TF.resolucao_temporal(mp.dset.times)
+        modelo = tr(TF.MODELOS.get(cfg.modelo, cfg.modelo))
+        aif = tr("ROI arterial" if cfg.aif == "roi" and cfg.aif_sinal else "entrada populacional (Parker)")
+        base = tr(f"Farmacocinética: {modelo}, {aif}, T1 suposto de {cfg.t10_ms:.0f} ms.")
+        if res > TF.RESOLUCAO_BOA:
+            base += " " + tr(f"Uma fase a cada {res:.0f} s: Ktrans indicativo, não absoluto.")
+        return base
+
+    def farmacocinetica(self) -> bool:
+        """A janela do Tofts: liga, muda ou desliga os mapas de Ktrans, ve e kep."""
+        from ipe.ui.viewer.tofts_dialogo import ToftsDialog
+        dlg = ToftsDialog(self)
+        if dlg.exec() != QDialog.Accepted:
+            return False
+        return self.aplicar_tofts(None if dlg.desligar else dlg.config())
+
+    def aplicar_tofts(self, cfg) -> bool:
+        mp = self.maps
+        antes = mp.tofts
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        try:
+            mp.set_tofts(cfg)
+            mp.compute(mp.n // 2)
+        except Exception as e:  # noqa: BLE001
+            log.exception("farmacocinética")
+            mp.set_tofts(antes)
+            QApplication.restoreOverrideCursor()
+            QMessageBox.warning(self.tab, "Farmacocinética (Tofts)", f"Não foi possível calcular os mapas:\n{e}")
+            return False
+        QApplication.restoreOverrideCursor()
+        self.params["tofts"] = cfg.para_dict() if cfg is not None else None
+        ativo = self.tab.active if self.tab.active in self.vps else None
+        for vp in self.vps:
+            chave = getattr(vp, "dyn_key", None)
+            if not self.is_dyn(vp) or chave not in MAPAS_TOFTS:
+                continue
+            if cfg is None or (chave == "vp" and cfg.modelo != "estendido"):
+                self.show_view(vp, "ei")                        # o mapa deixou de existir
+            else:
+                self.show_view(vp, chave)                       # recalculado: janela e imagem novas
+        mostrou = any(self.is_dyn(vp) and getattr(vp, "dyn_key", None) == "ktrans" for vp in self.vps)
+        if cfg is not None and antes is None and not mostrou:
+            # o Ktrans entra num quadro de mapa **sem** ROIs (trocar o mapa de um quadro tira da tela as ROIs dele)
+            livres = [vp for vp in self.vps if self.is_dyn(vp) and not str(vp.dyn_key).startswith("ph:")
+                      and not getattr(vp, "annotations", None)]
+            alvo = ativo if ativo in livres else (livres[-1] if livres else None)
+            if alvo is not None:
+                self.show_view(alvo, "ktrans")
+                mostrou = True
+        self.panel.fill_views(getattr(self.tab.active, "dyn_key", "") or "")
+        self.update_title()
+        self.refresh()
+        self.tab.status_message.emit("Farmacocinética desligada." if cfg is None else
+                                     "Farmacocinética: mapas de Ktrans, ve e kep prontos (lista “Quadro ativo”)."
+                                     if mostrou else
+                                     "Farmacocinética pronta: escolha Ktrans, ve ou kep na lista “Quadro ativo”.")
+        return True
 
     def _mostra_cinetica(self) -> bool:
         """Mapa colorido sem os limiares à vista é imagem bonita sem medida."""

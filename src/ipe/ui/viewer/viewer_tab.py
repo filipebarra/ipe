@@ -2373,6 +2373,9 @@ class ViewerTab(BarraMixin, MPRMixin, FusaoMixin, MamografiaMixin, IAMixin, Onco
                                tardio_pct=params.get("tardio_pct", 10.0),
                                sinal_min_pct=params.get("sinal_min_pct", 10.0),
                                fases_pre=params.get("fases_pre"), excluidas=params.get("excluidas"))
+            if params.get("tofts"):                      # 0.100.67: a farmacocinética continua depois de "Parâmetros…"
+                from ipe.imaging.tofts import Config as _Tofts
+                maps.set_tofts(_Tofts.de_dict(params["tofts"]))
             maps.compute(maps.n // 2)
             if dlg is not None:
                 dlg.close()

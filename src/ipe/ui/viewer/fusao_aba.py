@@ -218,7 +218,8 @@ class FusaoMixin:
         from ipe.imaging.fusion import Fusion
         dq = self._dyn_do_quadro(origem)
         if dq is not None:
-            from ipe.imaging.dynamic import COMPOSTOS, MAPS
+            from ipe.imaging.dynamic import COMPOSTOS
+            from ipe.imaging.dynamic import TODOS_OS_MAPAS as MAPS
             sess, chave = dq
             if chave in COMPOSTOS:
                 self.status_message.emit("O mapa em cor já é colorido: funda um mapa de valores (SER, realce, "

@@ -3,6 +3,26 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.67 — Estruturas: tesoura, contorno com um clique, sementes; farmacocinética (Tofts, Ktrans)
+- **Painel Estruturas, aba nova "Mais ferramentas"** (Desfazer/Refazer valem para as duas abas):
+  - **Tesoura**: desenhe uma forma (livre, retângulo ou elipse) e a estrutura é cortada por ela — apagar dentro, apagar
+    fora ou preencher —, só no corte ou em todos os cortes, em qualquer plano.
+  - **Contorno por nível**: clique e arraste sobre a lesão; entra a região limitada pela linha de mesma intensidade do
+    ponto (lesão clara ou escura), acompanhando o mouse.
+  - **Pelo maior diâmetro**: trace o maior diâmetro e receba o contorno 3D numa estrutura nova, com maior diâmetro,
+    eixo curto e volume; o **Ajuste** refaz o contorno na hora (mais justo ou mais solto), e um aviso aparece quando
+    o contraste é pouco.
+  - **Oco (casca)** para dentro, para fora ou metade para cada lado; **Suavizar** (mediana, abertura, fechamento).
+  - **Limiar automático (Otsu)** e **Preencher pela faixa**; **Dividir ilhas em estruturas** (uma lesão por linha).
+  - **Crescer das sementes**: traços na lesão e traços no fundo, e cada voxel fica com a semente a que se liga pelo
+    caminho de menor mudança de intensidade.
+- **Dinâmica: botão Ktrans (Tofts)…** — mapas de **Ktrans**, **ve**, **kep** (e **vp** no Tofts estendido) e os
+  mesmos números por ROI na tabela e em *Copiar valores*. Entrada arterial populacional (Parker) ou de uma ROI numa
+  artéria; TR e ângulo lidos do exame; T1 do tecido suposto (editável). A janela e o painel **avisam** quando a
+  resolução temporal é de rotina (uma fase por minuto): nesse caso o Ktrans é indicativo, não absoluto.
+- As contas novas foram conferidas com dados sintéticos (formas e curvas simuladas); em exame real, confira o
+  contorno e leia o aviso do Tofts.
+
 ## 0.100.66 — Gestão no Web no idioma da página; dias da semana nas regras
 - **Gestão DICOM no Ipê Web**: o andamento, os resumos, os detalhes de cada exame, a fila e os relatórios das regras
   agora saem no idioma da página (inglês ou espanhol) — antes vinham do servidor só em português.

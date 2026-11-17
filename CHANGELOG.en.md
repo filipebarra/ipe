@@ -3,6 +3,25 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.67 — Structures: scissors, one-click outlining, seeds; pharmacokinetics (Tofts, Ktrans)
+- **Structures panel, new "More tools" tab** (Undo/Redo serve both tabs):
+  - **Scissors**: draw a shape (freehand, rectangle or ellipse) and the structure is cut by it — erase inside, erase
+    outside or fill —, on the slice or through all slices, in any plane.
+  - **Level tracing**: click and drag over the lesion; the region bounded by the line of the same intensity as the
+    point is added (bright or dark lesion), following the mouse.
+  - **From the longest diameter**: draw the longest diameter and get the 3D outline in a new structure, with longest
+    diameter, short axis and volume; **Adjust** redoes the outline at once, and a warning shows when contrast is poor.
+  - **Hollow (shell)** inwards, outwards or half each side; **Smooth** (median, opening, closing).
+  - **Automatic threshold (Otsu)** and **Fill by range**; **Split islands into structures** (one lesion per row).
+  - **Grow from seeds**: strokes on the lesion and strokes on the background; each voxel goes to the seed it connects
+    to through the path of least intensity change.
+- **Dynamic: Ktrans (Tofts)… button** — **Ktrans**, **ve**, **kep** maps (and **vp** with extended Tofts) and the
+  same numbers per ROI in the table and in *Copy values*. Population arterial input (Parker) or an ROI in an artery;
+  TR and flip angle read from the exam; assumed tissue T1 (editable). The dialog and the panel **warn** when temporal
+  resolution is routine (one phase per minute): Ktrans is then indicative, not absolute.
+- The new computations were checked with synthetic data (simulated shapes and curves); on real exams, check the
+  outline and read the Tofts warning.
+
 ## 0.100.66 — Web management in the page's language; weekdays in the rules
 - **DICOM management in Ipê Web**: progress, summaries, each study's details, the queue and the rules' reports now come
   in the page's language (English or Spanish) — the server used to send them in Portuguese only.
