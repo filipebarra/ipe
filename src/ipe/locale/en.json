@@ -9420,5 +9420,19 @@
  "conferência (navegador) {}–{}: {} × {} — {}": "check (browser) {}–{}: {} × {} — {}",
  "envio a {} (navegador): {} {} — {}": "sent to {} (browser): {} {} — {}",
  "envio ao {} (navegador): {} {} — {}": "sent to {} (browser): {} {} — {}",
- "{} exame(s) tratado(s) no envio para {}.": "{} study(ies) handled in the sending to {}."
+ "{} exame(s) tratado(s) no envio para {}.": "{} study(ies) handled in the sending to {}.",
+ "a regra está rodando agora": "the rule is running now",
+ "a regra já está rodando": "the rule is already running",
+ "dê um nome à regra": "give the rule a name",
+ "escolha o destino": "choose the destination",
+ "este servidor não tem a automação ligada": "this server does not have automation running",
+ "hoje %H:%M": "today %H:%M",
+ "marque pelo menos um dia da semana": "select at least one weekday",
+ "marque pelo menos uma modalidade": "select at least one modality",
+ "o destino não pode ser uma das modalidades conferidas": "the destination cannot be one of the checked modalities",
+ "regra desconhecida": "unknown rule",
+ " ({} a {})": " ({} to {})",
+ "regra automática excluída (navegador): {}": "automatic rule deleted (browser): {}",
+ "regra automática rodada agora (navegador): {}": "automatic rule run now (browser): {}",
+ "regra automática {} (navegador): {}": "automatic rule {} (browser): {}"
 }

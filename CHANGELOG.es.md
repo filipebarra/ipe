@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.65 — Gestión DICOM en el Ipê Web: la pestaña Automático
+- **Pestaña Automático** en la Gestión DICOM del navegador (administradores): crear, editar, duplicar, activar o
+  desactivar, eliminar y **ejecutar ahora** las reglas con horario — las mismas del Ipê de escritorio (quedan en la
+  base de datos). El editor tiene todo lo que tiene la ventana: modalidades e identidades, destino, qué enviar,
+  período, horario (cada N minutos o todos los días a una hora, por día de la semana) y nuevo intento en caso de error.
+- **Último informe** de cada regla (completados ahora, con error, fuera de línea, otro Study UID) e **historial**.
+- Las reglas se ejecutan en el servidor; los cambios van al registro de acceso, con el usuario.
+
 ## 0.100.64 — Ipê Web: el traductor del navegador ya no toca la página
 - El navegador ofrecía (o hacía solo) la traducción de la página y cambiaba los textos del Ipê Web por otros sin
   sentido. La página ahora le dice al navegador que no traduzca; los idiomas del Ipê Web siguen siendo los del

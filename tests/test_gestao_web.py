@@ -223,7 +223,7 @@ def test_no_navegador(servidor):
             pg.fill("input[title='De']", "2026-10-09")
             pg.fill("input[title='Até']", "2026-10-09")
             pg.fill("input[aria-label='Ignorar séries']", "patient protocol")
-            pg.click("button:has-text('Conferir')")
+            pg.click(".gestao-cfg button.primario")
             pg.wait_for_selector(".gestao-exames tr[data-acc='C1']", timeout=30000)
             pg.wait_for_function("() => window.__ipeGestao.estado() && !window.__ipeGestao.estado().ocupado")
             assert pg.locator(".gestao-exames tbody tr[data-acc]").count() == 3
@@ -263,6 +263,208 @@ def test_no_navegador(servidor):
             assert pg.locator(".gestao-fontes tbody tr", has_text="MR01").locator("input[type=checkbox]").is_checked()
             pg.click("button:has-text('Limpar os terminados')")
             pg.wait_for_function("() => document.querySelector('.gestao-fila').hidden")
+            b.close()
+    finally:
+        srv.stop()
+    assert not erros, erros
+
+
+# ---------------------------------------------------------------------- 0.100.65: a aba Automático
+class MotorDeMentira:
+    """Faz o que o motor da automação faz com a regra (roda `GA.executar`, grava o relatório e o histórico)."""
+
+    def __init__(self, c, eu):
+        self.c, self.eu, self.rodando = c, eu, set()
+
+    def gestao_em_curso(self, rid):
+        return rid in self.rodando
+
+    def rodar_gestao(self, regra, manual=False):
+        import threading
+        from datetime import date, datetime
+
+        from ipe.network import gestao_auto as GA
+        rid = regra["id"]
+        if rid in self.rodando:
+            return False
+        self.rodando.add(rid)
+        inicio = datetime.now()
+
+        def trabalho():
+            rel = GA.executar(regra, self.c.repo, self.c.net.client, self.c.net.target, sink=self.c.net.sink,
+                              hoje=date(2026, 10, 9), espera=0.2)
+            cfg = dict(self.c.repo.rule(rid)["config"])
+            cfg["_ultimo"] = rel.para_dict()
+            self.c.repo.save_rule({"id": rid, "config": cfg, "last_run": inicio})
+            self.c.repo.add_job_run("gestao", regra["name"], {"ok": "ok", "erro": "error", "offline": "offline"}[rel.situacao],
+                                    len(rel.enviados), rel.resumo(), rid, inicio)
+            self.rodando.discard(rid)
+        threading.Thread(target=trabalho, daemon=True).start()
+        return True
+
+
+def _cfg_regra(ids, **kw):
+    cfg = {"fontes": [{"node_id": ids["mod"], "identity_id": ids["osirix"]}],
+           "destino": {"node_id": ids["pacs"], "identity_id": None}, "periodo": "hoje", "ignorar": "patient protocol",
+           "envio": "falta", "modo": "auto",
+           "schedule": {"type": "interval", "minutes": 30, "from": "07:00", "to": "20:00", "weekdays": [0, 1, 2, 3, 4]},
+           "repetir": {"minutos": 10, "vezes": 2}}
+    cfg.update(kw)
+    return cfg
+
+
+def test_regras_automaticas(servidor):
+    from ipe.network import gestao_auto as GA
+    c, ids, cl = servidor.c, servidor.ids, servidor.clinica
+    for fn in (GW.regras, ):
+        with pytest.raises(PermissionError):
+            fn(c, MEDICO)
+    for fn in (GW.regra_gravar, GW.regra_ligar, GW.regra_excluir, GW.regra_duplicar, GW.regra_rodar):
+        with pytest.raises(PermissionError):
+            fn(c, MEDICO, {})
+    r = GW.regras(c, ADMIN)
+    assert r["regras"] == [] and r["motor"] is False and r["dias"][0] == "Seg" and r["envios"]["falta"]
+    # as exigências da janela
+    for corpo, msg in (({"nome": "", "cfg": _cfg_regra(ids)}, "nome"),
+                       ({"nome": "x", "cfg": _cfg_regra(ids, fontes=[])}, "modalidade"),
+                       ({"nome": "x", "cfg": _cfg_regra(ids, destino={})}, "destino"),
+                       ({"nome": "x", "cfg": _cfg_regra(ids, destino={"node_id": ids["mod"]})}, "destino não pode"),
+                       ({"nome": "x", "cfg": _cfg_regra(ids, schedule={"type": "daily", "at": "06:00", "weekdays": []})}, "dia")):
+        with pytest.raises(ValueError, match=msg):
+            GW.regra_gravar(c, ADMIN, corpo)
+    r = GW.regra_gravar(c, ADMIN, {"nome": "RM no PACS", "ativa": True, "cfg": _cfg_regra(ids, minutos_a_mais=1)}, "10.0.0.5")
+    rid = r["id"]
+    regra = c.repo.rule(rid)
+    assert regra["kind"] == GA.TIPO and regra["active"] and regra["next_run"] is not None
+    assert "minutos_a_mais" not in regra["config"] and regra["config"]["schedule"]["minutes"] == 30
+    linha = r["regras"][0]
+    assert linha["nome"] == "RM no PACS" and linha["ativa"] and linha["destino"] == "PACS" and linha["mandar"] == "Só o que falta"
+    assert linha["quando"] == "a cada 30 min, 07:00–20:00 (Seg a Sex)" and linha["texto"] == "ainda não rodou" and linha["ultimo"] is None
+    assert linha["cfg"]["fontes"] == [{"node_id": ids["mod"], "identity_id": ids["osirix"]}]
+    # sem o motor da automação, rodar agora diz o porquê
+    with pytest.raises(RuntimeError):
+        GW.regra_rodar(c, ADMIN, {"id": rid})
+    c.auto = MotorDeMentira(c, cl["eu"])
+    assert GW.regras(c, ADMIN)["motor"] is True
+    r = GW.regra_rodar(c, ADMIN, {"id": rid}, "10.0.0.5")
+    fim = time.time() + 60
+    while c.auto.gestao_em_curso(rid) and time.time() < fim:
+        time.sleep(0.05)
+    r = GW.rota(c, ADMIN, "GET", "regras", {}, {})
+    linha = r["regras"][0]
+    assert linha["situacao"] == "ok" and linha["simbolo"] == "✔" and "2 completado(s) agora" in linha["texto"]
+    assert sorted(x["accession"] for x in linha["ultimo"]["enviados"]) == ["B1", "C1"] and linha["ultimo"]["inicio_txt"]
+    assert r["historico"][0]["regra"] == "RM no PACS" and r["historico"][0]["estado"] == "ok"
+    assert cl["pacs"].n_imagens(cl["b"]["uid"]) == 9
+    # editar guarda o último relatório; desligar; duplicar (desligada, sem o relatório); excluir
+    r = GW.regra_gravar(c, ADMIN, {"id": rid, "nome": "RM no PACS (dia)", "ativa": True,
+                                   "cfg": _cfg_regra(ids, schedule={"type": "daily", "at": "25:99", "weekdays": [6, 0]})})
+    regra = c.repo.rule(rid)
+    assert regra["name"] == "RM no PACS (dia)" and regra["config"]["_ultimo"]["situacao"] == "ok"
+    assert regra["config"]["schedule"] == {"type": "daily", "at": "06:00", "weekdays": [0, 6]}
+    assert r["regras"][0]["quando"] == "diariamente às 06:00 (Seg, Dom)"
+    assert GW.regra_ligar(c, ADMIN, {"id": rid, "on": False})["regras"][0]["proxima"] == "desligada"
+    r = GW.regra_duplicar(c, ADMIN, {"id": rid})
+    copia = next(x for x in r["regras"] if x["id"] == r["id"])
+    assert copia["nome"] == "RM no PACS (dia) (cópia)" and not copia["ativa"] and copia["ultimo"] is None
+    assert len(GW.regra_excluir(c, ADMIN, {"id": copia["id"]})["regras"]) == 1
+    with pytest.raises(KeyError):
+        GW.regra_excluir(c, ADMIN, {"id": 99999})
+    aud = [str(a) for a in c.repo.audit_entries(80)]
+    assert any("regra automática criada (navegador): RM no PACS" in a for a in aud)
+    assert any("rodada agora" in a for a in aud) and any("excluída" in a for a in aud)
+
+
+def test_aba_automatico_no_navegador(servidor):
+    """Criar uma regra, rodar agora, ver o relatório e o histórico, desligar, duplicar e excluir."""
+    from ipe.central import web as WEB
+    if not WEB.site_instalado():
+        pytest.skip("site não construído")
+    pw = pytest.importorskip("playwright.sync_api")
+    import os
+
+    from ipe.auth.backend import LocalAuth
+    from ipe.central.server import CentralServer
+    cl, eu = servidor.clinica, servidor.clinica["eu"]
+    LocalAuth(eu.repo).create_first_admin("admin", "Administrador", "admin123")
+    srv = CentralServer(eu.db, eu.repo, eu.storage, port=0, host="127.0.0.1")
+    srv.net, srv.settings = servidor.c.net, servidor.c.settings
+    srv.auto = MotorDeMentira(srv, eu)
+    srv.ponte = None                                   # no teste não há laço de eventos na linha principal
+    srv.start()
+    erros = []
+    try:
+        with pw.sync_playwright() as p:
+            b = p.chromium.launch()
+            pg = b.new_page(viewport={"width": 1500, "height": 1000})
+            pg.on("pageerror", lambda e: erros.append(str(e)))
+            pg.on("dialog", lambda d: d.accept())
+            pg.goto(f"http://127.0.0.1:{srv.port}/web/")
+            pg.fill("#usuario", "admin")
+            pg.fill("#senha", "admin123")
+            pg.click("button[type=submit]")
+            pg.wait_for_selector("form.filtros")
+            pg.click("button.gestao-abrir")
+            pg.wait_for_selector(".gestao-abas")
+            pg.click(".gestao-abas button:has-text('Automático')")
+            pg.wait_for_selector(".gestao-regras td.vazio")
+            assert pg.locator(".gestao-aba >> nth=0").is_hidden()
+            pg.click("button:has-text('Nova regra…')")
+            pg.wait_for_selector(".gestao-editor h3")
+            # as exigências aparecem no próprio editor
+            pg.click("button:has-text('Salvar a regra')")
+            pg.wait_for_function("() => document.querySelector('.gestao-editor .erro').textContent.length > 0")
+            assert "nome" in pg.inner_text(".gestao-editor .erro")
+            pg.fill("input[aria-label='Nome da regra']", "RM no PACS")
+            linha = pg.locator(".gestao-editor .gestao-fontes tbody tr", has_text="MR01")
+            linha.locator("input[type=checkbox]").check()
+            linha.locator("select").select_option(label="OsiriX da sala (OSIRIX)")
+            pg.select_option(".gestao-editor select[aria-label='Destino']", label=pg.locator(".gestao-editor select[aria-label='Destino'] option", has_text="PACS").first.inner_text())
+            pg.fill(".gestao-editor input[aria-label='Ignorar séries']", "patient protocol")
+            pg.fill(".gestao-editor input[aria-label='Minutos']", "30")
+            pg.click("button:has-text('Salvar a regra')")
+            pg.wait_for_selector(".gestao-regras tr.regra")
+            assert pg.locator(".gestao-editor").is_hidden()
+            txt = pg.inner_text(".gestao-regras tr.regra")
+            assert "RM no PACS" in txt and "a cada 30 min" in txt and "ainda não rodou" in txt and "PACS" in txt
+            regra = eu.repo.rules("gestao")[0]
+            assert regra["active"] and regra["config"]["fontes"][0]["identity_id"] == servidor.ids["osirix"]
+            assert regra["config"]["schedule"]["weekdays"] == [0, 1, 2, 3, 4, 5] and regra["config"]["repetir"]["vezes"] == 3
+            # rodar agora: o relatório e o histórico
+            pg.click("button:has-text('Rodar agora')")
+            pg.wait_for_function("() => document.querySelector('.gestao-regras tr.regra.sit-ok')", timeout=60000)
+            assert "2 completado(s) agora" in pg.inner_text(".gestao-regras tr.regra")
+            assert "Completados agora (2)" in pg.inner_text(".gestao-relatorio")
+            pg.wait_for_selector(".gestao-hist tbody tr")
+            assert "RM no PACS" in pg.inner_text(".gestao-hist tbody tr >> nth=0")
+            assert cl["pacs"].n_imagens(cl["b"]["uid"]) == 9
+            if os.environ.get("IPE_GESTAO_FOTO"):
+                pg.screenshot(path=os.environ["IPE_GESTAO_FOTO"].replace(".png", "_auto.png"), full_page=True)
+                pg.click("button:has-text('Editar…')")
+                pg.wait_for_selector(".gestao-editor h3")
+                pg.screenshot(path=os.environ["IPE_GESTAO_FOTO"].replace(".png", "_editor.png"), full_page=True)
+                pg.click(".gestao-editor button:has-text('Cancelar')")
+            # editar: os valores voltam ao editor
+            pg.click("button:has-text('Editar…')")
+            pg.wait_for_selector(".gestao-editor h3")
+            assert pg.input_value("input[aria-label='Nome da regra']") == "RM no PACS"
+            assert pg.input_value(".gestao-editor input[aria-label='Minutos']") == "30"
+            assert pg.locator(".gestao-editor .gestao-fontes tbody tr", has_text="MR01").locator("input[type=checkbox]").is_checked()
+            pg.check(".gestao-editor input[value='daily']")
+            pg.click("button:has-text('Salvar a regra')")
+            pg.wait_for_function("() => document.querySelector('.gestao-regras tr.regra').textContent.includes('diariamente')")
+            assert eu.repo.rules("gestao")[0]["config"]["_ultimo"]["situacao"] == "ok"      # o relatório ficou
+            # desligar, duplicar e excluir a cópia
+            pg.uncheck(".gestao-regras tr.regra input[type=checkbox]")
+            pg.wait_for_function("() => document.querySelector('.gestao-regras tr.regra').textContent.includes('desligada')")
+            pg.click("button:has-text('Duplicar')")
+            pg.wait_for_function("() => document.querySelectorAll('.gestao-regras tr.regra').length === 2")
+            assert "(cópia)" in pg.inner_text(".gestao-regras tr.regra.escolhida")
+            pg.click("button:has-text('Excluir')")
+            pg.wait_for_function("() => document.querySelectorAll('.gestao-regras tr.regra').length === 1")
+            # a outra aba continua lá
+            pg.click(".gestao-abas button:has-text('Conferir agora')")
+            assert pg.locator(".gestao-cfg >> nth=0").is_visible()
             b.close()
     finally:
         srv.stop()

@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.65 — DICOM management in Ipê Web: the Automatic tab
+- **Automatic tab** in the browser's DICOM management (administrators): create, edit, duplicate, turn on/off, delete
+  and **run now** the scheduled rules — the same ones as desktop Ipê (kept in the database). The editor has everything
+  the window has: modalities and identities, destination, what to send, period, schedule (every N minutes or every
+  day at a time, per weekday) and retry on error.
+- **Last report** of each rule (completed now, with errors, offline, another Study UID) and **history**.
+- The rules run on the server; changes go to the access log, with the user.
+
 ## 0.100.64 — Ipê Web: the browser translator no longer touches the page
 - The browser offered (or applied by itself) a page translation and replaced Ipê Web's texts with nonsense. The page
   now tells the browser not to translate; Ipê Web's languages remain the program's own.

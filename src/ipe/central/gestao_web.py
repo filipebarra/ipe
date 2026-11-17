@@ -1,4 +1,4 @@
-"""0.100.63: a Gestão DICOM no Ipê Web — conferir se os exames das modalidades estão no PACS e mandar o que falta.
+"""0.100.63 (conferir agora) e 0.100.65 (automático): a Gestão DICOM no Ipê Web — conferir se os exames das modalidades estão no PACS e mandar o que falta.
 
 É a janela de Gestão do Ipê de mesa (`ui/gestao_dialog.py`) atendida pelo servidor: a regra de rede é a mesma
 (`network/gestao.py`); aqui ficam o estado da conferência, a fila de envio e as rotas do navegador.
@@ -548,7 +548,216 @@ def limpar_fila(c, s) -> dict:
     return e.json()
 
 
+# ---------------------------------------------------------------------- 0.100.65: a aba Automático (as regras)
+SIT_REGRA = {"ok": "✔", "erro": "⚠", "offline": "⛔", "rodando": "➜"}
+HIST = {"ok": "✔ ok", "error": "⚠ erro", "offline": "⛔ fora do ar"}
+DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+
+
+def _quando(v) -> str:
+    if not v:
+        return ""
+    try:
+        d = v if isinstance(v, datetime) else datetime.fromisoformat(str(v))
+    except ValueError:
+        return str(v)
+    return d.strftime("%d/%m %H:%M") if d.date() != datetime.now().date() else d.strftime("hoje %H:%M")
+
+
+def _descrever(sch: dict) -> str:
+    """"a cada 30 min, 07:00–20:00 (Seg a Sáb)" — os dias por extenso curto (a janela do Ipê usa iniciais)."""
+    wd = sorted({int(d) for d in (sch.get("weekdays") or []) if 0 <= int(d) <= 6})
+    if not wd or len(wd) == 7:
+        dias = ""
+    elif len(wd) > 2 and wd == list(range(wd[0], wd[-1] + 1)):
+        dias = f" ({DIAS[wd[0]]} a {DIAS[wd[-1]]})"
+    else:
+        dias = " (" + ", ".join(DIAS[d] for d in wd) + ")"
+    if sch.get("type") == "daily":
+        return f"diariamente às {sch.get('at', '06:00')}{dias}"
+    return f"a cada {sch.get('minutes', 60)} min, {sch.get('from', '00:00')}–{sch.get('to', '23:59')}{dias}"
+
+
+def _auto(c):
+    return getattr(c, "auto", None)
+
+
+def _regra_json(c, regra: dict) -> dict:
+    from ipe.network import gestao_auto as GA
+    cfg = GA.config(regra)
+    ult = cfg.get("_ultimo") or {}
+    auto = _auto(c)
+    rodando = bool(auto is not None and auto.gestao_em_curso(regra["id"]))
+    sit = "rodando" if rodando else ult.get("situacao", "")
+    texto = "rodando agora…" if rodando else (ult.get("resumo") or "ainda não rodou")
+    if ult.get("repeticao") and not rodando:
+        texto += f" — nova {ult['repeticao']}"
+    d = cfg.get("destino") or {}
+    no = c.repo.node(d.get("node_id")) if d.get("node_id") else None
+    ident = c.repo.identity(d.get("identity_id")) if d.get("identity_id") else None
+    return {
+        "id": regra["id"], "nome": regra.get("name", ""), "ativa": bool(regra.get("active")),
+        "quando": _descrever(cfg.get("schedule") or {}),
+        "destino": (no["name"] + (f" como {ident['ae_title']}" if ident else "")) if no else "—",
+        "mandar": GA.ENVIOS.get(cfg.get("envio"), ""), "ultima": _quando(regra.get("last_run")),
+        "situacao": sit, "simbolo": SIT_REGRA.get(sit, "·"), "texto": texto, "rodando": rodando,
+        "proxima": _quando(regra.get("next_run")) if regra.get("active") else "desligada",
+        "cfg": {k: v for k, v in cfg.items() if not k.startswith("_") and k not in ("dono", "visivel_para")},
+        "ultimo": {**ult, "inicio_txt": _quando(ult.get("inicio"))} if ult else None,
+    }
+
+
+def regras(c, s) -> dict:
+    """As regras da gestão automática (as mesmas do Ipê de mesa: a tabela de regras da automação, tipo "gestao"),
+    o último relatório de cada uma e o histórico."""
+    _admin(s)
+    from ipe.network import gestao_auto as GA
+    hist = [{"quando": _quando(j["started"]), "regra": j["name"], "situacao": HIST.get(j["status"], j["status"]),
+             "estado": j["status"], "mensagem": j["message"]}
+            for j in c.repo.job_runs(500) if j["kind"] == "gestao"][:100]
+    return {"regras": [_regra_json(c, r) for r in c.repo.rules(GA.TIPO)], "historico": hist,
+            "motor": _auto(c) is not None, "padrao": dict(GA.PADRAO), "envios": dict(GA.ENVIOS), "dias": DIAS}
+
+
+def _hora(v, padrao: str) -> str:
+    import re
+    v = str(v or "").strip()
+    return v if re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", v) else padrao
+
+
+def _config_da_tela(c, d: dict) -> dict:
+    """Confere o que o navegador mandou e devolve a configuração da regra (as mesmas exigências da janela)."""
+    from ipe.network import gestao_auto as GA
+    dimse = {n["id"] for n in c.repo.nodes(only_active=True) if n.get("kind") == "dimse"}
+    fontes = []
+    for f in d.get("fontes") or []:
+        nid = int(f.get("node_id") or 0)
+        if nid in dimse:
+            fontes.append({"node_id": nid, "identity_id": int(f["identity_id"]) if f.get("identity_id") else None})
+    dest = d.get("destino") or {}
+    destino = {"node_id": int(dest["node_id"]) if dest.get("node_id") else None,
+               "identity_id": int(dest["identity_id"]) if dest.get("identity_id") else None}
+    sch = d.get("schedule") or {}
+    dias = sorted({int(x) for x in (sch.get("weekdays") or []) if 0 <= int(x) <= 6})
+    if sch.get("type") == "daily":
+        horario = {"type": "daily", "at": _hora(sch.get("at"), "06:00"), "weekdays": dias}
+    else:
+        horario = {"type": "interval", "minutes": max(5, min(1440, int(sch.get("minutes") or 60))),
+                   "from": _hora(sch.get("from"), "07:00"), "to": _hora(sch.get("to"), "20:00"), "weekdays": dias}
+    rep = d.get("repetir") or {}
+    cfg = {
+        "fontes": fontes, "destino": destino, "move_destination": str(d.get("move_destination") or "").strip()[:64],
+        "modalidade": str(d.get("modalidade") or "").strip().upper()[:16],
+        "periodo": d.get("periodo") if d.get("periodo") in ("hoje", "ontem", "2dias", "7dias") else "hoje",
+        "ignorar": str(d.get("ignorar") or "").strip()[:500], "exato": bool(d.get("exato")),
+        "envio": "inteiro" if d.get("envio") == "inteiro" else "falta",
+        "modo": d.get("modo") if d.get("modo") in G.MODOS_ENVIO else "auto", "schedule": horario,
+        "repetir": {"minutos": max(1, min(720, int(rep.get("minutos") or 15))),
+                    "vezes": max(0, min(20, int(rep.get("vezes") or 0)))}}
+    if not cfg["fontes"]:
+        raise ValueError("marque pelo menos uma modalidade")
+    if not destino["node_id"] or destino["node_id"] not in dimse:
+        raise ValueError("escolha o destino")
+    if destino["node_id"] in {f["node_id"] for f in fontes}:
+        raise ValueError("o destino não pode ser uma das modalidades conferidas")
+    if not dias:
+        raise ValueError("marque pelo menos um dia da semana")
+    assert set(cfg) <= set(GA.PADRAO)
+    return cfg
+
+
+def _a_regra(c, rid) -> dict:
+    from ipe.network import gestao_auto as GA
+    r = c.repo.rule(int(rid or 0))
+    if r is None or r.get("kind", GA.TIPO) != GA.TIPO:
+        raise KeyError("regra desconhecida")
+    return r
+
+
+def regra_gravar(c, s, corpo: dict, host: str = "") -> dict:
+    _admin(s)
+    from ipe.automation.rules import next_run
+    from ipe.network import gestao_auto as GA
+    nome = str(corpo.get("nome") or "").strip()[:120]
+    if not nome:
+        raise ValueError("dê um nome à regra")
+    cfg = _config_da_tela(c, corpo.get("cfg") or {})
+    ativa = bool(corpo.get("ativa"))
+    dados: dict = {"kind": GA.TIPO, "name": nome, "active": ativa}
+    if corpo.get("id"):
+        antes = _a_regra(c, corpo["id"])
+        dados["id"] = antes["id"]
+        cfg = {**(antes.get("config") or {}), **cfg}          # fica o último relatório, o dono e a visibilidade
+    dados["config"] = cfg
+    if ativa:
+        dados["next_run"] = next_run(cfg.get("schedule", {}), datetime.now())
+    rid = c.repo.save_rule(dados)
+    c.repo.audit("gestão", f"regra automática {'alterada' if corpo.get('id') else 'criada'} (navegador): {nome}",
+                 user=s.username, host=host)
+    return {**regras(c, s), "id": rid}
+
+
+def regra_ligar(c, s, corpo: dict, host: str = "") -> dict:
+    _admin(s)
+    from ipe.automation.rules import next_run
+    r = _a_regra(c, corpo.get("id"))
+    on = bool(corpo.get("on"))
+    dados = {"id": r["id"], "active": on}
+    if on:
+        dados["next_run"] = next_run((r.get("config") or {}).get("schedule", {}), datetime.now())
+    c.repo.save_rule(dados)
+    c.repo.audit("gestão", f"regra automática {'ligada' if on else 'desligada'} (navegador): {r.get('name', '')}",
+                 user=s.username, host=host)
+    return regras(c, s)
+
+
+def regra_excluir(c, s, corpo: dict, host: str = "") -> dict:
+    _admin(s)
+    r = _a_regra(c, corpo.get("id"))
+    auto = _auto(c)
+    if auto is not None and auto.gestao_em_curso(r["id"]):
+        raise ValueError("a regra está rodando agora")
+    c.repo.delete_rule(r["id"])
+    c.repo.audit("gestão", f"regra automática excluída (navegador): {r.get('name', '')}", user=s.username, host=host)
+    return regras(c, s)
+
+
+def regra_duplicar(c, s, corpo: dict, host: str = "") -> dict:
+    _admin(s)
+    from ipe.network import gestao_auto as GA
+    r = _a_regra(c, corpo.get("id"))
+    nomes = {x["name"] for x in c.repo.rules(GA.TIPO)}
+    base = f"{r['name']} (cópia)"
+    nome, i = base, 2
+    while nome in nomes:
+        nome, i = f"{base} {i}", i + 1
+    cfg = {k: v for k, v in (r.get("config") or {}).items() if not k.startswith("_") and k not in ("dono", "visivel_para")}
+    rid = c.repo.save_rule({"kind": GA.TIPO, "name": nome, "active": False, "config": cfg})
+    return {**regras(c, s), "id": rid}
+
+
+def regra_rodar(c, s, corpo: dict, host: str = "") -> dict:
+    """Roda a regra agora, pelo motor da automação do servidor (na linha dele)."""
+    _admin(s)
+    r = _a_regra(c, corpo.get("id"))
+    auto = _auto(c)
+    if auto is None:
+        raise RuntimeError("este servidor não tem a automação ligada")
+    ponte = getattr(c, "ponte", None)
+    comecou = ponte.chamar(lambda: auto.rodar_gestao(r, manual=True)) if ponte is not None \
+        else auto.rodar_gestao(r, manual=True)
+    if not comecou:
+        raise ValueError("a regra já está rodando")
+    c.repo.audit("gestão", f"regra automática rodada agora (navegador): {r.get('name', '')}", user=s.username, host=host)
+    return regras(c, s)
+
+
 def rota(c, s, method: str, acao: str, query: dict, corpo: dict, host: str = "") -> dict:
+    if method == "GET" and acao == "regras":
+        return regras(c, s)
+    if method == "POST" and acao in ("regra", "regra_ligar", "regra_excluir", "regra_duplicar", "regra_rodar"):
+        return {"regra": regra_gravar, "regra_ligar": regra_ligar, "regra_excluir": regra_excluir,
+                "regra_duplicar": regra_duplicar, "regra_rodar": regra_rodar}[acao](c, s, corpo, host)
     if method == "GET" and acao == "nos":
         return nos(c, s)
     if method == "GET" and acao == "estado":

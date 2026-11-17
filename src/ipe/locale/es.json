@@ -9420,5 +9420,19 @@
  "conferência (navegador) {}–{}: {} × {} — {}": "comprobación (navegador) {}–{}: {} × {} — {}",
  "envio a {} (navegador): {} {} — {}": "envío a {} (navegador): {} {} — {}",
  "envio ao {} (navegador): {} {} — {}": "envío al {} (navegador): {} {} — {}",
- "{} exame(s) tratado(s) no envio para {}.": "{} estudio(s) tratado(s) en el envío a {}."
+ "{} exame(s) tratado(s) no envio para {}.": "{} estudio(s) tratado(s) en el envío a {}.",
+ "a regra está rodando agora": "la regla se está ejecutando ahora",
+ "a regra já está rodando": "la regla ya se está ejecutando",
+ "dê um nome à regra": "dé un nombre a la regla",
+ "escolha o destino": "elija el destino",
+ "este servidor não tem a automação ligada": "este servidor no tiene la automatización activada",
+ "hoje %H:%M": "hoy %H:%M",
+ "marque pelo menos um dia da semana": "marque al menos un día de la semana",
+ "marque pelo menos uma modalidade": "marque al menos una modalidad",
+ "o destino não pode ser uma das modalidades conferidas": "el destino no puede ser una de las modalidades comprobadas",
+ "regra desconhecida": "regla desconocida",
+ " ({} a {})": " ({} a {})",
+ "regra automática excluída (navegador): {}": "regla automática eliminada (navegador): {}",
+ "regra automática rodada agora (navegador): {}": "regla automática ejecutada ahora (navegador): {}",
+ "regra automática {} (navegador): {}": "regla automática {} (navegador): {}"
 }

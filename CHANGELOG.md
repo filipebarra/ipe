@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.65 — Gestão DICOM no Ipê Web: a aba Automático
+- **Aba Automático** na Gestão DICOM do navegador (administradores): criar, editar, duplicar, ligar/desligar, excluir
+  e **rodar agora** as regras com horário — as mesmas do Ipê de mesa (ficam no banco). O editor tem tudo o que a
+  janela tem: modalidades e identidades, destino, o que mandar, período, horário (a cada N minutos ou todo dia a uma
+  hora, por dia da semana) e nova tentativa em caso de erro.
+- **Último relatório** de cada regra (completados agora, com erro, fora do ar, outro Study UID) e **histórico**.
+- As regras rodam no servidor; alterações vão para o registro de acesso, com o usuário.
+
 ## 0.100.64 — Ipê Web: o tradutor do navegador não mexe mais na página
 - O navegador oferecia (ou fazia sozinho) a tradução da página e trocava os textos do Ipê Web por outros sem sentido
   ("Direto; se a modalidade recusar…" virava outra frase, "Parar" virava "Paraquedas"). A página agora diz ao

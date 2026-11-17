@@ -741,3 +741,36 @@ header .barra .mais[hidden] { display: none; }
 .gestao-fila tr.fila-ok td:first-child, .gestao-fila tr.fila-nada td:first-child { color: #5abe6e; }
 .gestao-fila td { white-space: nowrap; max-width: 28em; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 1000px) { .gestao-cfg { grid-template-columns: minmax(0, 1fr); } }
+/* 0.100.65: a aba Automático da Gestão DICOM */
+.gestao-abas { display: flex; gap: 4px; border-bottom: 1px solid var(--borda); }
+.gestao-abas button { border-radius: 6px 6px 0 0; border-bottom: none; }
+.gestao-abas button[aria-selected=true] { background: var(--cartao); color: var(--acento); font-weight: 600; }
+.gestao-aba, .gestao-lista-regras { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.gestao-aba[hidden], .gestao-lista-regras[hidden], .gestao-editor[hidden] { display: none; }
+.gestao-regras td { white-space: nowrap; max-width: 30em; overflow: hidden; text-overflow: ellipsis; }
+.gestao-regras tbody tr { cursor: pointer; }
+.gestao-regras tr.escolhida td { background: rgba(224, 165, 38, .12); }
+.gestao-regras tr.sit-ok .sit { color: #5abe6e; }
+.gestao-regras tr.sit-erro .sit { color: #e65a5a; }
+.gestao-regras tr.sit-offline .sit { color: #eba03c; }
+.gestao-regras td.vazio { color: var(--suave); cursor: default; }
+.gestao-relatorio { background: var(--painel); border: 1px solid var(--borda); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+.gestao-relatorio .cab { font-weight: 600; margin-bottom: 4px; }
+.gestao-relatorio .grupo summary { cursor: pointer; }
+.gestao-relatorio .grupo.ok summary { color: #7fd07f; }
+.gestao-relatorio .grupo.erro summary { color: #ff8a80; }
+.gestao-relatorio .grupo.offline summary { color: #ffb74d; }
+.gestao-relatorio .item { padding: 1px 0 1px 18px; }
+.gestao-hist td { white-space: nowrap; max-width: 60em; overflow: hidden; text-overflow: ellipsis; }
+.gestao-editor { display: flex; flex-direction: column; gap: 10px; }
+.gestao-editor > .campo { display: flex; align-items: center; gap: 8px; }
+.gestao-editor > .campo > span:first-child { color: var(--suave); }
+.gestao-editor > .campo input:not([type=checkbox]) { flex: 0 1 28em; }
+.gestao-editor .opcao { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.gestao-editor input[type=number] { width: 5.5em; }
+.gestao-editor .campo .rot { color: var(--suave); }
+.gestao-editor .erro:empty { display: none; }
+.abas.gestao-abas button { flex: 0 0 auto; padding: 6px 18px; }
+.tela-gestao .gestao-cfg .campo input[type=time]:not([hidden]), .tela-gestao .gestao-cfg .campo input[type=number]:not([hidden]) { flex: 0 0 auto; min-width: 0; }
+.tela-gestao .gestao-cfg .campo input[type=number]:not([hidden]) { width: 5.5em; }
+.tela-gestao .gestao-cfg .campo input[type=time]:not([hidden]) { width: 8.5em; }

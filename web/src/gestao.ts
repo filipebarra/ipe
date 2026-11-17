@@ -386,12 +386,273 @@ export async function telaGestao(): Promise<HTMLElement> {
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   };
 
+  // 0.100.65: duas abas, como na janela do Ipê de mesa — "Conferir agora" e "Automático" (as regras)
+  const abaConferir = el("div", { class: "gestao-aba" }, quadroCfg, aviso, el("div", { class: "gestao-barra" }, resumo, sMostrar, eBusca), erros, acoes,
+    el("div", { class: "gestao-rolagem" }, tabela), quadroFila);
+  const abaAuto = painelAutomatico(dados, () => raiz.isConnected);
+  abaAuto.el.hidden = true;
+  const bAba1 = el("button", { type: "button", role: "tab", "aria-selected": "true" }, tr("Conferir agora"));
+  const bAba2 = el("button", { type: "button", role: "tab", "aria-selected": "false" }, tr("Automático"));
+  const escolherAba = (auto: boolean) => {
+    abaConferir.hidden = auto;
+    abaAuto.el.hidden = !auto;
+    bAba1.setAttribute("aria-selected", String(!auto));
+    bAba2.setAttribute("aria-selected", String(auto));
+    if (auto) abaAuto.mostrar();
+  };
+  bAba1.onclick = () => escolherAba(false);
+  bAba2.onclick = () => escolherAba(true);
   raiz.append(el("h2", {}, tr("Gestão DICOM — exames das modalidades no PACS")),
     el("div", { class: "dica" }, tr("Quem fala com as modalidades e com o PACS é o servidor; a conferência e o envio continuam com esta página fechada.")),
-    quadroCfg, aviso, el("div", { class: "gestao-barra" }, resumo, sMostrar, eBusca), erros, acoes,
-    el("div", { class: "gestao-rolagem" }, tabela), quadroFila);
+    el("div", { class: "abas gestao-abas", role: "tablist" }, bAba1, bAba2), abaConferir, abaAuto.el);
   (window as unknown as { __ipeGestao?: unknown }).__ipeGestao = { estado: () => estado, marcadas: () => [...marcadas], csv: () => csvDaGestao(visiveis()) };
   // a primeira leitura depois de a tela entrar na página (a atualização confere `isConnected`)
   setTimeout(() => void atualizar(), 0);
   return raiz;
+}
+
+// ------------------------------------------------------------------ 0.100.65: a aba Automático (as regras)
+interface CfgRegra {
+  fontes: { node_id: number; identity_id: number | null }[]; destino: { node_id: number | null; identity_id: number | null };
+  move_destination: string; modalidade: string; periodo: string; ignorar: string; exato: boolean; envio: string; modo: string;
+  schedule: { type: string; minutes?: number; from?: string; to?: string; at?: string; weekdays: number[] };
+  repetir: { minutos: number; vezes: number };
+}
+interface ItemRel { paciente: string; accession: string; fonte: string; mensagem: string }
+interface Relatorio {
+  inicio_txt: string; resumo: string; situacao: string; destino_offline: boolean; erro: string;
+  enviados: ItemRel[]; falhas: ItemRel[]; outro_uid: ItemRel[]; offline: string[];
+}
+interface Regra {
+  id: number; nome: string; ativa: boolean; quando: string; destino: string; mandar: string; ultima: string; situacao: string;
+  simbolo: string; texto: string; rodando: boolean; proxima: string; cfg: CfgRegra; ultimo: Relatorio | null;
+}
+interface Regras {
+  regras: Regra[]; historico: { quando: string; regra: string; situacao: string; estado: string; mensagem: string }[];
+  motor: boolean; padrao: CfgRegra; envios: Record<string, string>; dias: string[]; id?: number;
+}
+
+function painelAutomatico(dados: Nos, naPagina: () => boolean): { el: HTMLElement; mostrar: () => void } {
+  const raiz = el("div", { class: "gestao-aba gestao-auto" });
+  const aviso = el("div", { class: "estado", role: "status" });
+  const corpo = el("tbody");
+  const tabela = el("table", { class: "lista gestao-regras" },
+    el("thead", {}, el("tr", {}, ...["Ligada", "Regra", "Quando", "Destino", "Mandar", "Última", "Situação", "Próxima"].map((t) => el("th", {}, tr(t))))), corpo);
+  const bNova = el("button", { type: "button", class: "primario" }, tr("Nova regra…"));
+  const bEditar = el("button", { type: "button" }, tr("Editar…"));
+  const bDuplicar = el("button", { type: "button" }, tr("Duplicar"));
+  const bExcluir = el("button", { type: "button" }, tr("Excluir"));
+  const bRodar = el("button", { type: "button" }, tr("Rodar agora"));
+  const relatorio = el("div", { class: "gestao-relatorio" });
+  const corpoHist = el("tbody");
+  const editor = el("section", { class: "gestao-editor", hidden: "" });
+  const lista = el("div", { class: "gestao-lista-regras" },
+    el("div", { class: "dica" }, tr("As regras rodam sozinhas enquanto o servidor estiver ligado. Cada uma confere as modalidades no destino e manda o que não está completo. São as mesmas regras da janela de Gestão do Ipê.")),
+    el("div", { class: "acoes" }, bNova, bEditar, bDuplicar, bExcluir, bRodar), aviso,
+    el("div", { class: "gestao-rolagem" }, tabela),
+    el("h3", {}, tr("Último relatório da regra")), relatorio,
+    el("h3", {}, tr("Histórico")),
+    el("div", { class: "gestao-rolagem" }, el("table", { class: "lista gestao-hist" },
+      el("thead", {}, el("tr", {}, ...["Quando", "Regra", "Situação", "Resumo"].map((t) => el("th", {}, tr(t))))), corpoHist)));
+  raiz.append(lista, editor);
+
+  let rs: Regras | null = null;
+  let escolhida = 0;
+  let relogio = 0;
+  const atual = (): Regra | undefined => rs?.regras.find((r) => r.id === escolhida);
+
+  const grupo = (titulo: string, itens: (ItemRel | string)[], classe: string, detalhe?: (d: ItemRel) => string): HTMLElement => {
+    const d = el("details", { class: `grupo ${classe}` }, el("summary", {}, `${tr(titulo)} (${itens.length})`));
+    if (itens.length && titulo !== "Completados agora") d.setAttribute("open", "");
+    for (const it of itens) {
+      d.append(typeof it === "string" ? el("div", { class: "item" }, el("b", {}, it.split(":")[0]), " ", it)
+        : el("div", { class: "item" }, el("b", {}, `${it.paciente}  ${it.accession}  (${it.fonte})`), " ", detalhe ? detalhe(it) : it.mensagem));
+    }
+    return d;
+  };
+  const desenhar = () => {
+    if (!rs) return;
+    if (!rs.regras.some((r) => r.id === escolhida)) escolhida = rs.regras[0]?.id || 0;
+    corpo.replaceChildren(...rs.regras.map((r) => {
+      const caixa = el("input", { type: "checkbox", "aria-label": `${tr("Ligada")}: ${r.nome}` });
+      caixa.checked = r.ativa;
+      caixa.onclick = (ev) => ev.stopPropagation();
+      caixa.onchange = () => void pedirRegras("regra_ligar", { id: r.id, on: caixa.checked });
+      const linha = el("tr", { class: `regra sit-${r.situacao}${r.id === escolhida ? " escolhida" : ""}`, "data-id": String(r.id) },
+        el("td", {}, caixa), el("td", {}, r.nome), el("td", {}, r.quando), el("td", {}, r.destino), el("td", {}, tr(r.mandar)),
+        el("td", {}, r.ultima), el("td", { class: "sit", title: r.texto }, `${r.simbolo} ${r.texto}`), el("td", {}, r.proxima));
+      linha.onclick = () => { escolhida = r.id; desenhar(); };
+      return linha;
+    }));
+    if (!rs.regras.length) corpo.append(el("tr", {}, el("td", { colspan: "8", class: "vazio" }, tr("Nenhuma regra. Clique em Nova regra…"))));
+    const r = atual();
+    bEditar.disabled = bDuplicar.disabled = bExcluir.disabled = !r;
+    bRodar.disabled = !r || r.rodando || !rs.motor;
+    bRodar.title = rs.motor ? "" : tr("Este servidor não tem a automação ligada.");
+    relatorio.replaceChildren();
+    if (r) {
+      const u = r.ultimo;
+      if (!u) relatorio.append(el("div", { class: "dica" }, tr("Ainda não rodou.")));
+      else {
+        relatorio.append(el("div", { class: "cab" }, `${u.inicio_txt} — ${u.resumo}`));
+        if (u.destino_offline) relatorio.append(grupo("Destino fora do ar", [u.erro], "offline"));
+        relatorio.append(grupo("Completados agora", u.enviados || [], "ok"), grupo("Com erro", u.falhas || [], "erro"),
+          grupo("Modalidades fora do ar", u.offline || [], "offline"),
+          grupo("Mesmo accession com outro Study UID (não enviados)", u.outro_uid || [], "", () => tr("confira no destino antes de mandar")));
+      }
+    }
+    corpoHist.replaceChildren(...rs.historico.map((h) => el("tr", { class: `hist-${h.estado}` }, el("td", {}, h.quando), el("td", {}, h.regra),
+      el("td", {}, h.situacao), el("td", { title: h.mensagem }, h.mensagem))));
+  };
+  const receber = (r: Regras) => { rs = r; if (r.id) escolhida = r.id; desenhar(); };
+  const atualizar = async () => {
+    clearTimeout(relogio);
+    if (!naPagina() || raiz.hidden) return;
+    if (editor.hidden) {
+      try { receber(await pedirJson<Regras>("/api/web/gestao/regras")); } catch (e) { aviso.textContent = tr((e as Error).message); }
+    }
+    relogio = window.setTimeout(() => void atualizar(), rs?.regras.some((r) => r.rodando) ? 1200 : 5000);
+  };
+  const pedirRegras = async (acao: string, corpoPedido: unknown): Promise<boolean> => {
+    aviso.textContent = "";
+    try {
+      receber(await pedirJson<Regras>(`/api/web/gestao/${acao}`, corpoPedido));
+      return true;
+    } catch (e) {
+      aviso.textContent = tr((e as Error).message);
+      return false;
+    }
+  };
+
+  // ---------------------------------------------------------------- o editor da regra
+  const abrirEditor = (regra: Regra | null) => {
+    if (!rs) return;
+    const cfg: CfgRegra = JSON.parse(JSON.stringify(regra?.cfg || rs.padrao));
+    const erro = el("div", { class: "erro", role: "alert" });
+    const eNome = el("input", { "aria-label": tr("Nome da regra"), placeholder: tr("ex.: RM no PACS") });
+    eNome.value = regra?.nome || "";
+    const kAtiva = el("input", { type: "checkbox", id: "regra-ativa" });
+    kAtiva.checked = regra ? regra.ativa : true;
+    const idents = (no: { identidades: Ident[] } | undefined, v: number | null | undefined, rotulo: string): HTMLSelectElement => {
+      const sel = el("select", { "aria-label": tr(rotulo) }, el("option", { value: "" }, `${tr("Este servidor")} (${dados.local_ae})`),
+        ...(no?.identidades || []).map((i) => el("option", { value: String(i.id) }, `${i.nome} (${i.ae})`)));
+      if (v && [...sel.options].some((o) => o.value === String(v))) sel.value = String(v);
+      return sel;
+    };
+    const fontes = dados.nos.map((no) => {
+      const mem = cfg.fontes.find((f) => f.node_id === no.id);
+      const caixa = el("input", { type: "checkbox", "aria-label": no.nome });
+      caixa.checked = !!mem;
+      return { no, caixa, ident: idents(no, mem?.identity_id, "Falar como") };
+    });
+    const tFontes = el("table", { class: "lista gestao-fontes" },
+      el("thead", {}, el("tr", {}, ...["", "Modalidade", "AE Title", "Falar como"].map((t) => el("th", {}, t ? tr(t) : "")))),
+      el("tbody", {}, ...fontes.map((f) => el("tr", { "data-no": String(f.no.id) }, el("td", {}, f.caixa), el("td", {}, f.no.nome),
+        el("td", {}, `${f.no.ae}@${f.no.host}`), el("td", {}, f.ident)))));
+    const sDestino = el("select", { "aria-label": tr("Destino") }, el("option", { value: "" }, "—"),
+      ...dados.nos.map((n) => el("option", { value: String(n.id) }, `${n.nome}  (${n.ae}@${n.host})`)));
+    sDestino.value = cfg.destino.node_id ? String(cfg.destino.node_id) : "";
+    const caixaComo = el("span", {});
+    let sComo = idents(undefined, null, "Enviar como");
+    const eMove = el("input", { "aria-label": tr("Destino do C-MOVE") });
+    eMove.value = cfg.move_destination || "";
+    const destinoMudou = (v?: number | null) => {
+      const no = dados.nos.find((n) => String(n.id) === sDestino.value);
+      sComo = idents(no, v === undefined ? Number(sComo.value) || null : v, "Enviar como");
+      caixaComo.replaceChildren(sComo);
+      eMove.placeholder = no?.ae || "";
+    };
+    sDestino.onchange = () => destinoMudou();
+    destinoMudou(cfg.destino.identity_id);
+    const radio = (nome: string, valor: string, marcado: boolean, rotulo: string): [HTMLInputElement, HTMLElement] => {
+      const r = el("input", { type: "radio", name: nome, value: valor });
+      r.checked = marcado;
+      return [r, el("label", { class: "opcao" }, r, " ", tr(rotulo))];
+    };
+    const [rFalta, lFalta] = radio("regra-envio", "falta", cfg.envio !== "inteiro", rs.envios.falta || "Só o que falta");
+    const [rInteiro, lInteiro] = radio("regra-envio", "inteiro", cfg.envio === "inteiro", rs.envios.inteiro || "O exame inteiro");
+    void rFalta;
+    const sModo = el("select", { "aria-label": tr("Como enviar") }, ...dados.modos.map((m) => el("option", { value: m.k }, tr(m.nome))));
+    sModo.value = cfg.modo || "auto";
+    const sPeriodo = el("select", { "aria-label": tr("Período") }, ...dados.periodos.filter((p) => p.k !== "datas").map((p) => el("option", { value: p.k }, tr(p.nome))));
+    sPeriodo.value = cfg.periodo || "hoje";
+    const eModalidade = el("input", { "aria-label": tr("Só a modalidade"), placeholder: tr("todas"), size: "6" });
+    eModalidade.value = cfg.modalidade || "";
+    const eIgnorar = el("input", { "aria-label": tr("Ignorar séries"), placeholder: tr("ex.: Patient Protocol; ScreenCap") });
+    eIgnorar.value = cfg.ignorar || "";
+    const kExato = el("input", { type: "checkbox", id: "regra-exato" });
+    kExato.checked = !!cfg.exato;
+    const diario = cfg.schedule.type === "daily";
+    const [rIntervalo, lIntervalo] = radio("regra-horario", "interval", !diario, "A cada");
+    const [rDiario, lDiario] = radio("regra-horario", "daily", diario, "Todo dia às");
+    void rIntervalo;
+    const nMin = el("input", { type: "number", min: "5", max: "1440", "aria-label": tr("Minutos"), value: String(cfg.schedule.minutes || 60) });
+    const hDe = el("input", { type: "time", "aria-label": tr("Das"), value: cfg.schedule.from || "07:00" });
+    const hAte = el("input", { type: "time", "aria-label": tr("Até as"), value: cfg.schedule.to || "20:00" });
+    const hAs = el("input", { type: "time", "aria-label": tr("Hora"), value: cfg.schedule.at || "06:00" });
+    const dias = rs.dias.map((nome, i) => {
+      const k = el("input", { type: "checkbox", "aria-label": tr(nome) });
+      k.checked = (cfg.schedule.weekdays || []).includes(i);
+      return { k, rot: el("label", { class: "opcao" }, k, " ", tr(nome)) };
+    });
+    const kRepetir = el("input", { type: "checkbox", id: "regra-repetir" });
+    kRepetir.checked = (cfg.repetir?.vezes || 0) > 0;
+    const nRepMin = el("input", { type: "number", min: "1", max: "720", "aria-label": tr("Minutos até tentar de novo"), value: String(cfg.repetir?.minutos || 15) });
+    const nRepVezes = el("input", { type: "number", min: "1", max: "20", "aria-label": tr("Quantas vezes"), value: String(Math.max(1, cfg.repetir?.vezes || 3)) });
+    const campo = (rotulo: string, ...c: (Node | string)[]) => el("div", { class: "campo" }, el("span", {}, rotulo ? tr(rotulo) : ""), ...c);
+    const bSalvar = el("button", { type: "button", class: "primario" }, tr("Salvar a regra"));
+    const bCancelar = el("button", { type: "button" }, tr("Cancelar"));
+    const fechar = () => { editor.hidden = true; lista.hidden = false; editor.replaceChildren(); void atualizar(); };
+    bCancelar.onclick = fechar;
+    bSalvar.onclick = async () => {
+      const nova: CfgRegra = {
+        fontes: fontes.filter((f) => f.caixa.checked).map((f) => ({ node_id: f.no.id, identity_id: Number(f.ident.value) || null })),
+        destino: { node_id: Number(sDestino.value) || null, identity_id: Number(sComo.value) || null },
+        move_destination: eMove.value.trim(), modalidade: eModalidade.value.trim().toUpperCase(), periodo: sPeriodo.value,
+        ignorar: eIgnorar.value.trim(), exato: kExato.checked, envio: rInteiro.checked ? "inteiro" : "falta", modo: sModo.value,
+        schedule: rDiario.checked ? { type: "daily", at: hAs.value, weekdays: dias.flatMap((d, i) => (d.k.checked ? [i] : [])) }
+          : { type: "interval", minutes: Number(nMin.value) || 60, from: hDe.value, to: hAte.value, weekdays: dias.flatMap((d, i) => (d.k.checked ? [i] : [])) },
+        repetir: { minutos: Number(nRepMin.value) || 15, vezes: kRepetir.checked ? Number(nRepVezes.value) || 3 : 0 },
+      };
+      erro.textContent = "";
+      try {
+        receber(await pedirJson<Regras>("/api/web/gestao/regra", { id: regra?.id, nome: eNome.value.trim(), ativa: kAtiva.checked, cfg: nova }));
+        fechar();
+      } catch (e) {
+        erro.textContent = tr((e as Error).message);
+      }
+    };
+    editor.replaceChildren(
+      el("h3", {}, tr(regra ? "Editar a regra" : "Nova regra")),
+      campo("Nome", eNome, el("label", { class: "opcao", for: "regra-ativa" }, kAtiva, " ", tr("Ligada"))),
+      el("div", { class: "gestao-cfg" },
+        el("section", {}, el("h3", {}, tr("Modalidades")), tFontes),
+        el("section", {}, el("h3", {}, tr("Destino e envio")),
+          campo("Destino", sDestino), campo("Enviar como", caixaComo), campo("Destino do C-MOVE", eMove),
+          campo("Mandar", lFalta, lInteiro), campo("Como enviar", sModo))),
+      el("div", { class: "gestao-cfg" },
+        el("section", {}, el("h3", {}, tr("O que conferir")),
+          campo("Período", sPeriodo, el("span", { class: "rot" }, tr("Só a modalidade")), eModalidade), campo("Ignorar séries", eIgnorar),
+          campo("", el("label", { class: "opcao", for: "regra-exato" }, kExato, " ", tr("Conferir imagem por imagem (mais lento)")))),
+        el("section", {}, el("h3", {}, tr("Quando")),
+          campo("", lIntervalo, nMin, tr("min, das"), hDe, tr("às"), hAte), campo("", lDiario, hAs),
+          campo("Dias", ...dias.map((d) => d.rot)),
+          campo("", el("label", { class: "opcao", for: "regra-repetir" }, kRepetir, " ", tr("Se der erro ou algum nó estiver fora do ar, tentar de novo em")),
+            nRepMin, tr("min, até"), nRepVezes, tr("vezes")))),
+      erro, el("div", { class: "acoes" }, bSalvar, bCancelar));
+    lista.hidden = true;
+    editor.hidden = false;
+    eNome.focus();
+  };
+
+  bNova.onclick = () => abrirEditor(null);
+  bEditar.onclick = () => { const r = atual(); if (r) abrirEditor(r); };
+  bDuplicar.onclick = () => { const r = atual(); if (r) void pedirRegras("regra_duplicar", { id: r.id }); };
+  bExcluir.onclick = () => {
+    const r = atual();
+    if (r && window.confirm(`${tr("Excluir a regra")} “${r.nome}”?`)) void pedirRegras("regra_excluir", { id: r.id });
+  };
+  bRodar.onclick = () => { const r = atual(); if (r) void pedirRegras("regra_rodar", { id: r.id }).then(() => void atualizar()); };
+  (window as unknown as { __ipeGestaoAuto?: unknown }).__ipeGestaoAuto = { regras: () => rs };
+  return { el: raiz, mostrar: () => void atualizar() };
 }

@@ -6988,7 +6988,17 @@
   "nenhum dos exames marcados tem o que enviar",
   "não guardei as escolhas da gestão",
   "nó desconhecido",
-  "o envio foi interrompido"
+  "o envio foi interrompido",
+  "a regra está rodando agora",
+  "a regra já está rodando",
+  "dê um nome à regra",
+  "escolha o destino",
+  "este servidor não tem a automação ligada",
+  "hoje %H:%M",
+  "marque pelo menos um dia da semana",
+  "marque pelo menos uma modalidade",
+  "o destino não pode ser uma das modalidades conferidas",
+  "regra desconhecida"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8926,6 +8936,10 @@
   "conferência (navegador) {}–{}: {} × {} — {}",
   "envio a {} (navegador): {} {} — {}",
   "envio ao {} (navegador): {} {} — {}",
-  "{} exame(s) tratado(s) no envio para {}."
+  "{} exame(s) tratado(s) no envio para {}.",
+  " ({} a {})",
+  "regra automática excluída (navegador): {}",
+  "regra automática rodada agora (navegador): {}",
+  "regra automática {} (navegador): {}"
  ]
 }
