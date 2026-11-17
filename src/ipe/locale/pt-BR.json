@@ -6972,7 +6972,23 @@
   "abertura para o servidor",
   "Connection",
   "Host",
-  "fechada sem dizer nada"
+  "fechada sem dizer nada",
+  "Conferindo de novo…",
+  "Envio interrompido.",
+  "a Gestão DICOM no navegador é só para administradores",
+  "auditoria da gestão",
+  "datas: AAAAMMDD",
+  "destino de envio desconhecido",
+  "escolha o PACS",
+  "este servidor não tem a rede DICOM ligada",
+  "faça a conferência antes de enviar",
+  "já há uma operação da gestão em andamento neste servidor",
+  "marque pelo menos uma modalidade (que não seja o próprio PACS)",
+  "nada a conferir de novo",
+  "nenhum dos exames marcados tem o que enviar",
+  "não guardei as escolhas da gestão",
+  "nó desconhecido",
+  "o envio foi interrompido"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -8906,6 +8922,10 @@
   " | {} {} | {}",
   "Abertura web ({}): primeira imagem em {} s — {}{}",
   "{}, {} séries",
-  " | {} | {}"
+  " | {} | {}",
+  "conferência (navegador) {}–{}: {} × {} — {}",
+  "envio a {} (navegador): {} {} — {}",
+  "envio ao {} (navegador): {} {} — {}",
+  "{} exame(s) tratado(s) no envio para {}."
  ]
 }

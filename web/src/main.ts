@@ -29,6 +29,7 @@ import * as JAN from "./janelas";
 import { PainelDocumentos, anexar as anexarArquivos } from "./anexos";
 import { PainelFilme } from "./filme";
 import { nosDoServidor, telaPacs as montarTelaPacs } from "./pacs";
+import { telaGestao } from "./gestao";
 import {
   Grade, TIPO_ARRASTO, TIPO_ARRASTO_ESTUDO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
   ARRANJO_PET_PADRAO, type ConteudoPet, type VistaPet,
@@ -316,7 +317,12 @@ async function telaLista(): Promise<void> {
     title: tr("Buscar exames no PACS e baixar para o servidor") }, tr("Buscar no PACS…")) as HTMLButtonElement;
   bPacs.onclick = () => { location.hash = "#/pacs"; };
   void nosDoServidor().then((r) => { bPacs.hidden = !r.nos.length; });
-  const form = el("form", { class: "filtros" }, busca, el("button", { type: "submit" }, tr("Buscar")), bPacs, bMon);
+  // 0.100.63: a Gestão DICOM (modalidades × PACS) — só para administradores
+  const bGestao = el("button", { type: "button", class: "gestao-abrir", hidden: true,
+    title: tr("Conferir se os exames das modalidades estão no PACS e mandar o que falta") }, tr("Gestão DICOM…")) as HTMLButtonElement;
+  bGestao.hidden = config?.usuario.role !== "admin";
+  bGestao.onclick = () => { location.hash = "#/gestao"; };
+  const form = el("form", { class: "filtros" }, busca, el("button", { type: "submit" }, tr("Buscar")), bPacs, bGestao, bMon);
   const antes = lerBusca();
   if (antes) {
     busca.value = antes.texto || "";
@@ -1829,6 +1835,19 @@ async function telaPacs(): Promise<void> {
   if (location.hash === "#/pacs") corpo.replaceChildren(el("div", { class: "lista-esq" }, tela));
 }
 
+async function telaDaGestao(): Promise<void> {
+  pararDisponiveis();
+  grade?.encerrar();
+  grade = null;
+  document.title = `${tr("Gestão DICOM")} — ${tr("Ipê Web")}`;
+  const voltar = el("button", { type: "button", class: "link", onclick: () => { location.hash = "#/lista"; } },
+    `← ${tr("Lista de exames")}`);
+  const corpo = el("main", { class: "telalista" }, el("div", { class: "estado" }, tr("Carregando…")));
+  app.replaceChildren(cabecalho(voltar), corpo, tarja());
+  const tela = await telaGestao();
+  if (location.hash === "#/gestao") corpo.replaceChildren(el("div", { class: "lista-esq" }, tela));
+}
+
 // ------------------------------------------------------------------ rotas
 function rota(): void {
   if (!API.tokenAtual()) {
@@ -1857,6 +1876,7 @@ function rota(): void {
   else if (m2) void telaExame(m2[1], 2);
   else if (/^#\/espera\/j[1-9]$/.test(h)) telaEspera();
   else if (h === "#/pacs") void telaPacs();
+  else if (h === "#/gestao") void telaDaGestao();
   else void telaLista();
 }
 

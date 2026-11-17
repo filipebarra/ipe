@@ -1266,6 +1266,16 @@ Nesta primeira fase:
 
 **Buscar no PACS e baixar (0.100.37).** Na lista de exames, o botão **Buscar no PACS…** aparece quando o servidor compartilha algum nó com você (veja *Buscar no PACS pelo servidor*, acima). Escolha o nó, preencha nome, ID, acesso ou um período (busca sem filtro não é aceita, para não pesar no PACS) e clique em **Buscar no PACS**. Cada exame do resultado tem **Baixar** — o servidor baixa para o banco dele, no seu banco — ou **Abrir**, quando já está no servidor. Embaixo, **Downloads pelo servidor** mostra o andamento de cada um, com **Cancelar** e, no fim, **Abrir o exame**.
 
+**Gestão DICOM no navegador (0.100.63).** Para **administradores**, a lista de exames ganha o botão **Gestão DICOM…** — a mesma rotina da janela do Ipê de mesa (veja *Gestão DICOM: os exames das modalidades estão no PACS?*), atendida pelo servidor:
+
+- **Quem fala com as modalidades e com o PACS é o servidor**, com o AE Title dele ou com a identidade escolhida em *Falar como*. Os equipamentos e o PACS precisam aceitar o servidor; o botão **Testar** de cada linha faz um C-ECHO e diz se o nó responde.
+- Aparecem **todos os nós DIMSE ativos do servidor** — aqui não é preciso marcar *Compartilhar com os clientes* no nó.
+- Marque as modalidades, escolha o PACS, o período, o que ignorar e **Conferir**. A tabela traz a situação de cada exame (completo, incompleto, ausente, com outro UID, sem contagem, erro); clicar na linha abre as séries. **Só os com problema** filtra; **Marcar os com problema** seleciona.
+- **Enviar o que falta** e **Enviar o exame inteiro** mandam ao PACS da conferência; os dois **…para ▾** mandam a outro destino de envio do servidor (o que falta é contado lá). A **Fila de envio** mostra cada exame; depois do envio o exame é conferido de novo. **Exportar CSV** salva o que está na tela.
+- **Tudo roda no servidor**: pode fechar a página — a conferência e o envio continuam, e ao voltar (você ou outro administrador) a tela mostra o mesmo estado. Uma operação por vez. Conferências e envios vão para o registro de acesso, com o usuário.
+- As escolhas ficam guardadas no servidor (as mesmas da janela de Gestão do programa no computador do servidor). A aba *Automático* (regras com horário) continua, por enquanto, só no Ipê de mesa.
+
+
 **Enviar a um destino DICOM (0.100.9).** O botão **Enviar a um destino DICOM** (o avião de papel, ao lado do Laudo) só aparece para quem tem a permissão de enviar para nós DICOM.
 
 - **O que**: o exame inteiro, as séries marcadas (a do quadro ativo já vem marcada) ou só a imagem do quadro ativo.

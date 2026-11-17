@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.63 — DICOM management in Ipê Web (administrators)
+- **DICOM management… in the Ipê Web study list**, administrators only: check that the modalities' studies are in the
+  PACS (per study and per series) and send what is missing or the whole study, to the PACS or another destination —
+  the same routine as the desktop Ipê window.
+- **Runs on the server**: the server talks to the modalities and the PACS (with its AE or the chosen identity); the
+  check and the sending continue with the page closed. All the server's DIMSE nodes are shown, with no need to share
+  them with the clients. **Test** (C-ECHO) on each node.
+- Send queue, re-check after sending, "only those with a problem" filter, CSV and access log with the user.
+
 ## 0.100.62 — HTTPS server: Ipê Web no longer disappears; http:// leads to https://
 - **Server with a certificate (HTTPS)**: a connection that opened and said nothing (the browser pre-opening
   connections, a phone that went to sleep) stalled the whole server until it was closed — Ipê Web and the clients

@@ -931,6 +931,18 @@ class _Handler(BaseHTTPRequestHandler):
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, r, raw=True)
+        if path.startswith("/api/web/gestao/"):                             # 0.100.63: a Gestão DICOM (só administradores)
+            from ipe.central import gestao_web as GW
+            try:
+                corpo = json.loads(self._body() or b"{}") if method == "POST" else {}
+                r = GW.rota(c, s, method, path.rsplit("/", 1)[-1], parse_qs(parts.query), corpo, self.client_address[0])
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except LookupError as e:
+                return self._error(404, str(e).strip("'"))
+            except (TypeError, ValueError, RuntimeError) as e:
+                return self._error(400, str(e))
+            return self._json(200, r, raw=True)
         if path.startswith("/api/web/pacs/"):                               # 0.100.37: buscar e baixar do PACS
             from ipe.central import pacs_servidor as PS
             try:
