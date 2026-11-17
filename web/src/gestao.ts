@@ -3,7 +3,7 @@
 // servidor; a conferência e o envio seguem com esta aba fechada. Só administradores. Os nós são todos os do
 // servidor (aqui não vale o "compartilhar com os clientes").
 import { pedir } from "./api";
-import { tr } from "./i18n";
+import { getLang, tr } from "./i18n";
 import { type ItemMenu, abrirMenu } from "./menu";
 
 interface Ident { id: number; nome: string; ae: string }
@@ -40,6 +40,9 @@ const COLUNAS: [string, keyof Linha | ""][] = [["Situação", "situacao"], ["Ori
 const ORDEM_SIT = ["erro", "ausente", "outro_uid", "incompleto", "sem_contagem", "completo"];
 
 async function pedirJson<T>(caminho: string, corpo?: unknown): Promise<T> {
+  // 0.100.66: o servidor responde no idioma desta página (andamento, resumos, relatórios)
+  const idioma = getLang();
+  if (idioma !== "pt") caminho += `${caminho.includes("?") ? "&" : "?"}lang=${idioma}`;
   const r = await pedir(`${location.origin}${caminho}`, {
     method: corpo === undefined ? "GET" : "POST",
     headers: corpo === undefined ? {} : { "Content-Type": "application/json" },
@@ -264,7 +267,7 @@ export async function telaGestao(): Promise<HTMLElement> {
       caixa.onchange = () => { if (caixa.checked) marcadas.add(l.k); else marcadas.delete(l.k); botoes(); };
       const tr0 = el("tr", { class: `sit-${l.situacao}`, "data-k": l.k, "data-acc": l.accession },
         el("td", {}, caixa),
-        el("td", { class: "sit" }, `${SIMBOLO[l.situacao] || ""} ${tr(l.texto)}`), el("td", {}, l.fonte),
+        el("td", { class: "sit" }, `${SIMBOLO[l.situacao] || ""} ${l.texto}`), el("td", {}, l.fonte),
         el("td", {}, `${dataBr(l.data)} ${horaBr(l.hora)}`.trim()), el("td", {}, l.paciente), el("td", {}, l.id), el("td", {}, l.accession),
         el("td", {}, l.descricao), el("td", { class: "num" }, l.series_txt), el("td", { class: "num" }, l.imagens_txt),
         el("td", { class: "detalhe", title: l.detalhe }, l.detalhe), el("td", { class: "envio", title: l.envio }, l.envio));
@@ -275,7 +278,7 @@ export async function telaGestao(): Promise<HTMLElement> {
           el("thead", {}, el("tr", {}, ...["Série", "Descrição", "Modalidade", "Imagens na origem", "Imagens no PACS", "Situação", "Faltam"].map((t) => el("th", {}, tr(t))))),
           el("tbody", {}, ...l.series.map((s) => el("tr", { class: `ser-${s.situacao}` }, el("td", {}, String(s.numero ?? "")), el("td", {}, s.descricao),
             el("td", {}, s.modalidade), el("td", { class: "num" }, s.origem == null ? "?" : String(s.origem)),
-            el("td", { class: "num" }, s.pacs == null ? "—" : String(s.pacs)), el("td", {}, tr(s.texto)),
+            el("td", { class: "num" }, s.pacs == null ? "—" : String(s.pacs)), el("td", {}, s.texto),
             el("td", { class: "num" }, s.faltam ? String(s.faltam) : "")))));
         corpo.append(el("tr", { class: "sub" }, el("td", {}), el("td", { colspan: String(COLUNAS.length) }, sub)));
       }
@@ -432,6 +435,19 @@ interface Regras {
   motor: boolean; padrao: CfgRegra; envios: Record<string, string>; dias: string[]; id?: number;
 }
 
+/** "a cada 30 min, 07:00–20:00 (Seg a Sex)" no idioma da página. */
+function descreverHorario(sch: CfgRegra["schedule"], nomes: string[]): string {
+  const wd = [...new Set(sch.weekdays || [])].filter((d) => d >= 0 && d <= 6).sort((a, b) => a - b);
+  const nome = (d: number) => tr(nomes[d] || String(d));
+  let dias = "";
+  if (wd.length && wd.length < 7) {
+    const seguidos = wd.length > 2 && wd.every((d, i) => d === wd[0] + i);
+    dias = seguidos ? ` (${nome(wd[0])} ${tr("a")} ${nome(wd[wd.length - 1])})` : ` (${wd.map(nome).join(", ")})`;
+  }
+  if (sch.type === "daily") return `${tr("diariamente às")} ${sch.at || "06:00"}${dias}`;
+  return `${tr("a cada")} ${sch.minutes || 60} min, ${sch.from || "00:00"}–${sch.to || "23:59"}${dias}`;
+}
+
 function painelAutomatico(dados: Nos, naPagina: () => boolean): { el: HTMLElement; mostrar: () => void } {
   const raiz = el("div", { class: "gestao-aba gestao-auto" });
   const aviso = el("div", { class: "estado", role: "status" });
@@ -479,7 +495,7 @@ function painelAutomatico(dados: Nos, naPagina: () => boolean): { el: HTMLElemen
       caixa.onclick = (ev) => ev.stopPropagation();
       caixa.onchange = () => void pedirRegras("regra_ligar", { id: r.id, on: caixa.checked });
       const linha = el("tr", { class: `regra sit-${r.situacao}${r.id === escolhida ? " escolhida" : ""}`, "data-id": String(r.id) },
-        el("td", {}, caixa), el("td", {}, r.nome), el("td", {}, r.quando), el("td", {}, r.destino), el("td", {}, tr(r.mandar)),
+        el("td", {}, caixa), el("td", {}, r.nome), el("td", {}, descreverHorario(r.cfg.schedule, rs!.dias)), el("td", {}, r.destino), el("td", {}, r.mandar),
         el("td", {}, r.ultima), el("td", { class: "sit", title: r.texto }, `${r.simbolo} ${r.texto}`), el("td", {}, r.proxima));
       linha.onclick = () => { escolhida = r.id; desenhar(); };
       return linha;

@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.66 — Gestión en el Web en el idioma de la página; días de la semana en las reglas
+- **Gestión DICOM en el Ipê Web**: el progreso, los resúmenes, los detalles de cada estudio, la cola y los informes de
+  las reglas ahora salen en el idioma de la página (inglés o español) — antes venían del servidor solo en portugués.
+- **Horario de las reglas** (Ipê de escritorio y Web): los días aparecen como "Lun a Vie" o "Lun, Mié, Vie" — antes
+  eran iniciales, y cambiadas.
+- Traducciones: un texto con varios huecos genéricos ya no pasa por delante de uno más específico.
+
 ## 0.100.65 — Gestión DICOM en el Ipê Web: la pestaña Automático
 - **Pestaña Automático** en la Gestión DICOM del navegador (administradores): crear, editar, duplicar, activar o
   desactivar, eliminar y **ejecutar ahora** las reglas con horario — las mismas del Ipê de escritorio (quedan en la

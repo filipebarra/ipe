@@ -30,8 +30,40 @@ SUPPORTED = ("en", "pt-BR", "es")
 LANGUAGE_NAMES = {"pt-BR": "Português (Brasil)", "en": "English", "es": "Español", "fr": "Français",
                   "de": "Deutsch", "it": "Italiano"}
 _lock = threading.RLock()
-_state: dict = {"lang": BASE_LANG, "strings": {}, "patterns": [], "cache": {}, "user_dir": None,
-                "missing": set()}
+_LOCAL = threading.local()
+
+
+class _Estado(dict):
+    """O estado do idioma do programa. 0.100.66: numa linha que está dentro de `traduzir_para` (o servidor
+    respondendo a um navegador noutro idioma), as leituras e gravações vão para o estado **daquele** idioma — o do
+    programa não é tocado, e as outras linhas (a tela) não percebem."""
+
+    def _d(self) -> dict | None:
+        return getattr(_LOCAL, "st", None)
+
+    def __getitem__(self, k):
+        d = self._d()
+        return dict.__getitem__(self, k) if d is None else d[k]
+
+    def __setitem__(self, k, v) -> None:
+        d = self._d()
+        if d is None:
+            dict.__setitem__(self, k, v)
+        else:
+            d[k] = v
+
+    def get(self, k, padrao=None):
+        d = self._d()
+        return dict.get(self, k, padrao) if d is None else d.get(k, padrao)
+
+    def setdefault(self, k, padrao=None):
+        d = self._d()
+        return dict.setdefault(self, k, padrao) if d is None else d.setdefault(k, padrao)
+
+
+_state: dict = _Estado({"lang": BASE_LANG, "strings": {}, "patterns": [], "cache": {}, "user_dir": None,
+                        "missing": set()})
+_OUTROS: dict = {}                 # idioma → estado próprio (para `traduzir_para`)
 
 
 def bundled_dir() -> Path:
@@ -104,9 +136,17 @@ _SPLIT = re.compile(r"(\s*·\s*)")                 # "a   ·   b": cada pedaço 
 _TAG = re.compile(r"^(<[a-z]{1,6}>)(.+)(</[a-z]{1,6}>)$", re.S | re.I)
 
 
+def _especifico(p) -> tuple:
+    """A ordem dos padrões: primeiro o que tem mais texto fixo (0.100.66 — antes era o mais comprido contando as
+    lacunas, e um padrão quase só de lacunas, como "{} {}:{}", passava na frente de "hoje {}")."""
+    src = p[0]
+    return (-(len(src) - 2 * src.count("{}")), -len(src))
+
+
 def load(lang: str) -> None:
     """Carrega o idioma (arquivo de fábrica + o do usuário por cima)."""
     with _lock:
+        _OUTROS.clear()
         _state["lang"] = lang or BASE_LANG
         _state["cache"] = {}
         _state["missing"] = set()
@@ -128,8 +168,48 @@ def load(lang: str) -> None:
                 patterns.append((src, _pattern_regex(src), dst))
             else:
                 strings[src] = dst
-        patterns.sort(key=lambda p: -len(p[0]))        # o mais específico primeiro
+        patterns.sort(key=_especifico)                 # o mais específico primeiro
         _state["strings"], _state["patterns"] = strings, patterns
+
+
+def _estado_de(lang: str) -> dict:
+    """O estado de um idioma que não é o do programa (carregado uma vez; some quando o do programa é recarregado)."""
+    with _lock:
+        st = _OUTROS.get(lang)
+        if st is None:
+            data: dict = {}
+            for d in (bundled_dir(), user_dir()):
+                if d:
+                    data.update(_load_file(Path(d) / f"{lang}.json"))
+            strings, patterns = {}, []
+            for src, dst in data.items():
+                if not isinstance(dst, str) or not dst:
+                    continue
+                if "{}" in src:
+                    patterns.append((src, _pattern_regex(src), dst))
+                else:
+                    strings[src] = dst
+            patterns.sort(key=_especifico)
+            st = _OUTROS[lang] = {"lang": lang, "strings": strings, "patterns": patterns, "cache": {},
+                                  "missing": set(), "reverso": None, "valores": None}
+        return st
+
+
+def traduzir_para(text, lang: str):
+    """0.100.66: traduz um texto do programa (em português) para `lang`, sem mexer no idioma do programa — o
+    servidor responde a cada navegador no idioma dele. Seguro entre linhas: o estado do outro idioma só vale
+    nesta linha, durante a chamada."""
+    lang = normalize(lang or "")
+    if not isinstance(text, str) or not text or not lang or lang == BASE_LANG:
+        return text
+    if getattr(_LOCAL, "st", None) is None and dict.get(_state, "lang") == lang:
+        return _tr_idioma(text)                            # é o idioma do programa
+    antes = getattr(_LOCAL, "st", None)
+    _LOCAL.st = _estado_de(lang)
+    try:
+        return _tr_idioma(text)
+    finally:
+        _LOCAL.st = antes
 
 
 def current() -> str:

@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.66 — Web management in the page's language; weekdays in the rules
+- **DICOM management in Ipê Web**: progress, summaries, each study's details, the queue and the rules' reports now come
+  in the page's language (English or Spanish) — the server used to send them in Portuguese only.
+- **Rule schedule** (desktop Ipê and Web): days are shown as "Mon to Fri" or "Mon, Wed, Fri" — they used to be
+  initials, and the wrong ones.
+- Translations: a text with several generic gaps no longer wins over a more specific one.
+
 ## 0.100.65 — DICOM management in Ipê Web: the Automatic tab
 - **Automatic tab** in the browser's DICOM management (administrators): create, edit, duplicate, turn on/off, delete
   and **run now** the scheduled rules — the same ones as desktop Ipê (kept in the database). The editor has everything

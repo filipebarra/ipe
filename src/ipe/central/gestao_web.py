@@ -551,7 +551,7 @@ def limpar_fila(c, s) -> dict:
 # ---------------------------------------------------------------------- 0.100.65: a aba Automático (as regras)
 SIT_REGRA = {"ok": "✔", "erro": "⚠", "offline": "⛔", "rodando": "➜"}
 HIST = {"ok": "✔ ok", "error": "⚠ erro", "offline": "⛔ fora do ar"}
-DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+from ipe.automation.rules import DIAS_DA_SEMANA as DIAS  # noqa: E402
 
 
 def _quando(v) -> str:
@@ -565,17 +565,9 @@ def _quando(v) -> str:
 
 
 def _descrever(sch: dict) -> str:
-    """"a cada 30 min, 07:00–20:00 (Seg a Sáb)" — os dias por extenso curto (a janela do Ipê usa iniciais)."""
-    wd = sorted({int(d) for d in (sch.get("weekdays") or []) if 0 <= int(d) <= 6})
-    if not wd or len(wd) == 7:
-        dias = ""
-    elif len(wd) > 2 and wd == list(range(wd[0], wd[-1] + 1)):
-        dias = f" ({DIAS[wd[0]]} a {DIAS[wd[-1]]})"
-    else:
-        dias = " (" + ", ".join(DIAS[d] for d in wd) + ")"
-    if sch.get("type") == "daily":
-        return f"diariamente às {sch.get('at', '06:00')}{dias}"
-    return f"a cada {sch.get('minutes', 60)} min, {sch.get('from', '00:00')}–{sch.get('to', '23:59')}{dias}"
+    """"a cada 30 min, 07:00–20:00 (Seg a Sex)" — o mesmo texto da janela do Ipê de mesa."""
+    from ipe.automation.rules import describe_schedule
+    return describe_schedule(sch or {})
 
 
 def _auto(c):
@@ -752,7 +744,57 @@ def regra_rodar(c, s, corpo: dict, host: str = "") -> dict:
     return regras(c, s)
 
 
+# ---------------------------------------------------------------------- 0.100.66: no idioma do navegador
+_TRADUZ = {"mensagem", "resumo", "erros", "detalhe", "envio", "resultado", "modo", "texto", "proxima", "ultima",
+           "inicio_txt", "quando", "erro", "repeticao", "mandar"}
+
+
+def _t(v: str, lang: str) -> str:
+    """Um texto do servidor no idioma do navegador; o que é montado com pedaços (linhas, " — ", "; ") vai pedaço
+    a pedaço, e o que não tem tradução (nomes, mensagens dos equipamentos) fica como está."""
+    from ipe.core import i18n as I
+    inteiro = I._estado_de(lang)["strings"].get(v) if I.current() != lang else None
+    if inteiro:
+        return inteiro
+    for sep in ("\n", " — ", " · ", "; "):
+        if sep in v:
+            return sep.join(_t(p, lang) for p in v.split(sep))
+    if v.startswith("→ ") and ": " in v:                 # "→ PACS: já estava completo em PACS"
+        quem, resto = v.split(": ", 1)
+        return f"{quem}: {_t(resto, lang)}"
+    return I.traduzir_para(v, lang)
+
+
+def traduzir(r, lang: str, dentro: str = ""):
+    """Traduz, na resposta, só os campos que são texto do programa (nunca códigos, nomes, pacientes ou a
+    configuração). `lang` vazio ou português: devolve igual."""
+    from ipe.core import i18n as I
+    lang = I.normalize(lang or "")
+    if not lang or lang == I.BASE_LANG:
+        return r
+    if isinstance(r, list):
+        return [(_t(x, lang) if isinstance(x, str) and dentro == "offline" else traduzir(x, lang, dentro)) for x in r]
+    if not isinstance(r, dict):
+        return r
+    out = {}
+    for k, v in r.items():
+        if k in ("cfg", "padrao", "nos", "destinos"):
+            out[k] = v
+        elif isinstance(v, str) and (k in _TRADUZ or (k == "situacao" and dentro == "historico")):
+            out[k] = _t(v, lang)
+        elif isinstance(v, (dict, list)):
+            out[k] = traduzir(v, lang, k if isinstance(v, list) else dentro)
+        else:
+            out[k] = v
+    return out
+
+
 def rota(c, s, method: str, acao: str, query: dict, corpo: dict, host: str = "") -> dict:
+    """A resposta vai no idioma do navegador (`?lang=en|es`); sem ele, em português."""
+    return traduzir(_rota(c, s, method, acao, query, corpo, host), (query.get("lang") or [""])[0])
+
+
+def _rota(c, s, method: str, acao: str, query: dict, corpo: dict, host: str = "") -> dict:
     if method == "GET" and acao == "regras":
         return regras(c, s)
     if method == "POST" and acao in ("regra", "regra_ligar", "regra_excluir", "regra_duplicar", "regra_rodar"):

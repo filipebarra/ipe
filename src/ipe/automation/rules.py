@@ -106,9 +106,25 @@ def next_run(schedule: dict, after: datetime) -> datetime | None:
     return None
 
 
+DIAS_DA_SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]          # 0 = segunda, como `datetime.weekday()`
+
+
+def dias_por_extenso(wd) -> str:
+    """" (Seg a Sex)", " (Seg, Qua, Dom)" ou "" (todos os dias). 0.100.66: antes saíam iniciais, e trocadas — a
+    segunda aparecia como "M" e o domingo como "S"."""
+    try:
+        dias = sorted({int(d) for d in (wd or []) if 0 <= int(d) <= 6})
+    except (TypeError, ValueError):
+        dias = []
+    if not dias or len(dias) == 7:
+        return ""
+    if len(dias) > 2 and dias == list(range(dias[0], dias[-1] + 1)):
+        return f" ({DIAS_DA_SEMANA[dias[0]]} a {DIAS_DA_SEMANA[dias[-1]]})"
+    return " (" + ", ".join(DIAS_DA_SEMANA[d] for d in dias) + ")"
+
+
 def describe_schedule(s: dict) -> str:
-    wd = s.get("weekdays")
-    days = "" if not wd or len(wd) == 7 else " (" + ",".join("SMTQQSS"[(d + 1) % 7] for d in sorted(wd)) + ")"
+    days = dias_por_extenso(s.get("weekdays"))
     if s.get("type") == "once":
         return f"uma vez em {s.get('at', '?')}"
     if s.get("type") == "daily":

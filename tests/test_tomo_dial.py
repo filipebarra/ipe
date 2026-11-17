@@ -54,7 +54,8 @@ def _geo(tmp_path, **kw):
     caminho = tmp_path / f"g{len(list(tmp_path.glob('**/*')))}"
     caminho.mkdir()
     _tomo(caminho, **kw)
-    arq = next(p for p in caminho.rglob("*.dcm") if "tomo" in str(p))
+    # o caminho relativo: a pasta do teste também tem "tomo" no nome (a suíte roda com --basetemp=…/test_tomo_dial)
+    arq = next(p for p in caminho.rglob("*.dcm") if "tomo" in p.relative_to(caminho).as_posix())
     return TP.from_dataset(pydicom.dcmread(str(arq), stop_before_pixels=True, force=True))
 
 

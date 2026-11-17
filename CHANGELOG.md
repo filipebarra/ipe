@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.66 — Gestão no Web no idioma da página; dias da semana nas regras
+- **Gestão DICOM no Ipê Web**: o andamento, os resumos, os detalhes de cada exame, a fila e os relatórios das regras
+  agora saem no idioma da página (inglês ou espanhol) — antes vinham do servidor só em português.
+- **Horário das regras** (Ipê de mesa e Web): os dias aparecem como "Seg a Sex" ou "Seg, Qua, Sex" — antes eram
+  iniciais, e trocadas (a segunda saía "M" e o domingo "S").
+- Traduções: um texto com várias lacunas genéricas não passa mais na frente de um mais específico.
+
 ## 0.100.65 — Gestão DICOM no Ipê Web: a aba Automático
 - **Aba Automático** na Gestão DICOM do navegador (administradores): criar, editar, duplicar, ligar/desligar, excluir
   e **rodar agora** as regras com horário — as mesmas do Ipê de mesa (ficam no banco). O editor tem tudo o que a

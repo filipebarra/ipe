@@ -302,6 +302,8 @@ const T: Trad = {
   "Última": ["Last", "Última"],
   "Último relatório da regra": ["Last report of the rule", "Último informe de la regla"],
   "às": ["to", "a las"],
+  "a": ["to", "a"],
+  "diariamente às": ["daily at", "diariamente a las"],
   "Buscar no PACS": ["Search the PACS", "Buscar en el PACS"],
   "Buscar no PACS…": ["Search the PACS…", "Buscar en el PACS…"],
   "Diga um nome, ID, acesso ou um período (busca sem filtro pesa no PACS).": ["Enter a name, ID, accession or a period (an unfiltered search burdens the PACS).", "Indique un nombre, ID, acceso o un período (una búsqueda sin filtro sobrecarga el PACS)."],

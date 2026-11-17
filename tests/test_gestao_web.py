@@ -469,3 +469,69 @@ def test_aba_automatico_no_navegador(servidor):
     finally:
         srv.stop()
     assert not erros, erros
+
+
+# ---------------------------------------------------------------------- 0.100.66: no idioma do navegador
+def test_resposta_no_idioma_do_navegador_sem_mexer_no_programa(servidor):
+    import threading
+
+    from ipe.core import i18n as I
+    c = servidor.c
+    assert I.current() == I.BASE_LANG
+    GW.conferir(c, ADMIN, _pedido(servidor))
+    pt = _esperar(c)
+    en = GW.rota(c, ADMIN, "GET", "estado", {"lang": ["en"]}, {})
+    es = GW.rota(c, ADMIN, "GET", "estado", {"lang": ["es"]}, {})
+    assert pt["resumo"].startswith("3 exame(s)") and "1 incompleto(s)" in pt["resumo"]
+    assert en["resumo"] == "3 exam(s) · ✔ 1 complete · ◐ 1 incomplete · ✖ 1 missing from the PACS", en["resumo"]
+    assert es["resumo"].startswith("3 estudio(s)") and "ausente(s) en el PACS" in es["resumo"]
+    b_pt = next(x for x in pt["linhas"] if x["accession"] == "B1")
+    b_en = next(x for x in en["linhas"] if x["accession"] == "B1")
+    # os códigos, o paciente e a origem não mudam; os textos sim
+    for k in ("k", "situacao", "paciente", "accession", "fonte", "descricao", "series_txt"):
+        assert b_en[k] == b_pt[k]
+    assert b_pt["texto"] == "Incompleto" and b_en["texto"] == "Incomplete"
+    assert b_en["detalhe"] != b_pt["detalhe"] and "missing" in b_en["detalhe"]
+    assert [s["texto"] for s in b_en["series"]] != [s["texto"] for s in b_pt["series"]]
+    assert [s["situacao"] for s in b_en["series"]] == [s["situacao"] for s in b_pt["series"]]
+    assert GW.rota(c, ADMIN, "GET", "estado", {"lang": ["pt"]}, {})["resumo"] == pt["resumo"]
+    assert GW._t("→ PACS: já estava completo em PACS", "en") == "→ PACS: was already complete in PACS"
+    assert GW._t("Alguns nós não puderam ser conferidos:\n• MR01: recusou", "en") == \
+        "Some nodes could not be checked:\n• MR01: recusou"            # a mensagem do equipamento fica como veio
+    assert GW._t("hoje 12:31", "es") == "hoy 12:31" and GW._t("desligada", "en") == "off"
+    # as regras: o que é texto do programa vai traduzido; a configuração e os nomes, não
+    rid = GW.regra_gravar(c, ADMIN, {"nome": "RM no PACS", "ativa": False, "cfg": _cfg_regra(servidor.ids)})["id"]
+    r = GW.rota(c, ADMIN, "GET", "regras", {"lang": ["en"]}, {})
+    linha = next(x for x in r["regras"] if x["id"] == rid)
+    assert linha["nome"] == "RM no PACS" and linha["texto"] == "has not run yet" and linha["proxima"] == "off"
+    assert linha["mandar"] == "Only what is missing" and linha["quando"].startswith("every 30 min, 07:00–20:00 (Mon to")
+    assert linha["cfg"]["periodo"] == "hoje" and r["dias"][0] == "Seg"
+    # o idioma do programa não muda, nem enquanto outra linha traduz
+    vistos, parar = [], threading.Event()
+
+    def tela():
+        while not parar.is_set():
+            vistos.append(I.tr("Conferindo…"))
+    t = threading.Thread(target=tela)
+    t.start()
+    for _ in range(300):
+        assert I.traduzir_para("Conferindo…", "en") == "Checking…"
+        assert I.traduzir_para("Conferindo…", "es") != "Checking…"
+    parar.set()
+    t.join()
+    assert set(vistos) == {"Conferindo…"} and I.current() == I.BASE_LANG and not dict.get(I._state, "strings")
+
+
+def test_dias_da_semana_no_horario_da_regra():
+    """0.100.66: saíam iniciais trocadas ("M" para a segunda, "S" para o domingo)."""
+    from ipe.automation.rules import describe_schedule as D
+    assert D({"type": "interval", "minutes": 30, "from": "07:00", "to": "20:00", "weekdays": [0, 1, 2, 3, 4]}) == \
+        "a cada 30 min, 07:00–20:00 (Seg a Sex)"
+    assert D({"type": "daily", "at": "06:00", "weekdays": [6, 0]}) == "diariamente às 06:00 (Seg, Dom)"
+    assert D({"type": "daily", "at": "06:00", "weekdays": [0, 2, 4]}) == "diariamente às 06:00 (Seg, Qua, Sex)"
+    assert D({"type": "daily", "at": "06:00", "weekdays": [5, 6]}) == "diariamente às 06:00 (Sáb, Dom)"
+    assert D({"type": "interval", "minutes": 10, "weekdays": list(range(7))}) == "a cada 10 min, 00:00–23:59"
+    assert D({"type": "daily", "at": "06:00"}) == "diariamente às 06:00"
+    from ipe.core import i18n as I
+    assert I.traduzir_para("diariamente às 06:00 (Seg, Dom)", "en") == "daily at 06:00 (Mon, Sun)"
+    assert I.traduzir_para("a cada 30 min, 07:00–20:00 (Ter a Qui)", "es") == "cada 30 min, 07:00–20:00 (Mar a Jue)"
