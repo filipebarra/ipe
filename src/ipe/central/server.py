@@ -931,6 +931,21 @@ class _Handler(BaseHTTPRequestHandler):
             except (KeyError, TypeError, ValueError) as e:
                 return self._error(400, f"{type(e).__name__}: {e}")
             return self._json(200, r, raw=True)
+        if path.startswith("/api/web/impressoes/"):                         # 0.100.68: Impressões e Painel (admin e técnico)
+            from ipe.central import impressoes_web as IW
+            acao = path.rsplit("/", 1)[-1]
+            try:
+                if method == "GET" and acao == "folha":
+                    return self._send(200, IW.folha(c, s, parse_qs(parts.query)), "image/png")
+                corpo = json.loads(self._body() or b"{}") if method == "POST" else {}
+                r = IW.rota(c, s, method, acao, parse_qs(parts.query), corpo)
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except LookupError as e:
+                return self._error(404, str(e).strip("'"))
+            except (TypeError, ValueError, RuntimeError) as e:
+                return self._error(400, str(e))
+            return self._json(200, r, raw=True)
         if path.startswith("/api/web/gestao/"):                             # 0.100.63: a Gestão DICOM (só administradores)
             from ipe.central import gestao_web as GW
             try:

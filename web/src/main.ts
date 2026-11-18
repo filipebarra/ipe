@@ -30,6 +30,7 @@ import { PainelDocumentos, anexar as anexarArquivos } from "./anexos";
 import { PainelFilme } from "./filme";
 import { nosDoServidor, telaPacs as montarTelaPacs } from "./pacs";
 import { telaGestao } from "./gestao";
+import { telaImpressoes } from "./impressoes";
 import {
   Grade, TIPO_ARRASTO, TIPO_ARRASTO_ESTUDO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
   ARRANJO_PET_PADRAO, type ConteudoPet, type VistaPet,
@@ -322,7 +323,12 @@ async function telaLista(): Promise<void> {
     title: tr("Conferir se os exames das modalidades estão no PACS e mandar o que falta") }, tr("Gestão DICOM…")) as HTMLButtonElement;
   bGestao.hidden = config?.usuario.role !== "admin";
   bGestao.onclick = () => { location.hash = "#/gestao"; };
-  const form = el("form", { class: "filtros" }, busca, el("button", { type: "submit" }, tr("Buscar")), bPacs, bGestao, bMon);
+  // 0.100.68: Impressões e Painel de filmes — para administradores e técnicos
+  const bImp = el("button", { type: "button", class: "impressoes-abrir", hidden: true,
+    title: tr("Os filmes recebidos e montados: ver, identificar o paciente, enviar para as impressoras e o painel") }, tr("Impressões…")) as HTMLButtonElement;
+  bImp.hidden = !["admin", "tecnico"].includes(config?.usuario.role ?? "");
+  bImp.onclick = () => { location.hash = "#/impressoes"; };
+  const form = el("form", { class: "filtros" }, busca, el("button", { type: "submit" }, tr("Buscar")), bPacs, bGestao, bImp, bMon);
   const antes = lerBusca();
   if (antes) {
     busca.value = antes.texto || "";
@@ -1835,6 +1841,23 @@ async function telaPacs(): Promise<void> {
   if (location.hash === "#/pacs") corpo.replaceChildren(el("div", { class: "lista-esq" }, tela));
 }
 
+async function telaDasImpressoes(): Promise<void> {
+  pararDisponiveis();
+  grade?.encerrar();
+  grade = null;
+  document.title = `${tr("Impressões")} — ${tr("Ipê Web")}`;
+  const voltar = el("button", { type: "button", class: "link", onclick: () => { location.hash = "#/lista"; } },
+    `← ${tr("Lista de exames")}`);
+  const corpo = el("main", { class: "telalista" }, el("div", { class: "estado" }, tr("Carregando…")));
+  app.replaceChildren(cabecalho(voltar), corpo, tarja());
+  try {
+    const tela = await telaImpressoes((uid) => { location.hash = `#/exame/${uid}`; });
+    if (location.hash === "#/impressoes") corpo.replaceChildren(el("div", { class: "lista-esq" }, tela));
+  } catch (e) {
+    corpo.replaceChildren(el("div", { class: "estado erro" }, (e as Error).message));
+  }
+}
+
 async function telaDaGestao(): Promise<void> {
   pararDisponiveis();
   grade?.encerrar();
@@ -1877,6 +1900,7 @@ function rota(): void {
   else if (/^#\/espera\/j[1-9]$/.test(h)) telaEspera();
   else if (h === "#/pacs") void telaPacs();
   else if (h === "#/gestao") void telaDaGestao();
+  else if (h === "#/impressoes") void telaDasImpressoes();
   else void telaLista();
 }
 

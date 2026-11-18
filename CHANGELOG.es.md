@@ -3,6 +3,23 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.68 — Impresiones y panel de películas en Ipê Web
+- **Botón "Impresiones…" en la lista de exámenes de Ipê Web**, para **administradores y técnicos**: la pestaña
+  Impresiones del Ipê de escritorio, atendida por el servidor.
+  - La lista de lo que llegó por la impresora DICOM, de lo montado en el compositor y de la película que vino en el
+    examen, con búsqueda, filtro (recibidos, montados, enviados, detenidos) y actualización automática.
+  - La **hoja** al lado (◀ ▶, Ampliar), los datos del trabajo y el **historial de envíos**.
+  - **Identificar paciente…** con **OCR** del encabezado (leído en el servidor); al confirmar, la película sigue por
+    la regla.
+  - **Enviar a…** cualquier **destino registrado en el servidor** (sin necesidad de compartir), con modelo de hoja;
+    **Reimprimir…**, **Unir como páginas**, **Borrar** y **Detenidos…** con **Liberar**.
+  - Pestaña **Panel**: las tarjetas, las películas por mes, por modalidad y por quién las creó, la lista y
+    **Exportar CSV**.
+  - La configuración de impresión sigue en el Ipê de escritorio. Todo lo hecho desde el navegador va al registro de acceso.
+- **Servidor más firme**: cada pedido del navegador que necesitaba el hilo principal (película, impresión, IA) dejaba
+  un objeto de Qt; con muchos, el servidor podía caerse o trabarse al grabar una hoja en PDF. Corregido (hallado en las
+  pruebas de esta versión).
+
 ## 0.100.67 — Estructuras: tijera, contorno con un clic, semillas; farmacocinética (Tofts, Ktrans)
 - **Panel Estructuras, pestaña nueva "Más herramientas"** (Deshacer/Rehacer valen para las dos pestañas):
   - **Tijera**: dibuje una forma (libre, rectángulo o elipse) y la estructura se corta con ella — borrar dentro, borrar

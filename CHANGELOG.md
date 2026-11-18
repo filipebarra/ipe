@@ -3,6 +3,21 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.68 — Impressões e Painel de filmes no Ipê Web
+- **Botão "Impressões…" na lista de exames do Ipê Web**, para **administradores e técnicos**: a aba Impressões do Ipê
+  de mesa, atendida pelo servidor.
+  - A lista do que chegou pela impressora DICOM, do que foi montado no compositor e do filme que veio no exame, com
+    busca, filtro (recebidos, montados, enviados, parados) e atualização sozinha.
+  - A **folha** ao lado (◀ ▶, Ampliar), os dados do trabalho e o **histórico de envios**.
+  - **Identificar paciente…** com **OCR** do cabeçalho (lido no servidor); ao confirmar, o filme segue pela regra.
+  - **Enviar para…** qualquer **destino cadastrado no servidor** (sem precisar compartilhar), com modelo de folha;
+    **Reimprimir…**, **Juntar como páginas**, **Apagar** e **Parados…** com **Liberar**.
+  - Aba **Painel**: os cartões, os filmes por mês, por modalidade e por quem criou, a lista e **Exportar CSV**.
+  - As configurações de impressão continuam no Ipê de mesa. Tudo o que se faz pelo navegador vai ao registro de acesso.
+- **Servidor mais firme**: um pedido do navegador que precisava da linha principal (filme, impressão, IA) deixava um
+  objeto do Qt para trás a cada pedido; com muitos, o servidor podia cair ou travar ao gravar uma folha em PDF.
+  Corrigido (achado nos testes desta versão).
+
 ## 0.100.67 — Estruturas: tesoura, contorno com um clique, sementes; farmacocinética (Tofts, Ktrans)
 - **Painel Estruturas, aba nova "Mais ferramentas"** (Desfazer/Refazer valem para as duas abas):
   - **Tesoura**: desenhe uma forma (livre, retângulo ou elipse) e a estrutura é cortada por ela — apagar dentro, apagar

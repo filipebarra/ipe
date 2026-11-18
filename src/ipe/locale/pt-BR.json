@@ -7105,7 +7105,26 @@
   "pouco contraste entre a lesão e o que está em volta: confira o contorno",
   "segmentação pelo diâmetro",
   "Ângulo de inclinação:",
-  "Clique e arraste sobre a lesão: entra a região do corte, ligada ao ponto, limitada pela linha de mesma intensidade que passa por ele. Perto da borda pega a lesão toda; mais para dentro, só o miolo. Solte quando o contorno estiver bom."
+  "Clique e arraste sobre a lesão: entra a região do corte, ligada ao ponto, limitada pela linha de mesma intensidade que passa por ele. Perto da borda pega a lesão toda; mais para dentro, só o miolo. Solte quando o contorno estiver bom.",
+  "Enviados",
+  "Montados aqui",
+  "Parados",
+  "Recebidos pela impressora",
+  "Vieram no exame",
+  "Paciente confirmado.",
+  "Falha ao enviar impressão (navegador)",
+  "apagar o histórico de envios",
+  "modelos de folha",
+  "a pasta deste trabalho não está mais no servidor",
+  "as Impressões no navegador são só para administradores e técnicos",
+  "destino de impressão não encontrado",
+  "escolha dois ou mais trabalhos recebidos pela impressora",
+  "escolha um trabalho",
+  "escreva o nome ou o ID do paciente",
+  "este trabalho não está mais na lista",
+  "este trabalho não é identificado por aqui",
+  "folha fora do trabalho",
+  "modelo de folha não encontrado"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -9090,6 +9109,12 @@
   "T1 do tecido antes do contraste suposto em {} ms (não há mapa de T1).",
   "Uma fase a cada {} s: Ktrans indicativo, não absoluto.",
   "Uma fase a cada {} s: o modelo pede 5 a 15 s. O Ktrans aqui é indicativo — serve para comparar regiões e exames do mesmo protocolo, não como valor absoluto.",
-  "maior diâmetro {} mm · eixo curto {} mm"
+  "maior diâmetro {} mm · eixo curto {} mm",
+  "impressoes (navegador): {}",
+  "impressoes (navegador): {} juntados",
+  "impressoes (navegador): {} para {}",
+  "impressoes (navegador): {} trabalho(s) da lista",
+  "impressoes (navegador): {} → {}",
+  "Ficam de fora {} que nunca foram enviados."
  ]
 }

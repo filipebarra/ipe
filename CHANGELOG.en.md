@@ -3,6 +3,20 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.68 — Print jobs and film dashboard in Ipê Web
+- **"Print jobs…" button in the Ipê Web exam list**, for **administrators and technologists**: desktop Ipê's Print jobs
+  tab, served by the server.
+  - The list of what arrived through the DICOM printer, what was composed, and films that came inside the exam, with
+    search, filter (received, composed, sent, held) and auto-refresh.
+  - The **sheet** beside it (◀ ▶, Enlarge), the job details and the **sending history**.
+  - **Identify patient…** with header **OCR** (read on the server); once confirmed, the film follows its rule.
+  - **Send to…** any **destination registered on the server** (no sharing needed), with a sheet template;
+    **Reprint…**, **Merge as pages**, **Delete** and **Held…** with **Release**.
+  - **Dashboard** tab: the cards, films per month, by modality and by creator, the list and **Export CSV**.
+  - Print settings stay in desktop Ipê. Everything done from the browser goes to the access log.
+- **Sturdier server**: each browser request that needed the main thread (film, printing, AI) left a Qt object behind;
+  with many of them the server could crash or hang while writing a sheet to PDF. Fixed (found by this version's tests).
+
 ## 0.100.67 — Structures: scissors, one-click outlining, seeds; pharmacokinetics (Tofts, Ktrans)
 - **Structures panel, new "More tools" tab** (Undo/Redo serve both tabs):
   - **Scissors**: draw a shape (freehand, rectangle or ellipse) and the structure is cut by it — erase inside, erase
