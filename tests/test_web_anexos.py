@@ -1,5 +1,6 @@
 """0.100.55: anexar PDF e imagens ao exame pelo Ipê Web (arrastar ou botão) — exame fabricado, nada de paciente."""
 import base64
+import time
 import io
 import json
 import sys
@@ -80,6 +81,33 @@ def test_arrastar_no_navegador(servidor_mg):
         n_series = pg.locator(".tira .series button.serie").count()
         png = base64.b64encode(_png()).decode()
         pdf = base64.b64encode(PDF).decode()
+        # 0.100.70: arrastar a miniatura de uma série não é anexar — o navegador põe a imagem da miniatura no
+        # arrasto ("Files"), e a capa "Solte para anexar" não pode aparecer nem o arquivo ser enviado
+        pedidos = []
+        pg.on("request", lambda r: pedidos.append(r.url) if "/api/web/anexos" in r.url and r.method == "POST" else None)
+        pg.evaluate("""(png) => {
+          const dt = new DataTransfer();
+          dt.items.add(new File([Uint8Array.from(atob(png), (c) => c.charCodeAt(0))], 'miniatura.png', {type: 'image/png'}));
+          dt.setData('application/x-ipe-serie', '1.2.3');
+          const alvo = document.querySelector('.grade');
+          alvo.dispatchEvent(new DragEvent('dragover', {dataTransfer: dt, bubbles: true, cancelable: true}));
+          if (document.querySelector('.capa-soltar')) throw new Error('capa de anexar ao arrastar uma série');
+          alvo.dispatchEvent(new DragEvent('drop', {dataTransfer: dt, bubbles: true, cancelable: true}));
+          // o arrasto que começou na própria página (qualquer imagem dela) também não é anexo
+          const so = new DataTransfer();
+          so.items.add(new File([new Uint8Array(4)], 'x.png', {type: 'image/png'}));
+          const mini = document.querySelector('.tira .series button.serie');
+          mini.dispatchEvent(new DragEvent('dragstart', {dataTransfer: so, bubbles: true, cancelable: true}));
+          alvo.dispatchEvent(new DragEvent('dragover', {dataTransfer: so, bubbles: true, cancelable: true}));
+          if (document.querySelector('.capa-soltar')) throw new Error('capa de anexar num arrasto da página');
+          mini.dispatchEvent(new DragEvent('dragend', {dataTransfer: so, bubbles: true}));
+        }""", png)
+        time.sleep(0.5)
+        assert not pedidos and not dialogos and pg.locator(".tira .series button.serie").count() == n_series
+        # de verdade, com o mouse: a miniatura da segunda série vai para o quadro e nada de capa
+        if n_series >= 2:
+            pg.drag_and_drop(".tira .series button.serie >> nth=1", ".grade")
+            assert pg.locator(".capa-soltar").count() == 0 and not pedidos and not dialogos
         # arrastar dois arquivos do computador para cima do exame
         pg.evaluate("""([png, pdf]) => {
           const arq = (b64, nome, tipo) => new File([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], nome, {type: tipo});

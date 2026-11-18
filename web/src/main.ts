@@ -139,7 +139,17 @@ let painelCaso: CASO.PainelCaso | null = null;   // 0.100.56: o painel do caso a
 // 0.100.55: arrastar PDF/imagens do computador para o exame aberto anexa ao exame (como no Ipê de mesa)
 let soltarArquivos: ((fs: File[]) => void) | null = null;
 let capaSoltar: HTMLElement | null = null;
-const temArquivos = (e: DragEvent) => !!e.dataTransfer?.types.includes("Files");
+// 0.100.70: só o que vem de fora da página é arquivo para anexar. Arrastar a miniatura de uma série também chega com
+// "Files" (o navegador põe a imagem da miniatura no arrasto), e o aviso de anexar tomava a tela no lugar de a série
+// ir para o quadro. Fica de fora: o arrasto que começou nesta página e o que traz uma série (de outra janela do Ipê).
+let arrastoDaPagina = false;
+document.addEventListener("dragstart", () => { arrastoDaPagina = true; }, true);
+document.addEventListener("dragend", () => { arrastoDaPagina = false; }, true);
+const temArquivos = (e: DragEvent) => {
+  const tipos = e.dataTransfer?.types;
+  return !!tipos && tipos.includes("Files") && !arrastoDaPagina
+    && !tipos.includes(TIPO_ARRASTO) && !tipos.includes(TIPO_ARRASTO_ESTUDO);
+};
 const tirarCapa = () => { capaSoltar?.remove(); capaSoltar = null; };
 document.addEventListener("dragover", (e) => {
   if (!temArquivos(e)) return;
@@ -153,7 +163,9 @@ document.addEventListener("dragover", (e) => {
 document.addEventListener("dragleave", (e) => { if (!e.relatedTarget) tirarCapa(); });
 document.addEventListener("drop", (e) => {
   tirarCapa();
-  if (!temArquivos(e)) return;
+  const eArquivo = temArquivos(e);
+  arrastoDaPagina = false;                  // soltar fora da página não manda "dragend" em todo navegador
+  if (!eArquivo) return;
   e.preventDefault();
   const fs = [...(e.dataTransfer?.files || [])];
   if (soltarArquivos && fs.length) soltarArquivos(fs);

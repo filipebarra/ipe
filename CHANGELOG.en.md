@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.70 — Ipê Web: dragging a series thumbnail is no longer "attach"
+- In Ipê Web, dragging a series thumbnail onto the viewer showed "Drop to attach to the study" and could attach the
+  thumbnail itself. The browser puts the thumbnail image in the drag, and Ipê took it for a file from the computer.
+  Now only what comes from outside the page is an attachment; the series goes to the viewport.
+
 ## 0.100.69 — Research: batch density and calcifications for the mammograms of a list
 - **Network ▸ Batch density and calcifications (spreadsheet)…**: from a spreadsheet (.xlsx or .csv) with the patient
   ID and the mammogram date, Ipê finds each exam (in its database or in the PACS), downloads it, measures density (NYU

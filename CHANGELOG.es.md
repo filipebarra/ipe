@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.70 — Ipê Web: arrastrar la miniatura de la serie ya no es "adjuntar"
+- En Ipê Web, arrastrar la miniatura de una serie al visor mostraba "Suelte para adjuntar al estudio" y podía adjuntar
+  la propia miniatura. El navegador pone la imagen de la miniatura en el arrastre, y el Ipê la tomaba por un archivo
+  del ordenador. Ahora solo lo que viene de fuera de la página es adjunto; la serie va al cuadro.
+
 ## 0.100.69 — Investigación: densidad y calcificaciones de las mamografías de una lista, en lote
 - **Red ▸ Densidad y calcificaciones en lote (hoja de cálculo)…**: a partir de una hoja (.xlsx o .csv) con el ID del
   paciente y la fecha de la mamografía, el Ipê encuentra cada examen (en su base o en el PACS), lo descarga, mide la
