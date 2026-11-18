@@ -641,6 +641,23 @@ Toda mamografia que chega — recebida pela rede, baixada do PACS (Q/R), importa
 - Preferências ▸ CAD/IA ▸ **Densidade e calcificações (mama)**: ligar/desligar a medida na chegada e a confirmação ao abrir; **Conferir o banco de novo na próxima abertura**.
 - No computador ligado a um servidor central, quem mede é o servidor; a confirmação é feita em qualquer um.
 
+### Pesquisa: as mamografias de uma lista, em lote (0.100.69)
+
+**Rede ▸ Densidade e calcificações em lote (planilha)…** serve para estudo: você tem uma planilha com uma linha por paciente (o **ID** e a **data da mamografia**) e quer a densidade e as calcificações vasculares de todas, medidas do mesmo jeito, sem depender do que o laudo disse.
+
+1. **Planilha**: `.xlsx` ou `.csv`. O Ipê escolhe a aba que tem ID e data e adivinha as colunas; confira. A coluna do **nascimento** é opcional: com ela, o exame achado só é medido se o nascimento for o mesmo (protege contra dois pacientes com o mesmo ID).
+2. **PACS** e **Falar como**: de onde buscar. O que já está no banco do Ipê é usado direto, sem buscar.
+3. **Planilha de saída**: as colunas originais e, ao lado, as do Ipê — situação, Study UID, accession, densidade (categoria e a probabilidade de A a D), BAC (grau pela área, área em mm² da mama pior, de cada mama e de cada incidência), CSBI, Margolies, Loberant e BAC-SS estimados, prótese e avisos. Duas abas a mais: *Resumo* e *LEIA-ME* (o que é cada coluna).
+4. **Iniciar**. Para cada linha: acha o exame (ID + data + modalidade MG; se há mais de um no dia, o de mais imagens), baixa, mede e — com a caixa marcada — **apaga do Ipê o que foi baixado só para o lote** (o que já estava no Ipê nunca é apagado).
+
+- **Demora**: de meio minuto a alguns minutos por mamografia. Uma lista de milhares roda por dias. Pode **Parar** e continuar depois: escolha a mesma planilha de saída e o Ipê segue de onde parou (o andamento fica num arquivo ao lado dela). Os *não encontrados* e os *com erro* são tentados de novo, se a caixa estiver marcada. **Quantas linhas agora** faz só as primeiras N — comece com 5 ou 10 para conferir.
+- **Onde rodar**: no Ipê que guarda as imagens (o do servidor, ou um com banco próprio), com as duas redes instaladas. No Ipê cliente a janela avisa e não começa.
+- **Situações**: *medido*; *não encontrado no PACS*; *nascimento não confere* (não baixa nem mede); *erro ao baixar*; *sem mamografia 2D para medir* (faltam incidências, só tomossíntese…); *erro*.
+- A janela não mostra nome de paciente: só o número da linha e o resultado. A planilha de saída tem os dados da sua lista — guarde como dado de pesquisa.
+
+> São as **medidas automáticas, sem confirmação**. As escalas (CSBI, Margolies, Loberant, BAC-SS) são estimativas a partir do traçado da rede, não a leitura de um radiologista; com prótese não há grau de BAC. Antes de analisar, **confira uma amostra**: abra alguns exames pelo Study UID e veja o traçado — de preferência sorteados dentro de cada grau.
+
+
 ## RM de mama dinâmica
 
 O programa reproduz o fluxo do CADstream: detecta as fases, corrige movimento, calcula os mapas paramétricos, classifica a cinética em seis cores e mede a lesão sobre o realce.

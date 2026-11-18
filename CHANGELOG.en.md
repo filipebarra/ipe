@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.69 — Research: batch density and calcifications for the mammograms of a list
+- **Network ▸ Batch density and calcifications (spreadsheet)…**: from a spreadsheet (.xlsx or .csv) with the patient
+  ID and the mammogram date, Ipê finds each exam (in its database or in the PACS), downloads it, measures density (NYU
+  network) and vascular calcifications (SCU-Net) and saves a spreadsheet with the original columns and Ipê's beside
+  them: density category and probabilities; grade, area (worst breast, per breast and per view) and the estimated
+  scales (CSBI, Margolies, Loberant, BAC-SS); implant; warnings; Study UID and accession.
+- Checks the birth date (optional), deletes from Ipê what it downloaded only for the batch (what was already there is
+  never deleted), can stop and resume, retries the failures, and has "how many rows now" to test with a few.
+- These are the automatic measurements, unconfirmed: check a sample before analysing.
+
 ## 0.100.68 — Print jobs and film dashboard in Ipê Web
 - **"Print jobs…" button in the Ipê Web exam list**, for **administrators and technologists**: desktop Ipê's Print jobs
   tab, served by the server.

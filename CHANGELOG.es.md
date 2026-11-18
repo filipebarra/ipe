@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.69 — Investigación: densidad y calcificaciones de las mamografías de una lista, en lote
+- **Red ▸ Densidad y calcificaciones en lote (hoja de cálculo)…**: a partir de una hoja (.xlsx o .csv) con el ID del
+  paciente y la fecha de la mamografía, el Ipê encuentra cada examen (en su base o en el PACS), lo descarga, mide la
+  densidad (red de la NYU) y las calcificaciones vasculares (SCU-Net) y guarda una hoja con las columnas originales y
+  las del Ipê al lado: categoría y probabilidades de la densidad; grado, área (mama peor, por mama y por incidencia) y
+  las escalas estimadas (CSBI, Margolies, Loberant, BAC-SS); prótesis; avisos; Study UID y accession.
+- Comprueba la fecha de nacimiento (opcional), borra del Ipê lo que descargó solo para el lote (lo que ya estaba nunca
+  se borra), puede parar y continuar, reintenta los que fallaron, y tiene "cuántas filas ahora" para probar con pocas.
+- Son las medidas automáticas, sin confirmación: revise una muestra antes de analizar.
+
 ## 0.100.68 — Impresiones y panel de películas en Ipê Web
 - **Botón "Impresiones…" en la lista de exámenes de Ipê Web**, para **administradores y técnicos**: la pestaña
   Impresiones del Ipê de escritorio, atendida por el servidor.

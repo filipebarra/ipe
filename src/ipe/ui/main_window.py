@@ -383,6 +383,10 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         a = QAction("Gestão automática (regras com horário)…", j)
         a.triggered.connect(self.show_gestao_automatica)
         r.addAction(a)
+        # 0.100.69: pesquisa — as mamografias de uma lista, do PACS, medidas em lote
+        a = QAction("Densidade e calcificações em lote (planilha)…", j)
+        a.triggered.connect(self.abrir_lote_mama)
+        r.addAction(a)
 
         # 0.99.51 (onda B): o fluxo dos laudos — busca ativa, produtividade
         lm = j.menuBar().addMenu("&Laudos")
@@ -790,6 +794,25 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
             from ipe.ui.gestao_dialog import GestaoWindow
             self.gestao_window = GestaoWindow(self.net, self.settings, self, auto=self.auto)
         self.gestao_window.show_front()
+
+    def abrir_lote_mama(self) -> None:
+        """Rede ▸ Densidade e calcificações em lote: uma planilha de pacientes → PACS → medidas → planilha."""
+        from ipe.auth import session as S
+        if self.meeting is not None or getattr(self, "_privacy_on", False):
+            QMessageBox.information(self, "Densidade e calcificações em lote", "O lote fica indisponível "
+                                    "enquanto os dados do paciente estão ocultos (reunião / Ocultar).")
+            return
+        if not S.require("query", self) or not S.require("retrieve", self):
+            return
+        d = getattr(self, "lote_mama_window", None)
+        if d is None:
+            from ipe.ui.lote_mama_dialogo import LoteMamaDialog
+            d = self.lote_mama_window = LoteMamaDialog(self.repo, self.net, self.settings, self.storage,
+                                                       getattr(self.auto, "mama", None), self)
+            d.setModal(False)
+        d.show()
+        d.raise_()
+        d.activateWindow()
 
     def show_gestao_automatica(self) -> None:
         """Rede ▸ Gestão automática: a janela de Gestão já na aba "Automático"."""
