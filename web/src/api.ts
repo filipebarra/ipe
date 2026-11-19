@@ -47,6 +47,7 @@ export interface Usuario {
   full_name: string;
   role: string;
   perms: string[];
+  must_change?: boolean;
 }
 
 export async function entrar(username: string, password: string): Promise<Usuario> {

@@ -3,6 +3,21 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.71 — Ipê Web: Administration (users, DICOM nodes, DICOM printers, AI automations)
+- For **administrators**, the Ipê Web exam list gains the **Administration…** button, with five tabs:
+  - **Users**: create, edit, enable/disable, reset password and delete; **Roles and permissions…** with the table of
+    what each role may do. Same rules as desktop Ipê (password of 6+ characters; one active administrator always
+    remains; nobody deletes themselves). Disabled, deleted or password-reset users lose their open sessions at once.
+  - **DICOM nodes** (DIMSE and DICOMweb) with **Test network**, and the **identities** (calling AE). Password, token
+    and secret never come back to the browser: an empty field keeps what was stored.
+  - **DICOM printers**, with **Test connection**; renaming follows the print destinations.
+  - **AI automations**: the tools of Preferences ▸ CAD/AI — what runs by itself on arrival, on which exams and series,
+    and where the result goes.
+  - **Access log**, with filters.
+- **Temporary password in Ipê Web**: whoever signs in with the password given by the administrator must change it
+  before anything else (previously only desktop Ipê asked). **Change my password…** is in Administration ▸ Users.
+- Every change goes to the access log with the name of who made it.
+
 ## 0.100.70 — Ipê Web: dragging a series thumbnail is no longer "attach"
 - In Ipê Web, dragging a series thumbnail onto the viewer showed "Drop to attach to the study" and could attach the
   thumbnail itself. The browser puts the thumbnail image in the drag, and Ipê took it for a file from the computer.

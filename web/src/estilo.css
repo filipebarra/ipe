@@ -857,3 +857,61 @@ dialog.imp-janela h3 { margin: 0 0 10px; font-size: 16px; }
 .imp-meses .mes b { color: var(--texto); font-weight: 600; }
 .imp-filmes tr.nao-impresso .imp-sim-nao { color: #e0a040; }
 @media (max-width: 1000px) { .imp-corpo, .imp-graficos { grid-template-columns: minmax(0, 1fr); } .imp-lado { max-height: none; } }
+
+/* 0.100.71: Cadastros (usuários, nós, impressoras, automações de IA, registro) */
+.cadastros { display: flex; flex-direction: column; gap: 8px; min-width: 0; height: 100%; }
+.cadastros .imp-rolagem.baixa { min-height: 6em; max-height: 30vh; flex: 0 0 auto; }
+table.cad-tabela { width: 100%; border-collapse: collapse; }
+.cad-tabela th { text-align: left; color: var(--suave); font-weight: 500; border-bottom: 1px solid var(--borda); padding: 6px; }
+.cad-tabela td { padding: 6px; border-bottom: 1px solid #262a31; }
+.cad-tabela tbody tr:hover { background: #20242b; }
+.cadastros > .abas { overflow-x: auto; flex: 0 0 auto; }
+.cadastros > .abas button { white-space: nowrap; }
+.cad-tabela td { vertical-align: middle; overflow-wrap: anywhere; }
+.cad-tabela th { position: sticky; top: 0; background: var(--painel); white-space: nowrap; }
+.cad-tabela tr.cad-inativo td:not(.cad-acoes) { color: var(--suave); }
+.cad-tabela td.sit.erro { color: var(--erro); }
+.cad-tabela tr.vazio td { color: var(--suave); }
+.cad-acoes { white-space: nowrap; text-align: right; }
+.cad-acoes button { margin-left: 4px; padding: 2px 8px; font-size: 12px; }
+.cad-detalhe { max-width: 46em; }
+.cad-titulo { margin: 8px 0 0; font-size: 14px; }
+.cad-form { display: flex; flex-direction: column; gap: 8px; }
+.cad-form [hidden] { display: none !important; }
+.cad-form .imp-campo > label, .cad-ia-painel .imp-campo > label { flex: 0 0 12em; color: var(--suave); }
+.cad-caixa { display: flex; align-items: flex-start; gap: 8px; }
+.cad-caixa input { flex: 0 0 auto; margin-top: 3px; }
+.cad-erro { color: var(--erro); margin: 0; font-size: 13px; }
+.cad-erro:empty { display: none; }
+.cad-teste { font-size: 13px; color: var(--suave); }
+.cad-teste.ok { color: #5abe6e; }
+.cad-teste.erro { color: var(--erro); }
+.cad-lista { border: 1px solid var(--borda); border-radius: 6px; padding: 6px 10px; display: flex; flex-direction: column; gap: 2px; margin: 0; max-height: 14em; overflow: auto; }
+.cad-lista legend { color: var(--suave); font-size: 13px; padding: 0 4px; }
+.cad-lista.colunas { display: grid; grid-template-columns: repeat(auto-fill, minmax(11em, 1fr)); }
+.cad-perfis th[scope=row] { font-weight: 400; text-align: left; color: var(--texto); }
+.cad-perfis td, .cad-perfis thead th:not(:first-child) { text-align: center; }
+.cad-ia { display: grid; grid-template-columns: minmax(200px, 280px) minmax(0, 1fr); gap: 12px; min-height: 0; flex: 1; }
+.cad-ia-lista { display: flex; flex-direction: column; gap: 2px; overflow: auto; max-height: 64vh; border: 1px solid var(--borda); border-radius: 8px; padding: 4px; }
+.cad-ia-lista button { display: flex; flex-direction: column; align-items: flex-start; text-align: left; border: 0; background: none; padding: 6px 8px; border-radius: 6px; height: auto; }
+.cad-ia-lista button[aria-selected=true] { background: #262a31; box-shadow: inset 3px 0 0 var(--acento); }
+.cad-ia-lista button small { color: var(--suave); }
+.cad-ia-lista button.auto small { color: #5abe6e; }
+.cad-ia-painel { display: flex; flex-direction: column; gap: 8px; overflow: auto; max-height: 64vh; border: 1px solid var(--borda); border-radius: 8px; padding: 10px 12px; }
+.cad-ia-painel .imp-campo input[type=number] { flex: 0 0 7em; }
+.cad-ia-painel .cad-titulo { margin: 0; }
+.cad-ia-painel > *, .imp-janela-corpo > .cad-form, .cad-form > * { flex: 0 0 auto; }
+.cad-sufixo { color: var(--suave); }
+.cadastros .dica { color: var(--suave); font-size: 13px; margin: 0; }
+@media (max-width: 800px) {
+  .cad-ia { grid-template-columns: 1fr; }
+  .cad-form .imp-campo, .cad-ia-painel .imp-campo { flex-direction: column; align-items: stretch; gap: 2px; }
+  .cad-form .imp-campo > label, .cad-ia-painel .imp-campo > label { flex: 0 0 auto; }
+  .cad-form .imp-campo input, .cad-form .imp-campo select, .cad-ia-painel .imp-campo input, .cad-ia-painel .imp-campo select { flex: 0 0 auto; }
+  .cad-ia-painel .imp-campo input[type=number] { flex: 0 0 auto; width: 8em; }
+  .cad-ia-painel, .cad-ia-lista { max-height: none; }
+  .cad-ia-lista { max-height: 11em; }
+  .cad-tabela td, .cad-tabela th { white-space: nowrap; overflow-wrap: normal; }
+  .cad-perfis th[scope=row] { white-space: normal; min-width: 11em; }
+  .cad-detalhe { max-width: none; }
+}

@@ -31,6 +31,7 @@ import { PainelFilme } from "./filme";
 import { nosDoServidor, telaPacs as montarTelaPacs } from "./pacs";
 import { telaGestao } from "./gestao";
 import { telaImpressoes } from "./impressoes";
+import { telaCadastros, trocarSenha } from "./cadastros";
 import {
   Grade, TIPO_ARRASTO, TIPO_ARRASTO_ESTUDO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
   ARRANJO_PET_PADRAO, type ConteudoPet, type VistaPet,
@@ -111,6 +112,7 @@ function telaLogin(msg = ""): void {
     }
     await prepararVisor();
     rota();
+    void senhaProvisoria();
   };
   app.replaceChildren(form);
   u.focus();
@@ -185,6 +187,13 @@ async function retomar(): Promise<void> {
   await prepararVisor();
   retomando = false;
   rota();
+  void senhaProvisoria();
+}
+
+/** 0.100.71: a senha provisória (dada pelo administrador) pede a troca antes de qualquer outra coisa. */
+async function senhaProvisoria(): Promise<void> {
+  if (!config?.usuario.must_change) return;
+  if (await trocarSenha(true)) config.usuario.must_change = false;
 }
 window.addEventListener("error", (e) => API.relatarErro("janela", e.error ?? e.message));
 window.addEventListener("unhandledrejection", (e) => { if (!(e.reason instanceof API.SessaoEncerrada)) API.relatarErro("promessa", e.reason); });
@@ -340,7 +349,12 @@ async function telaLista(): Promise<void> {
     title: tr("Os filmes recebidos e montados: ver, identificar o paciente, enviar para as impressoras e o painel") }, tr("Impressões…")) as HTMLButtonElement;
   bImp.hidden = !["admin", "tecnico"].includes(config?.usuario.role ?? "");
   bImp.onclick = () => { location.hash = "#/impressoes"; };
-  const form = el("form", { class: "filtros" }, busca, el("button", { type: "submit" }, tr("Buscar")), bPacs, bGestao, bImp, bMon);
+  // 0.100.71: Cadastros (usuários, nós, impressoras, automações de IA) — só para administradores
+  const bCad = el("button", { type: "button", class: "cadastros-abrir", hidden: true,
+    title: tr("Usuários e perfis, nós DICOM, impressoras DICOM, automações de IA e o registro de acesso") }, tr("Cadastros…")) as HTMLButtonElement;
+  bCad.hidden = config?.usuario.role !== "admin";
+  bCad.onclick = () => { location.hash = "#/cadastros"; };
+  const form = el("form", { class: "filtros" }, busca, el("button", { type: "submit" }, tr("Buscar")), bPacs, bGestao, bImp, bCad, bMon);
   const antes = lerBusca();
   if (antes) {
     busca.value = antes.texto || "";
@@ -1870,6 +1884,23 @@ async function telaDasImpressoes(): Promise<void> {
   }
 }
 
+async function telaDosCadastros(): Promise<void> {
+  pararDisponiveis();
+  grade?.encerrar();
+  grade = null;
+  document.title = `${tr("Cadastros")} — ${tr("Ipê Web")}`;
+  const voltar = el("button", { type: "button", class: "link", onclick: () => { location.hash = "#/lista"; } },
+    `← ${tr("Lista de exames")}`);
+  const corpo = el("main", { class: "telalista" }, el("div", { class: "estado" }, tr("Carregando…")));
+  app.replaceChildren(cabecalho(voltar), corpo, tarja());
+  try {
+    const tela = await telaCadastros();
+    if (location.hash === "#/cadastros") corpo.replaceChildren(el("div", { class: "lista-esq" }, tela));
+  } catch (e) {
+    corpo.replaceChildren(el("div", { class: "estado erro" }, (e as Error).message));
+  }
+}
+
 async function telaDaGestao(): Promise<void> {
   pararDisponiveis();
   grade?.encerrar();
@@ -1913,6 +1944,7 @@ function rota(): void {
   else if (h === "#/pacs") void telaPacs();
   else if (h === "#/gestao") void telaDaGestao();
   else if (h === "#/impressoes") void telaDasImpressoes();
+  else if (h === "#/cadastros") void telaDosCadastros();
   else void telaLista();
 }
 

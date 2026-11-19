@@ -3,6 +3,23 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.71 — Ipê Web: Registros (usuarios, nodos DICOM, impresoras DICOM, automatizaciones de IA)
+- Para **administradores**, la lista de exámenes del Ipê Web gana el botón **Registros…**, con cinco pestañas:
+  - **Usuarios**: crear, editar, activar/desactivar, restablecer la contraseña y eliminar; **Perfiles y permisos…**
+    con la tabla de lo que cada perfil puede hacer. Valen las reglas del Ipê de escritorio (contraseña de 6 o más
+    caracteres; siempre queda un administrador activo; nadie se elimina a sí mismo). Quien es desactivado, eliminado
+    o tiene la contraseña restablecida pierde al instante las sesiones abiertas.
+  - **Nodos DICOM** (DIMSE y DICOMweb) con **Probar red**, y las **identidades** (AE de origen). Contraseña, token y
+    secreto no vuelven al navegador: el campo vacío deja lo que estaba.
+  - **Impresoras DICOM**, con **Probar conexión**; cambiar el nombre acompaña los destinos de impresión.
+  - **Automatizaciones de IA**: las herramientas de Preferencias ▸ CAD/IA — qué corre solo a la llegada, en qué
+    exámenes y series, y adónde va el resultado.
+  - **Registro de acceso**, con filtros.
+- **Contraseña provisional en el Ipê Web**: quien entra con la contraseña dada por el administrador debe cambiarla
+  antes de cualquier otra cosa (antes, solo el Ipê de escritorio lo pedía). **Cambiar mi contraseña…** está en
+  Registros ▸ Usuarios.
+- Todo lo que cambia va al registro de acceso con el nombre de quien lo cambió.
+
 ## 0.100.70 — Ipê Web: arrastrar la miniatura de la serie ya no es "adjuntar"
 - En Ipê Web, arrastrar la miniatura de una serie al visor mostraba "Suelte para adjuntar al estudio" y podía adjuntar
   la propia miniatura. El navegador pone la imagen de la miniatura en el arrastre, y el Ipê la tomaba por un archivo

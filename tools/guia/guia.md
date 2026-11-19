@@ -1312,6 +1312,16 @@ Nesta primeira fase:
 
 As **configurações** (servidores de impressão, destinos, regras, modelos de folha e cadastro das origens) continuam no Ipê de mesa do servidor. Cada envio, identificação e exclusão feita pelo navegador fica no registro de acesso, com o usuário. Montar um filme novo continua sendo na aba *Filme* de dentro do exame.
 
+**Cadastros no navegador (0.100.71).** Para **administradores**, a lista de exames ganha o botão **Cadastros…** — o que antes só se fazia no Ipê de mesa do servidor:
+
+- **Usuários**: **Novo usuário…**, **Editar**, **Ativar/Desativar**, **Redefinir a senha** e **Excluir**; em **Perfis e permissões…**, a tabela do que cada perfil pode fazer. A senha dada pelo administrador é **provisória**: ao entrar no Ipê Web, a pessoa é levada a escolher a dela antes de qualquer outra coisa. Sempre sobra um administrador ativo, e ninguém exclui a si mesmo. Quem é desativado, excluído ou tem a senha redefinida perde na hora as sessões abertas (navegador e Ipê cliente). **Trocar a minha senha…** troca a própria senha.
+- **Nós DICOM**: os nós do servidor, DIMSE ou DICOMweb, com os mesmos campos da janela *Rede* (usos, C-GET ou C-MOVE, compartilhar com os clientes, autenticação). **Testar rede** vale para o que está na tela, antes de gravar. A senha, o token e o segredo do cliente **não voltam para o navegador**: o campo vazio deixa o que estava. Embaixo, as **identidades** (AE Title de origem).
+- **Impressoras DICOM**: as mesmas de *Filme ▸ Impressoras DICOM*, com **Testar conexão** e **Duplicar**. Trocar o nome de uma impressora acompanha os destinos de impressão que a usam; excluir uma que está num destino pede confirmação.
+- **Automações de IA**: as ferramentas de *Preferências ▸ CAD/IA* — de cada uma, se roda sozinha quando o exame chega, em que exames e séries, e para quais nós vai o resultado. Na lista, cada ferramenta diz **automático na chegada** ou **só à mão**. Nada muda até **Salvar**.
+- **Registro de acesso**: quem fez o quê, com filtro de período, usuário, ação e texto.
+
+Cada mudança fica no registro de acesso com o nome de quem fez. Ficam no Ipê de mesa: a instalação dos modelos de IA, o nó DICOM do próprio servidor (AE, porta, quem pode conectar), as regras de automação de rede e as configurações de impressão.
+
 **Enviar a um destino DICOM (0.100.9).** O botão **Enviar a um destino DICOM** (o avião de papel, ao lado do Laudo) só aparece para quem tem a permissão de enviar para nós DICOM.
 
 - **O que**: o exame inteiro, as séries marcadas (a do quadro ativo já vem marcada) ou só a imagem do quadro ativo.

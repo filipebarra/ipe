@@ -785,7 +785,8 @@ class _Handler(BaseHTTPRequestHandler):
             from ipe.central import web as WEB
             prefs = c.repo.user_prefs(s.user_id) if s.user_id else {}
             return self._json(200, WEB.configuracao(c.settings, prefs, {
-                "username": s.username, "full_name": s.full_name, "role": s.role, "perms": sorted(s.perms)}), raw=True)
+                "username": s.username, "full_name": s.full_name, "role": s.role, "perms": sorted(s.perms),
+                "must_change": bool(getattr(s, "must_change", False))}), raw=True)
         if path.startswith("/api/web/medidas"):                          # 0.99.93 (W2): medidas no banco
             from ipe.central import web as WEB
             try:
@@ -939,6 +940,18 @@ class _Handler(BaseHTTPRequestHandler):
                     return self._send(200, IW.folha(c, s, parse_qs(parts.query)), "image/png")
                 corpo = json.loads(self._body() or b"{}") if method == "POST" else {}
                 r = IW.rota(c, s, method, acao, parse_qs(parts.query), corpo)
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except LookupError as e:
+                return self._error(404, str(e).strip("'"))
+            except (TypeError, ValueError, RuntimeError) as e:
+                return self._error(400, str(e))
+            return self._json(200, r, raw=True)
+        if path.startswith("/api/web/cadastros/"):                          # 0.100.71: Cadastros (só administradores)
+            from ipe.central import cadastros_web as CW
+            try:
+                corpo = json.loads(self._body() or b"{}") if method == "POST" else {}
+                r = CW.rota(c, s, method, path.rsplit("/", 1)[-1], parse_qs(parts.query), corpo, self.client_address[0])
             except PermissionError as e:
                 return self._error(403, str(e))
             except LookupError as e:

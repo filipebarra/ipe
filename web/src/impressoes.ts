@@ -71,14 +71,14 @@ async function pedirJson<T>(c: string, corpo?: unknown): Promise<T> {
   return (await r.json()) as T;
 }
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Record<string, string> = {}, ...filhos: (Node | string)[]): HTMLElementTagNameMap[K] {
+export function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Record<string, string> = {}, ...filhos: (Node | string)[]): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) e.setAttribute(k, v);
   e.append(...filhos);
   return e;
 }
 
-function botao(texto: string, fazer: () => void, classe = ""): HTMLButtonElement {
+export function botao(texto: string, fazer: () => void, classe = ""): HTMLButtonElement {
   const b = el("button", { type: "button" }, tr(texto));
   if (classe) b.className = classe;
   b.onclick = fazer;
@@ -86,7 +86,7 @@ function botao(texto: string, fazer: () => void, classe = ""): HTMLButtonElement
 }
 
 /** Uma janela por cima da tela (o <dialog> do navegador): título, conteúdo e os botões de baixo. */
-function janela(titulo: string, conteudo: Node[], botoes: HTMLButtonElement[], larga = false): HTMLDialogElement {
+export function janela(titulo: string, conteudo: Node[], botoes: HTMLButtonElement[], larga = false): HTMLDialogElement {
   const d = el("dialog", { class: `imp-janela${larga ? " larga" : ""}`, "aria-label": titulo });
   d.append(el("h3", {}, titulo), el("div", { class: "imp-janela-corpo" }, ...conteudo), el("div", { class: "imp-janela-botoes" }, ...botoes));
   d.addEventListener("close", () => d.remove());
@@ -96,7 +96,7 @@ function janela(titulo: string, conteudo: Node[], botoes: HTMLButtonElement[], l
 }
 
 /** Pergunta de sim ou não, numa janela; devolve o que a pessoa escolheu. */
-function confirmar(titulo: string, texto: string, aviso = "", sim = "Sim"): Promise<boolean> {
+export function confirmar(titulo: string, texto: string, aviso = "", sim = "Sim"): Promise<boolean> {
   return new Promise((resolver) => {
     let resp = false;
     const bSim = botao(sim, () => { resp = true; d.close(); }, "primario");

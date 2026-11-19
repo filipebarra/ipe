@@ -3,6 +3,22 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.71 — Ipê Web: Cadastros (usuários, nós DICOM, impressoras DICOM, automações de IA)
+- Para **administradores**, a lista de exames do Ipê Web ganha o botão **Cadastros…**, com cinco abas:
+  - **Usuários**: criar, editar, ativar/desativar, redefinir a senha e excluir; **Perfis e permissões…** com a tabela
+    do que cada perfil pode fazer. Valem as regras do Ipê de mesa (senha de 6 caracteres ou mais; sempre sobra um
+    administrador ativo; ninguém exclui a si mesmo). Quem é desativado, excluído ou tem a senha redefinida perde na
+    hora as sessões abertas.
+  - **Nós DICOM** (DIMSE e DICOMweb) com **Testar rede**, e as **identidades** (AE de origem). Senha, token e segredo
+    não voltam para o navegador: o campo vazio deixa o que estava.
+  - **Impressoras DICOM**, com **Testar conexão**; trocar o nome acompanha os destinos de impressão.
+  - **Automações de IA**: as ferramentas de Preferências ▸ CAD/IA — o que roda sozinho na chegada, em que exames e
+    séries, e para onde vai o resultado.
+  - **Registro de acesso**, com filtros.
+- **Senha provisória no Ipê Web**: quem entra com a senha dada pelo administrador é levado a trocá-la antes de
+  qualquer outra coisa (antes, só o Ipê de mesa pedia). **Trocar a minha senha…** fica em Cadastros ▸ Usuários.
+- Tudo o que muda vai para o registro de acesso com o nome de quem mudou.
+
 ## 0.100.70 — Ipê Web: arrastar a miniatura da série não é mais "anexar"
 - No Ipê Web, arrastar a miniatura de uma série para o visualizador mostrava "Solte para anexar ao exame" e podia
   anexar a própria miniatura. O navegador põe a imagem da miniatura no arrasto, e o Ipê tomava isso por arquivo do
