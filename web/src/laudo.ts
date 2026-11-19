@@ -4,6 +4,7 @@
 // regras do programa do consultório ligado ao servidor: permissão do perfil, banco pessoal e a trava.
 import * as API from "./api";
 import { tr } from "./i18n";
+import { EsquemasDoLaudo } from "./esquemas";
 
 export interface Laudo {
   id: number | null; study_uid: string; template: string; title: string; status: string; text: string;
@@ -107,8 +108,13 @@ export class PainelLaudo {
   private cSr = el("input", { type: "checkbox", "aria-label": tr("Guardar o SR no exame (DICOM)") });
   private bPdf = el("button", { type: "button" }, tr("Baixar PDF"));
   private buscas = el("div", { class: "buscas-laudo", role: "note" });
+  // 0.100.72: os esquemas-guia (face, corpo, tireoide, mamas, próstata…) com as marcas do médico
+  private esq: EsquemasDoLaudo;
+  /** A imagem aberta no visualizador (quem monta o painel diz como achar), para ligar a uma marca do esquema. */
+  imagemAberta: () => { series_uid: string; sop_uid: string; frame: number } | null = () => null;
 
   constructor(private study: string, private aoFechar: () => void) {
+    this.esq = new EsquemasDoLaudo(study, (t) => this.inserirNoTexto(t), () => this.imagemAberta());
     const bFechar = el("button", { type: "button", class: "fechar", "aria-label": tr("Fechar o laudo"), title: tr("Fechar o laudo") }, "×");
     bFechar.onclick = () => void this.fechar();
     this.raiz = el("aside", { class: "laudo", "aria-label": tr("Laudo") },
@@ -119,6 +125,7 @@ export class PainelLaudo {
       el("label", {}, tr("Título"), this.titulo),
       this.buscas,
       this.birads,
+      this.esq.raiz,
       this.texto,
       el("div", { class: "botoes-laudo" }, this.bIa, this.bSalvar, this.bAssinar, this.bRetificar),
       this.saidas,
@@ -169,6 +176,18 @@ export class PainelLaudo {
       await this.comecarLeitura(false);
     }
     this.carregar(null);
+    void this.esq.abrir(!this.podeEscrever());
+  }
+
+  /** Põe um bloco de texto onde está o cursor do laudo (a legenda dos esquemas). */
+  private inserirNoTexto(t: string): void {
+    const a = this.texto;
+    const i = a.selectionStart ?? a.value.length, f = a.selectionEnd ?? a.value.length;
+    const antes = a.value.slice(0, i), depois = a.value.slice(f);
+    const bloco = `${antes && !antes.endsWith("\n") ? "\n" : ""}${t}${depois && !depois.startsWith("\n") ? "\n" : ""}`;
+    a.value = antes + bloco + depois;
+    a.selectionStart = a.selectionEnd = antes.length + bloco.length;
+    this.mudou();
   }
 
   private async comecarLeitura(forcar: boolean): Promise<void> {
@@ -255,6 +274,7 @@ export class PainelLaudo {
     this.bAssinar.disabled = !pode || !this.dados?.pode.assinar;
     this.bAssinar.title = this.dados?.pode.assinar ? "" : tr("Seu perfil não permite assinar laudos.");
     this.bRetificar.hidden = !assinado;
+    this.esq.travar(!pode);                               // laudo assinado ou de outro: o esquema é só para ver
     for (const e of this.birads.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>("input, select, button")) {
       e.disabled = !pode;
     }

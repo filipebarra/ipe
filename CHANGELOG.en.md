@@ -3,6 +3,20 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.72 — Guide diagrams in the report (face, body, thyroid, breasts, prostate), in Ipê and Ipê Web
+- **Guide diagrams**: in the report window (and in the Ipê Web report), **New diagram…** opens a base drawing to mark
+  the findings: face (front and profiles), body (front and back), thyroid with cervical levels, breasts and the
+  prostate sector map. They are Ipê's own drawings; whoever may configure can register their own from an image.
+- **Tools**: numbered point, ellipse, arrow, freehand, text, move, delete and undo, in six colours. In Ipê Web they
+  work with mouse, finger or pen.
+- **Prostate**: a click paints the sector with the category (PI-RADS 1 to 5); the 41 sectors of PI-RADS v2.1.
+- **Linked to the report and to the images**: each numbered mark has its description; **Insert the legend into the
+  report** (and the `{esquemas}` template field) takes the list to the text. **Link to the open image** ties the mark
+  to the image in the viewer, which becomes a key image.
+- **Where it goes**: the figure goes into the report PDF; on signing, it goes to the exam as a DICOM image (series
+  "Esquemas do laudo") and is cited in the DICOM SR, with each mark's position and linked image. With a diagram the SR
+  becomes an Enhanced SR (Basic Text SR does not allow coordinates); without one, nothing changes.
+
 ## 0.100.71 — Ipê Web: Administration (users, DICOM nodes, DICOM printers, AI automations)
 - For **administrators**, the Ipê Web exam list gains the **Administration…** button, with five tabs:
   - **Users**: create, edit, enable/disable, reset password and delete; **Roles and permissions…** with the table of

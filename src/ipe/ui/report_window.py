@@ -429,7 +429,7 @@ class ReportWindow(QWidget):
                          ("volumes", "Segmentações (volume, SUV, TMTV/TLG)"), ("curva", "Curvas tempo-intensidade"),
                          ("comparacao", "Comparação com anteriores"), ("birads", "Categoria BI-RADS e conduta"),
                          ("achados_birads", "Achados BI-RADS"), ("composicao", "Composição mamária"),
-                         ("cad", "Achados de CAD/IA")):
+                         ("cad", "Achados de CAD/IA"), ("esquemas", "Legenda dos esquemas-guia")):
             a = im.addAction(lab)
             a.triggered.connect(lambda _=False, k=key: self.insert_field(k))
         ins.setMenu(im)
@@ -515,6 +515,12 @@ class ReportWindow(QWidget):
         lay.addLayout(top)
         lay.addWidget(help_)
         lay.addWidget(split, 1)
+        # 0.100.72: esquemas-guia (face, corpo, tireoide, mamas, próstata…) com as marcas do médico
+        from ipe.ui.esquema_dialogo import FaixaDeEsquemas
+        self.esquemas = FaixaDeEsquemas(repo, study_uid, user.username, auth.can("report"), auth.can("configure"),
+                                        self._imagem_aberta, self)
+        self.esquemas.inserir.connect(lambda t: self.editor.insertPlainText(t + "\n"))
+        lay.addWidget(self.esquemas)
         lay.addLayout(opts)
         lay.addLayout(chk)
         lay.addLayout(btns)
@@ -524,6 +530,24 @@ class ReportWindow(QWidget):
         # janela destruída sem fechar (a aba do exame fechou): solta a trava do mesmo jeito
         self.destroyed.connect(lambda *_a, r=repo, u=study_uid, me=self.__dict__: (
             None if me.get("so_leitura") else _soltar(r, u)))
+
+    def _imagem_aberta(self):
+        """(série, SOP, quadro) da imagem no quadro ativo do visualizador, para ligar a uma marca do esquema; ela
+        passa a ser imagem-chave (o visualizador fica sabendo)."""
+        tab = self.tab
+        vp = getattr(tab, "active", None) or next(iter(getattr(tab, "viewports", []) or []), None)
+        f = vp.current_frame() if vp is not None else None
+        if f is None or getattr(f, "is_virtual", False) or not f.sop_uid:
+            return None
+        if (getattr(vp, "study_uid", "") or self.study_uid) != self.study_uid:
+            return None                                  # é um exame anterior aberto ao lado: não é deste laudo
+        serie = f.series_uid or getattr(vp, "series_uid", "")
+        try:
+            tab.key_set.add((f.sop_uid, int(f.frame_index or 0)))
+            vp.update()
+        except Exception:  # noqa: BLE001
+            pass
+        return serie, f.sop_uid, int(f.frame_index or 0)
 
     # ------------------------------------------------------------ utilidades
     def _setting(self, key: str, default=None):
@@ -652,8 +676,12 @@ class ReportWindow(QWidget):
                 w.setEnabled(False)
             self.b_amend.setVisible(False)
             self.status.setText(f"Só leitura: {self.so_leitura}.")
+            if hasattr(self, "esquemas"):
+                self.esquemas.set_pode(False)
             return
         final = self.report.get("status") in ("final", "amended")
+        if hasattr(self, "esquemas"):                    # laudo assinado: o esquema é só para ver (mude pelo Retificar)
+            self.esquemas.set_pode(auth.can("report") and not final)
         self.editor.setReadOnly(final)
         self.title.setReadOnly(final)
         self.birads.setEnabled(not final)
@@ -865,8 +893,9 @@ class ReportWindow(QWidget):
         from ipe.reporting.pdf import write_pdf
         rep = report or {**self.report, **self._data()}
         imgs = self.key_images() if self.with_keys.isChecked() else []
+        from ipe.reporting import esquemas_saida as ES             # 0.100.72: os esquemas-guia
         return write_pdf(None, self.info, rep, self.header.toPlainText().strip(), self.crm.text().strip(), imgs,
-                         self.anonymize)
+                         self.anonymize, ES.figuras(self.repo, self.study_uid))
 
     def save_pdf_file(self) -> None:
         name = f"laudo_{self.info.get('study_date', '')}.pdf"
@@ -988,6 +1017,11 @@ class ReportWindow(QWidget):
             return 0
         tmp = Path(tempfile.mkdtemp(prefix="dv_laudo_"))
         n = 0
+        from ipe.reporting import esquemas_saida as ES             # 0.100.72: os esquemas vão como imagem e no SR
+        imagens, para_sr = ES.para_o_exame(self.repo, self.study_uid, files[0])
+        for i, ds in enumerate(imagens):
+            ds.save_as(tmp / f"esquema_{i}.dcm", enforce_file_format=True)
+            n += 1
         if self.save_pdf_dicom.isChecked():
             ds = D.encapsulated_pdf(self.pdf_bytes(rep), files[0], rep.get("title") or "Laudo")
             ds.save_as(tmp / "laudo_pdf.dcm", enforce_file_format=True)
@@ -995,7 +1029,7 @@ class ReportWindow(QWidget):
         if self.save_sr.isChecked():
             cat = B.final_category(rep.get("fields") or {})
             ds = D.text_sr(rep.get("text", ""), files[0], rep.get("title") or "Laudo", rep.get("author", ""),
-                           True, rep.get("signed_by", ""), cat)
+                           True, rep.get("signed_by", ""), cat, esquemas=para_sr)
             ds.save_as(tmp / "laudo_sr.dcm", enforce_file_format=True)
             n += 1
         from ipe.importer.scanner import Importer

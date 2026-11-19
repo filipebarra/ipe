@@ -69,7 +69,7 @@ def guardar_preferencias(settings, usuario: str, op: dict) -> None:
         log.warning("laudo web: não gravei as preferências: %s", e)
 
 
-def pdf_do_laudo(info: dict, rep: dict, cabecalho: str, assinatura: str) -> bytes:
+def pdf_do_laudo(info: dict, rep: dict, cabecalho: str, assinatura: str, esquemas: list | None = None) -> bytes:
     """O PDF do laudo, igual ao do Ipê (rascunho sai marcado RASCUNHO). Precisa do Qt de interface: no
     servidor sem janela, o `ipe server` sobe o Qt sem tela (offscreen)."""
     from PySide6.QtGui import QGuiApplication
@@ -77,7 +77,7 @@ def pdf_do_laudo(info: dict, rep: dict, cabecalho: str, assinatura: str) -> byte
     if QGuiApplication.instance() is None:
         raise RuntimeError("o PDF precisa do Qt de interface (atualize o servidor)")
     with _PDF:
-        return write_pdf(None, info, rep, cabecalho, assinatura, [], False)
+        return write_pdf(None, info, rep, cabecalho, assinatura, [], False, esquemas)
 
 
 def depois_de_assinar(repo, storage: Path, rep: dict, info: dict, op: dict, settings=None) -> list[str]:
@@ -97,15 +97,22 @@ def depois_de_assinar(repo, storage: Path, rep: dict, info: dict, op: dict, sett
         tmp = Path(tempfile.mkdtemp(prefix="ipe_laudo_web_"))
         try:
             n = 0
+            from ipe.reporting import esquemas_saida as ES             # 0.100.72: os esquemas-guia do laudo
+            figuras = ES.figuras(repo, rep["study_uid"])
+            imagens, para_sr = ES.para_o_exame(repo, rep["study_uid"], files[0]) if figuras else ([], [])
+            for i, ds in enumerate(imagens):
+                ds.save_as(tmp / f"esquema_{i}.dcm", enforce_file_format=True)
+                n += 1
             if op.get("pdf"):
-                pdf = pdf_do_laudo(info, rep, op.get("cabecalho", ""), op.get("assinatura", ""))
+                pdf = pdf_do_laudo(info, rep, op.get("cabecalho", ""), op.get("assinatura", ""), figuras)
                 D.encapsulated_pdf(pdf, files[0], rep.get("title") or "Laudo").save_as(
                     tmp / "laudo_pdf.dcm", enforce_file_format=True)
                 n += 1
             if op.get("sr"):
                 cat = B.final_category(rep.get("fields") or {})
                 D.text_sr(rep.get("text", ""), files[0], rep.get("title") or "Laudo", rep.get("author", ""), True,
-                          rep.get("signed_by", ""), cat).save_as(tmp / "laudo_sr.dcm", enforce_file_format=True)
+                          rep.get("signed_by", ""), cat, esquemas=para_sr).save_as(tmp / "laudo_sr.dcm",
+                                                                                   enforce_file_format=True)
                 n += 1
             if n:
                 from ipe.importer.scanner import Importer

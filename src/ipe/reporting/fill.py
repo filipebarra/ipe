@@ -187,6 +187,12 @@ def curves_text(repo, study_uid: str) -> str:
     return ("Curvas tempo-intensidade:\n" + "\n".join(out)) if out else ""
 
 
+def _esquemas_text(repo, study_uid: str) -> str:
+    """0.100.72: a legenda dos esquemas-guia do exame (as marcas numeradas e os setores pintados)."""
+    from ipe.reporting import esquemas as E
+    return E.texto_para_o_laudo(E.ler(repo, study_uid), repo)
+
+
 def build_context(repo, study_uid: str, fields: dict | None = None, anonymize: bool = False) -> dict:
     info = repo.study_info(study_uid) or {}
     fields = fields or {}
@@ -204,7 +210,8 @@ def build_context(repo, study_uid: str, fields: dict | None = None, anonymize: b
     for key, fn in (("medidas", lambda: measurements_text(repo, study_uid)),
                     ("lesoes", lambda: lesions_text(repo, study_uid, info)),
                     ("volumes", lambda: volumes_text(repo, study_uid)),
-                    ("curva", lambda: curves_text(repo, study_uid))):
+                    ("curva", lambda: curves_text(repo, study_uid)),
+                    ("esquemas", lambda: _esquemas_text(repo, study_uid))):
         try:
             ctx[key] = fn()
         except Exception as e:  # noqa: BLE001

@@ -1363,6 +1363,7 @@ Cada mudança fica no registro de acesso com o nome de quem fez. Ficam no Ipê d
 - **Laudo** (barra) abre o laudo ao lado das imagens, no mesmo registro de laudo do Ipê: o que se escreve num aparece no outro.
 - Sem laudo, ele começa pelo **modelo sugerido** para o exame, com os **campos automáticos** preenchidos como no Ipê (paciente, idade, data, comparação, medidas, lesões…). **Aplicar modelo** troca o texto pelo de outro modelo.
 - **Inserir achados de IA** põe no cursor os achados da IA **confirmados ou corrigidos** (o sugerido não entra), com a frase de cada ferramenta.
+- **Esquemas-guia** (0.100.72): a mesma faixa do Ipê de mesa — **Novo esquema…**, as ferramentas de desenho (com o dedo ou a caneta no tablet), o clique no setor da próstata, **Ligar à imagem aberta** e **Inserir a legenda no laudo**. O esquema vai para o PDF e, ao assinar, para o exame e para o SR.
 - **Salvar rascunho** (e ele também salva sozinho alguns segundos depois de parar de digitar). **Assinar e liberar** pede a confirmação na própria janela; assinado, o laudo não muda mais — **Retificar** cria um rascunho novo com o texto, e o anterior fica guardado.
 - **Quem está laudando**: abrir o laudo trava o exame para você. Se outro médico abrir, vê o aviso e escolhe **Só ler** ou **Assumir o laudo** (fica no registro de acesso); o servidor recusa gravar ou assinar por quem não tem a trava. Fechar o laudo (ou sair do exame) solta a trava. Quem não tem permissão de escrever laudos só lê.
 - **BI-RADS® (0.100.4)**: o mesmo formulário da janela do laudo do Ipê — o tipo (mamografia, ultrassonografia ou ressonância), a composição (ou o tecido fibroglandular e o realce de fundo na RM), os **achados** (**+ Achado**: lado, tipo, descritores da lista, tamanho, local, distância do mamilo, mudança e categoria), a categoria de cada mama e a recomendação. O texto do laudo muda sozinho, com as mesmas frases do Ipê; num modelo sem os campos do BI-RADS, **Levar ao texto do laudo** põe os blocos onde está o cursor. A categoria final é a mais preocupante.
@@ -1459,6 +1460,33 @@ Botão **Laudo** na tela inicial, ou botão direito no exame → **Laudo…**.
 No rodapé dá para incluir as imagens-chave no PDF, guardar o PDF no exame (como série DICOM) e guardar DICOM SR. Laudo assinado não muda: cria-se uma retificação, que vira um laudo novo e guarda o anterior. Assinar exige a permissão *Assinar (liberar) laudos*.
 
 Os modelos se editam em **Modelos…** (nome, modalidades, palavras-chave, BI-RADS e o texto com campos automáticos entre chaves). Há *Restaurar os de fábrica*.
+
+## Esquemas-guia no laudo
+
+Para marcar **onde** está cada achado num desenho — útil sobretudo no ultrassom dermatológico, na tireoide, na mama e na RM de próstata. Na janela do laudo, a faixa **Esquemas-guia** mostra os esquemas do exame; **Novo esquema…** abre os modelos:
+
+| Modelo | Para quê |
+|---|---|
+| Face (frente, perfil direito e esquerdo) e corpo (frente e costas) | lesões de pele |
+| Tireoide e níveis cervicais | nódulos e linfonodos |
+| Mamas | relógio, quadrantes e prolongamento axilar |
+| Próstata — mapa de setores | os 41 setores (base, terço médio, ápice, vesículas e esfíncter) |
+
+São desenhos próprios do Ipê. Quem tem a permissão de configurar pode cadastrar um desenho seu: **Novo modelo a partir de uma imagem…** (PNG ou JPG), que passa a valer para todos os usuários da instalação.
+
+No editor, as ferramentas ficam em cima: **Ponto** (um clique), **Elipse** e **Seta** (arrastando), **Traço livre**, **Texto**, **Mover**, **Apagar** e **Desfazer** (Ctrl+Z), com seis cores. Com **Numerar** ligado, cada ponto, elipse ou seta nova ganha o próximo número e uma linha na lista à direita, onde se escreve a descrição do achado.
+
+- **Ligar ao texto do laudo**: **Inserir a legenda no laudo** põe, onde está o cursor, uma linha por marca numerada ("1. nódulo hipoecoico de 4 mm"). O campo `{esquemas}` faz o mesmo nos modelos de laudo.
+- **Ligar a uma imagem**: em cada marca, **Ligar à imagem aberta** prende a marca à imagem do quadro ativo do visualizador. Ela vira imagem-chave e a legenda passa a dizer "(série 3, imagem 12)".
+- **Próstata**: com a ferramenta **Setor**, escolha a categoria (PI-RADS 1 a 5) e clique no setor para pintá-lo; outro clique limpa. A legenda sai por categoria, da mais alta para a mais baixa.
+
+O que acontece com o esquema:
+
+- entra no **PDF** do laudo, com a legenda ao lado;
+- ao **assinar**, vai para o exame como imagem DICOM (série "Esquemas do laudo") e é citado no **DICOM SR** — a figura, cada marca com a posição e a imagem ligada a ela. Com esquema, o SR é um *Enhanced SR*;
+- laudo assinado deixa o esquema só para ver; para mudar, **Retificar**.
+
+O esquema é do exame (não de uma versão do laudo), e é o mesmo no Ipê de mesa e no Ipê Web.
 
 ## IA no texto do laudo
 

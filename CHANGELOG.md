@@ -3,6 +3,21 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.72 — Esquemas-guia no laudo (face, corpo, tireoide, mamas, próstata), no Ipê e no Ipê Web
+- **Esquemas-guia**: na janela do laudo (e no laudo do Ipê Web), **Novo esquema…** abre um desenho de base para
+  marcar os achados: face (frente e perfis), corpo (frente e costas), tireoide com os níveis cervicais, mamas e o
+  mapa de setores da próstata. São desenhos próprios do Ipê; quem pode configurar cadastra os seus a partir de uma
+  imagem.
+- **Ferramentas**: ponto numerado, elipse, seta, traço livre, texto, mover, apagar e desfazer, em seis cores. No Ipê
+  Web funcionam com mouse, dedo ou caneta.
+- **Próstata**: o clique pinta o setor com a categoria (PI-RADS 1 a 5); são os 41 setores do PI-RADS v2.1.
+- **Ligado ao laudo e às imagens**: cada marca numerada tem a sua descrição; **Inserir a legenda no laudo** (e o
+  campo `{esquemas}` dos modelos) leva a lista para o texto. **Ligar à imagem aberta** prende a marca à imagem do
+  visualizador, que vira imagem-chave.
+- **Para onde vai**: a figura entra no PDF do laudo; ao assinar, vai para o exame como imagem DICOM (série "Esquemas
+  do laudo") e é citada no DICOM SR, com a posição de cada marca e a imagem ligada. Com esquema, o SR passa a ser um
+  Enhanced SR (o Basic Text SR não aceita coordenadas); sem esquema, nada muda.
+
 ## 0.100.71 — Ipê Web: Cadastros (usuários, nós DICOM, impressoras DICOM, automações de IA)
 - Para **administradores**, a lista de exames do Ipê Web ganha o botão **Cadastros…**, com cinco abas:
   - **Usuários**: criar, editar, ativar/desativar, redefinir a senha e excluir; **Perfis e permissões…** com a tabela

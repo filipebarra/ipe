@@ -91,6 +91,11 @@ def main() -> int:
         print("  Falta o guia do usuário (PDF) no pacote: o F1 não teria o que abrir.")
         return 1
     print("  Guia do usuário no pacote.")
+    if not ((pasta / "_internal" / "ipe" / "reporting" / "esquemas_modelos.json").exists()
+            or (pasta / "ipe" / "reporting" / "esquemas_modelos.json").exists()):
+        print("  Faltam os desenhos dos esquemas-guia do laudo (esquemas_modelos.json) no pacote.")
+        return 1
+    print("  Esquemas-guia do laudo no pacote.")
     # segmentação de órgãos (0.98): o trabalhador e o instalador vão junto; o ambiente pesado, não
     inst = "instalar_segmentacao.bat" if sys.platform == "win32" else "instalar_segmentacao.sh"
     for rel in (("ipe", "ai", "totalseg_worker.py"), ("ipe", "ai", "instalar_modelos_extras.py"), ("ipe", inst)):

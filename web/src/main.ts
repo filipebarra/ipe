@@ -1382,6 +1382,13 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
       requestAnimationFrame(() => grade?.redimensionar());
     });
     painelLaudo = p;
+    p.imagemAberta = () => {                               // 0.100.72: para ligar uma marca do esquema à imagem
+      const q = g.quadros[g.ativo];
+      const serie = q?.serie && !q.serie.series.startsWith("ipe") ? q.serie.series : "";
+      const id = (g.viewport() as unknown as { getCurrentImageId?: () => string } | null)?.getCurrentImageId?.() || "";
+      const m = /\/instances\/([^/]+)\/frames\/(\d+)/.exec(id);
+      return serie && m ? { series_uid: serie, sop_uid: decodeURIComponent(m[1]), frame: Math.max(0, Number(m[2]) - 1) } : null;
+    };
     // o laudo ocupa o lugar do painel de ferramentas (que volta pelo trilho, se ele quiser)
     if (!lateral.hidden) ajustarPaineis(!tira.hidden, false);
     lateral.after(p.raiz);

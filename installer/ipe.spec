@@ -27,6 +27,8 @@ def versao() -> str:
 datas = [(str(SRC / "ipe" / "locale"), "ipe/locale")]
 # o guia do usuário (Ajuda ▸ Guia do usuário, F1)
 datas += [(str(SRC / "ipe" / "ajuda"), "ipe/ajuda")]
+# 0.100.72: os desenhos dos esquemas-guia do laudo (face, corpo, tireoide, mamas, próstata)
+datas += [(str(SRC / "ipe" / "reporting" / "esquemas_modelos.json"), "ipe/reporting")]
 if (SRC / "ipe" / "web_dist").is_dir():          # 0.99.91: o visualizador web do servidor central
     datas += [(str(SRC / "ipe" / "web_dist"), "ipe/web_dist")]
 if (SRC / "ipe" / "casos" / "lancadores").is_dir():   # 0.100.56: os lançadores do pacote de casos (tools/lancador)

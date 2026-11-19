@@ -3,6 +3,21 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.72 — Esquemas guía en el informe (cara, cuerpo, tiroides, mamas, próstata), en Ipê y en Ipê Web
+- **Esquemas guía**: en la ventana del informe (y en el informe del Ipê Web), **Nuevo esquema…** abre un dibujo de
+  base para marcar los hallazgos: cara (frente y perfiles), cuerpo (frente y espalda), tiroides con los niveles
+  cervicales, mamas y el mapa de sectores de la próstata. Son dibujos propios de Ipê; quien puede configurar registra
+  los suyos a partir de una imagen.
+- **Herramientas**: punto numerado, elipse, flecha, trazo libre, texto, mover, borrar y deshacer, en seis colores. En
+  el Ipê Web funcionan con ratón, dedo o lápiz.
+- **Próstata**: el clic pinta el sector con la categoría (PI-RADS 1 a 5); son los 41 sectores del PI-RADS v2.1.
+- **Vinculado al informe y a las imágenes**: cada marca numerada tiene su descripción; **Insertar la leyenda en el
+  informe** (y el campo `{esquemas}` de los modelos) lleva la lista al texto. **Vincular a la imagen abierta** une la
+  marca a la imagen del visor, que pasa a ser imagen clave.
+- **Adónde va**: la figura entra en el PDF del informe; al firmar, va al examen como imagen DICOM (serie "Esquemas
+  do laudo") y se cita en el DICOM SR, con la posición de cada marca y la imagen vinculada. Con esquema, el SR pasa a
+  ser un Enhanced SR (el Basic Text SR no acepta coordenadas); sin esquema, nada cambia.
+
 ## 0.100.71 — Ipê Web: Registros (usuarios, nodos DICOM, impresoras DICOM, automatizaciones de IA)
 - Para **administradores**, la lista de exámenes del Ipê Web gana el botón **Registros…**, con cinco pestañas:
   - **Usuarios**: crear, editar, activar/desactivar, restablecer la contraseña y eliminar; **Perfiles y permisos…**

@@ -947,6 +947,20 @@ class _Handler(BaseHTTPRequestHandler):
             except (TypeError, ValueError, RuntimeError) as e:
                 return self._error(400, str(e))
             return self._json(200, r, raw=True)
+        if path.startswith("/api/web/esquemas/"):                           # 0.100.72: esquemas-guia do laudo
+            from ipe.central import esquemas_web as EW
+            try:
+                corpo = json.loads(self._body() or b"{}") if method == "POST" else {}
+                r = EW.rota(c, s, method, path.rsplit("/", 1)[-1], parse_qs(parts.query), corpo, self.client_address[0])
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except LookupError as e:
+                return self._error(404, str(e).strip("'"))
+            except (TypeError, ValueError, RuntimeError) as e:
+                return self._error(400, str(e))
+            if isinstance(r, bytes):
+                return self._send(200, r, "image/png", {"Cache-Control": "no-store"})
+            return self._json(200, r, raw=True)
         if path.startswith("/api/web/cadastros/"):                          # 0.100.71: Cadastros (só administradores)
             from ipe.central import cadastros_web as CW
             try:
@@ -1085,7 +1099,9 @@ class _Handler(BaseHTTPRequestHandler):
             pref = {**LW.preferencias(getattr(c, "settings", None), s.username, info), **op}
             if path == "/api/web/laudo_pdf":
                 try:
-                    pdf = LW.pdf_do_laudo(info, rep, pref["cabecalho"], pref["assinatura"])
+                    from ipe.reporting import esquemas_saida as ES
+                    pdf = LW.pdf_do_laudo(info, rep, pref["cabecalho"], pref["assinatura"],
+                                          ES.figuras(c.repo, rep["study_uid"]))
                 except Exception as e:  # noqa: BLE001
                     log.exception("laudo web: PDF")
                     return self._error(500, f"PDF: {e}")

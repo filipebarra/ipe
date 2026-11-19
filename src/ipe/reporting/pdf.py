@@ -10,7 +10,7 @@ from ipe.reporting.fill import age_text, fmt_date
 
 
 def report_html(info: dict, report: dict, header: str = "", signature: str = "", n_images: int = 0,
-                anonymize: bool = False) -> str:
+                anonymize: bool = False, esquemas: list | None = None) -> str:
     e = html.escape
     name = "" if anonymize else (info.get("patient_name") or "").replace("^", " ").strip()
     rows = [("Paciente", name), ("ID", "" if anonymize else info.get("patient_id", "")),
@@ -36,6 +36,12 @@ def report_html(info: dict, report: dict, header: str = "", signature: str = "",
         cellsimg = "".join(f"<td style='padding:4px'><img src='key{i}.png' width='300'></td>"
                            + ("</tr><tr>" if i % 3 == 2 else "") for i in range(n_images))
         imgs = f"<p style='margin-top:12px'><b>Imagens-chave</b></p><table><tr>{cellsimg}</tr></table>"
+    for i, q in enumerate(esquemas or []):               # 0.100.72: os esquemas-guia, cada um com a legenda
+        linhas = "".join(f"<div>{e(x)}</div>" for x in q.get("linhas") or [])
+        imgs += (f"<table style='margin-top:12px'><tr><td style='padding:4px;vertical-align:top'>"
+                 f"<img src='esq{i}.png' width='{int(q.get('largura') or 360)}'></td>"
+                 f"<td style='padding:4px 4px 4px 12px;vertical-align:top;font-size:9.5pt'>"
+                 f"<b>{e(q.get('titulo') or 'Esquema')}</b>{linhas}</td></tr></table>")
     if report.get("status") in ("final", "amended"):
         when = report.get("signed_at") or datetime.now().strftime("%Y-%m-%d %H:%M")
         try:
@@ -58,15 +64,26 @@ def report_html(info: dict, report: dict, header: str = "", signature: str = "",
 
 
 def write_pdf(path_or_none, info: dict, report: dict, header: str = "", signature: str = "",
-              images: list | None = None, anonymize: bool = False) -> bytes:
-    """Gera o PDF (A4). Devolve os bytes; se `path_or_none` vier, grava também no arquivo."""
+              images: list | None = None, anonymize: bool = False, esquemas: list | None = None) -> bytes:
+    """Gera o PDF (A4). Devolve os bytes; se `path_or_none` vier, grava também no arquivo.
+    `esquemas` (0.100.72): [{"titulo", "png", "linhas"}] de `esquemas_saida.figuras`."""
     from PySide6.QtCore import QBuffer, QByteArray, QIODevice, QMarginsF, QUrl
     from PySide6.QtGui import QPageLayout, QPageSize, QPdfWriter, QTextDocument
     images = images or []
     doc = QTextDocument()
     for i, q in enumerate(images):
         doc.addResource(QTextDocument.ImageResource, QUrl(f"key{i}.png"), q)
-    doc.setHtml(report_html(info, report, header, signature, len(images), anonymize))
+    from PySide6.QtGui import QImage
+    figs = []
+    for q in esquemas or []:
+        im = QImage.fromData(q.get("png") or b"")
+        if im.isNull():
+            continue
+        # figura alta (corpo, próstata) fica mais estreita, para caber com a legenda ao lado
+        larg = 250 if im.height() > im.width() * 1.25 else 360
+        doc.addResource(QTextDocument.ImageResource, QUrl(f"esq{len(figs)}.png"), im)
+        figs.append({**q, "largura": larg})
+    doc.setHtml(report_html(info, report, header, signature, len(images), anonymize, figs))
     ba = QByteArray()
     buf = QBuffer(ba)
     buf.open(QIODevice.WriteOnly)

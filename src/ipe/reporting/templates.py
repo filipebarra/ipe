@@ -24,6 +24,7 @@ PLACEHOLDERS = {
     "composicao": "Composição mamária / FGT / BPE",
     "conduta": "Conduta recomendada pela categoria BI-RADS",
     "curva": "Curvas tempo-intensidade (RM dinâmica)",
+    "esquemas": "Esquemas-guia: a legenda das marcas e dos setores pintados",
 }
 
 _MG = """MAMOGRAFIA DIGITAL BILATERAL
