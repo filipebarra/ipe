@@ -960,3 +960,9 @@ dialog.esq-janela h3 { margin: 0; }
   .esq-corpo { grid-template-columns: 1fr; grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); }
   .esq-dica { display: none; }
 }
+/* 0.100.73: cadastro de modelos de esquema */
+.esq-modelo-caixa { display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
+.esq-modelo-editar { font-size: 11px; padding: 1px 6px; }
+.esq-modelo.oculto { opacity: .5; }
+.esq-gerir[hidden] { display: none; }
+.esq-numerar[hidden] { display: none; }

@@ -3,6 +3,18 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.73 — Esquemas guía: guardar en el examen sin informe y registrar o cambiar los modelos (escritorio y Web)
+- **Guardar en el examen**: en la franja de los esquemas (Ipê de escritorio e Ipê Web), guarda al instante las
+  figuras (serie "Esquemas do laudo") y un SR solo de los esquemas, sin firmar ni guardar el informe — como la tabla
+  de la segmentación y el resumen de la densidad. Guardar de nuevo reemplaza lo que había; al firmar, el SR del
+  informe pasa a llevar los esquemas.
+- **Modelos también por el Ipê Web**: quien puede configurar envía una imagen (**Nuevo modelo de una imagen…**) o
+  parte de una hoja vacía (**Nuevo modelo en blanco…**), en el navegador o en el Ipê de escritorio.
+- **Cambiar los modelos existentes**: **Editar el modelo…** abre el modelo con las herramientas de dibujo — lo que se
+  dibuja pasa a formar parte de él en todos los exámenes — y cambia el nombre y el grupo. **Guardar como copia** crea
+  un modelo nuevo; en los modelos de Ipê hay **Ocultar de la lista** y **Restaurar el original** (el dibujo original
+  nunca se pierde); los propios se eliminan.
+
 ## 0.100.72 — Esquemas guía en el informe (cara, cuerpo, tiroides, mamas, próstata), en Ipê y en Ipê Web
 - **Esquemas guía**: en la ventana del informe (y en el informe del Ipê Web), **Nuevo esquema…** abre un dibujo de
   base para marcar los hallazgos: cara (frente y perfiles), cuerpo (frente y espalda), tiroides con los niveles

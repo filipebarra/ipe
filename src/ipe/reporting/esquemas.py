@@ -52,23 +52,57 @@ def _de_fabrica() -> tuple:
     return tuple(json.loads(p.read_text(encoding="utf-8")))
 
 
-def meus(repo) -> list[dict]:
-    """Os modelos próprios (uma imagem de fundo cada), cadastrados nesta instalação."""
+def _guardados(repo) -> list[dict]:
+    """O que esta instalação cadastrou: modelos próprios e alterações nos modelos do Ipê."""
     try:
         v = repo.get_app_setting(CHAVE_MEUS, []) if repo is not None else []
     except Exception:  # noqa: BLE001
         log.debug("esquemas: modelos próprios", exc_info=True)
         v = []
-    return [m for m in (v or []) if isinstance(m, dict) and m.get("id") and m.get("png")]
+    return [m for m in (v or []) if isinstance(m, dict) and m.get("id")]
 
 
-def modelos(repo=None) -> list[dict]:
-    """Todos os modelos: os do Ipê e os próprios (estes com `meu` = True e a imagem em `png`, base64)."""
-    return list(_de_fabrica()) + meus(repo)
+def _ids_de_fabrica() -> set[str]:
+    return {m["id"] for m in _de_fabrica()}
+
+
+def meus(repo) -> list[dict]:
+    """Os modelos próprios, prontos para desenhar: de uma imagem (`png`), cópia de um modelo do Ipê (`origem`, de
+    onde vêm os traços e os setores) ou em branco. `base` = o que foi desenhado no modelo."""
+    fabrica = {m["id"]: m for m in _de_fabrica()}
+    out = []
+    for g in _guardados(repo):
+        if g["id"] in fabrica:
+            continue
+        o = fabrica.get(g.get("origem") or "") or {}
+        out.append({"id": g["id"], "nome": g.get("nome") or "Modelo", "grupo": g.get("grupo") or "Meus",
+                    "w": o.get("w") or g.get("w") or 1000, "h": o.get("h") or g.get("h") or 1000, "meu": True,
+                    "origem": g.get("origem") or "", "tracos": o.get("tracos") or [], "rotulos": o.get("rotulos") or [],
+                    "setores": o.get("setores") or [], "categorias": o.get("categorias") or [],
+                    "base": g.get("base") or [], **({"png": g["png"]} if g.get("png") else {})})
+    return out
+
+
+def modelos(repo=None, ocultos: bool = False) -> list[dict]:
+    """Todos os modelos: os do Ipê (com o que a instalação mudou neles: nome, grupo, `base` desenhada, `oculto`) e
+    os próprios (`meu` = True). Os ocultos só entram com `ocultos=True` (para gerenciar e para desenhar um esquema
+    antigo feito com eles)."""
+    mudados = {g["id"]: g for g in _guardados(repo) if g["id"] in _ids_de_fabrica()}
+    out = []
+    for m in _de_fabrica():
+        g = mudados.get(m["id"])
+        if g is None:
+            out.append(m)
+            continue
+        if g.get("oculto") and not ocultos:
+            continue
+        out.append({**m, "nome": g.get("nome") or m["nome"], "grupo": g.get("grupo") or m["grupo"],
+                    "base": g.get("base") or [], "alterado": True, "oculto": bool(g.get("oculto"))})
+    return out + meus(repo)
 
 
 def modelo(id_: str, repo=None) -> dict | None:
-    return next((m for m in modelos(repo) if m["id"] == id_), None)
+    return next((m for m in modelos(repo, ocultos=True) if m["id"] == id_), None)
 
 
 def resumo_dos_modelos(repo=None) -> list[dict]:
@@ -77,12 +111,9 @@ def resumo_dos_modelos(repo=None) -> list[dict]:
              "meu": bool(m.get("meu")), "setores": len(m.get("setores") or [])} for m in modelos(repo)]
 
 
-def novo_modelo_de_imagem(repo, nome: str, dados: bytes, grupo: str = "Meus") -> dict:
-    """Cadastra um modelo próprio a partir de uma imagem (PNG, JPG…): reduzida a 1400 px e guardada como PNG."""
+def _png_do_modelo(dados: bytes) -> tuple[str, int, int]:
+    """A imagem enviada → PNG de até 1400 px, fundo branco (base64), com a largura e a altura."""
     from PIL import Image
-    nome = (nome or "").strip()[:60]
-    if not nome:
-        raise ValueError("Dê um nome ao modelo.")
     try:
         im = Image.open(io.BytesIO(dados))
         im.load()
@@ -99,23 +130,84 @@ def novo_modelo_de_imagem(repo, nome: str, dados: bytes, grupo: str = "Meus") ->
     im.thumbnail((MAX_LADO_MEU, MAX_LADO_MEU))
     b = io.BytesIO()
     im.save(b, "PNG", optimize=True)
-    lista = meus(repo)
-    if len(lista) >= MAX_MEUS:
-        raise ValueError(f"Já há {MAX_MEUS} modelos próprios: exclua um antes.")
-    m = {"id": "meu_" + uuid.uuid4().hex[:10], "nome": nome, "grupo": (grupo or "Meus").strip()[:30] or "Meus",
-         "w": im.size[0], "h": im.size[1], "meu": True, "tracos": [], "rotulos": [], "setores": [], "categorias": [],
-         "png": base64.b64encode(b.getvalue()).decode("ascii")}
-    repo.set_app_setting(CHAVE_MEUS, lista + [m])
-    return m
+    return base64.b64encode(b.getvalue()).decode("ascii"), im.size[0], im.size[1]
 
 
-def excluir_modelo(repo, id_: str) -> bool:
-    lista = meus(repo)
+def _base_conferida(marcas) -> list[dict]:
+    """O desenho de um modelo: as mesmas marcas de um esquema, sem número nem imagem ligada."""
+    out = []
+    for m in (marcas or [])[:MAX_MARCAS]:
+        x = normalizar_marca(m)
+        if x:
+            x["n"] = 0
+            x.pop("imagem", None)
+            out.append(x)
+    return out
+
+
+def salvar_modelo(repo, d: dict, imagem: bytes | None = None) -> dict:
+    """Cadastra ou muda um modelo (0.100.73). `d`: `id` (vazio = novo), `nome`, `grupo`, `base` (o desenho do
+    modelo), `oculto` e, num novo, `origem` (cópia de um modelo do Ipê). `imagem` = o fundo (novo, ou trocar).
+    - `id` de um modelo do Ipê: guarda só a mudança (nome, grupo, desenho por cima, oculto); o original fica.
+    - novo sem imagem e sem origem: modelo em branco (quadrado)."""
+    nome = str(d.get("nome") or "").strip()[:60]
+    grupo = str(d.get("grupo") or "").strip()[:30]
+    if not nome:
+        raise ValueError("Dê um nome ao modelo.")
+    lista = _guardados(repo)
+    fabrica = _ids_de_fabrica()
+    mid = str(d.get("id") or "")
+    base = _base_conferida(d.get("base"))
+    if mid in fabrica:
+        if imagem:
+            raise ValueError("Num modelo do Ipê não se troca o fundo: faça uma cópia.")
+        g = {"id": mid, "nome": nome, "grupo": grupo, "base": base, "oculto": bool(d.get("oculto"))}
+        lista = [x for x in lista if x["id"] != mid] + [g]
+    elif mid:
+        g = next((x for x in lista if x["id"] == mid), None)
+        if g is None:
+            raise LookupError("modelo desconhecido")
+        g.update(nome=nome, grupo=grupo or "Meus", base=base)
+        if imagem:
+            g["png"], g["w"], g["h"] = _png_do_modelo(imagem)
+            g.pop("origem", None)
+    else:
+        if sum(1 for x in lista if x["id"] not in fabrica) >= MAX_MEUS:
+            raise ValueError(f"Já há {MAX_MEUS} modelos próprios: exclua um antes.")
+        g = {"id": "meu_" + uuid.uuid4().hex[:10], "nome": nome, "grupo": grupo or "Meus", "base": base}
+        origem = str(d.get("origem") or "")
+        o = modelo(origem, repo) if origem else None
+        if imagem:
+            g["png"], g["w"], g["h"] = _png_do_modelo(imagem)
+        elif o is not None and o.get("png"):                 # cópia de um modelo próprio de imagem
+            g["png"], g["w"], g["h"] = o["png"], o["w"], o["h"]
+        elif o is not None:                                  # cópia de um do Ipê (ou de uma cópia dele)
+            g["origem"] = o.get("origem") or (o["id"] if o["id"] in fabrica else "")
+            g["w"], g["h"] = o["w"], o["h"]
+        else:
+            g["w"], g["h"] = 1000, 1000
+        if o is not None and "base" not in d:
+            g["base"] = _base_conferida(o.get("base"))
+        lista.append(g)
+    repo.set_app_setting(CHAVE_MEUS, lista)
+    return modelo(g["id"], repo) or g
+
+
+def novo_modelo_de_imagem(repo, nome: str, dados: bytes, grupo: str = "Meus") -> dict:
+    """Cadastra um modelo próprio a partir de uma imagem (PNG, JPG…): reduzida a 1400 px e guardada como PNG."""
+    if not (nome or "").strip():
+        raise ValueError("Dê um nome ao modelo.")
+    return salvar_modelo(repo, {"nome": nome, "grupo": grupo}, dados)
+
+
+def excluir_modelo(repo, id_: str) -> str:
+    """Exclui um modelo próprio ("excluido") ou desfaz as mudanças num modelo do Ipê ("restaurado"); "" se não há."""
+    lista = _guardados(repo)
     resto = [m for m in lista if m["id"] != id_]
     if len(resto) == len(lista):
-        return False
+        return ""
     repo.set_app_setting(CHAVE_MEUS, resto)
-    return True
+    return "restaurado" if id_ in _ids_de_fabrica() else "excluido"
 
 
 # ---------------------------------------------------------------------- guardar e ler
@@ -315,7 +407,7 @@ def desenhar(e: dict, largura: int = 1100, repo=None, com_titulo: bool = False):
     for r in mod.get("rotulos") or []:
         _centrado(d, (r["x"] * esc, r["y"] * esc), r["t"], _fonte(int(r.get("s", 20) * esc)), TINTA.get(r.get("c"), TINTA["leve"]))
     base = W / 1000.0                                    # as marcas têm o mesmo tamanho em qualquer modelo
-    for m in e.get("marcas") or []:
+    for m in (mod.get("base") or []) + (e.get("marcas") or []):   # o desenho do modelo e, por cima, o do exame
         _marca(d, m, W, H, base)
     if com_titulo:
         _centrado(d, (W / 2, 18 * base), titulo(e, repo), _fonte(int(22 * base)), (60, 60, 60))

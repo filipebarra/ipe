@@ -26,11 +26,71 @@ def _exame(c, s, study: str) -> str:
     return study
 
 
-def modelos(c, s) -> dict:
-    """Os modelos com os traços (a imagem dos modelos próprios vem por `fundo`)."""
+MAX_IMAGEM = 12 * 1024 * 1024                          # a imagem de um modelo, como chega do navegador
+
+
+def _sem_png(m: dict) -> dict:
+    return {**{k: v for k, v in m.items() if k != "png"}, "imagem": bool(m.get("png"))}
+
+
+def modelos(c, s, q: dict | None = None) -> dict:
+    """Os modelos com os traços (a imagem dos modelos próprios vem por `fundo`). Os ocultos vêm sempre (um esquema
+    antigo pode usar um): a tela de escolher não os mostra; `pode_modelos` = pode cadastrar e mudar modelos."""
     if not s.can("view"):
         raise PermissionError("sem permissão")
-    return {"modelos": [{k: v for k, v in m.items() if k != "png"} for m in E.modelos(c.repo)], "cores": E.CORES}
+    return {"modelos": [_sem_png(m) for m in E.modelos(c.repo, ocultos=True)], "cores": E.CORES,
+            "pode_modelos": bool(s.can("configure"))}
+
+
+def modelo_gravar(c, s, d: dict, host: str = "") -> dict:
+    """0.100.73: cadastra ou muda um modelo pelo navegador (`imagem` = o arquivo em base64, se houver)."""
+    import base64
+    import binascii
+    if not s.can("configure"):
+        raise PermissionError("cadastrar e mudar modelos de esquema pede a permissão de configurar")
+    dados = None
+    if d.get("imagem"):
+        txt = str(d["imagem"])
+        if len(txt) > MAX_IMAGEM * 4 // 3 + 64:
+            raise ValueError("A imagem é grande demais (mais de 12 MB).")
+        try:
+            dados = base64.b64decode(txt.split(",", 1)[-1], validate=True)
+        except (binascii.Error, ValueError):
+            raise ValueError("Não consegui ler a imagem (use PNG ou JPG).") from None
+    m = E.salvar_modelo(c.repo, d, dados)
+    try:
+        c.repo.audit("config", "modelo de esquema: " + m["nome"], user=s.username, host=host)
+    except Exception:  # noqa: BLE001
+        log.debug("esquemas: registro", exc_info=True)
+    return {"ok": True, "modelo": _sem_png(m)}
+
+
+def modelo_excluir(c, s, d: dict, host: str = "") -> dict:
+    if not s.can("configure"):
+        raise PermissionError("cadastrar e mudar modelos de esquema pede a permissão de configurar")
+    r = E.excluir_modelo(c.repo, str(d.get("id") or ""))
+    if not r:
+        raise LookupError("modelo desconhecido")
+    try:
+        c.repo.audit("config", "modelo de esquema " + r + ": " + str(d.get("id")), user=s.username, host=host)
+    except Exception:  # noqa: BLE001
+        log.debug("esquemas: registro", exc_info=True)
+    return {"ok": True, "o_que": r}
+
+
+def no_exame(c, s, d: dict, host: str = "") -> dict:
+    """0.100.73: grava os esquemas no exame agora (figuras e SR), sem laudo assinado."""
+    from ipe.reporting import esquemas_saida as ES
+    study = _exame(c, s, str(d.get("study") or ""))
+    if not s.can("report"):
+        raise PermissionError("seu perfil não permite escrever laudos")
+    r = ES.gravar_no_exame(c.repo, c.storage, study, getattr(s, "full_name", "") or s.username)
+    try:
+        c.repo.audit("esquema", "gravou no exame: " + str(r["imagens"]) + " figura(s) e o SR", user=s.username,
+                     study_uid=study, host=host)
+    except Exception:  # noqa: BLE001
+        log.debug("esquemas: registro", exc_info=True)
+    return {"ok": True, "imagens": r["imagens"]}
 
 
 def fundo(c, s, q: dict) -> bytes:
@@ -104,4 +164,10 @@ def rota(c, s, method: str, acao: str, query: dict, corpo: dict, host: str = "")
             return gravar(c, s, corpo, host)
         if acao == "ligar":
             return ligar(c, s, corpo)
+        if acao == "no_exame":
+            return no_exame(c, s, corpo, host)
+        if acao == "modelo":
+            return modelo_gravar(c, s, corpo, host)
+        if acao == "modelo_excluir":
+            return modelo_excluir(c, s, corpo, host)
     raise LookupError("rota")

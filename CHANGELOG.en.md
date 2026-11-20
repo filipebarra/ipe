@@ -3,6 +3,17 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.73 — Guide diagrams: save to the exam without a report, and register or change templates (desktop and Web)
+- **Save to the exam**: in the diagrams strip (desktop Ipê and Ipê Web), saves at once the figures (series "Esquemas
+  do laudo") and an SR of the diagrams alone, without signing or saving the report — like the segmentation table and
+  the density summary. Saving again replaces what was there; on signing, the report SR carries the diagrams.
+- **Templates in Ipê Web too**: whoever may configure uploads an image (**New template from an image…**) or starts
+  from an empty sheet (**New blank template…**), in the browser or in desktop Ipê.
+- **Change existing templates**: **Edit template…** opens the template with the drawing tools — what you draw becomes
+  part of it in every exam — and changes its name and group. **Save as a copy** makes a new template; Ipê's own
+  templates can be **hidden** or **restored to the original** (the original drawing is never lost); your own can be
+  deleted.
+
 ## 0.100.72 — Guide diagrams in the report (face, body, thyroid, breasts, prostate), in Ipê and Ipê Web
 - **Guide diagrams**: in the report window (and in the Ipê Web report), **New diagram…** opens a base drawing to mark
   the findings: face (front and profiles), body (front and back), thyroid with cervical levels, breasts and the

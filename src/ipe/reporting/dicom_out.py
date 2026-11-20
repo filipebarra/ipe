@@ -137,17 +137,49 @@ def text_sr(text: str, src_path: str, title: str = "Laudo", author: str = "", si
     evidencia: dict[str, list[tuple[str, str]]] = {}
     for e in esquemas:
         items.append(_secao_do_esquema(e, evidencia))
-    if evidencia:                                        # o SR declara as imagens que cita (do próprio exame)
-        ev = Dataset()
-        ev.StudyInstanceUID = ds.get("StudyInstanceUID", "")
-        series = []
-        for serie, sops in evidencia.items():
-            se = Dataset()
-            se.SeriesInstanceUID = serie
-            se.ReferencedSOPSequence = Sequence([_ref(c, u) for c, u in dict.fromkeys(sops)])
-            series.append(se)
-        ev.ReferencedSeriesSequence = Sequence(series)
-        ds.CurrentRequestedProcedureEvidenceSequence = Sequence([ev])
+    _declarar(ds, evidencia)
+    ds.ContentSequence = Sequence(items)
+    return ds
+
+
+def _declarar(ds: Dataset, evidencia: dict) -> None:
+    """O SR declara as imagens que cita (do próprio exame)."""
+    if not evidencia:
+        return
+    ev = Dataset()
+    ev.StudyInstanceUID = ds.get("StudyInstanceUID", "")
+    series = []
+    for serie, sops in evidencia.items():
+        se = Dataset()
+        se.SeriesInstanceUID = serie
+        se.ReferencedSOPSequence = Sequence([_ref(c, u) for c, u in dict.fromkeys(sops)])
+        series.append(se)
+    ev.ReferencedSeriesSequence = Sequence(series)
+    ds.CurrentRequestedProcedureEvidenceSequence = Sequence([ev])
+
+
+def esquemas_sr(src_path: str, esquemas: list, author: str = "", series_number: int = 993,
+                description: str = "Esquemas do laudo (SR)") -> Dataset:
+    """0.100.73: o SR só dos esquemas-guia (gravados no exame sem laudo assinado): cada esquema com a figura, as
+    marcas com a posição e a imagem ligada. Não é laudo: fica como não verificado."""
+    ds = _base(src_path, ENHANCED_SR, "SR", description, series_number)
+    ds.ValueType = "CONTAINER"
+    ds.ConceptNameCodeSequence = Sequence([_code("121070", "DCM", "Findings")])
+    ds.ContinuityOfContent = "SEPARATE"
+    ds.CompletionFlag = "PARTIAL"
+    ds.VerificationFlag = "UNVERIFIED"
+    items = []
+    if author:
+        a = Dataset()
+        a.RelationshipType, a.ValueType = "HAS OBS CONTEXT", "PNAME"
+        a.ConceptNameCodeSequence = Sequence([_code("121008", "DCM", "Person Observer Name")])
+        a.PersonName = author[:64]
+        items.append(a)
+    evidencia: dict[str, list[tuple[str, str]]] = {}
+    for e in esquemas or []:
+        if e.get("sop_uid"):
+            items.append(_secao_do_esquema(e, evidencia))
+    _declarar(ds, evidencia)
     ds.ContentSequence = Sequence(items)
     return ds
 

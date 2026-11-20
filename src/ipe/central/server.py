@@ -377,6 +377,9 @@ class CentralServer:
         if method == "apagar_series_da_mama":      # 0.100.60: só as séries "(Ipê)" da densidade e das calcificações
             from ipe.ai import mama_sr as MS
             return MS._apagar_anteriores(self.repo, str(alvo or ""), self.storage)
+        if method == "apagar_series_dos_esquemas":  # 0.100.73: só as séries dos esquemas-guia que o Ipê gravou
+            from ipe.reporting import esquemas_saida as ES
+            return ES.apagar_anteriores(self.repo, str(alvo or ""), self.storage)
         if method == "receber_dados_do_exame":     # o banco do exame não muda por aqui (só por set_study_scope)
             pac = args[0] if args else kwargs.get("pacote_", {})
             if pac.get("study_uid") and not self.pode_ver(s, pac["study_uid"]):

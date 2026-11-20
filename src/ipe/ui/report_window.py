@@ -518,7 +518,8 @@ class ReportWindow(QWidget):
         # 0.100.72: esquemas-guia (face, corpo, tireoide, mamas, próstata…) com as marcas do médico
         from ipe.ui.esquema_dialogo import FaixaDeEsquemas
         self.esquemas = FaixaDeEsquemas(repo, study_uid, user.username, auth.can("report"), auth.can("configure"),
-                                        self._imagem_aberta, self)
+                                        self._imagem_aberta, self, getattr(tab, "storage_root", None))
+        self.esquemas.gravado.connect(self.saved.emit)        # o visualizador e a lista atualizam as séries
         self.esquemas.inserir.connect(lambda t: self.editor.insertPlainText(t + "\n"))
         lay.addWidget(self.esquemas)
         lay.addLayout(opts)
@@ -1019,6 +1020,8 @@ class ReportWindow(QWidget):
         n = 0
         from ipe.reporting import esquemas_saida as ES             # 0.100.72: os esquemas vão como imagem e no SR
         imagens, para_sr = ES.para_o_exame(self.repo, self.study_uid, files[0])
+        if imagens:                                                # 0.100.73: troca os gravados antes (sem laudo)
+            ES.apagar_anteriores(self.repo, self.study_uid, storage)
         for i, ds in enumerate(imagens):
             ds.save_as(tmp / f"esquema_{i}.dcm", enforce_file_format=True)
             n += 1

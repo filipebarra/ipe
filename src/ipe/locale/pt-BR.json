@@ -7339,7 +7339,33 @@
   "esquemas: ler",
   "esquemas: modelos próprios",
   "esquemas: registro",
-  "esquema: caminho da imagem ligada"
+  "esquema: caminho da imagem ligada",
+  "O que você desenhar aqui passa a fazer parte do modelo, em todos os exames. Os esquemas já feitos com ele também mudam.",
+  "O que você desenhar aqui passa a fazer parte do modelo, em todos os exames. Os esquemas já feitos com ele também mudam. Este é um modelo do Ipê: o desenho original fica guardado e volta com “Restaurar o original”.",
+  "A imagem é grande demais (mais de 12 MB).",
+  "Desenhar no modelo, mudar o nome ou o grupo, ocultar, copiar ou excluir",
+  "Desfazer tudo o que foi mudado neste modelo?",
+  "Editar o modelo…",
+  "Grava as figuras e um SR dos esquemas no exame agora, sem precisar assinar o laudo. Gravar de novo troca o que havia.",
+  "Gravar no exame",
+  "Grupo:",
+  "Nenhum esquema com desenho para gravar.",
+  "Novo modelo de uma imagem…",
+  "Novo modelo em branco…",
+  "Num modelo do Ipê não se troca o fundo: faça uma cópia.",
+  "Ocultar da lista de modelos",
+  "Restaurar o original",
+  "Salvar como cópia",
+  "Salvar o modelo",
+  "cadastrar e mudar modelos de esquema pede a permissão de configurar",
+  " figura(s) e o SR",
+  "Esquemas do laudo (SR)",
+  "esquemas: enviar ao servidor",
+  "gravou no exame: ",
+  "miniaturas dos esquemas",
+  "modelo de esquema ",
+  "modelo de esquema: ",
+  "o servidor não apagou os esquemas anteriores"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -9376,6 +9402,8 @@
   "Setores pintados: {}",
   ", quadro {}",
   "border-left:6px solid {}",
-  "série {}, imagem {}"
+  "série {}, imagem {}",
+  "Gravado no exame (figuras e SR): {}",
+  "Modelo de esquema — {}"
  ]
 }

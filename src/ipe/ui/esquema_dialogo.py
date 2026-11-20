@@ -81,6 +81,8 @@ def pintar(p: QPainter, mod: dict, e: dict | None, W: float, H: float, fundo: QI
     for r in mod.get("rotulos") or []:
         texto(r["x"] * esc, r["y"] * esc, r["t"], r.get("s", 20) * esc, TINTA.get(r.get("c"), TINTA["leve"]))
     base = W / 1000.0
+    for m in mod.get("base") or []:                      # o desenho do próprio modelo, por baixo
+        _marca(p, m, W, H, base, False)
     for i, m in enumerate((e or {}).get("marcas") or []):
         _marca(p, m, W, H, base, i == escolhida)
 
@@ -536,14 +538,135 @@ class EsquemaDialog(QDialog):
         return self.e
 
 
+class ModeloDialog(QDialog):
+    """0.100.73: desenhar o próprio modelo (o que se desenha aqui aparece em todos os exames), mudar o nome e o
+    grupo, ocultar um modelo do Ipê, salvar como cópia, excluir ou restaurar o original."""
+
+    def __init__(self, repo, mod: dict, parent=None):
+        super().__init__(parent)
+        self.repo, self.completo = repo, mod
+        self.acao = ""
+        self.e = {"id": "", "modelo": mod["id"], "titulo": "", "marcas": copy.deepcopy(mod.get("base") or []), "setores": {}}
+        self.setWindowTitle(f"Modelo de esquema — {mod['nome']}")
+        self.resize(1100, 800)
+        # o desenho do modelo é o que se edita: não entra como fundo, e os setores não se pintam aqui
+        self.tela = Tela({**mod, "base": [], "setores": [], "categorias": []}, self.e, True)
+        self.tela.ferramenta, self.tela.numerar = "traco", False
+        barra = QHBoxLayout()
+        self.grupo_f = QButtonGroup(self)
+        self.dica = QLabel()
+        self.dica.setStyleSheet("color:#777;font-size:11px")
+        for k, nome, ajuda in FERRAMENTAS:
+            if k == "setor":
+                continue
+            b = QToolButton()
+            b.setText(nome)
+            b.setCheckable(True)
+            b.setToolTip(ajuda)
+            b.setProperty("ferramenta", k)
+            b.clicked.connect(lambda _=False, f=k: self._ferramenta(f))
+            self.grupo_f.addButton(b)
+            barra.addWidget(b)
+        barra.addSpacing(10)
+        self.cores = QButtonGroup(self)
+        for c in E.CORES:
+            b = QToolButton()
+            b.setCheckable(True)
+            b.setChecked(c == E.CORES[-1])
+            b.setFixedSize(26, 26)
+            b.setStyleSheet(f"QToolButton{{background:{c};border:2px solid transparent;border-radius:13px}}"
+                            f"QToolButton:checked{{border:2px solid palette(text)}}")
+            b.clicked.connect(lambda _=False, cor=c: setattr(self.tela, "cor", cor))
+            self.cores.addButton(b)
+            barra.addWidget(b)
+        self.tela.cor = E.CORES[-1]                       # o desenho de um modelo começa em preto
+        b_desfazer = QPushButton("Desfazer")
+        b_desfazer.setShortcut("Ctrl+Z")
+        b_desfazer.clicked.connect(self.tela.voltar)
+        barra.addWidget(b_desfazer)
+        barra.addStretch(1)
+        self.nome = QLineEdit(mod["nome"])
+        self.nome.setMaxLength(60)
+        self.grupo = QLineEdit(mod.get("grupo", ""))
+        self.grupo.setMaxLength(30)
+        do_ipe = not mod.get("meu")
+        self.oculto = QCheckBox("Ocultar da lista de modelos")
+        self.oculto.setChecked(bool(mod.get("oculto")))
+        self.oculto.setVisible(do_ipe)
+        aviso = QLabel("O que você desenhar aqui passa a fazer parte do modelo, em todos os exames. Os esquemas já "
+                       "feitos com ele também mudam. Este é um modelo do Ipê: o desenho original fica guardado e volta "
+                       "com “Restaurar o original”." if do_ipe else
+                       "O que você desenhar aqui passa a fazer parte do modelo, em todos os exames. Os esquemas já "
+                       "feitos com ele também mudam.")
+        aviso.setWordWrap(True)
+        aviso.setStyleSheet("color:#777")
+        campos = QHBoxLayout()
+        campos.addWidget(QLabel("Nome do modelo:"))
+        campos.addWidget(self.nome, 2)
+        campos.addWidget(QLabel("Grupo:"))
+        campos.addWidget(self.grupo, 1)
+        campos.addWidget(self.oculto)
+        bb = QDialogButtonBox()
+        self.b_tirar = bb.addButton("Restaurar o original" if do_ipe else "Excluir o modelo", QDialogButtonBox.DestructiveRole)
+        self.b_tirar.setVisible(not do_ipe or bool(mod.get("alterado")))
+        self.b_tirar.clicked.connect(self._tirar)
+        b_copia = bb.addButton("Salvar como cópia", QDialogButtonBox.ActionRole)
+        b_copia.clicked.connect(lambda: self._fechar("copia"))
+        bb.addButton("Cancelar", QDialogButtonBox.RejectRole)
+        b_ok = bb.addButton("Salvar o modelo", QDialogButtonBox.ActionRole)
+        b_ok.clicked.connect(lambda: self._fechar("salvar"))
+        bb.rejected.connect(self.reject)
+        lay = QVBoxLayout(self)
+        lay.addLayout(campos)
+        lay.addLayout(barra)
+        lay.addWidget(self.dica)
+        lay.addWidget(self.tela, 1)
+        lay.addWidget(aviso)
+        lay.addWidget(bb)
+        self._ferramenta("traco")
+
+    def _ferramenta(self, f: str) -> None:
+        self.tela.ferramenta = f
+        for b in self.grupo_f.buttons():
+            b.setChecked(b.property("ferramenta") == f)
+        self.dica.setText(next((a for k, _n, a in FERRAMENTAS if k == f), ""))
+
+    def _fechar(self, acao: str) -> None:
+        if not self.nome.text().strip():
+            QMessageBox.information(self, "Modelo", "Dê um nome ao modelo.")
+            return
+        self.acao = acao
+        self.accept()
+
+    def _tirar(self) -> None:
+        do_ipe = not self.completo.get("meu")
+        if QMessageBox.question(self, "Modelo", "Desfazer tudo o que foi mudado neste modelo?" if do_ipe else
+                                "Excluir este modelo? Os esquemas já feitos com ele deixam de aparecer.") == QMessageBox.Yes:
+            self.acao = "excluir"
+            self.accept()
+
+    def gravar(self) -> None:
+        """Faz no banco o que a pessoa decidiu (salvar, salvar como cópia, excluir/restaurar)."""
+        m = self.completo
+        if self.acao == "excluir":
+            E.excluir_modelo(self.repo, m["id"])
+        elif self.acao == "salvar":
+            E.salvar_modelo(self.repo, {"id": m["id"], "nome": self.nome.text(), "grupo": self.grupo.text(),
+                                        "oculto": self.oculto.isChecked(), "base": self.e["marcas"]})
+        elif self.acao == "copia":
+            E.salvar_modelo(self.repo, {"nome": self.nome.text(), "grupo": self.grupo.text(), "origem": m["id"],
+                                        "base": self.e["marcas"]})
+
+
 class EscolherModelo(QDialog):
-    """Os modelos (do Ipê e os próprios), em miniaturas. Quem pode configurar cadastra um modelo de uma imagem."""
+    """Os modelos (do Ipê e os próprios), em miniaturas. Quem pode configurar cadastra e muda os modelos: de uma
+    imagem, em branco, desenhando por cima de um que existe, copiando, ocultando ou excluindo."""
 
     def __init__(self, repo, pode_cadastrar: bool = False, parent=None):
         super().__init__(parent)
-        self.repo = repo
+        self.repo, self.pode_cadastrar = repo, pode_cadastrar
         self.setWindowTitle("Novo esquema")
-        self.resize(820, 620)
+        self.resize(860, 640)
         self.lista = QListWidget()
         self.lista.setViewMode(QListWidget.IconMode)
         self.lista.setIconSize(QSize(150, 190))
@@ -558,27 +681,32 @@ class EscolherModelo(QDialog):
         lay = QVBoxLayout(self)
         lay.addWidget(self.lista, 1)
         if pode_cadastrar:
-            b_novo = QPushButton("Novo modelo a partir de uma imagem…")
-            b_novo.setToolTip("Um desenho seu (PNG ou JPG) vira um modelo desta instalação, para todos os usuários")
-            b_novo.clicked.connect(self._novo)
-            self.b_excluir = QPushButton("Excluir o modelo próprio")
-            self.b_excluir.clicked.connect(self._excluir)
+            b_img = QPushButton("Novo modelo de uma imagem…")
+            b_img.setToolTip("Um desenho seu (PNG ou JPG) vira um modelo desta instalação, para todos os usuários")
+            b_img.clicked.connect(self._novo)
+            b_branco = QPushButton("Novo modelo em branco…")
+            b_branco.clicked.connect(self._em_branco)
+            self.b_editar = QPushButton("Editar o modelo…")
+            self.b_editar.setToolTip("Desenhar no modelo, mudar o nome ou o grupo, ocultar, copiar ou excluir")
+            self.b_editar.clicked.connect(self._editar)
             linha = QHBoxLayout()
-            linha.addWidget(b_novo)
-            linha.addWidget(self.b_excluir)
+            for b in (b_img, b_branco, self.b_editar):
+                linha.addWidget(b)
             linha.addStretch(1)
             lay.addLayout(linha)
         lay.addWidget(bb)
         self._encher()
 
-    def _encher(self) -> None:
+    def _encher(self, escolher: str = "") -> None:
         self.lista.clear()
-        for m in E.modelos(self.repo):
-            it = QListWidgetItem(QIcon(miniatura(m, None, 150)), f"{m['nome']}\n{m.get('grupo', '')}")
+        for m in E.modelos(self.repo, ocultos=self.pode_cadastrar):
+            nome = m["nome"] + (" (oculto)" if m.get("oculto") else "")
+            it = QListWidgetItem(QIcon(miniatura(m, None, 150)), f"{nome}\n{m.get('grupo', '')}")
             it.setData(Qt.UserRole, m["id"])
-            it.setData(Qt.UserRole + 1, bool(m.get("meu")))
             self.lista.addItem(it)
-        if self.lista.count():
+            if m["id"] == escolher:
+                self.lista.setCurrentItem(it)
+        if self.lista.count() and self.lista.currentRow() < 0:
             self.lista.setCurrentRow(0)
 
     def _novo(self) -> None:
@@ -594,20 +722,32 @@ class EscolherModelo(QDialog):
         except (ValueError, OSError, PermissionError) as e:
             QMessageBox.warning(self, "Novo modelo", str(e))
             return
-        self._encher()
-        for i in range(self.lista.count()):
-            if self.lista.item(i).data(Qt.UserRole) == m["id"]:
-                self.lista.setCurrentRow(i)
+        self._encher(m["id"])
 
-    def _excluir(self) -> None:
-        it = self.lista.currentItem()
-        if it is None or not it.data(Qt.UserRole + 1):
-            QMessageBox.information(self, "Modelos", "Escolha um modelo próprio (os do Ipê não se excluem).")
+    def _em_branco(self) -> None:
+        nome, ok = QInputDialog.getText(self, "Novo modelo", "Nome do modelo:")
+        if not ok:
             return
-        if QMessageBox.question(self, "Excluir o modelo", "Excluir este modelo? Os esquemas já feitos com ele deixam de "
-                                                          "aparecer.") == QMessageBox.Yes:
-            E.excluir_modelo(self.repo, it.data(Qt.UserRole))
-            self._encher()
+        try:
+            m = E.salvar_modelo(self.repo, {"nome": nome})
+        except (ValueError, PermissionError) as e:
+            QMessageBox.warning(self, "Novo modelo", str(e))
+            return
+        self._encher(m["id"])
+        self._editar()
+
+    def _editar(self) -> None:
+        m = E.modelo(self.escolhido(), self.repo)
+        if m is None:
+            return
+        d = ModeloDialog(self.repo, m, self)
+        if d.exec() != QDialog.Accepted or not d.acao:
+            return
+        try:
+            d.gravar()
+        except (ValueError, LookupError, PermissionError) as e:
+            QMessageBox.warning(self, "Modelo", str(e))
+        self._encher(m["id"])
 
     def escolhido(self) -> str:
         it = self.lista.currentItem()
@@ -617,11 +757,12 @@ class EscolherModelo(QDialog):
 class FaixaDeEsquemas(QWidget):
     """A faixa "Esquemas-guia" da janela do laudo: as miniaturas do exame, novo, editar e a legenda."""
     inserir = Signal(str)                                # a legenda, para o texto do laudo
+    gravado = Signal(str)                                # gravou no exame: quem mostra as séries atualiza
 
     def __init__(self, repo, study_uid: str, usuario: str = "", pode: bool = True, pode_cadastrar: bool = False,
-                 imagem_aberta=None, parent=None):
+                 imagem_aberta=None, parent=None, storage_root=None):
         super().__init__(parent)
-        self.repo, self.study_uid, self.usuario = repo, study_uid, usuario
+        self.repo, self.study_uid, self.usuario, self.storage_root = repo, study_uid, usuario, storage_root
         self.pode, self.pode_cadastrar, self.imagem_aberta = pode, pode_cadastrar, imagem_aberta
         self.esquemas: list[dict] = []
         self.lista = QListWidget()
@@ -629,7 +770,7 @@ class FaixaDeEsquemas(QWidget):
         self.lista.setFlow(QListWidget.LeftToRight)
         self.lista.setWrapping(False)
         self.lista.setIconSize(QSize(74, 74))
-        self.lista.setFixedHeight(112)
+        self.lista.setFixedHeight(124)
         self.lista.setMovement(QListWidget.Static)
         self.lista.setToolTip("Esquemas-guia deste exame: duplo clique para desenhar")
         self.lista.itemDoubleClicked.connect(lambda it: self.editar(self.lista.row(it)))
@@ -642,8 +783,13 @@ class FaixaDeEsquemas(QWidget):
         self.b_legenda = QPushButton("Inserir a legenda no laudo")
         self.b_legenda.setToolTip("Põe no texto, onde está o cursor, as marcas numeradas e os setores pintados")
         self.b_legenda.clicked.connect(self._legenda)
+        self.b_gravar = QPushButton("Gravar no exame")
+        self.b_gravar.setToolTip("Grava as figuras e um SR dos esquemas no exame agora, sem precisar assinar o laudo. "
+                                 "Gravar de novo troca o que havia.")
+        self.b_gravar.clicked.connect(self.gravar_no_exame)
         col = QVBoxLayout()
-        for b in (self.b_novo, self.b_editar, self.b_legenda):
+        col.setSpacing(3)
+        for b in (self.b_novo, self.b_editar, self.b_legenda, self.b_gravar):
             col.addWidget(b)
         col.addStretch(1)
         lay = QHBoxLayout(self)
@@ -662,6 +808,7 @@ class FaixaDeEsquemas(QWidget):
     def _estado(self) -> None:
         self.b_novo.setEnabled(self.pode)
         self.b_legenda.setEnabled(self.pode and bool(self.esquemas))
+        self.b_gravar.setEnabled(self.pode and bool(self.esquemas) and self.storage_root is not None)
         self.b_editar.setEnabled(bool(self.esquemas))
         self.b_editar.setText("Desenhar…" if self.pode else "Ver…")
 
@@ -715,6 +862,17 @@ class FaixaDeEsquemas(QWidget):
         else:
             lista.append(d.esquema())
         self._gravar(lista)
+
+    def gravar_no_exame(self) -> None:
+        """0.100.73: as figuras e o SR dos esquemas vão para o exame agora (sem laudo assinado)."""
+        from ipe.reporting import esquemas_saida as ES
+        try:
+            r = ES.gravar_no_exame(self.repo, self.storage_root, self.study_uid, self.usuario)
+        except Exception as e:  # noqa: BLE001
+            QMessageBox.warning(self, "Esquemas", f"Não foi possível gravar: {e}")
+            return
+        self.gravado.emit(self.study_uid)
+        QMessageBox.information(self, "Esquemas", f"Gravado no exame (figuras e SR): {r['imagens']}")
 
     def _legenda(self) -> None:
         t = E.texto_para_o_laudo(self.esquemas, self.repo)

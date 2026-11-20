@@ -17,7 +17,13 @@ export interface Modelo {
   id: string; nome: string; grupo: string; w: number; h: number; meu?: boolean; tracos: Traco[];
   rotulos: { x: number; y: number; t: string; s: number; c: string }[]; setores: Setor[];
   categorias: { k: string; nome: string; cor: string }[];
+  /** 0.100.73: o desenho do próprio modelo (por baixo das marcas do exame); se tem imagem de fundo; se é um modelo
+   * do Ipê que esta instalação mudou, ou escondeu da lista. */
+  base?: Marca[]; imagem?: boolean; alterado?: boolean; oculto?: boolean; origem?: string;
 }
+interface Modelos { modelos: Modelo[]; cores: string[]; pode_modelos?: boolean }
+/** O editor no modo "modelo": o que se desenha vira o desenho do modelo (para todos os exames). */
+export interface ModoModelo { nome: string; grupo: string; oculto: boolean; acao: "" | "salvar" | "copia" | "excluir" }
 interface DoExame { esquemas: Esquema[]; pode: boolean; legenda: string }
 
 const TINTA: Record<string, string> = { forte: "#282828", leve: "#969696" };
@@ -49,20 +55,26 @@ async function json<T>(c: string, corpo?: unknown): Promise<T> {
   return (await r.json()) as T;
 }
 
-let modelosProntos: Promise<{ modelos: Modelo[]; cores: string[] }> | null = null;
+let modelosProntos: Promise<Modelos> | null = null;
 const fundos = new Map<string, HTMLImageElement>();
 
-export function modelos(): Promise<{ modelos: Modelo[]; cores: string[] }> {
+export function modelos(): Promise<Modelos> {
   if (!modelosProntos) {
-    modelosProntos = json<{ modelos: Modelo[]; cores: string[] }>("modelos");
+    modelosProntos = json<Modelos>("modelos");
     modelosProntos.catch(() => { modelosProntos = null; });
   }
   return modelosProntos;
 }
 
+/** Depois de cadastrar ou mudar um modelo: a próxima leitura busca de novo no servidor. */
+function esquecerModelos(id = ""): void {
+  modelosProntos = null;
+  if (id) fundos.delete(id);
+}
+
 /** A imagem de fundo de um modelo próprio (os do Ipê são só traços). */
 async function fundoDe(m: Modelo): Promise<HTMLImageElement | null> {
-  if (!m.meu) return null;
+  if (!m.imagem) return null;
   const tem = fundos.get(m.id);
   if (tem) return tem;
   try {
@@ -215,6 +227,7 @@ export function desenhar(cv: HTMLCanvasElement, mod: Modelo, e: Esquema | null, 
     c.fillText(r.t, r.x * esc, r.y * esc);
   }
   const base = W / 1000;
+  for (const m of mod.base || []) marcaNoCanvas(c, m, W, H, base, false);       // o desenho do modelo, por baixo
   (e?.marcas || []).forEach((m, i) => marcaNoCanvas(c, m, W, H, base, i === escolhida));
 }
 
@@ -254,32 +267,100 @@ function marcaEm(e: Esquema, x: number, y: number, W: number, H: number): number
 const copia = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 const proximo = (e: Esquema): number => Math.max(0, ...e.marcas.map((m) => m.n || 0)) + 1;
 
-// ---------------------------------------------------------------------- escolher o modelo
+// ---------------------------------------------------------------------- escolher (e cadastrar) o modelo
+function lerArquivo(f: File): Promise<string> {
+  return new Promise((ok, falha) => {
+    const r = new FileReader();
+    r.onload = () => ok(String(r.result).split(",", 2)[1] || "");
+    r.onerror = () => falha(new Error(tr("Não consegui ler o arquivo.")));
+    r.readAsDataURL(f);
+  });
+}
+
+/** Abre o editor para desenhar o próprio modelo; grava o que a pessoa decidir. Devolve se mudou alguma coisa. */
+async function editarModelo(m: Modelo): Promise<boolean> {
+  const modo: ModoModelo = { nome: m.nome, grupo: m.grupo, oculto: !!m.oculto, acao: "" };
+  const r = await editarEsquema({ id: "", modelo: m.id, titulo: "", marcas: copia(m.base || []), setores: {} },
+    { podeEscrever: true, study: "", modoModelo: modo });
+  if (modo.acao === "excluir") {
+    await json("modelo_excluir", { id: m.id });
+  } else if (r && r !== "excluir" && modo.acao === "salvar") {
+    await json("modelo", { id: m.id, nome: modo.nome, grupo: modo.grupo, oculto: modo.oculto, base: r.marcas });
+  } else if (r && r !== "excluir" && modo.acao === "copia") {
+    await json("modelo", { nome: modo.nome, grupo: modo.grupo, origem: m.id, base: r.marcas });
+  } else {
+    return false;
+  }
+  esquecerModelos(m.id);
+  return true;
+}
+
 export async function escolherModelo(): Promise<Modelo | null> {
-  const { modelos: ms } = await modelos();
   return new Promise((resolver) => {
     let escolhido: Modelo | null = null;
     const corpo = el("div", { class: "esq-modelos" });
-    const grupos = [...new Set(ms.map((m) => m.grupo))];
-    for (const g of grupos) {
-      corpo.append(el("h4", {}, tr(g)));
-      const linha = el("div", { class: "esq-modelos-linha" });
-      for (const m of ms.filter((x) => x.grupo === g)) {
-        const cv = el("canvas", { width: "180", height: String(Math.round((180 * m.h) / m.w)) });
-        const b = el("button", { type: "button", class: "esq-modelo", "data-modelo": m.id }, cv, el("span", {}, tr(m.nome)));
-        b.onclick = () => { escolhido = m; d.close(); };
-        desenhar(cv, m, null);
-        if (m.meu) void fundoDe(m).then((f) => { if (f) desenhar(cv, m, null, f); });
-        linha.append(b);
+    const aviso = el("p", { class: "cad-erro", role: "alert" });
+    const gerir = el("div", { class: "imp-barra esq-gerir", hidden: "" });
+    const arquivo = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp,image/bmp", hidden: "" });
+    const tentar = async (fn: () => Promise<unknown>) => {
+      aviso.textContent = "";
+      try { await fn(); } catch (e) { aviso.textContent = (e as Error).message; }
+      await montar();
+    };
+    arquivo.onchange = () => {
+      const f = arquivo.files?.[0];
+      arquivo.value = "";
+      if (!f) return;
+      const nome = window.prompt(tr("Nome do modelo:"), f.name.replace(/\.[^.]+$/, ""));
+      if (!nome || !nome.trim()) return;
+      void tentar(async () => {
+        await json("modelo", { nome: nome.trim(), imagem: await lerArquivo(f) });
+        esquecerModelos();
+      });
+    };
+    gerir.append(botao("Novo modelo de uma imagem…", () => arquivo.click()),
+      botao("Novo modelo em branco…", () => {
+        const nome = window.prompt(tr("Nome do modelo:"), "");
+        if (nome && nome.trim()) void tentar(async () => { await json("modelo", { nome: nome.trim() }); esquecerModelos(); });
+      }), arquivo);
+    gerir.title = tr("Os modelos valem para todos os usuários desta instalação");
+    const montar = async () => {
+      let dados: Modelos;
+      try { dados = await modelos(); } catch (e) { aviso.textContent = (e as Error).message; return; }
+      const pode = !!dados.pode_modelos;
+      gerir.hidden = !pode;
+      const ms = dados.modelos.filter((m) => pode || !m.oculto);
+      const filhos: Node[] = [];
+      for (const g of [...new Set(ms.map((m) => m.grupo))]) {
+        filhos.push(el("h4", {}, tr(g)));
+        const linha = el("div", { class: "esq-modelos-linha" });
+        for (const m of ms.filter((x) => x.grupo === g)) {
+          const cv = el("canvas", { width: "180", height: String(Math.round((180 * m.h) / m.w)) });
+          const nome = `${tr(m.nome)}${m.oculto ? ` (${tr("oculto")})` : ""}`;
+          const b = el("button", { type: "button", class: `esq-modelo${m.oculto ? " oculto" : ""}`, "data-modelo": m.id }, cv, el("span", {}, nome));
+          b.onclick = () => { escolhido = m; d.close(); };
+          desenhar(cv, m, null);
+          if (m.imagem) void fundoDe(m).then((f) => { if (f) desenhar(cv, m, null, f); });
+          const caixa = el("div", { class: "esq-modelo-caixa" }, b);
+          if (pode) {
+            const ed = el("button", { type: "button", class: "esq-modelo-editar", "data-editar": m.id,
+              title: tr("Desenhar no modelo, mudar o nome ou o grupo, ocultar, copiar ou excluir") }, tr("Editar o modelo"));
+            ed.onclick = () => void tentar(() => editarModelo(m));
+            caixa.append(ed);
+          }
+          linha.append(caixa);
+        }
+        filhos.push(linha);
       }
-      corpo.append(linha);
-    }
+      corpo.replaceChildren(...filhos);
+    };
     const d = el("dialog", { class: "imp-janela larga esq-escolha", "aria-label": tr("Novo esquema") });
-    d.append(el("h3", {}, tr("Novo esquema")), el("div", { class: "imp-janela-corpo" }, corpo),
+    d.append(el("h3", {}, tr("Novo esquema")), gerir, aviso, el("div", { class: "imp-janela-corpo" }, corpo),
       el("div", { class: "imp-janela-botoes" }, botao("Cancelar", () => d.close())));
     d.addEventListener("close", () => { d.remove(); resolver(escolhido); });
     document.body.append(d);
     d.showModal();
+    void montar();
   });
 }
 
@@ -289,19 +370,24 @@ export interface OpcoesDoEditor {
   /** A imagem que está aberta no visualizador (para ligar a uma marca); null se não há. */
   imagemAberta?: () => { series_uid: string; sop_uid: string; frame: number } | null;
   study: string;
+  /** 0.100.73: desenhar o próprio modelo (nome, grupo, ocultar); a decisão da pessoa fica em `acao`. */
+  modoModelo?: ModoModelo;
 }
 
 /** Abre o editor. Devolve o esquema como ficou, "excluir" ou null (cancelou). */
 export async function editarEsquema(inicial: Esquema, op: OpcoesDoEditor): Promise<Esquema | "excluir" | null> {
   const { modelos: ms, cores } = await modelos();
-  const mod = ms.find((m) => m.id === inicial.modelo);
-  if (!mod) throw new Error(tr("O modelo deste esquema não existe mais."));
+  const modCompleto = ms.find((m) => m.id === inicial.modelo);
+  if (!modCompleto) throw new Error(tr("O modelo deste esquema não existe mais."));
+  const mm = op.modoModelo;
+  // no modo "modelo" o desenho do modelo é o que se edita: não entra como fundo
+  const mod: Modelo = mm ? { ...modCompleto, base: [], setores: [], categorias: [] } : modCompleto;
   const fundo = await fundoDe(mod);
   return new Promise((resolver) => {
     const e: Esquema = copia(inicial);
     let resultado: Esquema | "excluir" | null = null;
-    let ferramenta = op.podeEscrever ? "ponto" : "mover";
-    let cor = cores[0];
+    let ferramenta = mm ? "traco" : op.podeEscrever ? "ponto" : "mover";
+    let cor = mm ? cores[cores.length - 1] : cores[0];        // o desenho de um modelo começa em preto
     let categoria = mod.categorias.length ? mod.categorias[mod.categorias.length - 2]?.k || mod.categorias[0].k : "";
     let escolhida = -1;
     let rascunho: Marca | null = null;
@@ -316,7 +402,7 @@ export async function editarEsquema(inicial: Esquema, op: OpcoesDoEditor): Promi
     titulo.value = e.titulo;
     titulo.oninput = () => { e.titulo = titulo.value; };
     const cNumerar = el("input", { type: "checkbox", id: "esq-numerar" });
-    cNumerar.checked = true;
+    cNumerar.checked = !mm;
     const erro = el("p", { class: "cad-erro", role: "alert" });
 
     const ajustar = () => {
@@ -427,7 +513,9 @@ export async function editarEsquema(inicial: Esquema, op: OpcoesDoEditor): Promi
       pintar();
     });
     bDesfazer.disabled = true;
-    barra.append(paleta, cats, el("label", { class: "esq-numerar", for: "esq-numerar" }, cNumerar, ` ${tr("Numerar")}`), bDesfazer);
+    const rotNumerar = el("label", { class: "esq-numerar", for: "esq-numerar" }, cNumerar, ` ${tr("Numerar")}`);
+    rotNumerar.hidden = !!mm;
+    barra.append(paleta, cats, rotNumerar, bDesfazer);
 
     // ---- desenhar com o ponteiro
     const ponto = (ev: PointerEvent): [number, number] => {
@@ -516,10 +604,44 @@ export async function editarEsquema(inicial: Esquema, op: OpcoesDoEditor): Promi
     const bExcluir = botao("Excluir o esquema", () => {
       void confirmar(tr("Excluir o esquema"), tr("Excluir este esquema do exame?"), "", "Excluir").then((sim) => { if (sim) { resultado = "excluir"; d.close(); } });
     });
-    const lado = el("div", { class: "esq-lado" }, el("label", { class: "esq-rot" }, tr("Título"), titulo), lista, erro);
-    const d = el("dialog", { class: "imp-janela esq-janela", "aria-label": tr("Esquema") });
-    d.append(el("h3", {}, tr(mod.nome)), ...(op.podeEscrever ? [barra, dica] : []), el("div", { class: "esq-corpo" }, palco, lado),
-      el("div", { class: "imp-janela-botoes" }, ...(op.podeEscrever ? [bExcluir, botao("Cancelar", () => d.close()), bSalvar] : [botao("Fechar", () => d.close())])));
+    let lado = el("div", { class: "esq-lado" }, el("label", { class: "esq-rot" }, tr("Título"), titulo), lista, erro);
+    let botoesDaJanela: HTMLButtonElement[] = op.podeEscrever ? [bExcluir, botao("Cancelar", () => d.close()), bSalvar] : [botao("Fechar", () => d.close())];
+    if (mm) {
+      const nome = el("input", { id: "esq-m-nome", maxlength: "60" });
+      nome.value = tr(mm.nome);
+      const grupo = el("input", { id: "esq-m-grupo", maxlength: "30" });
+      grupo.value = tr(mm.grupo);
+      const oculto = el("input", { type: "checkbox", id: "esq-m-oculto" });
+      oculto.checked = mm.oculto;
+      const fechar = (acao: ModoModelo["acao"]) => {
+        if (!nome.value.trim()) { erro.textContent = tr("Dê um nome ao modelo."); return; }
+        mm.nome = nome.value.trim();
+        mm.grupo = grupo.value.trim();
+        mm.oculto = oculto.checked;
+        mm.acao = acao;
+        resultado = e;
+        d.close();
+      };
+      const doIpe = !modCompleto.meu;
+      lado = el("div", { class: "esq-lado" },
+        el("label", { class: "esq-rot", for: "esq-m-nome" }, tr("Nome do modelo"), nome),
+        el("label", { class: "esq-rot", for: "esq-m-grupo" }, tr("Grupo"), grupo),
+        ...(doIpe ? [el("label", { class: "cad-caixa", for: "esq-m-oculto" }, oculto, el("span", {}, tr("Ocultar da lista de modelos")))] : []),
+        el("p", { class: "dica" }, tr("O que você desenhar aqui passa a fazer parte do modelo, em todos os exames. Os esquemas já feitos com ele também mudam.")),
+        ...(doIpe ? [el("p", { class: "dica" }, tr("Este é um modelo do Ipê: o desenho original fica guardado e volta com “Restaurar o original”."))] : []),
+        erro);
+      const bTirar = botao(doIpe ? "Restaurar o original" : "Excluir o modelo", () => {
+        void confirmar(tr(doIpe ? "Restaurar o original" : "Excluir o modelo"),
+          tr(doIpe ? "Desfazer tudo o que foi mudado neste modelo?" : "Excluir este modelo? Os esquemas já feitos com ele deixam de aparecer."), "",
+          doIpe ? "Restaurar" : "Excluir").then((sim) => { if (sim) { mm.acao = "excluir"; d.close(); } });
+      });
+      bTirar.hidden = doIpe && !modCompleto.alterado;
+      botoesDaJanela = [bTirar, botao("Salvar como cópia", () => fechar("copia")), botao("Cancelar", () => d.close()),
+        botao("Salvar o modelo", () => fechar("salvar"), "primario")];
+    }
+    const d = el("dialog", { class: "imp-janela esq-janela", "aria-label": tr(mm ? "Modelo de esquema" : "Esquema") });
+    d.append(el("h3", {}, mm ? `${tr("Modelo de esquema")} — ${tr(mod.nome)}` : tr(mod.nome)), ...(op.podeEscrever ? [barra, dica] : []), el("div", { class: "esq-corpo" }, palco, lado),
+      el("div", { class: "imp-janela-botoes" }, ...botoesDaJanela));
     titulo.disabled = !op.podeEscrever;
     const obs = new ResizeObserver(() => ajustar());
     d.addEventListener("close", () => { obs.disconnect(); d.remove(); resolver(resultado); });
@@ -569,9 +691,18 @@ export class EsquemasDoLaudo {
       this.inserir(this.legenda);
       this.msg.textContent = tr("Legenda inserida no texto.");
     });
-    this.botoes = [bNovo, bLegenda];
-    bNovo.hidden = bLegenda.hidden = !this.pode;
-    this.raiz.replaceChildren(el("summary", {}, tr("Esquemas-guia")), this.grade, el("div", { class: "botoes-laudo" }, bNovo, bLegenda), this.msg);
+    const bGravar = botao("Gravar no exame", () => {
+      bGravar.disabled = true;
+      this.msg.textContent = tr("Gravando no exame…");
+      json<{ imagens: number }>("no_exame", { study: this.study })
+        .then((r) => { this.msg.textContent = `${tr("Gravado no exame (figuras e SR):")} ${r.imagens}`; },
+          (e: Error) => { this.msg.textContent = e.message; })
+        .finally(() => { bGravar.disabled = false; });
+    });
+    bGravar.title = tr("Grava as figuras e um SR dos esquemas no exame agora, sem precisar assinar o laudo. Gravar de novo troca o que havia.");
+    this.botoes = [bNovo, bLegenda, bGravar];
+    bNovo.hidden = bLegenda.hidden = bGravar.hidden = !this.pode;
+    this.raiz.replaceChildren(el("summary", {}, tr("Esquemas-guia")), this.grade, el("div", { class: "botoes-laudo" }, bNovo, bLegenda, bGravar), this.msg);
     await this.montar();
     (window as unknown as { __ipeEsquemas: unknown }).__ipeEsquemas = { lista: () => this.esquemas, legenda: () => this.legenda };
   }
@@ -592,7 +723,7 @@ export class EsquemasDoLaudo {
       if (!m) continue;
       const cv = el("canvas", { width: "240", height: String(Math.round((240 * m.h) / m.w)) });
       desenhar(cv, m, e);
-      if (m.meu) void fundoDe(m).then((f) => { if (f) desenhar(cv, m, e, f); });
+      if (m.imagem) void fundoDe(m).then((f) => { if (f) desenhar(cv, m, e, f); });
       const b = el("button", { type: "button", class: "esq-cartao", "data-esquema": e.id, title: tr(this.pode ? "Editar o esquema" : "Ver o esquema") },
         cv, el("span", {}, e.titulo || tr(m.nome)));
       b.onclick = () => void this.editar(e);

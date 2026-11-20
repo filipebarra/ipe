@@ -358,3 +358,167 @@ def test_janela_do_laudo_com_esquema(env, tmp_path, sample_dir, qtbot):
     assert len(series) == antes + 3 and any(s.description == "Esquemas do laudo" and s.modality == "OT" for s in series)
     assert w._imagem_aberta() is None
     w.close()
+
+
+# ---------------------------------------------------------------------- 0.100.73: cadastro de modelos e gravar no exame
+def test_cadastro_de_modelos(env):
+    import numpy as np
+    paths, db, repo = env
+    de_fabrica = len(E.modelos())
+    traco = {"tipo": "traco", "p": [[0.1, 0.1], [0.5, 0.1], [0.9, 0.1]], "cor": "#111111", "l": 6, "n": 7,
+             "imagem": {"sop_uid": "1.2", "rotulo": "x"}}
+    # em branco
+    with pytest.raises(ValueError):
+        E.salvar_modelo(repo, {"nome": "  "})
+    b = E.salvar_modelo(repo, {"nome": "Mão direita", "grupo": "Pele", "base": [traco, {"tipo": "nada"}]})
+    assert b["meu"] and (b["w"], b["h"]) == (1000, 1000) and b["grupo"] == "Pele" and not b.get("png")
+    assert len(b["base"]) == 1 and b["base"][0]["n"] == 0 and "imagem" not in b["base"][0]     # modelo não numera nem liga
+    fig = np.asarray(E.desenhar({"modelo": b["id"]}, 500, repo))
+    assert max(int(v) for v in fig[50, 250]) < 40 and tuple(fig[250, 250]) == (255, 255, 255)     # o desenho do modelo
+    # cópia de um do Ipê: leva os traços e os setores; o que se pinta nela vale
+    c = E.salvar_modelo(repo, {"nome": "Próstata da clínica", "origem": "prostata", "base": [traco]})
+    assert c["meu"] and c["origem"] == "prostata" and len(c["setores"]) == 41 and c["categorias"] and c["grupo"] == "Meus"
+    e = E.normalizar({"modelo": c["id"], "setores": {"medio_PZpl_D": "4"}}, repo)
+    assert e["setores"] == {"medio_PZpl_D": "4"} and E.legenda(e, repo)[0].startswith("PI-RADS 4")
+    # mudar um modelo do Ipê: o original fica; ocultar tira da lista, mas o esquema antigo ainda desenha
+    m = E.salvar_modelo(repo, {"id": "mamas", "nome": "Mamas (clínica)", "grupo": "Mama", "base": [traco], "oculto": True})
+    assert m["alterado"] and m["oculto"] and m["nome"] == "Mamas (clínica)" and len(m["tracos"]) > 10
+    assert "mamas" not in {x["id"] for x in E.modelos(repo)} and "mamas" in {x["id"] for x in E.modelos(repo, ocultos=True)}
+    assert E.modelo("mamas", repo)["base"] and E.png({"modelo": "mamas"}, 300, repo)[:4] == b"\x89PNG"
+    assert E.modelo("mamas")["nome"] == "Mamas" and not E.modelo("mamas").get("base")            # sem o banco, o original
+    with pytest.raises(ValueError):
+        E.salvar_modelo(repo, {"id": "mamas", "nome": "x"}, b"imagem")
+    assert len(E.modelos(repo, ocultos=True)) == de_fabrica + 2
+    assert E.excluir_modelo(repo, "mamas") == "restaurado" and E.modelo("mamas", repo)["nome"] == "Mamas"
+    assert not E.modelo("mamas", repo).get("alterado") and E.excluir_modelo(repo, "mamas") == ""
+    # editar um próprio: nome, desenho e trocar o fundo por uma imagem
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (400, 200), (200, 220, 240)).save(buf, "PNG")
+    b2 = E.salvar_modelo(repo, {"id": b["id"], "nome": "Mão", "grupo": "", "base": []}, buf.getvalue())
+    assert b2["nome"] == "Mão" and b2["grupo"] == "Meus" and (b2["w"], b2["h"]) == (400, 200) and b2["png"] and not b2["base"]
+    # cópia de um modelo de imagem leva a imagem
+    c2 = E.salvar_modelo(repo, {"nome": "Mão 2", "origem": b["id"]})
+    assert c2["png"] == b2["png"] and c2["id"] != b["id"]
+    with pytest.raises(LookupError):
+        E.salvar_modelo(repo, {"id": "meu_naoexiste", "nome": "x"})
+    assert E.excluir_modelo(repo, b["id"]) == "excluido" and E.modelo(b["id"], repo) is None
+    assert E.novo_modelo_de_imagem(repo, "Pé", buf.getvalue())["png"]
+
+
+def test_gravar_no_exame_sem_laudo(env, sample_dir):
+    from ipe.importer.scanner import Importer
+    from ipe.reporting import dicom_out as D
+    paths, db, repo = env
+    Importer(db, paths.storage).import_paths([sample_dir])
+    study = repo.search_studies({})[0].study_uid
+    antes = {s.series_uid for s in repo.series_for_study(study, True)}
+    with pytest.raises(ValueError):
+        ES.gravar_no_exame(repo, paths.storage, study, "Ana")             # nada desenhado
+    E.gravar(repo, study, [_face(), {"modelo": "mamas"}], "ana")
+    r = ES.gravar_no_exame(repo, paths.storage, study, "Dra. Ana")
+    assert r["imagens"] == 1
+    novas = [s for s in repo.series_for_study(study, True) if s.series_uid not in antes]
+    assert sorted((s.description, s.modality, s.num_images) for s in novas) == \
+        [("Esquemas do laudo", "OT", 1), ("Esquemas do laudo (SR)", "SR", 1)]
+    sr_serie = next(s for s in novas if s.modality == "SR")
+    sr = pydicom.dcmread(repo.instances_for_series(sr_serie.series_uid)[0]["path"])
+    assert sr.SOPClassUID == D.ENHANCED_SR and sr.CompletionFlag == "PARTIAL" and sr.VerificationFlag == "UNVERIFIED"
+    assert sr.ContentSequence[0].PersonName == "Dra. Ana"
+    fig = next(s for s in novas if s.modality == "OT")
+    sop = repo.instances_for_series(fig.series_uid)[0]["sop_uid"]
+    secao = next(i for i in sr.ContentSequence if i.ValueType == "CONTAINER")
+    assert secao.ContentSequence[1].ReferencedSOPSequence[0].ReferencedSOPInstanceUID == sop
+    assert any(i.ValueType == "TEXT" and i.TextValue.startswith("1. nódulo") for i in secao.ContentSequence)
+    # gravar de novo (com mais um esquema) troca: não duplica
+    E.gravar(repo, study, [_face(), {"modelo": "prostata", "setores": {"VS_D": "2"}}], "ana")
+    assert ES.gravar_no_exame(repo, paths.storage, study, "Ana")["imagens"] == 2
+    depois = [s for s in repo.series_for_study(study, True) if s.series_uid not in antes]
+    assert sorted((s.description, s.num_images) for s in depois) == [("Esquemas do laudo", 2), ("Esquemas do laudo (SR)", 1)]
+    assert not ({s.series_uid for s in depois} & {s.series_uid for s in novas})
+    # o servidor apaga as dele quando o cliente pede (e só essas)
+    from ipe.central.rpc import POR_EXAME, RPC_METHODS
+    assert RPC_METHODS["apagar_series_dos_esquemas"] == "report" and "apagar_series_dos_esquemas" in POR_EXAME
+    # com o exame travado (cadeado da imagem-chave) a troca também acontece, e o cadeado fica
+    repo.set_locked(study, True)
+    assert ES.gravar_no_exame(repo, paths.storage, study, "Ana")["imagens"] == 2
+    assert len([s for s in repo.series_for_study(study, True) if s.series_uid not in antes]) == 2
+    assert ES.apagar_anteriores(repo, study, paths.storage) == 2
+    assert {s.series_uid for s in repo.series_for_study(study, True)} == antes
+    with pytest.raises(PermissionError):                                   # continua travado para o resto
+        repo.delete_series(next(iter(antes)), paths.storage)
+
+
+def test_modelos_na_mesa(env, sample_dir, qtbot, monkeypatch):
+    from PySide6.QtWidgets import QInputDialog, QMessageBox
+    from ipe.importer.scanner import Importer
+    from ipe.ui import esquema_dialogo as U
+    paths, db, repo = env
+    Importer(db, paths.storage).import_paths([sample_dir])
+    study = repo.search_studies({})[0].study_uid
+    # desenhar por cima de um modelo do Ipê e salvar
+    d = U.ModeloDialog(repo, E.modelo("tireoide", repo))
+    qtbot.addWidget(d)
+    d.show()
+    qtbot.waitExposed(d)
+    assert d.tela.ferramenta == "traco" and not d.b_tirar.isVisibleTo(d) and d.oculto.isVisibleTo(d)
+    _arrastar(qtbot, d.tela, (0.2, 0.9), (0.8, 0.9), passos=10)
+    assert len(d.e["marcas"]) == 1 and d.e["marcas"][0]["n"] == 0
+    d.nome.setText("Tireoide da clínica")
+    d._fechar("salvar")
+    d.gravar()
+    m = E.modelo("tireoide", repo)
+    assert m["nome"] == "Tireoide da clínica" and m["alterado"] and len(m["base"]) == 1
+    # a tela do esquema mostra o desenho do modelo (há tinta onde só o modelo desenhou)
+    ed = U.EsquemaDialog(repo, study, {"modelo": "tireoide"}, True, None)
+    qtbot.addWidget(ed)
+    ed.show()
+    qtbot.waitExposed(ed)
+    q = ed.tela.quadro()
+    c = ed.tela.grab().toImage().pixelColor(int(q.x() + 0.5 * q.width()), int(q.y() + 0.9 * q.height()))
+    assert c.red() < 90 and c.green() < 90
+    assert ed.e["marcas"] == []                           # e não é marca do exame
+    # salvar como cópia; restaurar o original
+    d2 = U.ModeloDialog(repo, m)
+    qtbot.addWidget(d2)
+    assert d2.b_tirar.text() == "Restaurar o original" and len(d2.e["marcas"]) == 1
+    d2.nome.setText("Tireoide 2")
+    d2._fechar("copia")
+    d2.gravar()
+    copia_ = next(x for x in E.modelos(repo) if x["nome"] == "Tireoide 2")
+    assert copia_["meu"] and copia_["origem"] == "tireoide" and len(copia_["base"]) == 1
+    d3 = U.ModeloDialog(repo, m)
+    qtbot.addWidget(d3)
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.Yes)
+    d3._tirar()
+    d3.gravar()
+    assert E.modelo("tireoide", repo)["nome"] == "Tireoide e níveis cervicais"
+    d4 = U.ModeloDialog(repo, copia_)
+    qtbot.addWidget(d4)
+    assert d4.b_tirar.text() == "Excluir o modelo" and not d4.oculto.isVisibleTo(d4)
+    # o seletor: em branco (abre o editor), ocultos aparecem só para quem cadastra
+    E.salvar_modelo(repo, {"id": "mamas", "nome": "Mamas", "grupo": "Mama", "oculto": True})
+    esc = U.EscolherModelo(repo, True)
+    qtbot.addWidget(esc)
+    assert any("(oculto)" in esc.lista.item(i).text() for i in range(esc.lista.count()))
+    comum = U.EscolherModelo(repo, False)
+    qtbot.addWidget(comum)
+    assert comum.lista.count() == esc.lista.count() - 1 and not hasattr(comum, "b_editar")
+    monkeypatch.setattr(QInputDialog, "getText", lambda *a, **k: ("Couro cabeludo", True))
+    monkeypatch.setattr(U.ModeloDialog, "exec", lambda self: 0)
+    esc._em_branco()
+    assert any(x["nome"] == "Couro cabeludo" and x["meu"] for x in E.modelos(repo)) and esc.escolhido().startswith("meu_")
+    # a faixa do laudo grava no exame sem laudo
+    E.gravar(repo, study, [_face()], "ana")
+    f = U.FaixaDeEsquemas(repo, study, "Ana", True, True, None, None, paths.storage)
+    qtbot.addWidget(f)
+    assert f.b_gravar.isEnabled()
+    avisos, sinais = [], []
+    monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: avisos.append(a[2]))
+    f.gravado.connect(sinais.append)
+    f.gravar_no_exame()
+    assert avisos == ["Gravado no exame (figuras e SR): 1"] and sinais == [study]
+    assert any(s.description == "Esquemas do laudo" for s in repo.series_for_study(study, True))
+    sem = U.FaixaDeEsquemas(repo, study, "Ana", True, True, None, None, None)
+    qtbot.addWidget(sem)
+    assert not sem.b_gravar.isEnabled()

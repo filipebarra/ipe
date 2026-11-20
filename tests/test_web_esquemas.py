@@ -68,8 +68,42 @@ def test_rotas(servidor):
     b = io.BytesIO()
     Image.new("RGB", (300, 200), (250, 240, 230)).save(b, "PNG")
     m = E.novo_modelo_de_imagem(repo, "Meu pé", b.getvalue())
-    assert any(x["id"] == m["id"] and x["meu"] for x in _pedir(srv, "modelos", adm)["modelos"])
+    assert any(x["id"] == m["id"] and x["meu"] and x["imagem"] for x in _pedir(srv, "modelos", adm)["modelos"])
     assert _pedir(srv, f"fundo?id={m['id']}", adm, bruto=True)[:4] == b"\x89PNG"
+    # ---- 0.100.73: cadastrar e mudar modelos pelo navegador (quem pode configurar)
+    import base64
+    assert _pedir(srv, "modelos", adm)["pode_modelos"] is True and _pedir(srv, "modelos", tec)["pode_modelos"] is False
+    img = base64.b64encode(b.getvalue()).decode()
+    assert _pedir(srv, "modelo", tec, {"nome": "Do técnico", "imagem": img}) == 403
+    assert _pedir(srv, "modelo_excluir", tec, {"id": m["id"]}) == 403
+    assert _pedir(srv, "modelo", adm, {"nome": "", "imagem": img}) == 400
+    assert _pedir(srv, "modelo", adm, {"nome": "Ruim", "imagem": "isto não é base64!"}) == 400
+    assert _pedir(srv, "modelo", adm, {"nome": "Ruim", "imagem": base64.b64encode(b"texto").decode()}) == 400
+    novo = _pedir(srv, "modelo", adm, {"nome": "Mão direita", "grupo": "Pele", "imagem": "data:image/png;base64," + img})["modelo"]
+    assert novo["meu"] and novo["imagem"] and (novo["w"], novo["h"]) == (300, 200) and "png" not in novo
+    traco = {"tipo": "traco", "p": [[0.1, 0.5], [0.5, 0.5], [0.9, 0.5]], "cor": "#111111", "l": 5}
+    mud = _pedir(srv, "modelo", adm, {"id": "tireoide", "nome": "Tireoide (clínica)", "grupo": "Pescoço", "base": [traco],
+                                     "oculto": True})["modelo"]
+    assert mud["alterado"] and mud["oculto"] and len(mud["base"]) == 1 and len(mud["tracos"]) > 10
+    assert next(x for x in _pedir(srv, "modelos", tec)["modelos"] if x["id"] == "tireoide")["oculto"]
+    # o esquema antigo, feito com o modelo que foi ocultado, continua desenhando — agora com o traço do modelo
+    assert _pedir(srv, f"figura?study={study}&id={eid}&w=400", adm, bruto=True)[:4] == b"\x89PNG"
+    copia = _pedir(srv, "modelo", adm, {"nome": "Próstata 2", "origem": "prostata"})["modelo"]
+    assert copia["origem"] == "prostata" and len(copia["setores"]) == 41
+    assert _pedir(srv, "modelo_excluir", adm, {"id": "tireoide"})["o_que"] == "restaurado"
+    assert _pedir(srv, "modelo_excluir", adm, {"id": novo["id"]})["o_que"] == "excluido"
+    assert _pedir(srv, "modelo_excluir", adm, {"id": novo["id"]}) == 404
+    assert any("modelo de esquema" in a["detail"] for a in repo.access_log(action="config"))
+    # ---- gravar no exame sem laudo
+    antes = len(repo.series_for_study(study, True))
+    assert _pedir(srv, "no_exame", tec, {"study": study}) == 403
+    assert _pedir(srv, "no_exame", adm, {"study": study}) == {"ok": True, "imagens": 1}
+    assert _pedir(srv, "no_exame", adm, {"study": study}) == {"ok": True, "imagens": 1}       # de novo: troca
+    series = repo.series_for_study(study, True)
+    assert len(series) == antes + 2 and {"Esquemas do laudo", "Esquemas do laudo (SR)"} <= {s.description for s in series}
+    assert not repo.reports(study)                                       # e não há laudo nenhum
+    _pedir(srv, "exame", adm, {"study": study, "esquemas": []})
+    assert _pedir(srv, "no_exame", adm, {"study": study}) == 400
 
 
 def _arrastar(pg, sel, a, b, passos=6):
@@ -195,6 +229,13 @@ def test_esquemas_no_navegador(servidor):
         assert "PI-RADS 4: zona periférica posterolateral direita, terço médio." in texto
         if foto:
             pg.screenshot(path=foto + "_laudo.png")
+        # ---- 0.100.73: gravar no exame agora, sem assinar
+        series_no_comeco = len(repo.series_for_study(study, ocultas=True))
+        pg.click("details.esquemas-laudo button:has-text('Gravar no exame')")
+        assert _esperar(lambda: "Gravado no exame" in pg.inner_text("details.esquemas-laudo .esq-msg"), 30), \
+            pg.inner_text("details.esquemas-laudo .esq-msg")
+        assert pg.inner_text("details.esquemas-laudo .esq-msg").strip().endswith("2")
+        assert len(repo.series_for_study(study, ocultas=True)) == series_no_comeco + 2 and not repo.reports(study)
         # ---- reabrir para corrigir e cancelar: nada muda
         pg.locator("details.esquemas-laudo button.esq-cartao").first.click()
         pg.wait_for_selector(tela)
@@ -217,7 +258,9 @@ def test_esquemas_no_navegador(servidor):
         assert _esperar(lambda: "4 objeto(s) DICOM guardado(s) no exame" in pg.inner_text("aside.laudo .msg-laudo"), 30), \
             pg.inner_text("aside.laudo .msg-laudo")
         series = repo.series_for_study(study, ocultas=True)
-        assert len(series) == series_antes + 3                              # esquemas (2 imagens), PDF e SR
+        # as figuras gravadas antes (sem laudo) e o SR só delas foram trocados: figuras novas, PDF e o SR do laudo
+        assert len(series) == series_antes + 1
+        assert not any(s.description == "Esquemas do laudo (SR)" for s in series)
         esq = next(s for s in series if s.description == "Esquemas do laudo")
         assert esq.num_images == 2 and esq.modality == "OT"
         sops = {i["sop_uid"] for i in repo.instances_for_series(esq.series_uid)}
@@ -230,6 +273,96 @@ def test_esquemas_no_navegador(servidor):
         # depois de assinado, o esquema abre só para ver
         pg.locator("details.esquemas-laudo button.esq-cartao").first.click()
         pg.wait_for_selector(tela)
+        b.close()
+    assert not erros, erros
+
+
+@pytest.mark.skipif(not WEB.site_instalado(), reason="o site (web_dist) não foi construído")
+def test_modelos_no_navegador(servidor, tmp_path):
+    """0.100.73: quem pode configurar manda uma imagem, cria um modelo em branco e desenha num modelo que existe."""
+    pw = pytest.importorskip("playwright.sync_api")
+    from PIL import Image
+    srv, repo = servidor, servidor.repo
+    study = _estudo(srv)
+    repo.save_user({"username": "med", "full_name": "Médica", "role": "medico", "active": True, "password": "medica12"})
+    arq = tmp_path / "mao esquerda.png"
+    Image.new("RGB", (600, 400), (235, 240, 250)).save(arq)
+    erros = []
+    foto = os.environ.get("IPE_ESQ_FOTO")
+    tela = "dialog.esq-janela canvas.esq-tela"
+    with pw.sync_playwright() as p:
+        b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
+        pg = b.new_page(viewport={"width": 1920, "height": 1080})
+        pg.on("pageerror", lambda e: erros.append(str(e)))
+        _entrar(pg, srv)
+        icone(pg, "Laudo")
+        pg.wait_for_selector("aside.laudo details.esquemas-laudo")
+        pg.click("details.esquemas-laudo > summary")
+        pg.click("details.esquemas-laudo button:has-text('Novo esquema')")
+        pg.wait_for_selector("dialog.esq-escolha button[data-modelo=prostata]")
+        assert pg.locator("dialog.esq-escolha .esq-gerir").is_visible()
+        # mandar uma imagem
+        pg.once("dialog", lambda d: d.accept("Mão esquerda"))
+        pg.set_input_files("dialog.esq-escolha input[type=file]", str(arq))
+        assert _esperar(lambda: any(m["nome"] == "Mão esquerda" for m in E.modelos(repo)), 20)
+        mao = next(m for m in E.modelos(repo) if m["nome"] == "Mão esquerda")
+        assert (mao["w"], mao["h"]) == (600, 400) and mao["png"]
+        assert _esperar(lambda: pg.locator(f"dialog.esq-escolha button[data-modelo='{mao['id']}']").count() == 1)
+        # desenhar por cima de um modelo do Ipê (a face) e salvar: vale para todos os exames
+        pg.click("dialog.esq-escolha button[data-editar=face_frente]")
+        pg.wait_for_selector(tela)
+        assert pg.evaluate("() => window.__ipeEsquema.estado()")["ferramenta"] == "traco"
+        assert pg.locator(".esq-barra button[data-f=setor]").count() == 0 and pg.locator("label.esq-numerar").is_hidden()
+        _arrastar(pg, tela, (0.2, 0.95), (0.8, 0.95), passos=10)
+        pg.fill("#esq-m-nome", "Face da clínica")
+        if foto:
+            pg.screenshot(path=foto + "_modelo.png")
+        pg.click("dialog.esq-janela button:has-text('Salvar o modelo')")
+        assert _esperar(lambda: (E.modelo("face_frente", repo) or {}).get("alterado"), 20)
+        face = E.modelo("face_frente", repo)
+        assert face["nome"] == "Face da clínica" and len(face["base"]) == 1 and face["base"][0]["tipo"] == "traco"
+        assert _esperar(lambda: "Face da clínica" in pg.inner_text("dialog.esq-escolha button[data-modelo=face_frente]"))
+        # modelo em branco, e ocultar a tireoide
+        pg.once("dialog", lambda d: d.accept("Couro cabeludo"))
+        pg.click("dialog.esq-escolha button:has-text('Novo modelo em branco')")
+        assert _esperar(lambda: any(m["nome"] == "Couro cabeludo" for m in E.modelos(repo)), 20)
+        pg.click("dialog.esq-escolha button[data-editar=tireoide]")
+        pg.wait_for_selector(tela)
+        pg.check("#esq-m-oculto")
+        pg.click("dialog.esq-janela button:has-text('Salvar o modelo')")
+        assert _esperar(lambda: "tireoide" not in {m["id"] for m in E.modelos(repo)}, 20)
+        assert _esperar(lambda: "(oculto)" in pg.inner_text("dialog.esq-escolha button[data-modelo=tireoide]"))
+        if foto:
+            pg.screenshot(path=foto + "_cadastro.png")
+        # restaurar a face
+        pg.click("dialog.esq-escolha button[data-editar=face_frente]")
+        pg.wait_for_selector(tela)
+        pg.click("dialog.esq-janela button:has-text('Restaurar o original')")
+        pg.click("dialog.imp-janela:not(.esq-janela):not(.esq-escolha) button.primario")
+        assert _esperar(lambda: not (E.modelo("face_frente", repo) or {}).get("alterado"), 20)
+        # usar o modelo da imagem num esquema: o fundo aparece (não é branco puro) e o ponto grava
+        pg.click(f"dialog.esq-escolha button[data-modelo='{mao['id']}']")
+        pg.wait_for_selector(tela)
+        assert _esperar(lambda: pg.evaluate("""() => { const c = document.querySelector('canvas.esq-tela');
+            const d = c.getContext('2d').getImageData(5, 5, 1, 1).data; return d[0] === 235 && d[2] === 250; }"""))
+        _tocar(pg, tela, (0.5, 0.5))
+        pg.click("dialog.esq-janela button.primario")
+        assert _esperar(lambda: len(E.ler(repo, study)) == 1 and E.ler(repo, study)[0]["modelo"] == mao["id"])
+        pg.click("aside.laudo button.fechar")               # solta o "está laudando", para a médica poder escrever
+        assert _esperar(lambda: srv.leituras.quem(study) is None)
+        pg.close()
+        # a médica (sem a permissão de configurar) não vê o cadastro nem o modelo oculto
+        pg = b.new_page(viewport={"width": 1920, "height": 1080})
+        pg.on("pageerror", lambda e: erros.append(str(e)))
+        _entrar(pg, srv, "med", "medica12")
+        icone(pg, "Laudo")
+        pg.wait_for_selector("aside.laudo details.esquemas-laudo")
+        pg.click("details.esquemas-laudo > summary")
+        pg.click("details.esquemas-laudo button:has-text('Novo esquema')")
+        pg.wait_for_selector("dialog.esq-escolha button[data-modelo=prostata]")
+        assert pg.locator("dialog.esq-escolha .esq-gerir").is_hidden()
+        assert pg.locator("dialog.esq-escolha button[data-editar]").count() == 0
+        assert pg.locator("dialog.esq-escolha button[data-modelo=tireoide]").count() == 0
         b.close()
     assert not erros, erros
 

@@ -3,6 +3,17 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.73 — Esquemas-guia: gravar no exame sem laudo e cadastrar ou mudar os modelos (mesa e Web)
+- **Gravar no exame**: na faixa dos esquemas (Ipê de mesa e Ipê Web), grava na hora as figuras (série "Esquemas do
+  laudo") e um SR só dos esquemas, sem precisar assinar nem salvar o laudo — como a tabela da segmentação e o resumo
+  da densidade. Gravar de novo troca o que havia; ao assinar o laudo, o SR do laudo passa a levar os esquemas.
+- **Modelos pelo Ipê Web também**: quem pode configurar manda uma imagem (**Novo modelo de uma imagem…**) ou começa
+  de uma folha vazia (**Novo modelo em branco…**), no navegador ou no Ipê de mesa.
+- **Mudar os modelos que existem**: **Editar o modelo…** abre o modelo com as ferramentas de desenho — o que se
+  desenha passa a fazer parte dele em todos os exames —, e muda o nome e o grupo. **Salvar como cópia** cria um
+  modelo novo; nos modelos do Ipê há **Ocultar da lista** e **Restaurar o original** (o desenho original nunca se
+  perde); os próprios se excluem.
+
 ## 0.100.72 — Esquemas-guia no laudo (face, corpo, tireoide, mamas, próstata), no Ipê e no Ipê Web
 - **Esquemas-guia**: na janela do laudo (e no laudo do Ipê Web), **Novo esquema…** abre um desenho de base para
   marcar os achados: face (frente e perfis), corpo (frente e costas), tireoide com os níveis cervicais, mamas e o

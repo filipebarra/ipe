@@ -17,6 +17,8 @@ log = logging.getLogger(__name__)
 
 SECONDARY_CAPTURE = "1.2.840.10008.5.1.4.1.1.7"
 SERIE, DESCRICAO = 992, "Esquemas do laudo"
+DESCRICAO_SR = "Esquemas do laudo (SR)"
+NOSSAS = (DESCRICAO, DESCRICAO_SR)                     # as séries que o Ipê grava com os esquemas (e pode regravar)
 LARGURA = 1100
 
 
@@ -128,3 +130,75 @@ def para_o_exame(repo, study_uid: str, fonte_path: str) -> tuple[list, list[dict
                         "sop_class": SECONDARY_CAPTURE, "linhas": E.legenda(e, repo), "marcas": marcas,
                         "setores": setores})
     return datasets, para_sr
+
+
+# ---------------------------------------------------------------------- gravar no exame, sem depender do laudo
+def apagar_anteriores(repo, study_uid: str, storage_root) -> int:
+    """Tira do exame as séries dos esquemas que o próprio Ipê gravou antes (regravar não duplica)."""
+    from pathlib import Path
+    n = 0
+    nossas = [se for se in repo.series_for_study(study_uid, True) if (se.description or "") in NOSSAS]
+    destravado = False
+    try:
+        for se in nossas:
+            try:
+                try:
+                    repo.delete_series(se.series_uid, Path(storage_root))
+                except PermissionError as e:
+                    # exame com cadeado (ligar uma marca a uma imagem-chave põe o cadeado) não deixa apagar série:
+                    # estas são as que o próprio Ipê gerou dos esquemas, então o cadeado sai só enquanto são trocadas
+                    if destravado or "cadeado" not in str(e):
+                        raise
+                    repo.set_locked(study_uid, False)
+                    destravado = True
+                    repo.delete_series(se.series_uid, Path(storage_root))
+                n += 1
+            except Exception:  # noqa: BLE001
+                log.warning("não apaguei a série anterior %s", se.series_uid, exc_info=True)
+    finally:
+        if destravado:
+            repo.set_locked(study_uid, True)
+    cliente = getattr(repo, "client", None)              # no modo cliente, o servidor apaga as dele
+    if cliente is not None and hasattr(cliente, "rpc"):
+        try:
+            cliente.rpc("apagar_series_dos_esquemas", study_uid)
+        except Exception:  # noqa: BLE001 - servidor de versão anterior: fica como antes
+            log.info("o servidor não apagou os esquemas anteriores", exc_info=True)
+    return n
+
+
+def gravar_no_exame(repo, storage_root, study_uid: str, quem: str = "") -> dict:
+    """0.100.73: grava os esquemas no exame **agora**, sem laudo assinado — as figuras (série "Esquemas do laudo")
+    e um SR só deles —, como a tabela da segmentação e o resumo da densidade. Gravar de novo troca o que havia.
+    Devolve {"imagens": n, "series": [...]}."""
+    import shutil
+    import tempfile
+    from pathlib import Path
+    from ipe.importer.scanner import Importer
+    from ipe.reporting.dicom_out import esquemas_sr
+    arqs = [f for f in repo.files_for_study(study_uid) if f]
+    if not arqs:
+        raise ValueError("o exame não tem imagens neste computador")
+    imagens, para_sr = para_o_exame(repo, study_uid, arqs[0])
+    if not imagens:
+        raise ValueError("Nenhum esquema com desenho para gravar.")
+    sr = esquemas_sr(arqs[0], para_sr, quem, description=DESCRICAO_SR)
+    tmp = Path(tempfile.mkdtemp(prefix="ipe_esquemas_"))
+    try:
+        for i, ds in enumerate([*imagens, sr]):
+            ds.save_as(tmp / f"{i:03d}.dcm", enforce_file_format=True)
+        apagar_anteriores(repo, study_uid, storage_root)
+        r = Importer(repo.db, Path(storage_root)).import_paths([tmp])
+        try:
+            from ipe.importer.thumbnails import generate_thumbnails
+            generate_thumbnails(repo, getattr(r, "new_series", None) or [])
+        except Exception:  # noqa: BLE001
+            log.debug("miniaturas dos esquemas", exc_info=True)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    try:
+        from ipe.central.client_repo import upload_if_client
+        upload_if_client(repo, study_uid)
+    except Exception:  # noqa: BLE001
+        log.exception("esquemas: enviar ao servidor")
+    return {"imagens": len(imagens), "series": [str(imagens[0].SeriesInstanceUID), str(sr.SeriesInstanceUID)]}
