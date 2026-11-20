@@ -248,6 +248,11 @@ TAREFAS = [
               "<b>Vasos</b>: calcificaciones vasculares graduadas con varias escalas lado a lado, para revisar."),
         ],
         "recursos": [
+            (T("Quadrant zoom", "Zoom por quadrante", "Zoom por cuadrante"),
+             T("Posterior and superior, then posterior and inferior, in all viewports together; also in Ipê Web.",
+               "Posterior e superior, depois posterior e inferior, em todos os quadros juntos; também no Ipê Web.",
+               "Posterior y superior, luego posterior e inferior, en todos los cuadros juntos; también en Ipê Web."),
+             T("Q key · Quadrant", "Tecla Q · Quadrante", "Tecla Q · Cuadrante")),
             (T("Two screens", "Duas telas", "Dos pantallas"),
              T("The protocol spreads across monitors, with breast framing and quadrants.",
                "O protocolo se distribui pelos monitores, com enquadramento da mama e quadrantes.",

@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.77 — Ipê Web: quadrant zoom in mammography
+- **Quadrant zoom in Ipê Web mammography**, as in desktop Ipê: **Quadrant zoom** button on the mammography bar or the
+  **Q** key (**Shift+Q** goes back). Posterior and superior → posterior and inferior → whole breast, in all viewports
+  of the stage together, each on its own side: the chest wall stays on its edge and the breasts stay mirrored.
+  Scrolled tomosynthesis keeps the quadrant; the second screen follows; changing stage returns to the whole breast.
+
 ## 0.100.76 — Ipê website with videos per task; more translated screens
 - **Ipê website** (GitHub Pages: <https://filipebarra.github.io/ipe/>), in English, Portuguese and Spanish,
   organized by everyday task — read a study, mammography, breast MRI, PET/CT, AI, reports and diagrams, teaching with

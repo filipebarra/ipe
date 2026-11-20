@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.77 — Ipê Web: zoom por quadrante na mamografia
+- **Zoom por quadrante na mamografia do Ipê Web**, como no Ipê de mesa: botão **Zoom por quadrante** na barra da
+  mamografia ou tecla **Q** (**Shift+Q** volta). Posterior e superior → posterior e inferior → mama inteira, em todos
+  os quadros da etapa juntos, cada um no seu lado: a parede torácica continua na borda dela e as mamas ficam
+  espelhadas. A tomossíntese rolada fica no mesmo quadrante; a segunda tela acompanha; mudar de etapa volta à mama
+  inteira.
+
 ## 0.100.76 — Site do Ipê com vídeos por tarefa; telas mais traduzidas
 - **Site do Ipê** (GitHub Pages: <https://filipebarra.github.io/ipe/>), em inglês, português e espanhol, organizado
   por tarefa do dia — ler um exame, mamografia, RM de mama, PET/CT, IA, laudos e esquemas, ensino com casos,

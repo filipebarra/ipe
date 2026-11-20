@@ -31,6 +31,7 @@ const IC_MG = {
   tomo: "M4 7h16M4 12h16M4 17h16",
   lupa: "M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13zM15.5 15.5L21 21M8 10.5h5M10.5 8v5",
   telas: "M2 5h9v12H2zM13 5h9v12h-9zM6 20h2M17 20h2",
+  quadrante: "M4 4h16v16H4zM12 4v16M4 12h16M6 6h4v4H6z",
   sair: "M6 6l12 12M18 6L6 18",
 };
 
@@ -185,6 +186,10 @@ export class ModoMamografia {
   private bTelas: HTMLButtonElement;
   private bTomo: HTMLButtonElement;
   private bLupa: HTMLButtonElement;
+  private bQuad: HTMLButtonElement;
+  /** 0.100.77: zoom por quadrante, como no Ipê de mesa (tecla Q): −1 = a mama inteira; 0 = posterior e superior;
+   * 1 = posterior e inferior. Vale para todos os quadros da etapa juntos, cada um no seu lado. */
+  private quad = -1;
   private antesDaLupa: Ferramenta | null = null;
 
   /** A lupa no botão esquerdo, ou a função que ele tinha de volta. */
@@ -206,7 +211,14 @@ export class ModoMamografia {
     this.bLupa.setAttribute("aria-pressed", String(on));
   }
   private aoCanal = (e: MessageEvent) => this.mensagem(e.data);
-  private aoRedimensionar = () => { clearTimeout(this.relogio); this.relogio = window.setTimeout(() => this.enquadrar(), 150); };
+  private aoRedimensionar = () => { clearTimeout(this.relogio); this.relogio = window.setTimeout(() => this.reenquadrar(), 150); };
+  private aoTeclar = (e: KeyboardEvent) => {
+    const alvo = e.target as HTMLElement | null;
+    if (alvo && (alvo.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName))) return;
+    if (e.ctrlKey || e.metaKey || e.altKey || (e.key !== "q" && e.key !== "Q")) return;
+    e.preventDefault();
+    this.quadrante(e.shiftKey ? -1 : 1);
+  };
   private relogio = 0;
   private aoFechar = () => { if (this.op.tela === 2) canalMg()?.postMessage({ tipo: "fechou", study: this.op.study }); };
 
@@ -232,6 +244,8 @@ export class ModoMamografia {
     this.bTomo = this.botao("Tomossíntese do quadro", IC_MG.tomo, () => void this.alternarTomo());
     // 0.100.4: a lupa no botão esquerdo (segure e passe; a roda muda o aumento); de novo, a função de antes volta
     this.bLupa = this.botao("Lupa no botão esquerdo", IC_MG.lupa, () => this.alternarLupa());
+    this.bQuad = this.botao("Zoom por quadrante (Q): posterior e superior → posterior e inferior → mama inteira",
+      IC_MG.quadrante, () => this.quadrante(1));
     this.bTelas = this.botao(op.tela === 2 ? "Fechar esta tela" : "Duas telas", IC_MG.telas, () => void this.alternarTelas());
     const bSair = this.botao("Sair do modo mamografia", IC_MG.sair, () => this.sair());
     if (op.tela === 2) bSair.hidden = true;
@@ -245,10 +259,11 @@ export class ModoMamografia {
     this.barra.className = "barra-mg";
     this.barra.setAttribute("role", "toolbar");
     this.barra.setAttribute("aria-label", tr("Mamografia"));
-    this.barra.append(titulo, bProto, bAntes, bEtapa, bDepois, this.bTomo, this.bLupa, this.bTelas, nota, bSair);
+    this.barra.append(titulo, bProto, bAntes, bEtapa, bDepois, this.bTomo, this.bQuad, this.bLupa, this.bTelas, nota, bSair);
     g.raiz.classList.add("mg");
     canalMg()?.addEventListener("message", this.aoCanal);
     window.addEventListener("resize", this.aoRedimensionar);
+    window.addEventListener("keydown", this.aoTeclar);
     window.addEventListener("pagehide", this.aoFechar);
     (window as unknown as Record<string, unknown>).__ipeMg = this; // testes
   }
@@ -277,11 +292,16 @@ export class ModoMamografia {
     void this.aplicar();
   }
 
-  private mensagem(m: { tipo?: string; study?: string; passo?: number; telas?: number; indice?: number; forcar?: boolean }): void {
+  private mensagem(m: { tipo?: string; study?: string; passo?: number; telas?: number; indice?: number; forcar?: boolean;
+    quad?: number }): void {
     if (!m || m.study !== this.op.study) return;
     if (m.tipo === "passo" && typeof m.passo === "number") {
       this.passo = m.passo;
       void this.aplicar();
+    } else if (m.tipo === "quadrante" && typeof m.quad === "number") {
+      this.quad = m.quad;
+      this.reenquadrar();
+      this.marcarQuad();
     } else if (m.tipo === "fechou" && this.op.tela === 1 && this.telas === 2) {
       this.segunda = null;
       this.telas = 1;
@@ -318,6 +338,8 @@ export class ModoMamografia {
     this.rotuloEtapa.textContent = `${this.passo + 1}/${this.dados.passos.length} · ${tr(passo.nome)}`;
     this.bTelas.classList.toggle("ligado", this.telas === 2);
     this.ampliado = null;
+    this.quad = -1;
+    this.marcarQuad();
     this.g.raiz.style.removeProperty("grid-template-columns");
     const vazios: Spec[] = Array.from({ length: tela.rows * tela.cols }, () =>
       ({ serie: null, tipo: "pilha", plano: "AXIAL", projecao: "fino", espessura: 0 }));
@@ -522,9 +544,7 @@ export class ModoMamografia {
         const ix = im.parede === "right" ? x1 : x0;
         const iy = (y0 + y1) / 2;
         // a parede encostada na borda do lado dela, sem folga: é ali que mora o alinhamento da mamografia
-        const espelhado = !!vp.getCamera().flipHorizontal;
-        const naTela = im.parede ? (espelhado ? (im.parede === "left" ? "right" : "left") : im.parede) : (c.dado.quer || "left");
-        const lado = this.dados.encostar && c.dado.quer ? c.dado.quer : naTela;
+        const lado = this.ladoDaParede(i);
         const cw = vp.canvas.clientWidth;
         const ch = vp.canvas.clientHeight;
         moverNoCanvas(vp, noCanvas(vp, id, ix, iy), [lado === "right" ? cw : 0, ch / 2]);
@@ -560,6 +580,84 @@ export class ModoMamografia {
     }
   }
 
+  /** Em que lado da tela fica a parede torácica do quadro i (depois do espelho). */
+  private ladoDaParede(i: number): "left" | "right" {
+    const c = this.celulas[i];
+    const im = this.dados.imagens[c.sop];
+    const vp = this.vp(i);
+    const espelhado = !!vp?.getCamera().flipHorizontal;
+    const naTela = im?.parede ? (espelhado ? (im.parede === "left" ? "right" : "left") : im.parede) : (c.dado.quer || "left");
+    return (this.dados.encostar && c.dado.quer ? c.dado.quer : naTela) as "left" | "right";
+  }
+
+  /** Enquadra a mama e, se houver um quadrante escolhido, amplia nele. */
+  reenquadrar(): void {
+    this.enquadrar();
+    if (this.quad >= 0) this.zoomNoQuadrante(this.quad);
+  }
+
+  /** Próximo quadrante (d = 1) ou o anterior (d = −1); na segunda tela também. */
+  quadrante(d = 1, avisar = true): void {
+    const n = 3;                                   // mama inteira, posterior+superior, posterior+inferior
+    this.quad = ((((this.quad + 1 + d) % n) + n) % n) - 1;
+    if (avisar) canalMg()?.postMessage({ tipo: "quadrante", study: this.op.study, quad: this.quad });
+    this.reenquadrar();
+    this.marcarQuad();
+  }
+
+  private marcarQuad(): void {
+    if (!this.bQuad) return;
+    const nomes = [tr("mama inteira"), tr("posterior e superior"), tr("posterior e inferior")];
+    this.bQuad.classList.toggle("ligado", this.quad >= 0);
+    this.bQuad.setAttribute("aria-pressed", String(this.quad >= 0));
+    this.bQuad.title = `${tr("Zoom por quadrante (Q)")}: ${nomes[this.quad + 1]}`;
+  }
+
+  /** Como no Ipê de mesa (viewport_mama.zoom_to_anat_quadrant): o zoom que faz metade da caixa da mama caber no
+   * quadro (2× a 8×), com o canto do quadrante encostado no canto da tela do mesmo lado — a parede torácica continua
+   * na borda dela e as duas mamas ficam espelhadas. A âncora da pilha passa a ser este enquadramento: rolando a
+   * tomossíntese, a imagem continua no mesmo quadrante. */
+  private zoomNoQuadrante(q: number): void {
+    const mostrados = this.celulas.map((c, i) => i)
+      .filter((i) => this.celulas[i].sop && (this.ampliado === null || this.ampliado === i));
+    const zooms = new Map<number, number>();
+    for (const i of mostrados) {
+      const im = this.dados.imagens[this.celulas[i].sop];
+      const vp = this.vp(i);
+      const id = vp?.getCurrentImageId();
+      if (!vp || !id || !im?.caixa) continue;
+      const cw = vp.canvas.clientWidth;
+      const ch = vp.canvas.clientHeight;
+      const a = noCanvas(vp, id, 0, 0);
+      const b = noCanvas(vp, id, 1, 0);
+      const z = vp.getZoom() || 1;
+      const ajuste1 = Math.hypot(b[0] - a[0], b[1] - a[1]) / z;      // pixels da tela por pixel da imagem no zoom 1
+      if (!(ajuste1 > 0)) continue;
+      const bw = Math.max(1, im.caixa[2] - im.caixa[0]);
+      const bh = Math.max(1, im.caixa[3] - im.caixa[1]);
+      const quer = Math.min(cw / (ajuste1 * bw * 0.5), ch / (ajuste1 * bh * 0.5));
+      zooms.set(i, Math.max(2, Math.min(8, quer)));
+    }
+    const valores = [...zooms.values()];
+    const comum = this.dados.zoom_junto && valores.length ? Math.min(...valores) : null;
+    for (const [i, z] of zooms) {
+      const im = this.dados.imagens[this.celulas[i].sop];
+      const vp = this.vp(i)!;
+      const id = vp.getCurrentImageId()!;
+      const [x0, y0, x1, y1] = im.caixa!;
+      vp.setZoom(comum ?? z);
+      const lado = this.ladoDaParede(i);
+      const cw = vp.canvas.clientWidth;
+      const ch = vp.canvas.clientHeight;
+      const ix = im.parede === "right" ? x1 : x0;
+      const iy = q === 0 ? y0 : y1;
+      moverNoCanvas(vp, noCanvas(vp, id, ix, iy), [lado === "right" ? cw : 0, q === 0 ? 0 : ch]);
+      vp.render();
+      const m = this.medir(i);
+      if (m) this.ancoras.set(i, m);
+    }
+  }
+
   ampliar(i: number): void {
     const cels = this.g.quadros.map((q) => q.el.parentElement as HTMLElement);
     if (this.ampliado === i) {
@@ -576,7 +674,7 @@ export class ModoMamografia {
     this.g.ativar(i);
     requestAnimationFrame(() => {
       this.g.redimensionar();
-      this.enquadrar();
+      this.reenquadrar();
     });
   }
 
@@ -604,7 +702,7 @@ export class ModoMamografia {
     const ini = c.posicoes ? inicioNaPilha(c.posicoes, c.sop, !!this.dados.imagens[c.sop]?.tomo) : undefined;
     if (vp && ini !== undefined) await vp.setImageIdIndex(ini);
     else await this.carregar(i, c, this.versao);
-    this.enquadrar();
+    this.reenquadrar();
     this.atualizarTomo();
   }
 
@@ -664,7 +762,7 @@ export class ModoMamografia {
   /** Para os testes: o que cada quadro mostra e como ficou a câmera. */
   estado(): Record<string, unknown> {
     return {
-      passo: this.passo, nome: this.dados.passos[this.passo]?.nome, telas: this.telas, tela: this.op.tela,
+      passo: this.passo, nome: this.dados.passos[this.passo]?.nome, telas: this.telas, tela: this.op.tela, quad: this.quad,
       quadros: this.celulas.map((c, i) => {
         const im = this.dados.imagens[c.sop];
         const vp = this.vp(i);
@@ -680,6 +778,8 @@ export class ModoMamografia {
         return { ...base, espelhado: !!vp.getCamera().flipHorizontal, zoom: vp.getZoom(), tomo: !!im.tomo,
           escala: Math.hypot(b[0] - a[0], b[1] - a[1]), parede_x: noCanvas(vp, id, ix, iy)[0] / cw,
           parede_y: noCanvas(vp, id, ix, iy)[1] / ch,
+          topo_y: im.caixa ? noCanvas(vp, id, ix, im.caixa[1])[1] / ch : null,
+          base_y: im.caixa ? noCanvas(vp, id, ix, im.caixa[3])[1] / ch : null,
           mamilo_y: im.mamilo ? noCanvas(vp, id, im.mamilo[0], im.mamilo[1])[1] / ch : null,
           cortes: vp.getImageIds().length, corte: vp.getCurrentImageIdIndex() };
       }),
@@ -702,6 +802,7 @@ export class ModoMamografia {
     clearInterval(this.vigia);
     canalMg()?.removeEventListener("message", this.aoCanal);
     window.removeEventListener("resize", this.aoRedimensionar);
+    window.removeEventListener("keydown", this.aoTeclar);
     window.removeEventListener("pagehide", this.aoFechar);
     this.g.raiz.classList.remove("mg");
     this.barra.remove();
