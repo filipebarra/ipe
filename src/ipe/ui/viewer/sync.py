@@ -68,7 +68,7 @@ def alt_pressed() -> bool:
 #: modalidades em que a sincronização automática nasce desligada (0.99.9, pedido dele: "na RM pode
 #: deixar desativada por padrão"). Na RM o exame tem várias sequências no mesmo plano — duas
 #: sagitais, T1 e T2 — e rolar uma não é pedido para rolar a outra.
-AUTO_DESLIGADA_DE_FABRICA = {"MR": False}
+AUTO_DESLIGADA_DE_FABRICA = {"MR": False, "MG": False}    # 0.100.78: mamografia também
 
 #: nome da modalidade nos menus e nas preferências
 MODALIDADE_TXT = {"MR": "RM", "CT": "TC", "PT": "PET", "NM": "Medicina nuclear", "MG": "Mamografia",
@@ -99,7 +99,9 @@ class SyncHub(QObject):
     # o que o usuário liga e desliga fica guardado: ligar de novo a cada abertura é defeito.
     # A automática (sync_auto) não está aqui: desde a 0.99.9 ela é lembrada **por modalidade**
     # (viewer.sync_auto_mod) — sync_auto virou só o "desligado geral" do modo de sincronização.
-    GUARDADOS = ("sync_wl", "sync_zoom", "show_refs")
+    # 0.100.78: a mamografia tem as suas (janela e zoom/pan), desligadas de fábrica: a sincronia das outras
+    # modalidades não vale para ela.
+    GUARDADOS = ("sync_wl", "sync_zoom", "show_refs", "mg_sync_wl", "mg_sync_zoom")
 
     def __init__(self, repo=None, parent=None, settings=None):
         super().__init__(parent)
@@ -110,6 +112,8 @@ class SyncHub(QObject):
         self.sync_auto = True
         self.sync_wl = False
         self.sync_zoom = False
+        self.mg_sync_wl = False
+        self.mg_sync_zoom = False
         self.show_refs = True
         self.mode = "study"
         for nome in self.GUARDADOS:
@@ -124,6 +128,15 @@ class SyncHub(QObject):
             gravado = settings.get("viewer.sync_auto_mod", None)
             if isinstance(gravado, dict):
                 self.auto_mod.update({str(k).upper(): bool(v) for k, v in gravado.items()})
+            # 0.100.78: pedido dele — na mamografia, tudo desligado de fábrica; quem já tinha ligado a rolagem
+            # junta da MG volta ao desligado uma vez (depois, o que ele escolher fica)
+            if not settings.get("viewer.mg_sync_padrao_v78", False):
+                self.auto_mod["MG"] = False
+                try:
+                    settings.set("viewer.sync_auto_mod", dict(self.auto_mod))
+                    settings.set("viewer.mg_sync_padrao_v78", True)
+                except Exception:  # noqa: BLE001
+                    pass
         self._busy = False
         self._dirty_groups: set[int] = set()
         self._save_timer = QTimer(self)
@@ -424,33 +437,45 @@ class SyncHub(QObject):
             self._busy = False
         self.update_reference_lines(extra)
 
+    @staticmethod
+    def _e_mg(vp) -> bool:
+        return (getattr(vp, "modality", "") or "").upper() == "MG" or getattr(vp, "mg_cell", None) is not None
+
+    def wl_para(self, vp) -> bool:
+        """Janela junta para este quadro (0.100.78: a mamografia tem a sua)."""
+        return self.mg_sync_wl if self._e_mg(vp) else self.sync_wl
+
+    def zoom_para(self, vp) -> bool:
+        return self.mg_sync_zoom if self._e_mg(vp) else self.sync_zoom
+
     def view_changed(self, vp, kind: str, extra=None) -> None:
         if self._busy:
             return
+        sync_wl, sync_zoom = self.wl_para(vp), self.zoom_para(vp)
         self._busy = True
         try:
             for w in self.viewports(extra):
                 if w is vp or not w.frames:
                     continue
-                if kind == "window" and self.sync_wl and w.modality == vp.modality \
+                if kind == "window" and sync_wl and w.modality == vp.modality \
                         and w._img is not None and not w._img.is_color:
                     w.set_window(vp.state.width, vp.state.level, emit=False)
-                elif kind == "cmap" and self.sync_wl and w.modality == vp.modality \
+                elif kind == "cmap" and sync_wl and w.modality == vp.modality \
                         and w._img is not None and not w._img.is_color:
                     w.state.cmap = vp.state.cmap
                     w._qimage_key = None
                     w.update()
-                elif kind in ("zoom", "pan") and self.sync_zoom:
+                elif kind in ("zoom", "pan") and sync_zoom:
                     if getattr(vp, "mg_cell", None) is not None and getattr(w, "mg_cell", None) is not None:
                         continue        # mamografia: a aba segue pelo lugar da mama (mg_sync_view)
                     w.set_zoom_pan(vp.state.zoom, vp.state.pan)
-                elif kind == "invert" and self.sync_wl and w.modality == vp.modality \
+                elif kind == "invert" and sync_wl and w.modality == vp.modality \
                         and w._img is not None and not w._img.is_color:
                     if w.state.invert != vp.state.invert:
                         w.state.invert = vp.state.invert
                         w._qimage_key = None
                         w.update()
-                elif kind == "filter" and self.sync_wl and w.modality == vp.modality:
+                elif kind == "filter" and sync_wl and w.modality == vp.modality:
                     w.state.filter = vp.state.filter       # o filtro acompanha a janela
                     w._qimage_key = None
                     w.update()

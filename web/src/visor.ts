@@ -698,6 +698,17 @@ export class Grade {
   aoAto: ((m: Sinc) => void) | null = null;
   /** 0.100.55: os quadros desta janela também andam juntos (rolagem no mesmo plano, janela, zoom) */
   ligarQuadros = false;
+  /** 0.100.78: na mamografia, a sincronia é outra (desligada de fábrica): rolagem, zoom e o que vem de outra janela
+   *  só andam juntos com esta ligada. */
+  mgLigar = false;
+  /** chamado quando o modo mamografia entra ou sai (o botão de ligar mostra a sincronia certa) */
+  aoMudarModo: (() => void) | null = null;
+  private get ligadosAgora(): boolean {
+    return this.raiz.classList.contains("mg") ? this.mgLigar : this.ligarQuadros;
+  }
+  private get emitirAgora(): boolean {
+    return this.raiz.classList.contains("mg") ? this.mgLigar : (!!this.aoAto || this.ligarQuadros);
+  }
   private mudoAte = 0;
   private ultimaPos: number[] | null = null;
   private ultimoZoom = 0;
@@ -712,16 +723,16 @@ export class Grade {
   }
 
   private contar(q: Quadro, tipo: "pos" | "voi" | "zoom"): void {
-    if ((!this.aoAto && !this.ligarQuadros) || q !== this.quadros[this.ativo] || q.tipo !== "pilha" || performance.now() < this.mudoAte) return;
+    if (!this.emitirAgora || q !== this.quadros[this.ativo] || q.tipo !== "pilha" || performance.now() < this.mudoAte) return;
     if (this.pendentes.has(tipo)) return;
     this.pendentes.add(tipo);
     requestAnimationFrame(() => {
       this.pendentes.delete(tipo);
       const vp = motor?.getViewport(q.id) as Types.IStackViewport | undefined;
-      if (!vp?.getCurrentImageId() || (!this.aoAto && !this.ligarQuadros) || performance.now() < this.mudoAte) return;
+      if (!vp?.getCurrentImageId() || !this.emitirAgora || performance.now() < this.mudoAte) return;
       const emitir = (m: Sinc) => {
         this.aoAto?.(m);
-        if (this.ligarQuadros) this.aplicarNosQuadros(m, q);
+        if (this.ligadosAgora) this.aplicarNosQuadros(m, q);
       };
       if (tipo === "pos") {
         const p = this.planoDe(vp);
@@ -890,6 +901,7 @@ export class Grade {
    *  (janela) e a todos (zoom). `mesmoExame`: vai pela posição no paciente; noutro exame (o anterior), anda os
    *  mesmos milímetros a partir de onde cada quadro está — alinhe uma vez com as janelas desligadas. */
   aplicarAto(m: Sinc, mesmoExame: boolean): void {
+    if (this.raiz.classList.contains("mg") && !this.mgLigar) return;      // 0.100.78
     this.mudoAte = performance.now() + 400;
     if (m.tipo === "pos") this.porLinhaDeFora(mesmoExame ? m.cantos ?? null : null);
     for (const x of this.quadros) {

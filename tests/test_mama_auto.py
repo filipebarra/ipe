@@ -240,3 +240,66 @@ def test_servidor_apaga_so_as_series_do_ipe_a_pedido_do_cliente(servidor_mg, red
     assert r.get("result") == 3, r
     depois = [s.series_uid for s in repo.series_for_study(atual)]
     assert set(depois) == set(antes) - set(nossas) and len(depois) >= 4
+
+
+def test_sem_conferencia_grava_sr_e_envia(servidor_mg, redes):
+    """0.100.78: aceitar a medida sem conferência — o SR sai logo depois de medir (marcado como não conferido) e vai
+    para os nós escolhidos; confirmar depois refaz o SR (agora conferido) e reenvia."""
+    from types import SimpleNamespace
+
+    from ipe.ai import calc_vascular as C
+    from ipe.ai import mama_sr as MS
+    from ipe.automation import mama_auto as MA
+    from ipe.automation.engine import AutomationEngine
+    from ipe.imaging import densidade_revisao as R
+    srv = servidor_mg
+    repo = srv.repo
+    atual, _ant = srv.estudos
+    no = repo.save_node({"name": "PACS-TESTE", "kind": "dicom", "ae_title": "PACS", "host": "127.0.0.1",
+                         "port": 11112, "active": True}) if hasattr(repo, "save_node") else None
+    prefs = _Prefs({MA.CHAVE_SEM_CONFERIR: True, MA.CHAVE_DESTINOS: [no] if no else []})
+    assert MA.sem_conferir(prefs) and MA.sem_conferir(_Prefs()) is False
+    # o motor só pede o SR para o exame que chegou (não para a varredura) e com a opção ligada
+    emitidos = []
+    eng = SimpleNamespace(settings=prefs, mama_medida=SimpleNamespace(emit=emitidos.append))
+    AutomationEngine._mama_medida_na_linha(eng, atual, {"densidade": "C"}, True)
+    assert emitidos == []
+    AutomationEngine._mama_medida_na_linha(eng, atual, {"densidade": "C"}, False)
+    assert emitidos == [atual]
+    eng.settings = _Prefs()
+    AutomationEngine._mama_medida_na_linha(eng, "x", {"densidade": "C"}, False)
+    assert emitidos == [atual]
+    # mede (sem confirmar) e grava sem conferência
+    MA.medir(repo, atual)
+    d, c = MS.para_gravar_sem_conferir(repo, atual)
+    assert d["categoria"] == "c" and c["grau"] == c["sugestao"]
+    assert MS.pronto_para_gravar(repo, atual) == (None, None)       # o caminho normal continua esperando
+    r = MS.gravar_sem_conferir(repo, srv.db, srv.storage, atual)
+    assert r and len(r["series"]) == 3
+    nossas = {s.description: s for s in repo.series_for_study(atual) if s.description in MS.NOSSAS}
+    sr = pydicom.dcmread(repo.files_for_study(atual, [nossas[MS.DESC_SR].series_uid])[0])
+    textos = [getattr(x, "TextValue", "") for i in sr.ContentSequence if i.ValueType == "CONTAINER"
+              for x in i.ContentSequence]
+    assert "automática, não conferida pelo médico" in textos and "automático, não conferido pelo médico" in textos
+    assert sr.VerificationFlag == "UNVERIFIED" and not any(i.ValueType == "PNAME" for i in sr.ContentSequence)
+    # o envio: um pedido por destino, só as nossas séries
+    enviados = []
+    net = SimpleNamespace(send=lambda node, ident, uids, rot, series_uids=None: enviados.append((node["id"], uids,
+                                                                                               sorted(series_uids))))
+    n = MS.enviar(net, repo, prefs, atual, r)
+    if no:
+        assert n == 1 and enviados == [(no, [atual], sorted(r["series"]))]
+    assert MS.enviar(net, repo, _Prefs(), atual, r) == 0                    # sem destinos, nada
+    # confirmar a densidade depois: o SR é refeito com a densidade conferida e as calcificações ainda automáticas
+    R.confirmar(repo, atual, R.guardada(repo, atual), "d", "dra.teste")
+    r2 = MS.depois_de_confirmar(repo, srv.db, srv.storage, atual, "Dra. Teste", sem_conferir=True)
+    assert r2 and r2["sr"] != r["sr"]
+    assert sum(1 for s in repo.series_for_study(atual) if s.description in MS.NOSSAS) == 3
+    nossas = {s.description: s for s in repo.series_for_study(atual) if s.description in MS.NOSSAS}
+    sr2 = pydicom.dcmread(repo.files_for_study(atual, [nossas[MS.DESC_SR].series_uid])[0])
+    dens = next(i for i in sr2.ContentSequence if i.ConceptNameCodeSequence[0].CodeMeaning == "Breast density")
+    assert any(getattr(x, "TextValue", "") == "editada pelo médico" for x in dens.ContentSequence)
+    bac = next(i for i in sr2.ContentSequence if i.ConceptNameCodeSequence[0].CodeMeaning == "Breast arterial calcification")
+    assert any(getattr(x, "TextValue", "") == "automático, não conferido pelo médico" for x in bac.ContentSequence)
+    C.confirmar(repo, atual, C.guardada(repo, atual), "leve", "dra.teste")
+    assert MS.depois_de_confirmar(repo, srv.db, srv.storage, atual, sem_conferir=True)

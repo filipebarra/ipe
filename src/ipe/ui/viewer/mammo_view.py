@@ -21,8 +21,11 @@ log = logging.getLogger(__name__)
 CELL_CHOICES = [""] + [f"{v}{s}{t}{a}" for a in ("", " ant", " ant2") for t in ("", " tomo", " rec")
                        for v in ("CC", "MLO", "ML", "LM", "XCCL", "XCCM", "AT", "SPOT", "MAG", "")
                        for s in ("D", "E")] + ["US", "RM"]
-# zoom por quadrante: duas etapas, ancoradas na parede torácica (posterior)
-QUAD_NAMES = ["posterior e superior", "posterior e inferior"]
+# zoom por quadrante: o índice é o de viewport_mama.zoom_to_anat_quadrant (0 posterior+superior, 1 posterior+inferior,
+# 2 anterior+superior, 3 anterior+inferior). 0.100.78: as quatro áreas, como no vídeo dele — primeiro as duas de
+# cima (posterior, depois anterior), depois as duas de baixo, e de volta à mama inteira.
+QUAD_NAMES = ["posterior e superior", "posterior e inferior", "anterior e superior", "anterior e inferior"]
+QUAD_ORDEM = (0, 2, 1, 3)
 SLAB_STEPS = [1, 5, 10, 20]                         # tomossíntese: espessura em cortes
 
 
@@ -434,10 +437,17 @@ class MgBar(QToolBar):
         self.addWidget(QLabel(" zoom:"))
         self.a_quad = QAction("Quadrante ↻", self)
         self.a_quad.setToolTip("Zoom por quadrante da mama: cada clique vai para o próximo (posterior e superior → "
-                               "posterior e inferior → imagem inteira), nos quadros juntos e acompanhando a tomo e "
-                               "a recombinada. Tecla Q; Shift+Q volta.")
+                               "anterior e superior → posterior e inferior → anterior e inferior → imagem inteira), "
+                               "nos quadros juntos e acompanhando a tomo e a recombinada. Tecla Q; Shift+Q volta.")
         self.a_quad.triggered.connect(lambda: tab.mg_quadrant_cycle(tab.active, 1))
         self.addAction(self.a_quad)
+        # 0.100.78: o quadrante anda junto nos quadros de fábrica; aqui se desliga durante o exame
+        self.a_quad_junto = QAction("Quadrante junto", self, checkable=True)
+        self.a_quad_junto.setToolTip("Ligado: o zoom por quadrante (Q) vale para todos os quadros da etapa, cada um no "
+                                     "seu lado. Desligado: só no quadro ativo.")
+        self.a_quad_junto.setChecked(tab.mg_quadrante_junto())
+        self.a_quad_junto.toggled.connect(tab.mg_set_quadrante_junto)
+        self.addAction(self.a_quad_junto)
         a = QAction("1:1", self)
         a.setToolTip("Tamanho real: 1 pixel da imagem = 1 pixel da tela")
         a.triggered.connect(lambda: tab._on_active(lambda v: v.zoom_actual_pixels()))
@@ -540,6 +550,11 @@ class MgBar(QToolBar):
         i = next((k for k, p in enumerate(protos) if p.get("name") == s.proto.get("name")), 0)
         self.c_proto.setCurrentIndex(i)
         self.c_proto.blockSignals(False)
+        a = getattr(self, "a_quad_junto", None)
+        if a is not None and a.isChecked() != self.tab.mg_quadrante_junto():
+            a.blockSignals(True)
+            a.setChecked(self.tab.mg_quadrante_junto())
+            a.blockSignals(False)
         self.c_step.blockSignals(True)
         self.c_step.clear()
         for k, st in enumerate(s.steps):

@@ -92,5 +92,15 @@ def gravar_sr(c, s, study: str) -> None:
     db, storage = getattr(c, "db", None), getattr(c, "storage", None)
     if db is None or storage is None:
         return
-    threading.Thread(target=MS.depois_de_confirmar, args=(c.repo, db, storage, study, s.full_name or s.username),
-                     daemon=True, name="mama-sr").start()
+    from ipe.automation import mama_auto as MA
+    settings = getattr(c, "settings", None)
+    sem = MA.sem_conferir(settings)
+
+    def trabalho():
+        out = MS.depois_de_confirmar(c.repo, db, storage, study, s.full_name or s.username, sem_conferir=sem)
+        if out:                                    # 0.100.78: e para o PACS, se configurado
+            try:
+                MS.enviar(getattr(c, "net", None), c.repo, settings, study, out)
+            except Exception:  # noqa: BLE001
+                pass
+    threading.Thread(target=trabalho, daemon=True, name="mama-sr").start()

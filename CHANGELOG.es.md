@@ -3,6 +3,20 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.78 — Mamografía: cuatro áreas de cuadrante, sincronías apagadas, SR sin revisión y envío al PACS
+- **Zoom por cuadrante con cuatro áreas** (Ipê de escritorio e Ipê Web): posterior y superior → anterior y superior
+  → posterior e inferior → anterior e inferior → mama entera (tecla Q; Mayús+Q vuelve). El cuadrante anda junto en
+  todos los cuadros de fábrica; el botón **Cuadrante junto** de la barra de la mamografía lo apaga durante el examen.
+- **En la mamografía, todas las sincronías vienen apagadas** (zoom y desplazamiento, ventana y cortes), en Ipê de
+  escritorio e Ipê Web, y se guardan aparte de las otras modalidades. Quien había encendido el desplazamiento junto
+  de la mamografía vuelve a apagado una vez.
+- **Densidad y calcificaciones vasculares sin revisión** (opcional): la mamografía que llega se mide y el SR, las
+  imágenes marcadas y el resumen se guardan enseguida, marcados como no revisados. Al abrir el examen todavía se
+  puede confirmar o corregir: el SR se rehace.
+- **Envío al PACS**: los nodos elegidos reciben el SR, las imágenes marcadas y el resumen una vez guardados (sin
+  revisión o después de confirmar). Configuración ▸ CAD/IA ▸ Densidad y calcificaciones, y Registros ▸
+  Automatizaciones de IA en Ipê Web.
+
 ## 0.100.77 — Ipê Web: zoom por cuadrante en la mamografía
 - **Zoom por cuadrante en la mamografía de Ipê Web**, como en Ipê de escritorio: botón **Zoom por cuadrante** en la
   barra de la mamografía o tecla **Q** (**Mayús+Q** vuelve). Posterior y superior → posterior e inferior → mama

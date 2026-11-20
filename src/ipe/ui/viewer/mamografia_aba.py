@@ -224,14 +224,21 @@ class MamografiaMixin:
         from ipe.ui.viewer.estado_analise import usuario_atual
         quem = usuario_atual()
 
+        from ipe.automation import mama_auto as MA
+        sem = MA.sem_conferir(self.settings)
+
         def trabalho():
-            return MS.depois_de_confirmar(repo, db, storage, study_uid, quem)
+            return MS.depois_de_confirmar(repo, db, storage, study_uid, quem, sem_conferir=sem)
 
         def pronto(out, err) -> None:
             if err is not None:
                 self.status_message.emit(f"Não gravei o SR da mamografia: {err}")
             elif out:
                 self.status_message.emit(MS.resumo_texto(out))
+                try:                                     # 0.100.78: e para o PACS, se configurado
+                    MS.enviar(getattr(self, "net", None), self.repo, self.settings, study_uid, out)
+                except Exception:  # noqa: BLE001
+                    pass
                 try:
                     self.recarregar_series()
                 except Exception:  # noqa: BLE001
@@ -297,9 +304,22 @@ class MamografiaMixin:
             return []
         out = [vp]
         s = self.mg_session
-        if s is not None and s.proto.get("sync_zoom", True) and vp.mg_cell is not None:
+        if s is not None and self.mg_quadrante_junto() and vp.mg_cell is not None:
             out += [v for v in self._shown() if v is not vp and v.mg_cell is not None and v.frames]
         return out
+
+    def mg_quadrante_junto(self) -> bool:
+        """0.100.78: o zoom por quadrante nos quadros juntos — ligado de fábrica (a opção do protocolo); o botão
+        "Quadrante junto" da barra desliga e liga durante o exame."""
+        v = getattr(self, "_mg_quad_junto", None)
+        if v is not None:
+            return bool(v)
+        s = self.mg_session
+        return bool(s.proto.get("sync_zoom", True)) if s is not None else True
+
+    def mg_set_quadrante_junto(self, on: bool) -> None:
+        self._mg_quad_junto = bool(on)
+        self.status_message.emit("Zoom por quadrante: " + ("nos quadros juntos" if on else "só no quadro ativo"))
 
     def mg_quadrant(self, vp, idx: int) -> None:
         """Zoom no quadrante da mama (posterior/anterior × superior/inferior) e, no protocolo, nos outros
@@ -354,13 +374,16 @@ class MamografiaMixin:
             self.status_message.emit("Não achei a mama nos quadros desta tela.")
 
     def mg_quadrant_cycle(self, vp, d: int = 1) -> None:
-        """Cada clique vai para o próximo: posterior+superior → posterior+inferior → imagem inteira."""
-        from ipe.ui.viewer.mammo_view import QUAD_NAMES
+        """Cada clique vai para o próximo (0.100.78, quatro áreas): posterior+superior → anterior+superior →
+        posterior+inferior → anterior+inferior → imagem inteira."""
+        from ipe.ui.viewer.mammo_view import QUAD_NAMES, QUAD_ORDEM
         if vp is None or vp._img is None:
             return
-        n = len(QUAD_NAMES)
-        cur = vp.quad_idx if vp.state.zoom > 1.05 else -1
-        new = (cur + 1 + d) % (n + 1) - 1
+        n = len(QUAD_ORDEM)
+        idx = vp.quad_idx if vp.state.zoom > 1.05 else -1
+        cur = QUAD_ORDEM.index(idx) if idx in QUAD_ORDEM else -1
+        pos = (cur + 1 + d) % (n + 1) - 1
+        new = QUAD_ORDEM[pos] if pos >= 0 else -1
         self.mg_quadrant(vp, new)
         self.status_message.emit("Zoom: imagem inteira" if new < 0
                                  else f"Zoom: quadrante {QUAD_NAMES[new]}")
@@ -373,7 +396,7 @@ class MamografiaMixin:
         quadrante (Q)."""
         if kind not in ("zoom", "pan") or vp is None or vp.mg_cell is None:
             return
-        if self.mg_session is None or not self.hub.sync_zoom or getattr(self, "_mg_syncing", False):
+        if self.mg_session is None or not self.hub.mg_sync_zoom or getattr(self, "_mg_syncing", False):
             return
         ponto = vp.anat_center()
         if ponto is None:

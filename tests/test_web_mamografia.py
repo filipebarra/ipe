@@ -210,7 +210,8 @@ def test_mamografia_uma_tela(servidor_mg):
         # alinhadas pelo mamilo: na mesma altura da tela
         assert q["CCD"]["mamilo_y"] == pytest.approx(q["CCE"]["mamilo_y"], abs=0.02)
         assert "4 incidências" in pg.inner_text(".barra-mg")
-        # 0.100.77: zoom por quadrante (Q), como no Ipê de mesa — todos os quadros juntos, cada um no seu lado
+        # 0.100.77/78: zoom por quadrante (Q), quatro áreas como no Ipê de mesa — todos os quadros juntos, cada um no
+        # seu lado: posterior+superior (0) → anterior+superior (2) → posterior+inferior (1) → anterior+inferior (3)
         z_mama = q["CCD"]["zoom"]
         pg.locator(".quadro").nth(0).click()
         pg.keyboard.press("q")
@@ -219,17 +220,40 @@ def test_mamografia_uma_tela(servidor_mg):
         for cod, borda in (("CCD", 1.0), ("CCE", 0.0)):
             assert qq[cod]["zoom"] >= 2 and qq[cod]["zoom"] > z_mama
             assert qq[cod]["parede_x"] == pytest.approx(borda, abs=0.02)     # a parede continua na borda dela
-            assert qq[cod]["topo_y"] == pytest.approx(0.0, abs=0.02)         # posterior e superior: o topo da mama em cima
+            assert qq[cod]["topo_y"] == pytest.approx(0.0, abs=0.02)         # superior: o topo da mama em cima
         assert qq["CCD"]["escala"] == pytest.approx(qq["CCE"]["escala"], rel=0.01)
         assert "ligado" in pg.locator(".barra-mg button[aria-label^='Zoom por quadrante']").get_attribute("class")
+        pg.keyboard.press("q")                                               # anterior e superior
+        assert _esperar(lambda: _celulas(pg)["quad"] == 2)
+        qq = {x["codigo"]: x for x in _celulas(pg)["quadros"]}
+        assert qq["CCD"]["frente_x"] == pytest.approx(0.0, abs=0.02)        # o lado do mamilo na borda de fora
+        assert qq["CCE"]["frente_x"] == pytest.approx(1.0, abs=0.02)
+        assert qq["CCD"]["topo_y"] == pytest.approx(0.0, abs=0.02)
         pg.keyboard.press("q")                                               # posterior e inferior
         assert _esperar(lambda: _celulas(pg)["quad"] == 1)
         qq = {x["codigo"]: x for x in _celulas(pg)["quadros"]}
         assert qq["CCD"]["base_y"] == pytest.approx(1.0, abs=0.02) and qq["CCD"]["parede_x"] == pytest.approx(1.0, abs=0.02)
+        pg.keyboard.press("q")                                               # anterior e inferior
+        assert _esperar(lambda: _celulas(pg)["quad"] == 3)
+        qq = {x["codigo"]: x for x in _celulas(pg)["quadros"]}
+        assert qq["CCD"]["base_y"] == pytest.approx(1.0, abs=0.02) and qq["CCD"]["frente_x"] == pytest.approx(0.0, abs=0.02)
         pg.keyboard.press("Shift+Q")                                         # volta ao anterior
-        assert _esperar(lambda: _celulas(pg)["quad"] == 0)
+        assert _esperar(lambda: _celulas(pg)["quad"] == 1)
         pg.keyboard.press("q")
         pg.keyboard.press("q")                                               # de novo a mama inteira
+        assert _esperar(lambda: _celulas(pg)["quad"] == -1)
+        # 0.100.78: "Quadrante junto" ligado de fábrica; desligado, o quadrante vale só no quadro ativo
+        assert _celulas(pg)["quad_junto"] is True
+        pg.click(".barra-mg button[aria-label^='Quadrante junto']")
+        assert _celulas(pg)["quad_junto"] is False
+        pg.keyboard.press("q")
+        assert _esperar(lambda: _celulas(pg)["quad"] == 0)
+        e = _celulas(pg)
+        assert e["quadros"][0]["zoom"] >= 2 and e["quadros"][1]["zoom"] == pytest.approx(z_mama, rel=0.01)
+        pg.click(".barra-mg button[aria-label^='Quadrante junto']")          # liga de novo: todos no quadrante
+        assert _esperar(lambda: _celulas(pg)["quadros"][1]["zoom"] >= 2)
+        for _ in range(4):
+            pg.keyboard.press("q")
         assert _esperar(lambda: _celulas(pg)["quad"] == -1)
         assert _celulas(pg)["quadros"][0]["zoom"] == pytest.approx(z_mama, rel=0.01)
         # próxima etapa: CC (1 × 2)

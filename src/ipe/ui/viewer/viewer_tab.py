@@ -2195,8 +2195,9 @@ class ViewerTab(BarraMixin, MPRMixin, FusaoMixin, MamografiaMixin, IAMixin, Onco
         auto = self.hub.sync_auto and self.hub.auto_da_modalidade(mod)
         modo = self.modo_sync()
         for a, on in ((self.sync_auto_action, modo == "auto"), (self.sync_manual_action, modo == "manual"),
-                      (self.sync_wl_action, self.hub.sync_wl),
-                      (self.sync_zoom_action, self.hub.sync_zoom), (self.refs_action, self.hub.show_refs),
+                      (self.sync_wl_action, bool(getattr(self.hub, self.flag_sync("sync_wl")))),
+                      (self.sync_zoom_action, bool(getattr(self.hub, self.flag_sync("sync_zoom")))),
+                      (self.refs_action, self.hub.show_refs),
                       (self.link_action, linked or auto)):
             if a.isChecked() != on:
                 a.blockSignals(True)
@@ -2206,6 +2207,10 @@ class ViewerTab(BarraMixin, MPRMixin, FusaoMixin, MamografiaMixin, IAMixin, Onco
     @property
     def sync_auto(self) -> bool:
         return self.hub.sync_auto
+
+    def flag_sync(self, nome: str) -> str:
+        """0.100.78: "sync_wl"/"sync_zoom" — ou as da mamografia, quando a aba mostra mamografia."""
+        return f"mg_{nome}" if (self.mg_session is not None or self._modalidade_ativa() == "MG") else nome
 
     def _modalidade_ativa(self) -> str:
         """A modalidade do quadro ativo — a regra da automática é desta modalidade."""

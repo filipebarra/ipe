@@ -58,9 +58,63 @@ def pronto_para_gravar(repo, study_uid: str) -> tuple[dict | None, dict | None]:
     return (d if d_ok else None), (c if c_ok else None)
 
 
-def depois_de_confirmar(repo, db, storage_root, study_uid: str, quem: str = "") -> dict | None:
-    """Chamado depois de cada confirmação: com tudo confirmado, grava (ou regrava) o SR e as imagens."""
-    d, c = pronto_para_gravar(repo, study_uid)
+def _auto(x: dict | None) -> bool:
+    """Medida que ninguém conferiu (aceita automaticamente, 0.100.78)."""
+    return (x or {}).get("estado") in (None, "", "auto")
+
+
+def para_gravar_sem_conferir(repo, study_uid: str) -> tuple[dict | None, dict | None]:
+    """0.100.78: o que vai ao SR quando a medida é aceita sem conferência — o que já foi confirmado fica como está;
+    o resto entra como a rede sugeriu (densidade = categoria da NYU; calcificações = grau sugerido pela área)."""
+    from ipe.ai import calc_vascular as C
+    from ipe.imaging import densidade_revisao as R
+    d, c = R.guardada(repo, study_uid), C.guardada(repo, study_uid)
+    if d is not None and _auto(d):
+        d = dict(d, categoria=d.get("nyu")) if d.get("nyu") else None
+    elif d is not None and not d.get("categoria"):
+        d = None
+    if c is not None and _auto(c):
+        c = dict(c, grau=c.get("sugestao")) if (c.get("sugestao") and not c.get("aviso")) else None
+    elif c is not None and not c.get("grau"):
+        c = None
+    return d, c
+
+
+def gravar_sem_conferir(repo, db, storage_root, study_uid: str) -> dict | None:
+    """Grava o SR com a medida automática (sem esperar a confirmação). Quem abrir depois pode confirmar ou corrigir:
+    `depois_de_confirmar` refaz o SR por cima."""
+    d, c = para_gravar_sem_conferir(repo, study_uid)
+    if d is None and c is None:
+        return None
+    out = gravar(repo, db, storage_root, study_uid, d, c, "")
+    try:
+        from ipe.central.client_repo import upload_if_client
+        upload_if_client(repo, study_uid)
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
+def enviar(net, repo, settings, study_uid: str, out: dict | None) -> int:
+    """Manda o SR, as imagens marcadas e o resumo para os nós de Preferências ▸ CAD/IA (0.100.78)."""
+    if not out or not out.get("series"):
+        return 0
+    from ipe.automation import destinos as DEST
+    from ipe.automation import mama_auto as MA
+    info = {}
+    try:
+        info = repo.study_info(study_uid) or {}
+    except Exception:  # noqa: BLE001
+        pass
+    nome = f"{info.get('patient_name', '')} {info.get('description', '')}".strip()
+    return DEST.enviar(net, repo, study_uid, out["series"], MA.destinos(settings), f"Densidade e calcificações: {nome}")
+
+
+def depois_de_confirmar(repo, db, storage_root, study_uid: str, quem: str = "",
+                        sem_conferir: bool = False) -> dict | None:
+    """Chamado depois de cada confirmação: com tudo confirmado, grava (ou regrava) o SR e as imagens. Com a medida
+    aceita sem conferência (0.100.78), regrava já com o que foi confirmado e o resto como a rede sugeriu."""
+    d, c = para_gravar_sem_conferir(repo, study_uid) if sem_conferir else pronto_para_gravar(repo, study_uid)
     if d is None and c is None:
         return None
     try:
@@ -221,15 +275,18 @@ def tabela(d: dict | None, c: dict | None, cab: dict) -> np.ndarray:
     linhas: list[tuple[str, str, str]] = []           # (tipo, esquerda, direita)
     if d:
         linhas.append(("faixa", "DENSIDADE MAMÁRIA (BI-RADS)", ""))
-        linhas.append(("linha", "Composição confirmada", R.NOMES.get(d.get("categoria", ""), d.get("categoria", ""))))
+        linhas.append(("linha", "Composição (automática, não conferida)" if _auto(d) else "Composição confirmada",
+                       R.NOMES.get(d.get("categoria", ""), d.get("categoria", ""))))
         if d.get("nyu"):
             linhas.append(("linha", "Sugestão da rede (NYU)", R.NOMES.get(d["nyu"], d["nyu"])))
         for cat, p in zip(R.CATEGORIAS, d.get("nyu_probs") or []):
             linhas.append(("linha", f"  probabilidade {cat.upper()}", f"{_fmt(100 * p)} %"))
-        linhas.append(("linha", "Confirmado por", f"{d.get('revisor') or '—'} {d.get('confirmado_em') or ''}".strip()))
+        linhas.append(("linha", "Confirmado por", "não conferido pelo médico" if _auto(d) else
+                       f"{d.get('revisor') or '—'} {d.get('confirmado_em') or ''}".strip()))
     if c:
         linhas.append(("faixa", "CALCIFICAÇÕES VASCULARES", ""))
-        linhas.append(("linha", "Grau confirmado", GRAUS.get(c.get("grau", ""), c.get("grau", ""))))
+        linhas.append(("linha", "Grau (automático, não conferido)" if _auto(c) else "Grau confirmado",
+                       GRAUS.get(c.get("grau", ""), c.get("grau", ""))))
         if c.get("sugestao"):
             linhas.append(("linha", "Sugestão (área)", GRAUS.get(c["sugestao"], c["sugestao"])))
         for lado in ("R", "L"):
@@ -240,7 +297,8 @@ def tabela(d: dict | None, c: dict | None, cab: dict) -> np.ndarray:
             linhas.append(("linha", nome, valor))
         n = sum(1 for x in (c.get("imagens") or []) if (x.get("area_mm2") or 0) > 0)
         linhas.append(("linha", "Imagens com calcificação", str(n)))
-        linhas.append(("linha", "Confirmado por", f"{c.get('revisor') or '—'} {c.get('confirmado_em') or ''}".strip()))
+        linhas.append(("linha", "Confirmado por", "não conferido pelo médico" if _auto(c) else
+                       f"{c.get('revisor') or '—'} {c.get('confirmado_em') or ''}".strip()))
     larg, alt_l, topo = 1400, 40, 190
     alt = topo + alt_l * len(linhas) + 120
     im = Image.new("RGB", (larg, alt), (255, 255, 255))
@@ -249,7 +307,9 @@ def tabela(d: dict | None, c: dict | None, cab: dict) -> np.ndarray:
     g.text((40, 26), "Mamografia — densidade e calcificações vasculares", font=_fonte(36), fill=(255, 255, 255))
     g.text((40, 78), f"{cab.get('paciente', '')}  ·  {cab.get('id', '')}  ·  {cab.get('data', '')}",
            font=_fonte(22), fill=(219, 225, 242))
-    g.text((40, 140), f"Ipê · confirmado pelo médico · {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+    sem = (d is not None and _auto(d)) or (c is not None and _auto(c))
+    g.text((40, 140), f"Ipê · {'medida automática, sem conferência do médico' if sem else 'confirmado pelo médico'}"
+                      f" · {datetime.now().strftime('%d/%m/%Y %H:%M')}",
            font=_fonte(20), fill=(90, 90, 90))
     y = topo
     for tipo, a, b in linhas:
@@ -330,7 +390,9 @@ def gravar(repo, db, storage_root, study_uid: str, d: dict | None, c: dict | Non
                 referencias[str(sc.SOPInstanceUID)] = (SECONDARY_CAPTURE, serie_m)
                 datasets.append(sc)
         resumo = _sc(src, tabela(d, c, cab), generate_uid(), SERIE_RESUMO, DESC_RESUMO, 1,
-                     "Resumo: densidade mamária e calcificações vasculares (confirmado)")
+                     "Resumo: densidade mamária e calcificações vasculares "
+                     + ("(automático, não conferido)" if (d is not None and _auto(d)) or (c is not None and _auto(c))
+                        else "(confirmado)"))
         datasets.append(resumo)
         referencias[str(resumo.SOPInstanceUID)] = (SECONDARY_CAPTURE, str(resumo.SeriesInstanceUID))
         sr = _sr(src, d, c, lista, marcadas, resumo, quem, referencias)
@@ -377,8 +439,8 @@ def _sr(src, d, c, lista, marcadas, resumo, quem, referencias) -> Dataset:
         sub = [_texto(_ipe("DENS-CAT", "Breast composition (BI-RADS)"),
                       R.NOMES.get(d.get("categoria", ""), d.get("categoria", ""))),
                _texto(_ipe("DENS-SUG", "Network suggestion"), R.NOMES.get(d.get("nyu") or "", d.get("nyu") or "—")),
-               _texto(_ipe("DENS-EST", "Review"), "aceita (igual à rede)" if d.get("estado") == "aceito"
-                      else "editada pelo médico"),
+               _texto(_ipe("DENS-EST", "Review"), "automática, não conferida pelo médico" if _auto(d)
+                      else "aceita (igual à rede)" if d.get("estado") == "aceito" else "editada pelo médico"),
                _texto(_codigo("111001", "DCM", "Algorithm Name"), "NYU breast density network (Wu et al., 2020)")]
         for cat, p in zip(R.CATEGORIAS, d.get("nyu_probs") or []):
             sub.append(_num(_ipe(f"DENS-P{cat.upper()}", f"Probability of composition {cat.upper()}"),
@@ -400,6 +462,8 @@ def _sr(src, d, c, lista, marcadas, resumo, quem, referencias) -> Dataset:
     if c:
         sub = [_texto(_ipe("BAC-GRAU", "Vascular calcification grade"), GRAUS.get(c.get("grau", ""), c.get("grau", ""))),
                _texto(_ipe("BAC-SUG", "Suggested grade (area)"), GRAUS.get(c.get("sugestao") or "", "—")),
+               _texto(_ipe("BAC-EST", "Review"), "automático, não conferido pelo médico" if _auto(c)
+                      else "conferido pelo médico"),
                _texto(_codigo("111001", "DCM", "Algorithm Name"), str(c.get("modelo") or "SCU-Net"))]
         if c.get("area_mm2") is not None:
             sub.append(_num(_ipe("BAC-AREA", "Calcified area (largest breast)"), c["area_mm2"], "mm2"))

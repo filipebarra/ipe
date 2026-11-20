@@ -3,6 +3,20 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.78 — Mamografia: quatro áreas de quadrante, sincronias desligadas, SR sem conferência e envio ao PACS
+- **Zoom por quadrante com quatro áreas** (Ipê de mesa e Ipê Web): posterior e superior → anterior e superior →
+  posterior e inferior → anterior e inferior → mama inteira (tecla Q; Shift+Q volta). O quadrante anda junto em todos
+  os quadros de fábrica; o botão **Quadrante junto** da barra da mamografia desliga durante o exame (só o quadro ativo).
+- **Na mamografia, todas as sincronias vêm desligadas** (zoom e pan, janela e rolagem), no Ipê de mesa e no Ipê
+  Web, e ficam guardadas à parte das outras modalidades. Quem tinha ligado a rolagem junta da mamografia volta ao
+  desligado uma vez.
+- **Densidade e calcificações vasculares sem conferência** (opcional): a mamografia que chega é medida e o SR, as
+  imagens marcadas e o resumo são gravados na hora, marcados como não conferidos. Ao abrir o exame dá para confirmar
+  ou corrigir: o SR é refeito.
+- **Envio ao PACS**: os nós escolhidos recebem o SR, as imagens marcadas e o resumo depois de gravados (sem
+  conferência ou depois de confirmar). Preferências ▸ CAD/IA ▸ Densidade e calcificações, e Cadastros ▸ Automações
+  de IA no Ipê Web.
+
 ## 0.100.77 — Ipê Web: zoom por quadrante na mamografia
 - **Zoom por quadrante na mamografia do Ipê Web**, como no Ipê de mesa: botão **Zoom por quadrante** na barra da
   mamografia ou tecla **Q** (**Shift+Q** volta). Posterior e superior → posterior e inferior → mama inteira, em todos

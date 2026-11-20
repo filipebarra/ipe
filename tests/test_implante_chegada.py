@@ -291,7 +291,7 @@ def test_zoom_com_mouse_so_sincroniza_com_o_botao(env, tmp_path):
         tab = w.tabs.currentWidget()
         app.processEvents()
         a, b, c, d = tab.viewports[:4]
-        tab.hub.set_flag("sync_zoom", False)
+        tab.hub.set_flag("mg_sync_zoom", False)
         antes = [v.state.zoom for v in (b, c, d)]
         a.state.zoom = a.state.zoom * 2.5
         a.sig.view_changed.emit(a, "zoom")
@@ -299,11 +299,11 @@ def test_zoom_com_mouse_so_sincroniza_com_o_botao(env, tmp_path):
         a.state.pan = (a.state.pan[0] + 40, a.state.pan[1]) if isinstance(a.state.pan, tuple) else a.state.pan
         a.sig.view_changed.emit(a, "pan")
         assert [v.state.zoom for v in (b, c, d)] == pytest.approx(antes)
-        tab.hub.set_flag("sync_zoom", True)
+        tab.hub.set_flag("mg_sync_zoom", True)
         a.sig.view_changed.emit(a, "zoom")
         assert [v.state.zoom for v in (b, c, d)] == pytest.approx([a.state.zoom] * 3)
         # o zoom por quadrante (Q) continua junto, pela opção do protocolo, com o botão desligado
-        tab.hub.set_flag("sync_zoom", False)
+        tab.hub.set_flag("mg_sync_zoom", False)
         a.fit(); b.fit(); c.fit(); d.fit()
         tab.mg_quadrant(a, 0)
         assert all(v.state.zoom >= 2 for v in (a, b, c, d))

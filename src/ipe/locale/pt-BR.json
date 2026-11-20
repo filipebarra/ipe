@@ -7377,7 +7377,32 @@
   "Os modelos de esquema desta instalação, para todos os usuários. O que se desenha num modelo aparece em todos os exames; nos modelos do Ipê o desenho original fica guardado.",
   "Põe no laudo a seção dos esquemas-guia do exame, como as imagens-chave: as figuras com a legenda no PDF, a legenda no texto e, ao assinar, os esquemas no DICOM SR. Os esquemas são desenhados pelo botão Esquema do visualizador.",
   "Tira o esquema escolhido do exame",
-  "esquemas no laudo"
+  "esquemas no laudo",
+  "Aceitar a medida sem conferência: gravar o SR logo depois de medir",
+  "Depois de gravar o SR, enviar para:",
+  "O SR, as imagens com as calcificações marcadas e o resumo vão para os nós marcados depois de gravados (sem conferência ou depois de confirmar).",
+  "O SR, as imagens com as calcificações marcadas e o resumo vão para os nós marcados.",
+  "Vale para a mamografia que chega. Ao abrir o exame ainda dá para confirmar ou corrigir: o SR é refeito (e reenviado).",
+  "Vale para a mamografia que chega. O SR, as imagens marcadas e o resumo saem como a rede sugeriu, marcados como não conferidos. Ao abrir o exame você ainda pode confirmar ou corrigir: o SR é refeito (e reenviado).",
+  "SR da mamografia (sem conferência)",
+  "SR gravado",
+  "nada para gravar",
+  "Zoom por quadrante da mama: cada clique vai para o próximo (posterior e superior → anterior e superior → posterior e inferior → anterior e inferior → imagem inteira), nos quadros juntos e acompanhando a tomo e a recombinada. Tecla Q; Shift+Q volta.",
+  "(automático, não conferido)",
+  "Composição (automática, não conferida)",
+  "Grau (automático, não conferido)",
+  "Resumo: densidade mamária e calcificações vasculares ",
+  "automática, não conferida pelo médico",
+  "automático, não conferido pelo médico",
+  "conferido pelo médico",
+  "confirmado pelo médico",
+  "medida automática, sem conferência do médico",
+  "não conferido pelo médico",
+  "Ligado: o zoom por quadrante (Q) vale para todos os quadros da etapa, cada um no seu lado. Desligado: só no quadro ativo.",
+  "Quadrante junto",
+  "Zoom por quadrante: ",
+  "nos quadros juntos",
+  "só no quadro ativo"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -9417,6 +9442,9 @@
   "série {}, imagem {}",
   "Gravado no exame (figuras e SR): {}",
   "Modelo de esquema — {}",
-  "Esquemas no laudo ({})"
+  "Esquemas no laudo ({})",
+  " e enviado a {} destino(s)",
+  "Densidade e calcificações: {}",
+  "Ipê · {} · {}"
  ]
 }

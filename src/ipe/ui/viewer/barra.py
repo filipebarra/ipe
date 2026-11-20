@@ -862,11 +862,12 @@ class BarraMixin:
                                          "quadro ativo e passam a andar com ele")
         self.sync_manual_action.setToolTip("Ao ligar, os quadros andam juntos mantendo a diferença de cortes "
                                            "que tinham na hora (serve para comparar com outro exame)")
+        # 0.100.78: na mamografia, os mesmos botões ligam e desligam as da mamografia (desligadas de fábrica)
         self.sync_wl_action = self._act("sync.window", "Janela/nível",
-                                        lambda on: self.hub.set_flag("sync_wl", on),
+                                        lambda on: self.hub.set_flag(self.flag_sync("sync_wl"), on),
                                         checkable=True, checked=self.hub.sync_wl)
         self.sync_zoom_action = self._act("sync.zoom", "Zoom e pan",
-                                          lambda on: self.hub.set_flag("sync_zoom", on),
+                                          lambda on: self.hub.set_flag(self.flag_sync("sync_zoom"), on),
                                           checkable=True, checked=self.hub.sync_zoom)
         self.strip_action = self._act("view.strip", "Tira de séries (miniaturas)",
                                       lambda on: self.strip_col.setVisible(on),

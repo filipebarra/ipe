@@ -1051,17 +1051,29 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     // com janelas separadas, ligado de saída (como antes); numa janela só, desligado até o médico ligar
     const chaveLigar = janela ? "janelasLigadas" : "quadrosLigados";
     let ligadas = lerPreferencia(chaveLigar, !!janela);
+    // 0.100.78: na mamografia, a sincronia é a dela, desligada de fábrica (rolagem, zoom e entre janelas)
+    g.mgLigar = lerPreferencia("mgLigados", false);
+    const naMg = () => g.raiz.classList.contains("mg");
     const marcarLigar = () => {
-      bLigar.classList.toggle("ligado", ligadas);
-      bLigar.setAttribute("aria-pressed", String(ligadas));
+      const on = naMg() ? g.mgLigar : ligadas;
+      bLigar.classList.toggle("ligado", on);
+      bLigar.setAttribute("aria-pressed", String(on));
       g.ligarQuadros = ligadas;
     };
     marcarLigar();
+    g.aoMudarModo = marcarLigar;
     // numa janela só, o botão aparece quando há mais de um quadro (não ocupa a barra à toa)
     const verLigar = () => { bLigar.style.display = janela || g.quadros.length > 1 ? "" : "none"; };
     g.aoMontar = verLigar;
     verLigar();
     bLigar.onclick = () => {
+      if (naMg()) {
+        g.mgLigar = !g.mgLigar;
+        gravarPreferencia("mgLigados", g.mgLigar);
+        marcarLigar();
+        if (!g.mgLigar) g.porLinhaDeFora(null);
+        return;
+      }
       ligadas = !ligadas;
       gravarPreferencia(chaveLigar, ligadas);
       marcarLigar();

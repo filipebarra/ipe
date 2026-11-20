@@ -31,6 +31,7 @@ class AutomationEngine(QObject):
     implante_corrigido = Signal(str)   # estudo que ganhou cópias sem implante (0.97)
     segmentacao_pronta = Signal(str, object)   # estudo, saída da segmentação de órgãos automática (0.99)
     gestao_mudou = Signal()                    # 0.99.6: uma regra da gestão automática rodou ou começou
+    mama_medida = Signal(str)                  # 0.100.78: mamografia medida que chegou (gravar o SR sem conferência)
 
     def __init__(self, repo, db, net, settings, paths, open_uids=lambda: set(), parent=None,
                  cache=None):
@@ -53,7 +54,8 @@ class AutomationEngine(QObject):
         self._last_disk_check = 0.0
         # 0.100.57: densidade e calcificações vasculares de toda mamografia que chega (e do banco, uma vez)
         from ipe.automation import mama_auto as MA
-        self.mama = MA.Fila(repo, settings=settings)
+        self.mama = MA.Fila(repo, settings=settings, depois_de_medir=self._mama_medida_na_linha)
+        self.mama_medida.connect(self._mama_sem_conferir)
         self.timer = QTimer(self)
         self.timer.setInterval(30_000)
         self.timer.timeout.connect(self.tick)
@@ -68,7 +70,7 @@ class AutomationEngine(QObject):
         self.repo, self.db = repo, db
         self.mama.parar()
         from ipe.automation import mama_auto as MA
-        self.mama = MA.Fila(repo, settings=self.settings)
+        self.mama = MA.Fila(repo, settings=self.settings, depois_de_medir=self._mama_medida_na_linha)
         if trash_root is not None:
             self.trash_root = trash_root
 
@@ -104,6 +106,38 @@ class AutomationEngine(QObject):
         if not MA.e_mamografia(info):
             return False
         return self.mama.pedir(study_uid)
+
+    def _mama_medida_na_linha(self, study_uid: str, out: dict, da_varredura: bool) -> None:
+        """Na linha da fila: só o exame que chegou (não a varredura do banco) e só com a opção ligada."""
+        from ipe.automation import mama_auto as MA
+        if not da_varredura and MA.sem_conferir(self.settings) and (out.get("densidade") or out.get("calc_vascular")):
+            self.mama_medida.emit(study_uid)              # a tela (ou o servidor) faz o resto na linha dela
+
+    def _mama_sem_conferir(self, study_uid: str) -> None:
+        """0.100.78: aceitar a medida sem conferência — grava o SR, as imagens marcadas e o resumo e, se houver
+        destinos, manda ao PACS. Quem abrir o exame ainda confirma ou corrige (o SR é refeito e reenviado)."""
+        from ipe.ai import mama_sr as MS
+        from ipe.ai import tarefas as TA
+        repo, db, storage, settings = self.repo, self.db, self.paths.storage, self.settings
+        info = repo.study_info(study_uid) or {}
+        nome = f"{info.get('patient_name', '')} {info.get('description', '')}".strip()
+        tid = TA.REGISTRO.nova("SR da mamografia (sem conferência)", study_uid, nome, "automática", TA.RODANDO).id
+
+        def trabalho():
+            return MS.gravar_sem_conferir(repo, db, storage, study_uid)
+
+        def pronto(out, err) -> None:
+            if err is not None:
+                TA.REGISTRO.mudar(tid, TA.ERRO, mensagem=str(err))
+                return
+            if not out:
+                TA.REGISTRO.mudar(tid, TA.VAZIO, mensagem="nada para gravar")
+                return
+            n = MS.enviar(self.net, repo, settings, study_uid, out)
+            TA.REGISTRO.mudar(tid, TA.PRONTO, mensagem="SR gravado" + (f" e enviado a {n} destino(s)" if n else ""))
+            self.changed.emit()
+
+        self.net.run_async(trabalho, pronto)
 
     def mama_chegada(self, study_uids) -> None:
         for u in study_uids or []:

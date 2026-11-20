@@ -97,10 +97,10 @@ def test_mg_protocol_in_viewer(env, sample_dir):
     # um só comando: cada clique vai para o próximo quadrante e, no fim, volta à imagem inteira
     tab.set_left_tool("quadzoom")
     seen = []
-    for _ in range(3):                # só duas etapas: superior, inferior e volta à imagem inteira
+    for _ in range(5):                # 0.100.78: quatro áreas (post/ant × sup/inf) e volta à imagem inteira
         QTest.mouseClick(a, Qt.LeftButton, Qt.NoModifier, a.rect().center())
         seen.append((a.quad_idx, round(a.state.zoom, 2) >= 2, b.quad_idx))
-    assert seen == [(0, True, 0), (1, True, 1), (-1, False, -1)]
+    assert seen == [(0, True, 0), (2, True, 2), (1, True, 1), (3, True, 3), (-1, False, -1)]
     tab.actions_by_id["mg.quad_next"].trigger()
     assert a.quad_idx == 0 and b.state.zoom >= 2
     tab.actions_by_id["mg.quad_prev"].trigger()
@@ -308,12 +308,12 @@ def test_scroll_same_view_and_tomo(env, tmp_path):
     # sincronização do zoom com o mouse (0.97.1): só com o botão "Zoom e pan", como nos outros exames
     b = tab.viewports[1]
     tab.mg_quadrant(a, -1)
-    tab.hub.set_flag("sync_zoom", False)
+    tab.hub.set_flag("mg_sync_zoom", False)
     zoom_b = b.state.zoom
     a.state.zoom = 3.0
     a.sig.view_changed.emit(a, "zoom")
     assert b.state.zoom == pytest.approx(zoom_b)          # botão desligado: o outro não anda
-    tab.hub.set_flag("sync_zoom", True)                   # ligado: acompanha no mesmo lugar da mama
+    tab.hub.set_flag("mg_sync_zoom", True)                   # ligado: acompanha no mesmo lugar da mama
     a.sig.view_changed.emit(a, "zoom")
     assert b.state.zoom == pytest.approx(3.0)
     pa, pb = a.anat_center(), b.anat_center()

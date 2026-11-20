@@ -623,7 +623,13 @@ def _ferramentas(c) -> list[dict]:
                     _campo(MA.CHAVE, "bool", "Medir automaticamente quando a mamografia chegar (rede, PACS, importação)",
                            bool(MA._cfg(st, MA.CHAVE, True))),
                     _campo(MA.CHAVE_ABRIR, "bool", "Ao abrir a mamografia, pedir a confirmação do que foi medido",
-                           MA.confirmar_ao_abrir(st))]})
+                           MA.confirmar_ao_abrir(st)),
+                    _campo(MA.CHAVE_SEM_CONFERIR, "bool", "Aceitar a medida sem conferência: gravar o SR logo depois "
+                           "de medir", MA.sem_conferir(st), "Vale para a mamografia que chega. Ao abrir o exame ainda "
+                           "dá para confirmar ou corrigir: o SR é refeito (e reenviado)."),
+                    _campo(MA.CHAVE_DESTINOS, "nos", "Depois de gravar o SR, enviar para:",
+                           [int(i) for i in MA.destinos(st) if str(i).lstrip("-").isdigit()],
+                           "O SR, as imagens com as calcificações marcadas e o resumo vão para os nós marcados.")]})
     g = cfg_de(CF)
     out.append({"id": "cefalo", "nome": "Cefalometria do cavum", "auto": CF.CHAVE_AUTO,
                 "titulo": "Cefalometria do cavum — via aérea, palato, língua e hioide (TotalSegmentator)",

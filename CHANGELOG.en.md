@@ -3,6 +3,20 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.78 — Mammography: four quadrant areas, sync off, SR without review and sending to the PACS
+- **Quadrant zoom with four areas** (desktop Ipê and Ipê Web): posterior and superior → anterior and superior →
+  posterior and inferior → anterior and inferior → whole breast (Q key; Shift+Q goes back). The quadrant moves in all
+  viewports together by default; the **Quadrant together** button on the mammography bar turns it off during the exam.
+- **In mammography, all synchronizations are off by default** (zoom and pan, window and scrolling), in desktop Ipê
+  and Ipê Web, and are kept separately from other modalities. Anyone who had turned on mammography scroll sync is
+  set back to off once.
+- **Density and vascular calcifications without review** (optional): an incoming mammogram is measured and the SR,
+  the marked images and the summary are saved right away, marked as not reviewed. When opening the exam you can still
+  confirm or correct: the SR is redone.
+- **Sending to the PACS**: the chosen nodes receive the SR, the marked images and the summary once saved (without
+  review or after confirming). Settings ▸ CAD/AI ▸ Density and calcifications, and Administration ▸ AI automations in
+  Ipê Web.
+
 ## 0.100.77 — Ipê Web: quadrant zoom in mammography
 - **Quadrant zoom in Ipê Web mammography**, as in desktop Ipê: **Quadrant zoom** button on the mammography bar or the
   **Q** key (**Shift+Q** goes back). Posterior and superior → posterior and inferior → whole breast, in all viewports

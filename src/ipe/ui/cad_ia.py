@@ -547,6 +547,17 @@ class CadIaTab(QWidget):
         self.c_mama_abrir.setChecked(MA.confirmar_ao_abrir(self.settings))
         f.addRow(self.c_mama_auto)
         f.addRow(self.c_mama_abrir)
+        # 0.100.78
+        self.c_mama_sem = QCheckBox("Aceitar a medida sem conferência: gravar o SR logo depois de medir")
+        self.c_mama_sem.setChecked(MA.sem_conferir(self.settings))
+        self.c_mama_sem.setToolTip("Vale para a mamografia que chega. O SR, as imagens marcadas e o resumo saem como a "
+                                   "rede sugeriu, marcados como não conferidos. Ao abrir o exame você ainda pode "
+                                   "confirmar ou corrigir: o SR é refeito (e reenviado).")
+        f.addRow(self.c_mama_sem)
+        self.l_mama_dest = _lista_de_nos(self.repo, MA.destinos(self.settings))
+        self.l_mama_dest.setToolTip("O SR, as imagens com as calcificações marcadas e o resumo vão para os nós marcados "
+                                    "depois de gravados (sem conferência ou depois de confirmar).")
+        f.addRow("Depois de gravar o SR, enviar para:", self.l_mama_dest)
         texto = QLabel("A densidade (rede da NYU) e as calcificações vasculares (SCU-Net) são medidas em segundo plano, "
                        "um exame por vez, e ficam esperando a sua confirmação. Ao abrir o exame, a janela da "
                        "densidade abre e, fechada ela, a das calcificações. Confirmadas as duas, o Ipê grava no "
@@ -660,6 +671,8 @@ class CadIaTab(QWidget):
         s.set(IMP.CHAVE, self.c_imp_auto.isChecked())
         s.set(MA.CHAVE, self.c_mama_auto.isChecked())
         s.set(MA.CHAVE_ABRIR, self.c_mama_abrir.isChecked())
+        s.set(MA.CHAVE_SEM_CONFERIR, self.c_mama_sem.isChecked())
+        s.set(MA.CHAVE_DESTINOS, _marcados(self.l_mama_dest))
         s.set(IMP.CHAVE_ANTERIORES, self.c_imp_ant.isChecked())
         s.set(IMP.CHAVE_SO_COM_MARCA, self.r_imp_marca.isChecked())
         s.set(IMP.CHAVE_SALVAR_BOTAO, self.c_imp_botao.isChecked())

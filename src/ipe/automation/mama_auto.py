@@ -23,6 +23,10 @@ log = logging.getLogger(__name__)
 CHAVE = "mg.ia_na_chegada"                  # Preferências ▸ Mamografia: medir sozinho na chegada
 CHAVE_ABRIR = "mg.ia_confirmar_ao_abrir"    # abrir as janelas de confirmação ao abrir o exame
 CHAVE_VARREDURA = "mg.ia_varredura"         # a última varredura do banco terminada (número do método)
+# 0.100.78: aceitar a medida sem conferência — o SR é gravado logo depois de medir (exame que chega); quem abrir o
+# exame ainda pode confirmar ou corrigir, e o SR é refeito. E os nós DICOM para onde vão o SR e as imagens.
+CHAVE_SEM_CONFERIR = "mg.ia_sem_conferencia"
+CHAVE_DESTINOS = "mg.ia_destinos"
 #: muda quando o método muda e o banco precisa ser varrido de novo
 VARREDURA = 2
 TITULO = "Densidade e calcificações vasculares"
@@ -47,6 +51,15 @@ def ligado(settings) -> bool:
 
 def confirmar_ao_abrir(settings) -> bool:
     return bool(_cfg(settings, CHAVE_ABRIR, True))
+
+
+def sem_conferir(settings) -> bool:
+    return bool(_cfg(settings, CHAVE_SEM_CONFERIR, False))
+
+
+def destinos(settings) -> list:
+    v = _cfg(settings, CHAVE_DESTINOS, [])
+    return list(v) if isinstance(v, (list, tuple)) else []
 
 
 def local(repo) -> bool:
@@ -142,10 +155,11 @@ def mamografias_do_banco(repo) -> list[str]:
 class Fila:
     """Um exame por vez, numa linha só (as redes usam a CPU inteira). A chegada passa na frente da varredura."""
 
-    def __init__(self, repo, aviso=None, settings=None) -> None:
+    def __init__(self, repo, aviso=None, settings=None, depois_de_medir=None) -> None:
         self.repo = repo
         self.settings = settings
         self.aviso = aviso                      # callable(study_uid, out) quando um exame termina
+        self.depois_de_medir = depois_de_medir  # callable(study_uid, out, da_varredura), nesta linha (0.100.78)
         self._lock = threading.Lock()
         self._chegada: list[str] = []
         self._varredura: list[str] = []
@@ -239,6 +253,11 @@ class Fila:
                         self.aviso(uid, out)
                     except Exception:  # noqa: BLE001
                         pass
+                if self.depois_de_medir is not None and out and not self.stop.is_set():
+                    try:
+                        self.depois_de_medir(uid, out, da_varredura)
+                    except Exception:  # noqa: BLE001
+                        log.exception("depois de medir a mamografia %s", uid)
             except Exception as e:  # noqa: BLE001
                 log.exception("mama automática %s", uid)
                 if tid is not None:
