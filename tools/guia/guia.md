@@ -1912,6 +1912,8 @@ Na TC de tórax, o botão **Enfisema** (ou Aplicações ▸ Enfisema) separa os 
 
 O número depende da técnica, e a revisão avisa: corte fino (≤ 1,5 mm), filtro suave (B30, STANDARD; filtro de pulmão ou osso aumenta o ruído e a %LAA), sem contraste e em inspiração plena; a mediana do ar da traqueia confere a calibração (perto de −1000 HU). Use de preferência a série fina de filtro suave, se houver. A referência (limiar de −950 HU validado por Gevenois et al., 1996; %LAA acima de ~5–6% costuma ser tratada como enfisema relevante) vai como texto ao lado, não como veredito.
 
+**Ruído (0.100.81).** O ruído de um filtro duro põe pontinhos abaixo de −950 HU no pulmão todo e infla a %LAA. Por isso: se o quadro tem a série de filtro duro e o exame tem uma de filtro suave que serve, o botão mede na suave; e, numa série ruidosa (filtro duro, ou desvio-padrão do ar da traqueia acima de 30 HU), o Ipê aplica um filtro gaussiano leve (σ 0,8 mm) antes do limiar — o achado diz quando fez isso. Desliga-se em **Configurações ▸ CAD/IA ▸ Enfisema**.
+
 ### Fratura vertebral — Genant (0.99.77)
 
 Na TC ou na RM com a coluna torácica ou lombar, o botão **Genant** (ou Aplicações ▸ Genant) nomeia as vértebras (a mesma regra da Coluna, com a IA em resolução cheia), mede a altura anterior, média e posterior de cada corpo e calcula a perda de altura: **cunha** (anterior contra posterior), **bicôncava** (média contra posterior) ou **esmagamento** (posterior contra a média das duas vizinhas). De T4 a L5, 20–25% é grau 1 (leve), 25–40% grau 2 (moderada) e mais de 40% grau 3 (acentuada), pela classificação semiquantitativa de Genant (1993).

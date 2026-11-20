@@ -200,3 +200,41 @@ def test_tela_enfisema(env, tmp_path, monkeypatch):
         assert tab.achados_painel.isVisible()
     finally:
         w.close()
+
+
+def test_enfisema_ruido_reduzido_na_serie_ruidosa():
+    """0.100.81: série ruidosa (filtro duro) — o ruído não vira 'enfisema' espalhado: um gaussiano leve antes do
+    limiar. O pulmão é −860 HU com ruído de DP 60 HU (o que um filtro de pulmão dá) e um bloco de enfisema real."""
+    rng = np.random.default_rng(1)
+    hu = _hu(laa_sup_d=0.0, laa_inf=0.0)
+    rot = _rotulos(hu, EN.tarefas())
+    pulmao = hu == -850
+    bloco = np.zeros(hu.shape, bool)
+    bloco[45:55, 50:66, 20:36] = True
+    bloco &= pulmao
+    ruido = rng.normal(0, 60, hu.shape)
+    hu2 = hu.astype(np.float32)
+    hu2[pulmao] = -860 + ruido[pulmao]
+    hu2[bloco] = -990 + ruido[bloco]
+    traq = hu == -999
+    hu2[traq] = -1000 + ruido[traq]
+    hu2 = np.clip(hu2, -1024, 3000).astype(np.int16)
+    t = _T(hu2)
+    cru = EN.calcular(t, rot, settings=_Cfg(False))
+    filtrado = EN.calcular(t, rot, settings=_Cfg(True))
+    real = bloco.sum() / pulmao.sum() * 100
+    assert cru.ruido_hu > EN.RUIDO_MAX and not cru.ruido_reduzido     # o ar da traqueia bate no −1024
+    assert cru.regioes["total"]["laa"] > real + 2                     # sem filtro: o ruído soma vários pontos
+    assert filtrado.ruido_reduzido and abs(filtrado.regioes["total"]["laa"] - real) < abs(cru.regioes["total"]["laa"] - real) / 3
+    assert any("ruído foi reduzido" in a for a in filtrado.avisos) and "ruído reduzido" in filtrado.elegibilidade
+    # série limpa: nada muda
+    limpa = EN.calcular(_T(_hu()), _rotulos(_hu(), EN.tarefas()), settings=_Cfg(True))
+    assert not limpa.ruido_reduzido
+
+
+class _Cfg:
+    def __init__(self, ruido):
+        self.ruido = ruido
+
+    def get(self, chave, padrao=None):
+        return self.ruido if chave == EN.CHAVE_RUIDO else padrao

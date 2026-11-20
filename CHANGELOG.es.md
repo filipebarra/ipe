@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.81 — Enfisema: menos puntos falsos en la serie ruidosa
+- **Enfisema (%LAA−950)**: en una serie ruidosa (filtro duro, o aire de la tráquea con desvío estándar mayor de
+  30 HU) Ipê aplica un filtro gaussiano leve (σ 0,8 mm) antes del umbral, y el ruido deja de aparecer como
+  "enfisema" disperso por el pulmón. El hallazgo dice cuándo se hizo; se apaga en Configuración ▸ CAD/IA ▸ Enfisema.
+- El botón **Enfisema** mide en la serie de filtro suave del estudio cuando la del cuadro tiene filtro duro.
+
 ## 0.100.80 — Ipê Web: búsqueda en el PACS con Hoy/Ayer, n.º del estudio y columnas ordenables
 - En la búsqueda del PACS de Ipê Web: botones **Hoy** y **Ayer** (ponen la fecha y buscan), el campo **N.º del
   estudio** (Study ID; el número de acceso sigue en el campo Acceso) y las columnas **Acceso** y **N.º del estudio**.

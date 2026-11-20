@@ -336,6 +336,18 @@ class IAMixin:
                     alvo = vp
                     self.load_series_into(vp, serie)
                 vp = alvo
+        if tipo == "enfisema":                  # 0.100.81: na série de filtro suave do exame, quando o quadro tem a dura
+            from ipe.ai import enfisema as EN
+            outra = EN.serie_melhor(self.repo, vp.study_uid or self.study_uid, getattr(vp, "series_uid", "") or "",
+                                    self.settings)
+            if outra:
+                alvo = next((v for v in self.viewports if v.series_uid == outra and v.frames), None)
+                if alvo is None:
+                    alvo = vp
+                    self.load_series_into(vp, outra)
+                vp = alvo
+                self.status_message.emit("Enfisema: medido na série de filtro suave do exame (a do quadro tem filtro "
+                                         "duro, que aumenta o ruído).")
         if tipo in ("prostata", "picai"):       # 0.100.79: rodam no T2 axial do exame, esteja ou não no quadro
             from ipe.ai import prostata as PR
             linha = self._series_row(getattr(vp, "series_uid", "") or "")

@@ -10230,5 +10230,13 @@
  "{}: o SHA-256 não confere com o do repositório do PI-CAI (arquivo apagado)": "{}: o SHA-256 não confere com o do repositório do PI-CAI (arquivo apagado)",
  "numpy<2; python_version < \"3.13\"": "numpy<2; python_version < \"3.13\"",
  "não achei a pasta do nnU-Net 1.7 ({})": "não achei a pasta do nnU-Net 1.7 ({})",
- "diga um nome, ID, acesso, nº do exame, descrição ou um período (busca sem filtro pesa no PACS)": "give a name, ID, accession, exam no., description or a period (a search without filters is heavy on the PACS)"
+ "diga um nome, ID, acesso, nº do exame, descrição ou um período (busca sem filtro pesa no PACS)": "give a name, ID, accession, exam no., description or a period (a search without filters is heavy on the PACS)",
+ "Enfisema: medido na série de filtro suave do exame (a do quadro tem filtro duro, que aumenta o ruído).": "Emphysema: measured on the study's soft-kernel series (the viewport one has a sharp kernel, which adds noise).",
+ "O ruído de um filtro duro (pulmão, osso) põe pontinhos abaixo de −950 HU no pulmão todo e aumenta a %LAA. Com esta opção, nessas séries o Ipê aplica um filtro gaussiano leve (σ 0,8 mm) antes do limiar, como se faz para aproximar um filtro suave. O resultado diz quando isso foi feito.": "The noise of a sharp kernel (lung, bone) puts dots below −950 HU all over the lung and raises the %LAA. With this option, on those series Ipê applies a light Gaussian filter (σ 0.8 mm) before the threshold, as is done to approximate a soft kernel. The result says when this was done.",
+ "Reduzir o ruído antes do limiar quando a série é ruidosa (filtro duro ou ar da traqueia com desvio alto)": "Reduce noise before the threshold when the series is noisy (sharp kernel or high deviation of tracheal air)",
+ "{}: o ruído foi reduzido antes do limiar (gaussiano σ {} mm); o padrão continua sendo a série de filtro suave (ex.: B30, STANDARD)": "{}: the noise was reduced before the threshold (Gaussian σ {} mm); the standard is still the soft-kernel series (e.g., B30, STANDARD)",
+ "{}: o ruído põe pontos abaixo de −950 HU e aumenta a %LAA; o padrão é filtro suave (ex.: B30, STANDARD)": "{}: noise puts dots below −950 HU and raises the %LAA; the standard is a soft kernel (e.g., B30, STANDARD)",
+ "filtro {} (duro)": "kernel {} (sharp)",
+ "ruído alto (DP do ar da traqueia {} HU)": "high noise (SD of tracheal air {} HU)",
+ "; ruído reduzido antes do limiar (gaussiano σ {} mm)": "; noise reduced before the threshold (Gaussian σ {} mm)"
 }

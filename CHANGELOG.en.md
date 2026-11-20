@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.81 — Emphysema: fewer false dots on noisy series
+- **Emphysema (%LAA−950)**: on a noisy series (sharp kernel, or tracheal air with a standard deviation above 30 HU)
+  Ipê applies a light Gaussian filter (σ 0.8 mm) before the threshold, so noise no longer shows up as "emphysema"
+  scattered across the lung. The finding says when this was done; turn it off in Settings ▸ CAD/AI ▸ Emphysema.
+- The **Emphysema** button measures on the study's soft-kernel series when the viewport one has a sharp kernel.
+
 ## 0.100.80 — Ipê Web: PACS search with Today/Yesterday, exam number and sortable columns
 - In the Ipê Web PACS search: **Today** and **Yesterday** buttons (they set the date and search), the **Exam no.**
   field (Study ID; the accession number stays in the Accession field) and the **Accession** and **Exam no.** columns.

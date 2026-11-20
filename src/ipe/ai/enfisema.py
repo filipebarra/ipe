@@ -67,6 +67,9 @@ CHAVE_PRIOR_CT = "enfisema.prioridade_ct"
 CHAVE_ESPESSURA = "enfisema.espessura_max"
 CHAVE_MIN_CORTES = "enfisema.min_cortes"
 CHAVE_DESTINOS = "enfisema.destinos"
+CHAVE_RUIDO = "enfisema.reduzir_ruido"          # 0.100.81: filtro gaussiano leve antes do limiar, na série ruidosa
+SIGMA_MM = 0.8                                   # o desvio do filtro (mm), nos três eixos (no z, só em corte fino)
+RUIDO_MAX = 30.0                                 # DP do ar da traqueia (HU) acima do qual a série conta como ruidosa
 PADROES = {
     CHAVE_AUTO: False,
     CHAVE_EXAME_CONTEM: "TORAX|TÓRAX|CHEST|THORAX|PULMAO|PULMÃO|LUNG|TCAR|HRCT|ALTA RESOLUCAO|TORAX E ABDOME",
@@ -75,7 +78,13 @@ PADROES = {
     CHAVE_ESPESSURA: 2.0,
     CHAVE_MIN_CORTES: MIN_CORTES,
     CHAVE_DESTINOS: [],
+    CHAVE_RUIDO: True,
 }
+CAIXAS = ((CHAVE_RUIDO, "Reduzir o ruído antes do limiar quando a série é ruidosa (filtro duro ou ar da traqueia com "
+                        "desvio alto)",
+           "O ruído de um filtro duro (pulmão, osso) põe pontinhos abaixo de −950 HU no pulmão todo e aumenta a %LAA. "
+           "Com esta opção, nessas séries o Ipê aplica um filtro gaussiano leve (σ 0,8 mm) antes do limiar, como se "
+           "faz para aproximar um filtro suave. O resultado diz quando isso foi feito."),)
 PERFIL = {"modalidades": CHAVE_MODALIDADES, "exame_contem": CHAVE_EXAME_CONTEM, "prior_ct": CHAVE_PRIOR_CT,
           "prior_mr": CHAVE_PRIOR_CT, "espessura": CHAVE_ESPESSURA, "min_cortes": CHAVE_MIN_CORTES}
 NOME_CADIA = "Enfisema (%LAA−950)"
@@ -126,6 +135,8 @@ class Resultado:
     razao_sup_inf: float | None = None
     distribuicao: str = ""
     traqueia_hu: float | None = None
+    ruido_hu: float | None = None                     # DP do ar da traqueia (HU): o ruído da série
+    ruido_reduzido: bool = False
     laa: np.ndarray | None = None                     # máscara (bbox) das voxels < −950 nos pulmões
     laa_offset: tuple = (0, 0, 0)
     centro: list | None = None
@@ -149,6 +160,43 @@ def _cabecalho(t) -> dict:
     return {"kernel": k.strip(), "espessura": ds.get("SliceThickness"),
             "contraste": str(ds.get("ContrastBolusAgent", "") or "").strip(),
             "descricao": str(ds.get("SeriesDescription", "") or "")}
+
+
+def kernel_da_serie(repo, series_uid: str) -> str:
+    """O ConvolutionKernel da primeira imagem da série ("" quando não diz)."""
+    try:
+        import pydicom
+        from pydicom.multival import MultiValue
+        inst = repo.instances_for_series(series_uid)
+        if not inst:
+            return ""
+        k = pydicom.dcmread(inst[0]["path"], stop_before_pixels=True, force=True,
+                            specific_tags=["ConvolutionKernel"]).get("ConvolutionKernel", "")
+        return " ".join(str(x) for x in k) if isinstance(k, (list, tuple, MultiValue)) else str(k or "")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def serie_melhor(repo, study_uid: str, series_uid: str, settings=None) -> str | None:
+    """Quando a série do quadro tem filtro duro e o exame tem outra, suave, que serve: a suave."""
+    if not filtro_duro(kernel_da_serie(repo, series_uid)):
+        return None
+    uid, _m = escolher_serie(repo, study_uid, settings)
+    if uid and uid != series_uid and not filtro_duro(kernel_da_serie(repo, uid)):
+        return uid
+    return None
+
+
+def reduzir_ruido(dados: np.ndarray, caixa: tuple, vol) -> np.ndarray:
+    """Os HU da caixa dos pulmões com um filtro gaussiano leve (σ 0,8 mm; no z só em corte de até 1,5 mm)."""
+    from scipy.ndimage import gaussian_filter
+    k0, k1, j0, j1, i0, i1 = caixa
+    sub = np.asarray(dados[k0:k1, j0:j1, i0:i1], np.float32)
+    dz = abs(float(vol.dz))
+    sigma = (SIGMA_MM / dz if dz <= ESPESSURA_MAX else 0.0, SIGMA_MM / float(vol.dy), SIGMA_MM / float(vol.dx))
+    out = np.asarray(dados, np.float32).copy()
+    out[k0:k1, j0:j1, i0:i1] = gaussian_filter(sub, sigma=sigma, mode="nearest")
+    return out
 
 
 def filtro_duro(kernel: str) -> bool:
@@ -176,7 +224,7 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
     desc = (t.descricao_serie or cab.get("descricao") or t.series_uid[-8:])
     res.elegibilidade = (f"TC, série “{desc}”, {dados.shape[0]} cortes de {esp:.2f} mm, pixel {vol.dy:.2f} × "
                          f"{vol.dx:.2f} mm" + (f", filtro {cab['kernel']}" if cab.get("kernel") else ""))
-    hus: dict[str, np.ndarray] = {}
+    mascaras: dict[str, np.ndarray] = {}
     uniao = np.zeros(dados.shape, bool)
     for classe, sigla in LOBOS.items():
         m = ms.get(classe)
@@ -185,7 +233,26 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
         me = _ero3(m, EROSAO)
         me = me if me.sum() > 200 else m
         uniao |= me
-        hus[sigla] = np.asarray(dados[me], np.float32)
+        mascaras[sigla] = me
+    # 0.100.81, relato dele: "acho que está marcando áreas a mais" (pontinhos espalhados) — o ruído da série.
+    # O DP do ar da traqueia mede o ruído; com filtro duro ou ruído alto, um gaussiano leve antes do limiar.
+    tr = ms.get("trachea")
+    tre = None
+    if tr is not None and tr.sum() > 50:
+        tre = _ero3(tr, 1)
+        tre = tre if tre.sum() > 20 else tr
+        res.ruido_hu = float(np.std(np.asarray(dados[tre], np.float32)))
+    duro = bool(cab.get("kernel")) and filtro_duro(cab["kernel"])
+    ruidosa = duro or (res.ruido_hu is not None and res.ruido_hu > RUIDO_MAX)
+    if ruidosa and bool(config(settings, CHAVE_RUIDO)) and uniao.any():
+        ks, js, is_ = (np.nonzero(uniao.any(axis=a))[0] for a in ((1, 2), (0, 2), (0, 1)))
+        m = 3
+        caixa = (max(0, ks[0] - m), ks[-1] + 1 + m, max(0, js[0] - m), js[-1] + 1 + m, max(0, is_[0] - m),
+                 is_[-1] + 1 + m)
+        dados = reduzir_ruido(dados, caixa, vol)
+        res.ruido_reduzido = True
+        res.elegibilidade += f"; ruído reduzido antes do limiar (gaussiano σ {SIGMA_MM:.1f} mm)".replace(".", ",")
+    hus: dict[str, np.ndarray] = {s: np.asarray(dados[mk], np.float32) for s, mk in mascaras.items()}
     if not hus:
         res.avisos.append("a IA não achou os pulmões nesta série")
         return res
@@ -221,19 +288,22 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
     kk, jj, ii = np.argwhere(uniao).mean(axis=0)
     res.centro = [float(x) for x in vol.voxel_to_patient(ii, jj, kk)]
     # a conferência da calibração e da técnica
-    tr = ms.get("trachea")
-    if tr is not None and tr.sum() > 50:
-        tre = _ero3(tr, 1)
-        tre = tre if tre.sum() > 20 else tr
-        res.traqueia_hu = float(np.median(dados[tre]))
+    if tre is not None:
+        res.traqueia_hu = float(np.median(vol.data[tre]))
         if abs(res.traqueia_hu + 1000) > 30:
             res.avisos.append(f"ar da traqueia em {res.traqueia_hu:.0f} HU (o esperado é perto de −1000): a "
                               f"calibração mexe na %LAA")
     if esp > ESPESSURA_MAX:
         res.avisos.append(f"cortes de {esp:.1f} mm: a %LAA−950 é validada em cortes finos (≤ 1,5 mm); corte grosso "
                           f"a subestima")
-    if cab.get("kernel") and filtro_duro(cab["kernel"]):
-        res.avisos.append(f"filtro {cab['kernel']} (duro): o ruído aumenta a %LAA; o padrão é filtro suave "
+    if ruidosa and res.ruido_reduzido:
+        motivo = f"filtro {cab['kernel']} (duro)" if duro else f"ruído alto (DP do ar da traqueia {res.ruido_hu:.0f} HU)"
+        sig = f"{SIGMA_MM:.1f}".replace(".", ",")
+        res.avisos.append(f"{motivo}: o ruído foi reduzido antes do limiar (gaussiano σ {sig} mm); o padrão "
+                          f"continua sendo a série de filtro suave (ex.: B30, STANDARD)")
+    elif ruidosa:
+        motivo = f"filtro {cab['kernel']} (duro)" if duro else f"ruído alto (DP do ar da traqueia {res.ruido_hu:.0f} HU)"
+        res.avisos.append(f"{motivo}: o ruído põe pontos abaixo de −950 HU e aumenta a %LAA; o padrão é filtro suave "
                           f"(ex.: B30, STANDARD)")
     from ipe.ai.totalseg import _sem_acento
     d = _sem_acento(((t.descricao_serie or "") + " " + cab.get("descricao", "")).upper())

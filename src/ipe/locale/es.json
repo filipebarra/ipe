@@ -10230,5 +10230,13 @@
  "{}: o SHA-256 não confere com o do repositório do PI-CAI (arquivo apagado)": "{}: o SHA-256 não confere com o do repositório do PI-CAI (arquivo apagado)",
  "numpy<2; python_version < \"3.13\"": "numpy<2; python_version < \"3.13\"",
  "não achei a pasta do nnU-Net 1.7 ({})": "não achei a pasta do nnU-Net 1.7 ({})",
- "diga um nome, ID, acesso, nº do exame, descrição ou um período (busca sem filtro pesa no PACS)": "indique un nombre, ID, acceso, n.º del estudio, descripción o un período (la búsqueda sin filtro pesa en el PACS)"
+ "diga um nome, ID, acesso, nº do exame, descrição ou um período (busca sem filtro pesa no PACS)": "indique un nombre, ID, acceso, n.º del estudio, descripción o un período (la búsqueda sin filtro pesa en el PACS)",
+ "Enfisema: medido na série de filtro suave do exame (a do quadro tem filtro duro, que aumenta o ruído).": "Enfisema: medido en la serie de filtro suave del estudio (la del cuadro tiene filtro duro, que aumenta el ruido).",
+ "O ruído de um filtro duro (pulmão, osso) põe pontinhos abaixo de −950 HU no pulmão todo e aumenta a %LAA. Com esta opção, nessas séries o Ipê aplica um filtro gaussiano leve (σ 0,8 mm) antes do limiar, como se faz para aproximar um filtro suave. O resultado diz quando isso foi feito.": "El ruido de un filtro duro (pulmón, hueso) pone puntitos por debajo de −950 HU en todo el pulmón y aumenta el %LAA. Con esta opción, en esas series Ipê aplica un filtro gaussiano leve (σ 0,8 mm) antes del umbral, como se hace para aproximar un filtro suave. El resultado dice cuándo se hizo.",
+ "Reduzir o ruído antes do limiar quando a série é ruidosa (filtro duro ou ar da traqueia com desvio alto)": "Reducir el ruido antes del umbral cuando la serie es ruidosa (filtro duro o aire de la tráquea con desvío alto)",
+ "{}: o ruído foi reduzido antes do limiar (gaussiano σ {} mm); o padrão continua sendo a série de filtro suave (ex.: B30, STANDARD)": "{}: el ruido se redujo antes del umbral (gaussiano σ {} mm); el estándar sigue siendo la serie de filtro suave (ej.: B30, STANDARD)",
+ "{}: o ruído põe pontos abaixo de −950 HU e aumenta a %LAA; o padrão é filtro suave (ex.: B30, STANDARD)": "{}: el ruido pone puntos por debajo de −950 HU y aumenta el %LAA; el estándar es el filtro suave (ej.: B30, STANDARD)",
+ "filtro {} (duro)": "filtro {} (duro)",
+ "ruído alto (DP do ar da traqueia {} HU)": "ruido alto (DE del aire de la tráquea {} HU)",
+ "; ruído reduzido antes do limiar (gaussiano σ {} mm)": "; ruido reducido antes del umbral (gaussiano σ {} mm)"
 }
