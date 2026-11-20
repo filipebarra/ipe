@@ -241,3 +241,65 @@ def test_janela_do_pacs_no_cliente(servidor, tmp_path):
         assert p.node.itemText(0) == "PACS (pelo servidor)"
     finally:
         net.shutdown()
+
+
+def test_navegador_hoje_ontem_numero_e_ordenar(servidor):
+    """0.100.80: na busca do PACS do Ipê Web — os botões Hoje e Ontem, o nº do exame (Study ID) e as colunas que
+    ordenam (clicar de novo inverte)."""
+    import datetime as dt
+    pw = pytest.importorskip("playwright.sync_api")
+    srv = servidor
+    _compartilhar(srv)
+    hoje = dt.date.today().strftime("%Y%m%d")
+    de_hoje = [r for r in srv.pacs.repo.search_studies() if r.study_date == hoje]
+    assert de_hoje
+    erros = []
+    with pw.sync_playwright() as p:
+        b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
+        pg = b.new_page(viewport={"width": 1500, "height": 950})
+        pg.on("pageerror", lambda e: erros.append(str(e)))
+        pg.goto(f"http://127.0.0.1:{srv.port}/web/")
+        pg.fill("#usuario", "admin")
+        pg.fill("#senha", "admin123")
+        pg.click("button[type=submit]")
+        pg.click("form.filtros button:has-text('Buscar no PACS')")
+        pg.wait_for_selector(".tela-pacs")
+        # Hoje: põe a data de hoje nos dois campos e busca
+        pg.click(".tela-pacs button:has-text('Hoje')")
+        pg.wait_for_selector(".lista-pacs tbody tr")
+        iso = dt.date.today().isoformat()
+        assert pg.input_value(".tela-pacs input[type=date] >> nth=0") == iso
+        assert pg.input_value(".tela-pacs input[type=date] >> nth=1") == iso
+        assert pg.locator(".lista-pacs tbody tr").count() == len(de_hoje)
+        # ordenar pelo paciente: A→Z, de novo Z→A
+        nomes = lambda: [pg.inner_text(f".lista-pacs tbody tr >> nth={i} >> td >> nth=1")  # noqa: E731
+                         for i in range(pg.locator(".lista-pacs tbody tr").count())]
+        pg.click(".lista-pacs th[data-col=patient_name]")
+        asc = nomes()
+        assert asc == sorted(asc, key=str.casefold)
+        assert pg.get_attribute(".lista-pacs th[data-col=patient_name]", "aria-sort") == "ascending"
+        pg.click(".lista-pacs th[data-col=patient_name]")
+        assert nomes() == asc[::-1]
+        assert pg.get_attribute(".lista-pacs th[data-col=patient_name]", "aria-sort") == "descending"
+        # Ontem
+        pg.click(".tela-pacs button:has-text('Ontem')")
+        ontem = (dt.date.today() - dt.timedelta(days=1)).isoformat()
+        pg.wait_for_function(f"() => document.querySelector('.tela-pacs input[type=date]').value === '{ontem}'")
+        # nº do exame (Study ID) sozinho já é filtro aceito; a coluna mostra o Study ID
+        pg.fill(".tela-pacs input[type=date] >> nth=0", "")
+        pg.fill(".tela-pacs input[type=date] >> nth=1", "")
+        pg.fill(".tela-pacs input[aria-label='Nº do exame']", "1")
+        pg.click(".tela-pacs button.primario")
+        pg.wait_for_function("() => document.querySelectorAll('.lista-pacs tbody tr').length > 0")
+        assert pg.inner_text(".lista-pacs tbody tr >> nth=0 >> td >> nth=4") == "1"
+        b.close()
+    assert not erros, erros
+
+
+def test_numero_do_exame_vai_na_consulta():
+    from ipe.network.client import linha_estudo, query_estudos
+    q = query_estudos(study_id=" 4567 ")
+    assert q.StudyID == "4567"
+    q.StudyInstanceUID = "1.2.3"
+    assert linha_estudo(q)["study_id"] == "4567"
+    assert query_estudos().StudyID == ""                 # vazio: só pede de volta

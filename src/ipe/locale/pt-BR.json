@@ -7623,7 +7623,8 @@
   "zonas da próstata (pesquisa): segmentando",
   "zonas por",
   "zonas por ",
-  "numpy<2; python_version < \"3.13\""
+  "numpy<2; python_version < \"3.13\"",
+  "diga um nome, ID, acesso, nº do exame, descrição ou um período (busca sem filtro pesa no PACS)"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

@@ -41,6 +41,7 @@ T_SEXO = "00100040"
 T_DATA = "00080020"
 T_HORA = "00080030"
 T_ACCESSION = "00080050"
+T_STUDY_ID = "00200010"
 T_DESCRICAO = "00081030"
 T_MODALIDADES = "00080061"
 T_ESTUDO = "0020000D"
@@ -187,7 +188,7 @@ class DicomWebClient:
     # ------------------------------------------------------------ busca
     def find_studies(self, t: WebTarget, *, name: str = "", patient_id: str = "",
                      accession: str = "", date_from: str = "", date_to: str = "",
-                     modality: str = "", description: str = "", study_uid: str = "",
+                     modality: str = "", description: str = "", study_uid: str = "", study_id: str = "",
                      limit: int = 500, cancel: threading.Event | None = None) -> list[dict]:
         nome = name.strip()
         if nome and "*" not in nome and "?" not in nome:
@@ -199,8 +200,8 @@ class DicomWebClient:
             "PatientName": nome, "PatientID": patient_id.strip(),
             "AccessionNumber": accession.strip(), "StudyDate": data,
             "ModalitiesInStudy": modality.strip(), "StudyDescription": description.strip(),
-            "StudyInstanceUID": study_uid.strip(),
-            "includefield": "00081030,00080061,00201206,00201208",
+            "StudyInstanceUID": study_uid.strip(), "StudyID": study_id.strip(),
+            "includefield": "00081030,00080061,00201206,00201208,00200010",
             "limit": str(limit),
         }
         out = []
@@ -216,6 +217,7 @@ class DicomWebClient:
                 "study_date": _texto(item, T_DATA),
                 "study_time": _texto(item, T_HORA),
                 "accession": _texto(item, T_ACCESSION),
+                "study_id": _texto(item, T_STUDY_ID),
                 "description": _texto(item, T_DESCRICAO),
                 "modalities": _lista(item, T_MODALIDADES),
                 "num_series": _inteiro(item, T_SERIES_N),

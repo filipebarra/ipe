@@ -1001,3 +1001,10 @@ dialog.pirads-janela .imp-janela-corpo { max-height: 80vh; }
 .pir-setores { flex-basis: 100%; font-size: 13px; }
 .pir-geral { font-weight: 700; font-size: 15px; margin-right: auto; }
 .pirads textarea { width: 100%; box-sizing: border-box; font: inherit; }
+
+/* 0.100.80: busca no PACS — atalhos de data e colunas que ordenam */
+.filtros-pacs .atalho-data { padding: 4px 10px; }
+table.lista-pacs th.ordenavel { cursor: pointer; user-select: none; white-space: nowrap; }
+table.lista-pacs th.ordenavel:hover { color: var(--texto); }
+table.lista-pacs th.ordenavel.asc::after { content: " ▲"; color: var(--acento); }
+table.lista-pacs th.ordenavel.desc::after { content: " ▼"; color: var(--acento); }

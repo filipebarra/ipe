@@ -15,7 +15,7 @@ import re
 log = logging.getLogger(__name__)
 
 CONSULTA = ("dimse", "dicomweb")
-FILTROS = ("name", "patient_id", "accession", "description", "modality", "date_from", "date_to")
+FILTROS = ("name", "patient_id", "accession", "study_id", "description", "modality", "date_from", "date_to")
 _ULTIMOS = 30
 
 
@@ -72,8 +72,8 @@ def buscar(c, s, node_id, filtros: dict, host: str = "") -> dict:
     no = _no(c, s, node_id)
     net = _net(c)
     f = _filtros(filtros)
-    if not any(f[k] for k in ("name", "patient_id", "accession", "description")) and not f["date_from"]:
-        raise ValueError("diga um nome, ID, acesso, descrição ou um período (busca sem filtro pesa no PACS)")
+    if not any(f[k] for k in ("name", "patient_id", "accession", "study_id", "description")) and not f["date_from"]:
+        raise ValueError("diga um nome, ID, acesso, nº do exame, descrição ou um período (busca sem filtro pesa no PACS)")
     linhas = net.cliente(no).find_studies(net.target(no, None), **f)
     c.repo.audit("busca", f"{no['name']} (pelo servidor): " + ", ".join(f"{k}={v}" for k, v in f.items() if v),
                  user=s.username, host=host)

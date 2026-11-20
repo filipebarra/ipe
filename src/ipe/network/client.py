@@ -119,11 +119,11 @@ class DicomClient:
 
     def find_studies(self, t: Target, *, name: str = "", patient_id: str = "", accession: str = "",
                      date_from: str = "", date_to: str = "", modality: str = "", description: str = "",
-                     study_uid: str = "", limit: int = 500,
+                     study_uid: str = "", study_id: str = "", limit: int = 500,
                      cancel: threading.Event | None = None) -> list[dict]:
         q = query_estudos(name=name, patient_id=patient_id, accession=accession, date_from=date_from,
                           date_to=date_to, modality=modality, description=description,
-                          study_uid=study_uid)
+                          study_uid=study_uid, study_id=study_id)
         out = [linha_estudo(ds) for ds in self.find(t, q, cancel=cancel, limit=limit)]
         return [r for r in out if r["study_uid"]]
 
@@ -279,7 +279,7 @@ class DicomClient:
 
 def query_estudos(*, name: str = "", patient_id: str = "", accession: str = "", date_from: str = "",
                   date_to: str = "", modality: str = "", description: str = "",
-                  study_uid: str = "") -> Dataset:
+                  study_uid: str = "", study_id: str = "") -> Dataset:
     q = Dataset()
     q.QueryRetrieveLevel = "STUDY"
     name = name.strip()
@@ -297,6 +297,7 @@ def query_estudos(*, name: str = "", patient_id: str = "", accession: str = "", 
     q.ModalitiesInStudy = modality.strip()
     q.ReferringPhysicianName = ""
     q.StudyInstanceUID = study_uid.strip()
+    q.StudyID = study_id.strip()                       # 0.100.80: o "nº do exame" de alguns PACS (Study ID)
     q.NumberOfStudyRelatedSeries = ""
     q.NumberOfStudyRelatedInstances = ""
     return q
@@ -315,6 +316,7 @@ def linha_estudo(ds: Dataset) -> dict:
         "study_date": str(ds.get("StudyDate", "")),
         "study_time": str(ds.get("StudyTime", "")),
         "accession": str(ds.get("AccessionNumber", "")),
+        "study_id": str(ds.get("StudyID", "")),
         "description": str(ds.get("StudyDescription", "")),
         "modalities": mods,
         "num_series": _int(ds.get("NumberOfStudyRelatedSeries")),

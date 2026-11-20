@@ -1295,6 +1295,8 @@ Nesta primeira fase:
 
 **Buscar no PACS e baixar (0.100.37).** Na lista de exames, o botão **Buscar no PACS…** aparece quando o servidor compartilha algum nó com você (veja *Buscar no PACS pelo servidor*, acima). Escolha o nó, preencha nome, ID, acesso ou um período (busca sem filtro não é aceita, para não pesar no PACS) e clique em **Buscar no PACS**. Cada exame do resultado tem **Baixar** — o servidor baixa para o banco dele, no seu banco — ou **Abrir**, quando já está no servidor. Embaixo, **Downloads pelo servidor** mostra o andamento de cada um, com **Cancelar** e, no fim, **Abrir o exame**.
 
+Na 0.100.80: **Hoje** e **Ontem** põem a data e já buscam; **Nº do exame** busca pelo número do exame no PACS (o *Study ID*; se o seu PACS chama de número do exame o número de acesso, use **Acesso**) — a tabela mostra as duas colunas; e clicar no título de uma coluna ordena por ela (▲ crescente; clicar de novo, ▼ decrescente).
+
 **Gestão DICOM no navegador (0.100.63).** Para **administradores**, a lista de exames ganha o botão **Gestão DICOM…** — a mesma rotina da janela do Ipê de mesa (veja *Gestão DICOM: os exames das modalidades estão no PACS?*), atendida pelo servidor:
 
 - **Quem fala com as modalidades e com o PACS é o servidor**, com o AE Title dele ou com a identidade escolhida em *Falar como*. Os equipamentos e o PACS precisam aceitar o servidor; o botão **Testar** de cada linha faz um C-ECHO e diz se o nó responde.

@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.80 — Ipê Web: PACS search with Today/Yesterday, exam number and sortable columns
+- In the Ipê Web PACS search: **Today** and **Yesterday** buttons (they set the date and search), the **Exam no.**
+  field (Study ID; the accession number stays in the Accession field) and the **Accession** and **Exam no.** columns.
+- **Sorting**: clicking a column title sorts by it; clicking again reverses (▲/▼).
+
 ## 0.100.79 — Prostate MRI: PI-RADS v2.1, automatic volume and separate research models
 - **PI-RADS** (button in the viewer and in Ipê Web, on prostate MRI): PSA and date, volume by the ellipsoid (the
   three diameters, or **Take from the rulers**) or by the automatic segmentation, and the **PSA density**; each lesion

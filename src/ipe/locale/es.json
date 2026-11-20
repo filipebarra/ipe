@@ -10229,5 +10229,6 @@
  "{}, da base ao ápice": "{}, da base ao ápice",
  "{}: o SHA-256 não confere com o do repositório do PI-CAI (arquivo apagado)": "{}: o SHA-256 não confere com o do repositório do PI-CAI (arquivo apagado)",
  "numpy<2; python_version < \"3.13\"": "numpy<2; python_version < \"3.13\"",
- "não achei a pasta do nnU-Net 1.7 ({})": "não achei a pasta do nnU-Net 1.7 ({})"
+ "não achei a pasta do nnU-Net 1.7 ({})": "não achei a pasta do nnU-Net 1.7 ({})",
+ "diga um nome, ID, acesso, nº do exame, descrição ou um período (busca sem filtro pesa no PACS)": "indique un nombre, ID, acceso, n.º del estudio, descripción o un período (la búsqueda sin filtro pesa en el PACS)"
 }
