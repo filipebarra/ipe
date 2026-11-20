@@ -3,6 +3,18 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.74 — Guide diagrams separated from the report: Diagram button in the viewer and templates in Settings
+- **Diagram button in the viewer** (desktop Ipê and Ipê Web): opens the *Exam diagrams* — new, draw, delete and
+  **Save to the exam** (saving again replaces what was there). The diagram belongs to the exam and needs no report.
+- **In the report, just include**: the **Diagrams in the report** checkbox (like key images) puts the legend in the
+  text, the figures in the PDF and, on signing, the diagrams in the DICOM SR. Without it the report carries no
+  diagram. The drawing strip left the report window.
+- **Templates in settings**: **Settings ▸ Diagrams ▸ Diagram templates** in desktop Ipê and **Administration ▸
+  Diagram templates** in Ipê Web (new from an image, blank, edit, copy, hide, restore, delete). The template picker
+  is now only for choosing.
+- If you already had diagrams from 0.100.72 and 0.100.73: they stay in the exam, but go into the report only with
+  the checkbox checked.
+
 ## 0.100.73 — Guide diagrams: save to the exam without a report, and register or change templates (desktop and Web)
 - **Save to the exam**: in the diagrams strip (desktop Ipê and Ipê Web), saves at once the figures (series "Esquemas
   do laudo") and an SR of the diagrams alone, without signing or saving the report — like the segmentation table and

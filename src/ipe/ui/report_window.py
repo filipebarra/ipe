@@ -479,6 +479,12 @@ class ReportWindow(QWidget):
         self.header.setPlaceholderText("Cabeçalho do PDF (nome da clínica, endereço…)")
         self.with_keys = QCheckBox("Imagens-chave no PDF")
         self.with_keys.setChecked(bool(self._setting("report.key_images", True)))
+        # 0.100.74: o esquema é do exame (botão Esquema do visualizador); aqui só se diz se ele entra no laudo
+        self.com_esquemas = QCheckBox("Esquemas no laudo")
+        self.com_esquemas.setToolTip("Põe no laudo a seção dos esquemas-guia do exame, como as imagens-chave: as figuras "
+                                     "com a legenda no PDF, a legenda no texto e, ao assinar, os esquemas no DICOM SR. "
+                                     "Os esquemas são desenhados pelo botão Esquema do visualizador.")
+        self.com_esquemas.toggled.connect(self._esquemas_no_laudo)
         self.save_pdf_dicom = QCheckBox("Guardar o PDF no exame (DICOM)")
         self.save_pdf_dicom.setChecked(bool(self._setting("report.dicom_pdf", True)))
         self.save_sr = QCheckBox("Guardar DICOM SR no exame")
@@ -487,7 +493,7 @@ class ReportWindow(QWidget):
         opts.addRow("Cabeçalho:", self.header)
         opts.addRow("Assinatura:", self.crm)
         chk = QHBoxLayout()
-        for c in (self.with_keys, self.save_pdf_dicom, self.save_sr):
+        for c in (self.with_keys, self.com_esquemas, self.save_pdf_dicom, self.save_sr):
             chk.addWidget(c)
         chk.addStretch(1)
         self.b_save = QPushButton("Salvar rascunho")
@@ -515,13 +521,6 @@ class ReportWindow(QWidget):
         lay.addLayout(top)
         lay.addWidget(help_)
         lay.addWidget(split, 1)
-        # 0.100.72: esquemas-guia (face, corpo, tireoide, mamas, próstata…) com as marcas do médico
-        from ipe.ui.esquema_dialogo import FaixaDeEsquemas
-        self.esquemas = FaixaDeEsquemas(repo, study_uid, user.username, auth.can("report"), auth.can("configure"),
-                                        self._imagem_aberta, self, getattr(tab, "storage_root", None))
-        self.esquemas.gravado.connect(self.saved.emit)        # o visualizador e a lista atualizam as séries
-        self.esquemas.inserir.connect(lambda t: self.editor.insertPlainText(t + "\n"))
-        lay.addWidget(self.esquemas)
         lay.addLayout(opts)
         lay.addLayout(chk)
         lay.addLayout(btns)
@@ -532,23 +531,42 @@ class ReportWindow(QWidget):
         self.destroyed.connect(lambda *_a, r=repo, u=study_uid, me=self.__dict__: (
             None if me.get("so_leitura") else _soltar(r, u)))
 
-    def _imagem_aberta(self):
-        """(série, SOP, quadro) da imagem no quadro ativo do visualizador, para ligar a uma marca do esquema; ela
-        passa a ser imagem-chave (o visualizador fica sabendo)."""
-        tab = self.tab
-        vp = getattr(tab, "active", None) or next(iter(getattr(tab, "viewports", []) or []), None)
-        f = vp.current_frame() if vp is not None else None
-        if f is None or getattr(f, "is_virtual", False) or not f.sop_uid:
-            return None
-        if (getattr(vp, "study_uid", "") or self.study_uid) != self.study_uid:
-            return None                                  # é um exame anterior aberto ao lado: não é deste laudo
-        serie = f.series_uid or getattr(vp, "series_uid", "")
+    def _esquemas_no_laudo(self, sim: bool) -> None:
+        """0.100.74: a seção dos esquemas entra no laudo (como as imagens-chave): as figuras no PDF, a citação no SR
+        ao assinar e a legenda no texto, onde está o cursor (uma vez só)."""
+        from ipe.reporting import esquemas as E
         try:
-            tab.key_set.add((f.sop_uid, int(f.frame_index or 0)))
-            vp.update()
+            E.por_no_laudo(self.repo, self.study_uid, sim, getattr(auth.get(), "username", "") or "")
         except Exception:  # noqa: BLE001
-            pass
-        return serie, f.sop_uid, int(f.frame_index or 0)
+            log.exception("esquemas no laudo")
+            return
+        if not sim:
+            return
+        legenda = E.texto_para_o_laudo(E.ler(self.repo, self.study_uid), self.repo)
+        if legenda and legenda not in self.editor.toPlainText() and not self.editor.isReadOnly():
+            self.editor.insertPlainText(legenda + "\n")
+
+    def event(self, e):  # noqa: D401
+        """Ao voltar para esta janela, a caixa dos esquemas se atualiza (eles são desenhados no visualizador)."""
+        from PySide6.QtCore import QEvent
+        if e.type() == QEvent.WindowActivate and hasattr(self, "com_esquemas") and hasattr(self, "report"):
+            try:
+                self._estado_dos_esquemas()
+            except Exception:  # noqa: BLE001
+                log.debug("esquemas no laudo", exc_info=True)
+        return super().event(e)
+
+    def _estado_dos_esquemas(self) -> None:
+        """A caixa "Esquemas no laudo" segue o que o exame tem agora (o esquema é desenhado fora do laudo)."""
+        from ipe.reporting import esquemas as E
+        from ipe.reporting import esquemas_saida as ES
+        n = len(ES.com_conteudo(self.repo, self.study_uid))
+        self.com_esquemas.blockSignals(True)
+        self.com_esquemas.setChecked(n > 0 and E.no_laudo(self.repo, self.study_uid))
+        self.com_esquemas.blockSignals(False)
+        self.com_esquemas.setText(f"Esquemas no laudo ({n})" if n else "Esquemas no laudo")
+        final = self.report.get("status") in ("final", "amended")
+        self.com_esquemas.setEnabled(n > 0 and not self.so_leitura and not final and auth.can("report"))
 
     # ------------------------------------------------------------ utilidades
     def _setting(self, key: str, default=None):
@@ -677,12 +695,10 @@ class ReportWindow(QWidget):
                 w.setEnabled(False)
             self.b_amend.setVisible(False)
             self.status.setText(f"Só leitura: {self.so_leitura}.")
-            if hasattr(self, "esquemas"):
-                self.esquemas.set_pode(False)
+            self._estado_dos_esquemas()
             return
         final = self.report.get("status") in ("final", "amended")
-        if hasattr(self, "esquemas"):                    # laudo assinado: o esquema é só para ver (mude pelo Retificar)
-            self.esquemas.set_pode(auth.can("report") and not final)
+        self._estado_dos_esquemas()
         self.editor.setReadOnly(final)
         self.title.setReadOnly(final)
         self.birads.setEnabled(not final)
@@ -896,7 +912,7 @@ class ReportWindow(QWidget):
         imgs = self.key_images() if self.with_keys.isChecked() else []
         from ipe.reporting import esquemas_saida as ES             # 0.100.72: os esquemas-guia
         return write_pdf(None, self.info, rep, self.header.toPlainText().strip(), self.crm.text().strip(), imgs,
-                         self.anonymize, ES.figuras(self.repo, self.study_uid))
+                         self.anonymize, ES.figuras(self.repo, self.study_uid, so_do_laudo=True))
 
     def save_pdf_file(self) -> None:
         name = f"laudo_{self.info.get('study_date', '')}.pdf"
@@ -1019,7 +1035,7 @@ class ReportWindow(QWidget):
         tmp = Path(tempfile.mkdtemp(prefix="dv_laudo_"))
         n = 0
         from ipe.reporting import esquemas_saida as ES             # 0.100.72: os esquemas vão como imagem e no SR
-        imagens, para_sr = ES.para_o_exame(self.repo, self.study_uid, files[0])
+        imagens, para_sr = ES.para_o_exame(self.repo, self.study_uid, files[0], so_do_laudo=True)
         if imagens:                                                # 0.100.73: troca os gravados antes (sem laudo)
             ES.apagar_anteriores(self.repo, self.study_uid, storage)
         for i, ds in enumerate(imagens):

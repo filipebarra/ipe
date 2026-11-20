@@ -273,10 +273,31 @@ def ler(repo, study_uid: str) -> list[dict]:
     return [e for e in dados if isinstance(e, dict)] if isinstance(dados, list) else []
 
 
+NO_LAUDO = "laudo"                                     # o `estado` que diz: os esquemas entram no laudo
+
+
+def no_laudo(repo, study_uid: str) -> bool:
+    """0.100.74: os esquemas deste exame entram no laudo (PDF e SR)? Quem decide é o médico, no laudo, como nas
+    imagens-chave; o esquema em si é do exame e vive fora do laudo."""
+    try:
+        r = repo.revisao_ia(study_uid, MODULO)
+    except Exception:  # noqa: BLE001
+        return False
+    return bool(r and r.get("estado") == NO_LAUDO)
+
+
+def por_no_laudo(repo, study_uid: str, sim: bool, usuario: str = "") -> bool:
+    """Liga ou desliga "os esquemas entram no laudo", sem mexer nos desenhos."""
+    repo.salvar_revisao_ia(study_uid, MODULO, NO_LAUDO if sim else "editado", True, usuario or "",
+                           json.dumps(ler(repo, study_uid), ensure_ascii=False))
+    return bool(sim)
+
+
 def gravar(repo, study_uid: str, lista: list, usuario: str = "") -> list[dict]:
-    """Guarda os esquemas do exame (conferidos). Devolve o que ficou."""
+    """Guarda os esquemas do exame (conferidos). Devolve o que ficou. O "entram no laudo" fica como estava."""
     limpa = [x for x in (normalizar(e, repo) for e in (lista or [])[:MAX_ESQUEMAS]) if x]
-    repo.salvar_revisao_ia(study_uid, MODULO, "editado", True, usuario or "", json.dumps(limpa, ensure_ascii=False))
+    estado = NO_LAUDO if no_laudo(repo, study_uid) else "editado"
+    repo.salvar_revisao_ia(study_uid, MODULO, estado, True, usuario or "", json.dumps(limpa, ensure_ascii=False))
     return limpa
 
 

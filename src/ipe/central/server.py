@@ -1104,7 +1104,7 @@ class _Handler(BaseHTTPRequestHandler):
                 try:
                     from ipe.reporting import esquemas_saida as ES
                     pdf = LW.pdf_do_laudo(info, rep, pref["cabecalho"], pref["assinatura"],
-                                          ES.figuras(c.repo, rep["study_uid"]))
+                                          ES.figuras(c.repo, rep["study_uid"], so_do_laudo=True))
                 except Exception as e:  # noqa: BLE001
                     log.exception("laudo web: PDF")
                     return self._error(500, f"PDF: {e}")

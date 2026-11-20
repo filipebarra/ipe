@@ -287,6 +287,25 @@ class OncoMixin:
         self._report_windows[study] = w
         w.show()
 
+    def open_esquemas(self, study_uid: str | None = None) -> None:
+        """0.100.74: a janela dos esquemas-guia do exame (fora do laudo)."""
+        from ipe.auth import session as auth
+        from ipe.ui.esquema_dialogo import EsquemasDoExame, imagem_do_quadro
+        study = study_uid or (self.active.study_uid if self.active is not None and self.active.study_uid
+                              else self.study_uid)
+        janelas = self.__dict__.setdefault("_janelas_de_esquemas", {})
+        w = janelas.get(study)
+        if w is not None and w.isVisible():
+            w.raise_()
+            w.activateWindow()
+            return
+        usuario = getattr(auth.get(), "username", "") or ""
+        w = EsquemasDoExame(self.repo, study, usuario, auth.can("report"), lambda: imagem_do_quadro(self, study),
+                            getattr(self, "storage_root", None), self)
+        w.faixa.gravado.connect(lambda _u: self.status_message.emit("Esquemas gravados no exame."))
+        janelas[study] = w
+        w.show()
+
     def append_to_report(self, text: str, study_uid: str | None = None) -> bool:
         """Acrescenta um texto ao laudo aberto (abre a janela se preciso). False se não deu."""
         if not (text or "").strip():

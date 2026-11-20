@@ -9897,5 +9897,18 @@
  "modelo de esquema: ": "modelo de esquema: ",
  "o servidor não apagou os esquemas anteriores": "o servidor não apagou os esquemas anteriores",
  "Gravado no exame (figuras e SR): {}": "Saved to the exam (figures and SR): {}",
- "Modelo de esquema — {}": "Diagram template — {}"
+ "Modelo de esquema — {}": "Diagram template — {}",
+ "Configurações — Modelos de esquema": "Settings — Diagram templates",
+ "Desenhe os achados num modelo (face, corpo, tireoide, mamas, próstata…). “Gravar no exame” guarda as figuras e um SR no exame; gravar de novo troca o que havia. Para o esquema sair no laudo, marque “Esquemas no laudo” na janela do laudo. Os modelos ficam em Configurações ▸ Esquemas.": "Draw the findings on a template (face, body, thyroid, breasts, prostate…). “Save to the exam” stores the figures and an SR in the exam; saving again replaces what was there. For the diagram to appear in the report, check “Diagrams in the report” in the report window. Templates are in Settings ▸ Diagrams.",
+ "Esquemas do exame": "Exam diagrams",
+ "Esquemas do exame (desenhar os achados num modelo)": "Exam diagrams (draw the findings on a template)",
+ "Esquemas do exame: marcar os achados num desenho (face, corpo, tireoide, mamas, próstata…) e gravar no exame": "Exam diagrams: mark the findings on a drawing (face, body, thyroid, breasts, prostate…) and save to the exam",
+ "Esquemas gravados no exame.": "Diagrams saved to the exam.",
+ "Esquemas no laudo": "Diagrams in the report",
+ "Modelos de esquema (face, corpo, tireoide, mamas, próstata, os seus)…": "Diagram templates (face, body, thyroid, breasts, prostate, your own)…",
+ "Os modelos de esquema desta instalação, para todos os usuários. O que se desenha num modelo aparece em todos os exames; nos modelos do Ipê o desenho original fica guardado.": "The diagram templates of this installation, for every user. What is drawn on a template shows in every exam; for Ipê's templates the original drawing is kept.",
+ "Põe no laudo a seção dos esquemas-guia do exame, como as imagens-chave: as figuras com a legenda no PDF, a legenda no texto e, ao assinar, os esquemas no DICOM SR. Os esquemas são desenhados pelo botão Esquema do visualizador.": "Adds the exam's guide-diagram section to the report, like key images: the figures with the legend in the PDF, the legend in the text and, on signing, the diagrams in the DICOM SR. Diagrams are drawn with the viewer's Diagram button.",
+ "Tira o esquema escolhido do exame": "Removes the chosen diagram from the exam",
+ "esquemas no laudo": "esquemas no laudo",
+ "Esquemas no laudo ({})": "Diagrams in the report ({})"
 }

@@ -3,6 +3,18 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.74 — Esquemas-guia separados do laudo: botão Esquema no visualizador e modelos nas Configurações
+- **Botão Esquema no visualizador** (Ipê de mesa e Ipê Web): abre os *Esquemas do exame* — novo, desenhar, excluir
+  e **Gravar no exame** (gravar de novo troca o que havia). O esquema é do exame e não depende de laudo.
+- **No laudo, só incluir**: a caixa **Esquemas no laudo** (como as imagens-chave) põe a legenda no texto, as figuras
+  no PDF e, ao assinar, os esquemas no DICOM SR. Sem ela, o laudo não leva esquema. A faixa de desenhar saiu da
+  janela do laudo.
+- **Modelos nas configurações**: **Configurações ▸ Esquemas ▸ Modelos de esquema** no Ipê de mesa e **Cadastros ▸
+  Modelos de esquema** no Ipê Web (novo de uma imagem, em branco, editar, copiar, ocultar, restaurar, excluir). A
+  janela de escolher o modelo do esquema ficou só para escolher.
+- Quem já tinha esquemas feitos nas versões 0.100.72 e 0.100.73: eles continuam no exame, mas passam a entrar no
+  laudo só com a caixa marcada.
+
 ## 0.100.73 — Esquemas-guia: gravar no exame sem laudo e cadastrar ou mudar os modelos (mesa e Web)
 - **Gravar no exame**: na faixa dos esquemas (Ipê de mesa e Ipê Web), grava na hora as figuras (série "Esquemas do
   laudo") e um SR só dos esquemas, sem precisar assinar nem salvar o laudo — como a tabela da segmentação e o resumo

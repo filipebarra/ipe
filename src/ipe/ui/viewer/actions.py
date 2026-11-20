@@ -111,6 +111,7 @@ CATALOGO: list[tuple[str, str, str]] = [
     ("tool.grow", "Ferramenta: segmentar 3D (volume, SUV, TLG)", "Medidas"),
     ("lesion.panel", "Acompanhamento de lesões (painel)", "Oncologia"),
     ("report.open", "Laudo do exame", "Laudo"),
+    ("esquema.open", "Esquemas do exame (desenhar os achados num modelo)", "Laudo"),
     ("overlay.toggle", "Mostrar/ocultar CAD/IA e anotações de outros sistemas", "Imagem"),
     ("mg.implant", "Mamografia: corrigir o implante", "Mamografia"),
     ("mg.enquadrar", "Mamografia: enquadrar a mama no quadro (descartar o ar)", "Mamografia"),

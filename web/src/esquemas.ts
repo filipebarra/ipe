@@ -24,7 +24,7 @@ export interface Modelo {
 interface Modelos { modelos: Modelo[]; cores: string[]; pode_modelos?: boolean }
 /** O editor no modo "modelo": o que se desenha vira o desenho do modelo (para todos os exames). */
 export interface ModoModelo { nome: string; grupo: string; oculto: boolean; acao: "" | "salvar" | "copia" | "excluir" }
-interface DoExame { esquemas: Esquema[]; pode: boolean; legenda: string }
+interface DoExame { esquemas: Esquema[]; pode: boolean; legenda: string; no_laudo?: boolean; com_desenho?: number }
 
 const TINTA: Record<string, string> = { forte: "#282828", leve: "#969696" };
 const FERRAMENTAS: [string, string, string][] = [
@@ -295,72 +295,80 @@ async function editarModelo(m: Modelo): Promise<boolean> {
   return true;
 }
 
+/** A grade dos modelos. Com `gerir`, o cadastro (0.100.74: fica em Cadastros ▸ Modelos de esquema): novo de uma
+ * imagem, em branco e "Editar o modelo" em cada um; sem ele, só escolher (`aoEscolher`). */
+export function gradeDeModelos(op: { gerir: boolean; aoEscolher?: (m: Modelo) => void }): HTMLElement {
+  const corpo = el("div", { class: "esq-modelos" });
+  const aviso = el("p", { class: "cad-erro", role: "alert" });
+  const gerir = el("div", { class: "imp-barra esq-gerir", hidden: "" });
+  const arquivo = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp,image/bmp", hidden: "" });
+  const tentar = async (fn: () => Promise<unknown>) => {
+    aviso.textContent = "";
+    try { await fn(); } catch (e) { aviso.textContent = (e as Error).message; }
+    await montar();
+  };
+  arquivo.onchange = () => {
+    const f = arquivo.files?.[0];
+    arquivo.value = "";
+    if (!f) return;
+    const nome = window.prompt(tr("Nome do modelo:"), f.name.replace(/\.[^.]+$/, ""));
+    if (!nome || !nome.trim()) return;
+    void tentar(async () => {
+      await json("modelo", { nome: nome.trim(), imagem: await lerArquivo(f) });
+      esquecerModelos();
+    });
+  };
+  gerir.append(botao("Novo modelo de uma imagem…", () => arquivo.click()),
+    botao("Novo modelo em branco…", () => {
+      const nome = window.prompt(tr("Nome do modelo:"), "");
+      if (nome && nome.trim()) void tentar(async () => { await json("modelo", { nome: nome.trim() }); esquecerModelos(); });
+    }), arquivo);
+  gerir.title = tr("Os modelos valem para todos os usuários desta instalação");
+  const montar = async () => {
+    let dados: Modelos;
+    try { dados = await modelos(); } catch (e) { aviso.textContent = (e as Error).message; return; }
+    const pode = op.gerir && !!dados.pode_modelos;
+    gerir.hidden = !pode;
+    if (op.gerir && !pode) aviso.textContent = tr("Cadastrar e mudar modelos pede a permissão de configurar.");
+    const ms = dados.modelos.filter((m) => pode || !m.oculto);
+    const filhos: Node[] = [];
+    for (const g of [...new Set(ms.map((m) => m.grupo))]) {
+      filhos.push(el("h4", {}, tr(g)));
+      const linha = el("div", { class: "esq-modelos-linha" });
+      for (const m of ms.filter((x) => x.grupo === g)) {
+        const cv = el("canvas", { width: "180", height: String(Math.round((180 * m.h) / m.w)) });
+        const nome = `${tr(m.nome)}${m.oculto ? ` (${tr("oculto")})` : ""}`;
+        const b = el("button", { type: "button", class: `esq-modelo${m.oculto ? " oculto" : ""}`, "data-modelo": m.id }, cv, el("span", {}, nome));
+        b.onclick = () => { if (pode) void tentar(() => editarModelo(m)); else op.aoEscolher?.(m); };
+        desenhar(cv, m, null);
+        if (m.imagem) void fundoDe(m).then((f) => { if (f) desenhar(cv, m, null, f); });
+        const caixa = el("div", { class: "esq-modelo-caixa" }, b);
+        if (pode) {
+          const ed = el("button", { type: "button", class: "esq-modelo-editar", "data-editar": m.id,
+            title: tr("Desenhar no modelo, mudar o nome ou o grupo, ocultar, copiar ou excluir") }, tr("Editar o modelo"));
+          ed.onclick = () => void tentar(() => editarModelo(m));
+          caixa.append(ed);
+        }
+        linha.append(caixa);
+      }
+      filhos.push(linha);
+    }
+    corpo.replaceChildren(...filhos);
+  };
+  void montar();
+  return el("div", { class: "esq-grade-modelos" }, gerir, aviso, corpo);
+}
+
 export async function escolherModelo(): Promise<Modelo | null> {
   return new Promise((resolver) => {
     let escolhido: Modelo | null = null;
-    const corpo = el("div", { class: "esq-modelos" });
-    const aviso = el("p", { class: "cad-erro", role: "alert" });
-    const gerir = el("div", { class: "imp-barra esq-gerir", hidden: "" });
-    const arquivo = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp,image/bmp", hidden: "" });
-    const tentar = async (fn: () => Promise<unknown>) => {
-      aviso.textContent = "";
-      try { await fn(); } catch (e) { aviso.textContent = (e as Error).message; }
-      await montar();
-    };
-    arquivo.onchange = () => {
-      const f = arquivo.files?.[0];
-      arquivo.value = "";
-      if (!f) return;
-      const nome = window.prompt(tr("Nome do modelo:"), f.name.replace(/\.[^.]+$/, ""));
-      if (!nome || !nome.trim()) return;
-      void tentar(async () => {
-        await json("modelo", { nome: nome.trim(), imagem: await lerArquivo(f) });
-        esquecerModelos();
-      });
-    };
-    gerir.append(botao("Novo modelo de uma imagem…", () => arquivo.click()),
-      botao("Novo modelo em branco…", () => {
-        const nome = window.prompt(tr("Nome do modelo:"), "");
-        if (nome && nome.trim()) void tentar(async () => { await json("modelo", { nome: nome.trim() }); esquecerModelos(); });
-      }), arquivo);
-    gerir.title = tr("Os modelos valem para todos os usuários desta instalação");
-    const montar = async () => {
-      let dados: Modelos;
-      try { dados = await modelos(); } catch (e) { aviso.textContent = (e as Error).message; return; }
-      const pode = !!dados.pode_modelos;
-      gerir.hidden = !pode;
-      const ms = dados.modelos.filter((m) => pode || !m.oculto);
-      const filhos: Node[] = [];
-      for (const g of [...new Set(ms.map((m) => m.grupo))]) {
-        filhos.push(el("h4", {}, tr(g)));
-        const linha = el("div", { class: "esq-modelos-linha" });
-        for (const m of ms.filter((x) => x.grupo === g)) {
-          const cv = el("canvas", { width: "180", height: String(Math.round((180 * m.h) / m.w)) });
-          const nome = `${tr(m.nome)}${m.oculto ? ` (${tr("oculto")})` : ""}`;
-          const b = el("button", { type: "button", class: `esq-modelo${m.oculto ? " oculto" : ""}`, "data-modelo": m.id }, cv, el("span", {}, nome));
-          b.onclick = () => { escolhido = m; d.close(); };
-          desenhar(cv, m, null);
-          if (m.imagem) void fundoDe(m).then((f) => { if (f) desenhar(cv, m, null, f); });
-          const caixa = el("div", { class: "esq-modelo-caixa" }, b);
-          if (pode) {
-            const ed = el("button", { type: "button", class: "esq-modelo-editar", "data-editar": m.id,
-              title: tr("Desenhar no modelo, mudar o nome ou o grupo, ocultar, copiar ou excluir") }, tr("Editar o modelo"));
-            ed.onclick = () => void tentar(() => editarModelo(m));
-            caixa.append(ed);
-          }
-          linha.append(caixa);
-        }
-        filhos.push(linha);
-      }
-      corpo.replaceChildren(...filhos);
-    };
+    const grade = gradeDeModelos({ gerir: false, aoEscolher: (m) => { escolhido = m; d.close(); } });
     const d = el("dialog", { class: "imp-janela larga esq-escolha", "aria-label": tr("Novo esquema") });
-    d.append(el("h3", {}, tr("Novo esquema")), gerir, aviso, el("div", { class: "imp-janela-corpo" }, corpo),
+    d.append(el("h3", {}, tr("Novo esquema")), el("div", { class: "imp-janela-corpo" }, grade),
       el("div", { class: "imp-janela-botoes" }, botao("Cancelar", () => d.close())));
     d.addEventListener("close", () => { d.remove(); resolver(escolhido); });
     document.body.append(d);
     d.showModal();
-    void montar();
   });
 }
 
@@ -658,39 +666,30 @@ export async function editarEsquema(inicial: Esquema, op: OpcoesDoEditor): Promi
   });
 }
 
-// ---------------------------------------------------------------------- a seção do painel do laudo
-/** "Esquemas-guia" dentro do laudo: as miniaturas do exame, novo, editar e inserir a legenda no texto. */
-export class EsquemasDoLaudo {
-  readonly raiz = el("details", { class: "esquemas-laudo" });
+// ---------------------------------------------------------------------- os esquemas do exame (botão do visualizador)
+type ImagemAberta = () => { series_uid: string; sop_uid: string; frame: number } | null;
+
+/** 0.100.74: os esquemas do exame, fora do laudo — as miniaturas, novo, desenhar e gravar no exame (gravar de novo
+ * troca o que havia). É o que o botão **Esquema** do visualizador abre. */
+export class EsquemasDoExame {
+  readonly raiz = el("div", { class: "esquemas-exame" });
   private grade = el("div", { class: "esq-grade" });
   private msg = el("span", { class: "esq-msg", "aria-live": "polite" });
   private esquemas: Esquema[] = [];
   private pode = false;
-  private podeNoServidor = false;
-  private travado = false;
-  private botoes: HTMLButtonElement[] = [];
-  legenda = "";
+  private bGravar: HTMLButtonElement | null = null;
 
-  constructor(private study: string, private inserir: (texto: string) => void,
-    private imagemAberta: () => { series_uid: string; sop_uid: string; frame: number } | null) {}
+  constructor(private study: string, private imagemAberta: ImagemAberta) {}
 
-  async abrir(soLeitura: boolean): Promise<void> {
+  async abrir(): Promise<void> {
     try {
       const r = await esquemasDoExame(this.study);
       this.esquemas = r.esquemas;
-      this.legenda = r.legenda;
-      this.podeNoServidor = r.pode;
-      this.travado = soLeitura;
-      this.pode = r.pode && !soLeitura;
+      this.pode = r.pode;
     } catch (e) {
       this.msg.textContent = (e as Error).message;
     }
-    const bNovo = botao("Novo esquema…", () => void this.novo());
-    const bLegenda = botao("Inserir a legenda no laudo", () => {
-      if (!this.legenda) { this.msg.textContent = tr("Nenhuma marca numerada nem setor pintado para pôr na legenda."); return; }
-      this.inserir(this.legenda);
-      this.msg.textContent = tr("Legenda inserida no texto.");
-    });
+    const bNovo = botao("Novo esquema…", () => void this.novo(), "primario");
     const bGravar = botao("Gravar no exame", () => {
       bGravar.disabled = true;
       this.msg.textContent = tr("Gravando no exame…");
@@ -700,19 +699,12 @@ export class EsquemasDoLaudo {
         .finally(() => { bGravar.disabled = false; });
     });
     bGravar.title = tr("Grava as figuras e um SR dos esquemas no exame agora, sem precisar assinar o laudo. Gravar de novo troca o que havia.");
-    this.botoes = [bNovo, bLegenda, bGravar];
-    bNovo.hidden = bLegenda.hidden = bGravar.hidden = !this.pode;
-    this.raiz.replaceChildren(el("summary", {}, tr("Esquemas-guia")), this.grade, el("div", { class: "botoes-laudo" }, bNovo, bLegenda, bGravar), this.msg);
+    this.bGravar = bGravar;
+    bNovo.hidden = bGravar.hidden = !this.pode;
+    this.raiz.replaceChildren(this.grade, el("div", { class: "imp-barra" }, bNovo, bGravar), this.msg,
+      el("p", { class: "dica" }, tr("Para o esquema sair no laudo, marque “Esquemas no laudo” no painel do laudo.")));
     await this.montar();
-    (window as unknown as { __ipeEsquemas: unknown }).__ipeEsquemas = { lista: () => this.esquemas, legenda: () => this.legenda };
-  }
-
-  /** O laudo ficou só para ler (assinado, ou outro médico está laudando) ou voltou a ser rascunho. */
-  travar(sim: boolean): void {
-    if (sim === this.travado) return;
-    this.travado = sim;
-    this.pode = this.podeNoServidor && !sim;
-    for (const b of this.botoes) b.hidden = !this.pode;
+    (window as unknown as { __ipeEsquemas: unknown }).__ipeEsquemas = { lista: () => this.esquemas };
   }
 
   private async montar(): Promise<void> {
@@ -730,15 +722,14 @@ export class EsquemasDoLaudo {
       cartoes.push(b);
     }
     this.grade.replaceChildren(...(cartoes.length ? cartoes : [el("p", { class: "dica" }, tr("Nenhum esquema neste exame."))]));
-    this.raiz.querySelector("summary")!.textContent = this.esquemas.length ? `${tr("Esquemas-guia")} (${this.esquemas.length})` : tr("Esquemas-guia");
+    if (this.bGravar) this.bGravar.disabled = !this.esquemas.some((e) => e.marcas.length || Object.keys(e.setores).length);
   }
 
   private async salvar(lista: Esquema[]): Promise<void> {
     try {
       const r = await gravarEsquemas(this.study, lista);
       this.esquemas = r.esquemas;
-      this.legenda = r.legenda;
-      this.msg.textContent = tr("Esquemas salvos: vão para o PDF, e para o exame (imagem e SR) ao assinar.");
+      this.msg.textContent = tr("Esquemas salvos.");
     } catch (e) {
       this.msg.textContent = (e as Error).message;
     }
@@ -766,5 +757,68 @@ export class EsquemasDoLaudo {
     }
     const pronto = r;
     await this.salvar(novo ? [...this.esquemas, pronto] : this.esquemas.map((x) => (x.id === e.id ? pronto : x)));
+  }
+}
+
+/** A janela do botão Esquema do visualizador. */
+export function abrirEsquemasDoExame(study: string, imagemAberta: ImagemAberta): Promise<void> {
+  return new Promise((resolver) => {
+    const painel = new EsquemasDoExame(study, imagemAberta);
+    const d = el("dialog", { class: "imp-janela larga esq-do-exame", "aria-label": tr("Esquemas do exame") });
+    d.append(el("h3", {}, tr("Esquemas do exame")), el("div", { class: "imp-janela-corpo" }, painel.raiz),
+      el("div", { class: "imp-janela-botoes" }, botao("Fechar", () => d.close())));
+    d.addEventListener("close", () => { d.remove(); resolver(); });
+    document.body.append(d);
+    d.showModal();
+    void painel.abrir();
+  });
+}
+
+// ---------------------------------------------------------------------- no laudo: "Esquemas no laudo"
+/** No laudo o esquema só se **inclui** (como as imagens-chave): as figuras no PDF, os esquemas no SR ao assinar e a
+ * legenda no texto. O desenho é feito pelo botão Esquema do visualizador. */
+export class EsquemasNoLaudo {
+  private caixa = el("input", { type: "checkbox", id: "esq-no-laudo" });
+  private rotulo = el("span", {}, tr("Esquemas no laudo"));
+  readonly raiz = el("label", { class: "cad-caixa esquemas-no-laudo", for: "esq-no-laudo",
+    title: tr("Põe no laudo a seção dos esquemas-guia do exame, como as imagens-chave: as figuras com a legenda no PDF, a legenda no texto e, ao assinar, os esquemas no SR. Os esquemas são desenhados pelo botão Esquema do visualizador.") },
+  this.caixa, this.rotulo);
+  private pode = false;
+  private travado = false;
+  private n = 0;
+
+  constructor(private study: string, private inserir: (texto: string) => void, private textoAtual: () => string) {
+    this.caixa.onchange = () => void this.mudar();
+  }
+
+  async atualizar(): Promise<void> {
+    try {
+      const r = await esquemasDoExame(this.study);
+      this.pode = r.pode;
+      this.n = r.com_desenho ?? 0;
+      this.caixa.checked = !!r.no_laudo && this.n > 0;
+    } catch { /* fica como estava */ }
+    this.estado();
+  }
+
+  travar(sim: boolean): void {
+    this.travado = sim;
+    this.estado();
+  }
+
+  private estado(): void {
+    this.rotulo.textContent = this.n ? `${tr("Esquemas no laudo")} (${this.n})` : tr("Esquemas no laudo");
+    this.caixa.disabled = !this.pode || this.travado || !this.n;
+  }
+
+  private async mudar(): Promise<void> {
+    const sim = this.caixa.checked;
+    try {
+      const r = await json<{ no_laudo: boolean; legenda: string }>("no_laudo", { study: this.study, sim });
+      this.caixa.checked = r.no_laudo;
+      if (r.no_laudo && r.legenda && !this.textoAtual().includes(r.legenda)) this.inserir(r.legenda);
+    } catch {
+      this.caixa.checked = !sim;
+    }
   }
 }

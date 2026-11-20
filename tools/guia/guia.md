@@ -1363,7 +1363,7 @@ Cada mudança fica no registro de acesso com o nome de quem fez. Ficam no Ipê d
 - **Laudo** (barra) abre o laudo ao lado das imagens, no mesmo registro de laudo do Ipê: o que se escreve num aparece no outro.
 - Sem laudo, ele começa pelo **modelo sugerido** para o exame, com os **campos automáticos** preenchidos como no Ipê (paciente, idade, data, comparação, medidas, lesões…). **Aplicar modelo** troca o texto pelo de outro modelo.
 - **Inserir achados de IA** põe no cursor os achados da IA **confirmados ou corrigidos** (o sugerido não entra), com a frase de cada ferramenta.
-- **Esquemas-guia** (0.100.72): a mesma faixa do Ipê de mesa — **Novo esquema…**, as ferramentas de desenho (com o dedo ou a caneta no tablet), o clique no setor da próstata, **Ligar à imagem aberta**, **Inserir a legenda no laudo** e **Gravar no exame**. O esquema vai para o PDF e, ao assinar, para o exame e para o SR. Quem pode configurar também cadastra e muda os modelos por aqui (0.100.73).
+- **Esquemas no laudo** (0.100.74): a mesma caixa do Ipê de mesa — inclui no laudo os esquemas-guia do exame (legenda no texto, figuras no PDF e, ao assinar, no SR). Os esquemas são desenhados pelo botão **Esquema** do visualizador.
 - **Salvar rascunho** (e ele também salva sozinho alguns segundos depois de parar de digitar). **Assinar e liberar** pede a confirmação na própria janela; assinado, o laudo não muda mais — **Retificar** cria um rascunho novo com o texto, e o anterior fica guardado.
 - **Quem está laudando**: abrir o laudo trava o exame para você. Se outro médico abrir, vê o aviso e escolhe **Só ler** ou **Assumir o laudo** (fica no registro de acesso); o servidor recusa gravar ou assinar por quem não tem a trava. Fechar o laudo (ou sair do exame) solta a trava. Quem não tem permissão de escrever laudos só lê.
 - **BI-RADS® (0.100.4)**: o mesmo formulário da janela do laudo do Ipê — o tipo (mamografia, ultrassonografia ou ressonância), a composição (ou o tecido fibroglandular e o realce de fundo na RM), os **achados** (**+ Achado**: lado, tipo, descritores da lista, tamanho, local, distância do mamilo, mudança e categoria), a categoria de cada mama e a recomendação. O texto do laudo muda sozinho, com as mesmas frases do Ipê; num modelo sem os campos do BI-RADS, **Levar ao texto do laudo** põe os blocos onde está o cursor. A categoria final é a mais preocupante.
@@ -1461,9 +1461,9 @@ No rodapé dá para incluir as imagens-chave no PDF, guardar o PDF no exame (com
 
 Os modelos se editam em **Modelos…** (nome, modalidades, palavras-chave, BI-RADS e o texto com campos automáticos entre chaves). Há *Restaurar os de fábrica*.
 
-## Esquemas-guia no laudo
+## Esquemas-guia
 
-Para marcar **onde** está cada achado num desenho — útil sobretudo no ultrassom dermatológico, na tireoide, na mama e na RM de próstata. Na janela do laudo, a faixa **Esquemas-guia** mostra os esquemas do exame; **Novo esquema…** abre os modelos:
+Para marcar **onde** está cada achado num desenho — útil sobretudo no ultrassom dermatológico, na tireoide, na mama e na RM de próstata. O esquema é **do exame**, separado do laudo: no visualizador, o botão **Esquema** abre a janela *Esquemas do exame*, com os esquemas já feitos e **Novo esquema…**, **Desenhar…**, **Excluir** e **Gravar no exame**. No Ipê Web o botão **Esquema** fica na barra do visualizador, ao lado do Laudo, e faz o mesmo.
 
 | Modelo | Para quê |
 |---|---|
@@ -1472,29 +1472,26 @@ Para marcar **onde** está cada achado num desenho — útil sobretudo no ultras
 | Mamas | relógio, quadrantes e prolongamento axilar |
 | Próstata — mapa de setores | os 41 setores (base, terço médio, ápice, vesículas e esfíncter) |
 
-São desenhos próprios do Ipê. Quem tem a permissão de configurar **cadastra e muda os modelos**, no Ipê de mesa e no Ipê Web, na mesma janela de *Novo esquema…*:
+No editor, as ferramentas ficam em cima: **Ponto** (um clique), **Elipse** e **Seta** (arrastando), **Traço livre**, **Texto**, **Mover**, **Apagar** e **Desfazer** (Ctrl+Z), com seis cores. Com **Numerar** ligado, cada ponto, elipse ou seta nova ganha o próximo número e uma linha na lista à direita, onde se escreve a descrição do achado.
+
+- **Ligar a uma imagem**: em cada marca, **Ligar à imagem aberta** prende a marca à imagem do quadro ativo do visualizador. Ela vira imagem-chave e a legenda passa a dizer "(série 3, imagem 12)".
+- **Próstata**: com a ferramenta **Setor**, escolha a categoria (PI-RADS 1 a 5) e clique no setor para pintá-lo; outro clique limpa. A legenda sai por categoria, da mais alta para a mais baixa.
+- **Gravar no exame** grava na hora, sem laudo nenhum: as figuras vão para a série "Esquemas do laudo" e as marcas para um SR só dos esquemas ("Esquemas do laudo (SR)"), como a tabela da segmentação e o resumo da densidade. **Gravar de novo troca o que havia** (não duplica).
+
+**No laudo** o esquema só se inclui, como as imagens-chave: a caixa **Esquemas no laudo** (na janela do laudo do Ipê e no painel do laudo do Ipê Web) faz três coisas:
+
+- põe no texto, onde está o cursor, a legenda — uma linha por marca numerada ("1. nódulo hipoecoico de 4 mm") e os setores pintados. O campo `{esquemas}` faz o mesmo nos modelos de laudo;
+- leva as figuras, com a legenda ao lado, para o **PDF**;
+- ao **assinar**, grava as figuras no exame e cita os esquemas no **DICOM SR** do laudo — a figura, cada marca com a posição e a imagem ligada a ela (com esquema, o SR é um *Enhanced SR*). O que tinha sido gravado antes pelo *Gravar no exame* é trocado.
+
+Sem a caixa marcada, o laudo não leva esquema nenhum. Laudo assinado não muda a escolha; para mudar, **Retificar**.
+
+**Modelos** (0.100.74: **Configurações ▸ Esquemas ▸ Modelos de esquema**; no Ipê Web, **Cadastros ▸ Modelos de esquema**). Quem tem a permissão de configurar cadastra e muda os modelos, que valem para todos os usuários:
 
 - **Novo modelo de uma imagem…**: um desenho seu (PNG ou JPG) vira um modelo;
 - **Novo modelo em branco…**: uma folha vazia para desenhar o modelo do zero;
 - **Editar o modelo…**: abre o modelo com as mesmas ferramentas de desenho. O que se desenha ali passa a fazer parte do modelo, em todos os exames; também se muda o nome e o grupo. **Salvar como cópia** cria um modelo novo a partir dele (a cópia da próstata leva os setores);
 - num modelo do Ipê, o desenho original fica guardado: **Restaurar o original** desfaz as mudanças, e **Ocultar da lista de modelos** tira o modelo da escolha sem apagar nada. Um modelo próprio se exclui em **Excluir o modelo**.
-
-Os modelos valem para todos os usuários da instalação.
-
-No editor, as ferramentas ficam em cima: **Ponto** (um clique), **Elipse** e **Seta** (arrastando), **Traço livre**, **Texto**, **Mover**, **Apagar** e **Desfazer** (Ctrl+Z), com seis cores. Com **Numerar** ligado, cada ponto, elipse ou seta nova ganha o próximo número e uma linha na lista à direita, onde se escreve a descrição do achado.
-
-- **Ligar ao texto do laudo**: **Inserir a legenda no laudo** põe, onde está o cursor, uma linha por marca numerada ("1. nódulo hipoecoico de 4 mm"). O campo `{esquemas}` faz o mesmo nos modelos de laudo.
-- **Ligar a uma imagem**: em cada marca, **Ligar à imagem aberta** prende a marca à imagem do quadro ativo do visualizador. Ela vira imagem-chave e a legenda passa a dizer "(série 3, imagem 12)".
-- **Próstata**: com a ferramenta **Setor**, escolha a categoria (PI-RADS 1 a 5) e clique no setor para pintá-lo; outro clique limpa. A legenda sai por categoria, da mais alta para a mais baixa.
-
-O que acontece com o esquema:
-
-- **Gravar no exame** grava na hora, sem precisar assinar (nem salvar) o laudo: as figuras vão para a série "Esquemas do laudo" e as marcas para um SR só dos esquemas ("Esquemas do laudo (SR)"), como a tabela da segmentação e o resumo da densidade. Gravar de novo troca o que havia;
-- entra no **PDF** do laudo, com a legenda ao lado;
-- ao **assinar**, vai para o exame como imagem DICOM (série "Esquemas do laudo") e é citado no **DICOM SR** do laudo — a figura, cada marca com a posição e a imagem ligada a ela. Com esquema, o SR é um *Enhanced SR*. O que tinha sido gravado antes pelo *Gravar no exame* é trocado;
-- laudo assinado deixa o esquema só para ver; para mudar, **Retificar**.
-
-O esquema é do exame (não de uma versão do laudo), e é o mesmo no Ipê de mesa e no Ipê Web.
 
 ## IA no texto do laudo
 

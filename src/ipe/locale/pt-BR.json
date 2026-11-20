@@ -7365,7 +7365,19 @@
   "miniaturas dos esquemas",
   "modelo de esquema ",
   "modelo de esquema: ",
-  "o servidor não apagou os esquemas anteriores"
+  "o servidor não apagou os esquemas anteriores",
+  "Configurações — Modelos de esquema",
+  "Desenhe os achados num modelo (face, corpo, tireoide, mamas, próstata…). “Gravar no exame” guarda as figuras e um SR no exame; gravar de novo troca o que havia. Para o esquema sair no laudo, marque “Esquemas no laudo” na janela do laudo. Os modelos ficam em Configurações ▸ Esquemas.",
+  "Esquemas do exame",
+  "Esquemas do exame (desenhar os achados num modelo)",
+  "Esquemas do exame: marcar os achados num desenho (face, corpo, tireoide, mamas, próstata…) e gravar no exame",
+  "Esquemas gravados no exame.",
+  "Esquemas no laudo",
+  "Modelos de esquema (face, corpo, tireoide, mamas, próstata, os seus)…",
+  "Os modelos de esquema desta instalação, para todos os usuários. O que se desenha num modelo aparece em todos os exames; nos modelos do Ipê o desenho original fica guardado.",
+  "Põe no laudo a seção dos esquemas-guia do exame, como as imagens-chave: as figuras com a legenda no PDF, a legenda no texto e, ao assinar, os esquemas no DICOM SR. Os esquemas são desenhados pelo botão Esquema do visualizador.",
+  "Tira o esquema escolhido do exame",
+  "esquemas no laudo"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -9404,6 +9416,7 @@
   "border-left:6px solid {}",
   "série {}, imagem {}",
   "Gravado no exame (figuras e SR): {}",
-  "Modelo de esquema — {}"
+  "Modelo de esquema — {}",
+  "Esquemas no laudo ({})"
  ]
 }

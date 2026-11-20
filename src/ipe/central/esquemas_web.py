@@ -105,8 +105,19 @@ def fundo(c, s, q: dict) -> bytes:
 
 def do_exame(c, s, q: dict) -> dict:
     study = _exame(c, s, _um(q, "study"))
-    return {"esquemas": E.ler(c.repo, study), "pode": bool(s.can("report")),
-            "legenda": E.texto_para_o_laudo(E.ler(c.repo, study), c.repo)}
+    lista = E.ler(c.repo, study)
+    return {"esquemas": lista, "pode": bool(s.can("report")), "legenda": E.texto_para_o_laudo(lista, c.repo),
+            "no_laudo": E.no_laudo(c.repo, study),          # 0.100.74: o médico pôs os esquemas no laudo?
+            "com_desenho": sum(1 for e in lista if not E.vazio(e) and E.modelo(e.get("modelo", ""), c.repo))}
+
+
+def no_laudo(c, s, d: dict, host: str = "") -> dict:
+    """0.100.74: liga ou desliga "os esquemas entram no laudo" (figuras no PDF, esquemas no SR ao assinar)."""
+    study = _exame(c, s, str(d.get("study") or ""))
+    if not s.can("report"):
+        raise PermissionError("seu perfil não permite escrever laudos")
+    sim = E.por_no_laudo(c.repo, study, bool(d.get("sim")), s.username)
+    return {"ok": True, "no_laudo": sim, "legenda": E.texto_para_o_laudo(E.ler(c.repo, study), c.repo) if sim else ""}
 
 
 def gravar(c, s, d: dict, host: str = "") -> dict:
@@ -166,6 +177,8 @@ def rota(c, s, method: str, acao: str, query: dict, corpo: dict, host: str = "")
             return ligar(c, s, corpo)
         if acao == "no_exame":
             return no_exame(c, s, corpo, host)
+        if acao == "no_laudo":
+            return no_laudo(c, s, corpo, host)
         if acao == "modelo":
             return modelo_gravar(c, s, corpo, host)
         if acao == "modelo_excluir":

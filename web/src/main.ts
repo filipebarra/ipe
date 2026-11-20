@@ -32,6 +32,7 @@ import { nosDoServidor, telaPacs as montarTelaPacs } from "./pacs";
 import { telaGestao } from "./gestao";
 import { telaImpressoes } from "./impressoes";
 import { telaCadastros, trocarSenha } from "./cadastros";
+import { abrirEsquemasDoExame } from "./esquemas";
 import {
   Grade, TIPO_ARRASTO, TIPO_ARRASTO_ESTUDO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
   ARRANJO_PET_PADRAO, type ConteudoPet, type VistaPet,
@@ -630,6 +631,7 @@ const IC: Record<string, string> = {
   vasos: "M3 19c4-9 7 4 10-4s5-9 8-12M5 15c1-2 2.5-3 4-1M14 9c1-2 2-3 3.5-4",
   densidade: "M12 3c-4 5-7 8.5-7 12a7 7 0 0 0 14 0c0-3.5-3-7-7-12zM8.5 15.5a3.5 3.5 0 0 0 3.5 3.5",
   laudo: "M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7",
+  esquema: "M7 5a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0-5 0M9.5 7.5v8M4 10.5l5.5-1.5 5.5 1.5M6 21l3.5-5.5L13 21M15.5 16a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0-5 0",
   petct: "M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0",
   seg: "M4 4h7v7H4zM13 13h7v7h-7zM11 7.5h5.5V13",
   cine: "M7 4l13 8-13 8z",
@@ -855,6 +857,8 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   const bCineMenu = el("button", { type: "button", class: "ic estreito", "aria-label": tr("Velocidade do cine"),
     title: tr("Velocidade do cine") }, seta());
   const bLaudo = botaoIcone("Laudo", IC.laudo, { "aria-pressed": "false" });
+  // 0.100.74: os esquemas-guia do exame (fora do laudo)
+  const bEsquema = botaoIcone("Esquema", IC.esquema);
   // 0.100.9: enviar ao PACS (só com a permissão de enviar)
   const podeEnviar = !!config?.usuario.perms?.includes("send");
   const bEnviar = botaoIcone("Enviar a um destino DICOM", IC.enviar);
@@ -896,7 +900,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     el("div", { class: "grupo" }, bLayout, bMpr, bEspessura, bObliquo, bGirar),
     el("div", { class: "grupo" }, bPet, bDin, bDens, bVasos, bSeg, bCine, bCineMenu),
     el("div", { class: "grupo" }, bInverter, bRestaurar, bOverlay, bOverlayMenu),
-    el("div", { class: "grupo" }, bLaudo, bEnviar, bIA),
+    el("div", { class: "grupo" }, bLaudo, bEsquema, bEnviar, bIA),
     el("div", { class: "grupo" }, bLigar, bLeitura, bAparencia));
   barraComTransbordo(nav);   // 0.100.53: o que não cabe vai para o "»"
 
@@ -1382,13 +1386,6 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
       requestAnimationFrame(() => grade?.redimensionar());
     });
     painelLaudo = p;
-    p.imagemAberta = () => {                               // 0.100.72: para ligar uma marca do esquema à imagem
-      const q = g.quadros[g.ativo];
-      const serie = q?.serie && !q.serie.series.startsWith("ipe") ? q.serie.series : "";
-      const id = (g.viewport() as unknown as { getCurrentImageId?: () => string } | null)?.getCurrentImageId?.() || "";
-      const m = /\/instances\/([^/]+)\/frames\/(\d+)/.exec(id);
-      return serie && m ? { series_uid: serie, sop_uid: decodeURIComponent(m[1]), frame: Math.max(0, Number(m[2]) - 1) } : null;
-    };
     // o laudo ocupa o lugar do painel de ferramentas (que volta pelo trilho, se ele quiser)
     if (!lateral.hidden) ajustarPaineis(!tira.hidden, false);
     lateral.after(p.raiz);
@@ -1426,6 +1423,17 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     const p = new PainelCalcVascular(study, async (frase) => (await abrirLaudo()).inserirTexto(frase));
     abrirPainel(p.raiz, bVasos, tr("Calcificações vasculares"), "calcvasc");
     void p.abrir();
+  };
+  // a imagem do quadro ativo, para ligar uma marca do esquema a ela (reconstruções não valem)
+  const imagemAberta = () => {
+    const q = g.quadros[g.ativo];
+    const serie = q?.serie && !q.serie.series.startsWith("ipe") ? q.serie.series : "";
+    const id = (g.viewport() as unknown as { getCurrentImageId?: () => string } | null)?.getCurrentImageId?.() || "";
+    const m = /\/instances\/([^/]+)\/frames\/(\d+)/.exec(id);
+    return serie && m ? { series_uid: serie, sop_uid: decodeURIComponent(m[1]), frame: Math.max(0, Number(m[2]) - 1) } : null;
+  };
+  bEsquema.onclick = () => {
+    void abrirEsquemasDoExame(study, imagemAberta).then(() => painelLaudo?.atualizarEsquemas());
   };
   bLaudo.onclick = async () => {
     if (painelLaudo) {

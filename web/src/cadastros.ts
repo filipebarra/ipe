@@ -4,6 +4,7 @@
 // Senhas e segredos nunca vêm do servidor: o campo vazio deixa o que estava.
 import { pedir } from "./api";
 import { getLang, tr } from "./i18n";
+import { gradeDeModelos } from "./esquemas";
 import { botao, confirmar, el, janela } from "./impressoes";
 
 interface Usuario {
@@ -597,10 +598,21 @@ export async function telaCadastros(): Promise<HTMLElement> {
     el("div", { class: "imp-barra" }, rPeriodo, rUsuario, rAcao, rTexto, botao("Atualizar", () => void tentar(carregarRegistro)), rConta),
     el("div", { class: "imp-rolagem" }, tReg.el));
 
+  // ================================================================== modelos de esquema (0.100.74)
+  const abaModelos = el("div", { class: "imp-aba", hidden: "" },
+    el("p", { class: "dica" }, tr("Os modelos de esquema desta instalação, para todos os usuários. O que se desenha num modelo aparece em todos os exames; nos modelos do Ipê o desenho original fica guardado.")));
+  let modelosMontados = false;
+  const carregarModelos = async () => {
+    if (modelosMontados) return;
+    modelosMontados = true;
+    abaModelos.append(el("div", { class: "imp-rolagem" }, gradeDeModelos({ gerir: true })));
+  };
+
   // ================================================================== abas
   const abas: [string, string, HTMLElement, (() => Promise<void>) | null][] = [
     ["usuarios", "Usuários", abaUsuarios, null], ["nos", "Nós DICOM", abaNos, carregarNos],
     ["impressoras", "Impressoras DICOM", abaImpressoras, carregarImpressoras], ["ia", "Automações de IA", abaIa, carregarIa],
+    ["modelos", "Modelos de esquema", abaModelos, carregarModelos],
     ["registro", "Registro de acesso", abaRegistro, carregarRegistro]];
   const botoes = new Map<string, HTMLButtonElement>();
   let aba = "usuarios";

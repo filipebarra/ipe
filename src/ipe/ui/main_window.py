@@ -1473,6 +1473,12 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         self.aplicar_modulos()
         self.statusBar().showMessage("Preferências salvas.", 5000)
 
+    def abrir_modelos_de_esquema(self) -> None:
+        """0.100.74: Configurações ▸ Esquemas ▸ Modelos de esquema (cadastrar e mudar pede a permissão de configurar)."""
+        from ipe.auth import session as auth
+        from ipe.ui.esquema_dialogo import ModelosDialog
+        ModelosDialog(self.repo, auth.can("configure"), self).exec()
+
     def open_report(self, study_uid: str) -> None:
         """Laudo do exame: pela aba aberta, se houver; senão numa janela própria."""
         for t in self.all_viewer_tabs():

@@ -60,6 +60,9 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         ("Fim da leitura (enviar ao PACS ao assinar)…", "f:abrir_config_fim_leitura", "configure"),
         ("IA no texto do laudo…", "f:abrir_config_laudo_ia", ""),
     ]),
+    ("Esquemas", [                                            # 0.100.74
+        ("Modelos de esquema (face, corpo, tireoide, mamas, próstata, os seus)…", "f:abrir_modelos_de_esquema", ""),
+    ]),
     ("Monitores", [
         ("Papel, layout e ordem dos monitores…", "p:monitores", "configure"),
         ("Calibração GSDF do monitor…", "f:open_gsdf", "configure"),

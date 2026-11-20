@@ -98,8 +98,8 @@ def depois_de_assinar(repo, storage: Path, rep: dict, info: dict, op: dict, sett
         try:
             n = 0
             from ipe.reporting import esquemas_saida as ES             # 0.100.72: os esquemas-guia do laudo
-            figuras = ES.figuras(repo, rep["study_uid"])
-            imagens, para_sr = ES.para_o_exame(repo, rep["study_uid"], files[0]) if figuras else ([], [])
+            figuras = ES.figuras(repo, rep["study_uid"], so_do_laudo=True)
+            imagens, para_sr = ES.para_o_exame(repo, rep["study_uid"], files[0], so_do_laudo=True) if figuras else ([], [])
             if imagens:                                              # 0.100.73: troca os gravados antes (sem laudo)
                 ES.apagar_anteriores(repo, rep["study_uid"], storage)
             for i, ds in enumerate(imagens):

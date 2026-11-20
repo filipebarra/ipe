@@ -9897,5 +9897,18 @@
  "modelo de esquema: ": "modelo de esquema: ",
  "o servidor não apagou os esquemas anteriores": "o servidor não apagou os esquemas anteriores",
  "Gravado no exame (figuras e SR): {}": "Guardado en el examen (figuras y SR): {}",
- "Modelo de esquema — {}": "Modelo de esquema — {}"
+ "Modelo de esquema — {}": "Modelo de esquema — {}",
+ "Configurações — Modelos de esquema": "Configuración — Modelos de esquema",
+ "Desenhe os achados num modelo (face, corpo, tireoide, mamas, próstata…). “Gravar no exame” guarda as figuras e um SR no exame; gravar de novo troca o que havia. Para o esquema sair no laudo, marque “Esquemas no laudo” na janela do laudo. Os modelos ficam em Configurações ▸ Esquemas.": "Dibuje los hallazgos en un modelo (cara, cuerpo, tiroides, mamas, próstata…). “Guardar en el examen” guarda las figuras y un SR en el examen; guardar de nuevo reemplaza lo que había. Para que el esquema salga en el informe, marque “Esquemas en el informe” en la ventana del informe. Los modelos están en Configuración ▸ Esquemas.",
+ "Esquemas do exame": "Esquemas del examen",
+ "Esquemas do exame (desenhar os achados num modelo)": "Esquemas del examen (dibujar los hallazgos en un modelo)",
+ "Esquemas do exame: marcar os achados num desenho (face, corpo, tireoide, mamas, próstata…) e gravar no exame": "Esquemas del examen: marcar los hallazgos en un dibujo (cara, cuerpo, tiroides, mamas, próstata…) y guardar en el examen",
+ "Esquemas gravados no exame.": "Esquemas guardados en el examen.",
+ "Esquemas no laudo": "Esquemas en el informe",
+ "Modelos de esquema (face, corpo, tireoide, mamas, próstata, os seus)…": "Modelos de esquema (cara, cuerpo, tiroides, mamas, próstata, los suyos)…",
+ "Os modelos de esquema desta instalação, para todos os usuários. O que se desenha num modelo aparece em todos os exames; nos modelos do Ipê o desenho original fica guardado.": "Los modelos de esquema de esta instalación, para todos los usuarios. Lo que se dibuja en un modelo aparece en todos los exámenes; en los modelos de Ipê el dibujo original queda guardado.",
+ "Põe no laudo a seção dos esquemas-guia do exame, como as imagens-chave: as figuras com a legenda no PDF, a legenda no texto e, ao assinar, os esquemas no DICOM SR. Os esquemas são desenhados pelo botão Esquema do visualizador.": "Pone en el informe la sección de los esquemas guía del examen, como las imágenes clave: las figuras con la leyenda en el PDF, la leyenda en el texto y, al firmar, los esquemas en el DICOM SR. Los esquemas se dibujan con el botón Esquema del visor.",
+ "Tira o esquema escolhido do exame": "Quita el esquema elegido del examen",
+ "esquemas no laudo": "esquemas no laudo",
+ "Esquemas no laudo ({})": "Esquemas en el informe ({})"
 }

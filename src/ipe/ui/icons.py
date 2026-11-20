@@ -404,6 +404,13 @@ def _draw(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por ícone
         p.drawEllipse(P(32, 32), 20, 20)
         p.drawEllipse(P(32, 32), 9, 9)
         p.drawLine(P(8, 56), P(56, 8))
+    elif name == "esquema":         # 0.100.74: silhueta com uma marca (esquema-guia)
+        p.drawEllipse(P(26, 14), 8, 8)
+        p.drawPolyline(QPolygonF([P(26, 22), P(26, 44)]))
+        p.drawPolyline(QPolygonF([P(10, 30), P(26, 26), P(42, 30)]))
+        p.drawPolyline(QPolygonF([P(16, 58), P(26, 44), P(36, 58)]))
+        p.setPen(_pen(QColor(255, 170, 60), 4))
+        p.drawEllipse(P(48, 44), 8, 8)
     elif name == "report":          # folha com linhas
         p.drawPolygon(QPolygonF([P(14, 6), P(42, 6), P(52, 16), P(52, 58), P(14, 58)]))
         for y in (22, 32, 42):

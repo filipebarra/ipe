@@ -325,13 +325,13 @@ def test_editor_de_mesa(env, tmp_path, sample_dir, qtbot, monkeypatch):
 
 
 def test_janela_do_laudo_com_esquema(env, tmp_path, sample_dir, qtbot):
-    """Na janela do laudo: a faixa aparece, a legenda entra no texto e, ao guardar no exame, vão a imagem e o SR."""
+    """0.100.74: o esquema é do exame; no laudo só se diz se ele entra ("Esquemas no laudo", como as imagens-chave):
+    a legenda vai para o texto, as figuras para o PDF e, ao guardar no exame, a imagem e o SR."""
     from ipe.importer.scanner import Importer
     from ipe.ui.report_window import ReportWindow
     paths, db, repo = env
     Importer(db, paths.storage).import_paths([sample_dir])
     study = repo.search_studies({})[0].study_uid
-    E.gravar(repo, study, [_face()], "local")
 
     class Aba:
         storage_root = paths.storage
@@ -339,25 +339,99 @@ def test_janela_do_laudo_com_esquema(env, tmp_path, sample_dir, qtbot):
         active = None
     w = ReportWindow(repo, study, None, Aba())
     qtbot.addWidget(w)
-    assert w.esquemas.lista.count() == 1
+    assert not hasattr(w, "esquemas")                       # a faixa de desenhar saiu do laudo
+    assert not w.com_esquemas.isEnabled() and w.com_esquemas.text() == "Esquemas no laudo"   # nada desenhado
+    E.gravar(repo, study, [_face(), {"modelo": "mamas"}], "local")
+    w._estado_dos_esquemas()
+    assert w.com_esquemas.isEnabled() and not w.com_esquemas.isChecked() and w.com_esquemas.text() == "Esquemas no laudo (1)"
     w.editor.setPlainText("ACHADOS\n")
     from PySide6.QtGui import QTextCursor
     w.editor.moveCursor(QTextCursor.End)
-    w.esquemas.b_legenda.click()
-    assert "Face — frente:\n1. nódulo hipoecoico de 4 mm\n2. placa" in w.editor.toPlainText()
-    assert w.context()["esquemas"].startswith("Face — frente:")
-    pdf = w.pdf_bytes()
-    w.esquemas._gravar([])
-    assert len(pdf) > len(w.pdf_bytes()) + 5000           # a figura está no PDF
-    E.gravar(repo, study, [_face()], "local")
+    sem = w.pdf_bytes()
     antes = len(repo.series_for_study(study, True))
     w.save_pdf_dicom.setChecked(True)
     w.save_sr.setChecked(True)
-    assert w.store_dicom({"text": "x", "title": "Laudo", "author": "A", "signed_by": "A", "fields": {}, "status": "final"}) == 3
+    rep = {"text": "x", "title": "Laudo", "author": "A", "signed_by": "A", "fields": {}, "status": "final"}
+    assert w.store_dicom(rep) == 2 and len(repo.series_for_study(study, True)) == antes + 2   # fora do laudo: só PDF e SR
+    # marcar: a legenda entra no texto (uma vez), as figuras no PDF, e o exame passa a dizer "no laudo"
+    w.com_esquemas.setChecked(True)
+    assert E.no_laudo(repo, study)
+    assert "Face — frente:\n1. nódulo hipoecoico de 4 mm\n2. placa" in w.editor.toPlainText()
+    w.com_esquemas.setChecked(False)
+    w.com_esquemas.setChecked(True)
+    assert w.editor.toPlainText().count("Face — frente:") == 1
+    assert w.context()["esquemas"].startswith("Face — frente:")
+    assert len(w.pdf_bytes()) > len(sem) + 5000
+    # desenhar mais (fora do laudo) não desliga o "no laudo"
+    E.gravar(repo, study, [_face()], "local")
+    assert E.no_laudo(repo, study)
+    antes = len(repo.series_for_study(study, True))
+    assert w.store_dicom(rep) == 3
     series = repo.series_for_study(study, True)
     assert len(series) == antes + 3 and any(s.description == "Esquemas do laudo" and s.modality == "OT" for s in series)
-    assert w._imagem_aberta() is None
+    w.com_esquemas.setChecked(False)
+    assert not E.no_laudo(repo, study) and len(w.pdf_bytes()) < len(sem) + 3000
     w.close()
+
+
+def test_botao_esquema_do_visualizador(env, sample_dir, qtbot, monkeypatch):
+    """0.100.74: o botão Esquema do visualizador abre os esquemas do exame, fora do laudo."""
+    from PySide6.QtWidgets import QMessageBox
+    from ipe.importer.scanner import Importer
+    from ipe.ui import esquema_dialogo as U
+    from ipe.ui.viewer import actions as A
+    paths, db, repo = env
+    Importer(db, paths.storage).import_paths([sample_dir])
+    study = repo.search_studies({})[0].study_uid
+    assert any(a[0] == "esquema.open" for a in A.ACTIONS) if hasattr(A, "ACTIONS") else True
+    from ipe.ui.icons import icon
+    assert not icon("esquema").isNull()
+    serie = repo.series_for_study(study)[0]
+    inst = repo.instances_for_series(serie.series_uid)[0]
+    d = U.EsquemasDoExame(repo, study, "ana", True, lambda: (serie.series_uid, inst["sop_uid"], 0), paths.storage)
+    qtbot.addWidget(d)
+    f = d.faixa
+    assert not f.b_legenda.isVisibleTo(d) and f.b_excluir.isVisibleTo(d) and not f.b_gravar.isEnabled()
+    f._gravar([_face(), {"modelo": "prostata", "setores": {"VS_D": "2"}}])
+    assert f.lista.count() == 2 and f.b_gravar.isEnabled() and f.b_excluir.isEnabled()
+    monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: None)
+    f.gravar_no_exame()
+    f.gravar_no_exame()                                   # salvar sobrepondo: troca, não duplica
+    nossas = [s for s in repo.series_for_study(study, True) if s.description.startswith("Esquemas do laudo")]
+    assert sorted((s.description, s.num_images) for s in nossas) == [("Esquemas do laudo", 2), ("Esquemas do laudo (SR)", 1)]
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.Yes)
+    f.lista.setCurrentRow(1)
+    f.excluir()
+    assert [e["modelo"] for e in E.ler(repo, study)] == ["face_frente"]
+    # quem não escreve laudos só vê
+    v = U.EsquemasDoExame(repo, study, "tec", False, None, paths.storage)
+    qtbot.addWidget(v)
+    assert not v.faixa.b_novo.isEnabled() and not v.faixa.b_excluir.isEnabled() and v.faixa.b_editar.text() == "Ver…"
+    # a imagem do quadro ativo: só deste exame, e nunca uma reconstrução
+    class Q:  # noqa: E701
+        sop_uid, series_uid, frame_index, is_virtual = inst["sop_uid"], serie.series_uid, 0, False
+    class Vp:  # noqa: E701
+        study_uid = study
+        def current_frame(self): return Q()
+        def update(self): pass
+    class Aba:  # noqa: E701
+        active, viewports, key_set = Vp(), [], set()
+    assert U.imagem_do_quadro(Aba, study) == (serie.series_uid, inst["sop_uid"], 0) and (inst["sop_uid"], 0) in Aba.key_set
+    assert U.imagem_do_quadro(Aba, "1.2.outro") is None
+    Q.is_virtual = True
+    assert U.imagem_do_quadro(Aba, study) is None
+    # Configurações ▸ Esquemas: o cadastro dos modelos
+    from ipe.ui import configuracoes as C
+    grupo = dict(C.CATALOGO)["Esquemas"]
+    assert grupo[0][1] == "f:abrir_modelos_de_esquema"
+    from ipe.ui.main_window import MainWindow
+    assert hasattr(MainWindow, "abrir_modelos_de_esquema")
+    m = U.ModelosDialog(repo, True)
+    qtbot.addWidget(m)
+    assert m.painel.lista.count() >= 8 and hasattr(m.painel, "b_editar")
+    so_ver = U.ModelosDialog(repo, False)
+    qtbot.addWidget(so_ver)
+    assert not hasattr(so_ver.painel, "b_editar")
 
 
 # ---------------------------------------------------------------------- 0.100.73: cadastro de modelos e gravar no exame

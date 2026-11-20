@@ -48,7 +48,9 @@ def test_os_quatro_sairam_da_barra(aba):
     nomes = _visiveis(tab)
     assert "Inverter" not in nomes and "Girar" not in nomes
     assert "Cine" not in nomes and "Ocultar" not in nomes
-    assert len(nomes) <= 24, f"ainda são muitos: {len(nomes)}"
+    # 0.100.74: 25 — entrou o botão Esquema, que ele pediu no visualizador (20/11/2026)
+    assert len(nomes) <= 25, f"ainda são muitos: {len(nomes)}"
+    assert "Esquema" in nomes
     # o que importa continua lá
     for essencial in ("Janela", "Zoom", "Rolar", "Layout", "Medidas", "Laudo", "Mais"):
         assert essencial in nomes, f"sumiu o {essencial}"

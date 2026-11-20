@@ -3,6 +3,19 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.74 — Esquemas guía separados del informe: botón Esquema en el visor y modelos en Configuración
+- **Botón Esquema en el visor** (Ipê de escritorio e Ipê Web): abre los *Esquemas del examen* — nuevo, dibujar,
+  eliminar y **Guardar en el examen** (guardar de nuevo reemplaza lo que había). El esquema es del examen y no
+  depende de informe.
+- **En el informe, solo incluir**: la casilla **Esquemas en el informe** (como las imágenes clave) pone la leyenda
+  en el texto, las figuras en el PDF y, al firmar, los esquemas en el DICOM SR. Sin ella, el informe no lleva
+  esquema. La franja de dibujar salió de la ventana del informe.
+- **Modelos en la configuración**: **Configuración ▸ Esquemas ▸ Modelos de esquema** en el Ipê de escritorio y
+  **Registros ▸ Modelos de esquema** en el Ipê Web (nuevo de una imagen, en blanco, editar, copiar, ocultar,
+  restaurar, eliminar). La ventana de elegir el modelo quedó solo para elegir.
+- Quien ya tenía esquemas de las versiones 0.100.72 y 0.100.73: siguen en el examen, pero entran en el informe solo
+  con la casilla marcada.
+
 ## 0.100.73 — Esquemas guía: guardar en el examen sin informe y registrar o cambiar los modelos (escritorio y Web)
 - **Guardar en el examen**: en la franja de los esquemas (Ipê de escritorio e Ipê Web), guarda al instante las
   figuras (serie "Esquemas do laudo") y un SR solo de los esquemas, sin firmar ni guardar el informe — como la tabla

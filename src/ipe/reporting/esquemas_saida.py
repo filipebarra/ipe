@@ -27,9 +27,11 @@ def com_conteudo(repo, study_uid: str) -> list[dict]:
     return [e for e in E.ler(repo, study_uid) if not E.vazio(e) and E.modelo(e.get("modelo", ""), repo)]
 
 
-def figuras(repo, study_uid: str, largura: int = 900) -> list[dict]:
-    """Para o PDF: [{"titulo", "png", "linhas"}]."""
+def figuras(repo, study_uid: str, largura: int = 900, so_do_laudo: bool = False) -> list[dict]:
+    """Para o PDF: [{"titulo", "png", "linhas"}]. `so_do_laudo`: só se o médico pôs os esquemas no laudo."""
     out = []
+    if so_do_laudo and not E.no_laudo(repo, study_uid):
+        return out
     for e in com_conteudo(repo, study_uid):
         try:
             out.append({"titulo": E.titulo(e, repo), "png": E.png(e, largura, repo), "linhas": E.legenda(e, repo)})
@@ -91,10 +93,12 @@ def _classe_da_imagem(repo, sop_uid: str, series_uid: str = "") -> str:
     return ""
 
 
-def para_o_exame(repo, study_uid: str, fonte_path: str) -> tuple[list, list[dict]]:
+def para_o_exame(repo, study_uid: str, fonte_path: str, so_do_laudo: bool = False) -> tuple[list, list[dict]]:
     """(as imagens DICOM dos esquemas, o que o SR leva). Cada item do SR: `titulo`, `sop_uid`, `series_uid` e
     `sop_class` da imagem do esquema, `linhas` (a legenda) e `marcas` [{texto, grafico, dados, imagem}]."""
     datasets, para_sr = [], []
+    if so_do_laudo and not E.no_laudo(repo, study_uid):   # 0.100.74: fora do laudo, quem grava é o "Gravar no exame"
+        return datasets, para_sr
     serie = generate_uid()
     for i, e in enumerate(com_conteudo(repo, study_uid), 1):
         try:

@@ -658,27 +658,29 @@ class ModeloDialog(QDialog):
                                         "base": self.e["marcas"]})
 
 
-class EscolherModelo(QDialog):
-    """Os modelos (do Ipê e os próprios), em miniaturas. Quem pode configurar cadastra e muda os modelos: de uma
-    imagem, em branco, desenhando por cima de um que existe, copiando, ocultando ou excluindo."""
+class PainelDeModelos(QWidget):
+    """Os modelos (do Ipê e os próprios), em miniaturas. Com `pode_cadastrar`, também o cadastro: de uma imagem, em
+    branco, desenhando por cima de um que existe, copiando, ocultando ou excluindo."""
+    escolheu = Signal()                                  # duplo clique num modelo
 
     def __init__(self, repo, pode_cadastrar: bool = False, parent=None):
         super().__init__(parent)
         self.repo, self.pode_cadastrar = repo, pode_cadastrar
-        self.setWindowTitle("Novo esquema")
-        self.resize(860, 640)
         self.lista = QListWidget()
         self.lista.setViewMode(QListWidget.IconMode)
         self.lista.setIconSize(QSize(150, 190))
         self.lista.setResizeMode(QListWidget.Adjust)
         self.lista.setMovement(QListWidget.Static)
         self.lista.setSpacing(8)
-        self.lista.itemDoubleClicked.connect(lambda _i: self.accept())
-        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        bb.button(QDialogButtonBox.Cancel).setText("Cancelar")
-        bb.accepted.connect(self.accept)
-        bb.rejected.connect(self.reject)
+        self.lista.itemDoubleClicked.connect(lambda _i: self._editar() if pode_cadastrar else self.escolheu.emit())
         lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        if pode_cadastrar:
+            nota = QLabel("Os modelos de esquema desta instalação, para todos os usuários. O que se desenha num modelo "
+                          "aparece em todos os exames; nos modelos do Ipê o desenho original fica guardado.")
+            nota.setWordWrap(True)
+            nota.setStyleSheet("color:#777")
+            lay.addWidget(nota)
         lay.addWidget(self.lista, 1)
         if pode_cadastrar:
             b_img = QPushButton("Novo modelo de uma imagem…")
@@ -694,7 +696,6 @@ class EscolherModelo(QDialog):
                 linha.addWidget(b)
             linha.addStretch(1)
             lay.addLayout(linha)
-        lay.addWidget(bb)
         self._encher()
 
     def _encher(self, escolher: str = "") -> None:
@@ -754,13 +755,75 @@ class EscolherModelo(QDialog):
         return it.data(Qt.UserRole) if it is not None else ""
 
 
+class EscolherModelo(QDialog):
+    """Escolher o modelo de um esquema novo. (0.100.74: o cadastro dos modelos mudou-se para Configurações ▸
+    Esquemas; `pode_cadastrar` continua valendo para quem quiser as duas coisas na mesma janela.)"""
+
+    def __init__(self, repo, pode_cadastrar: bool = False, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Novo esquema")
+        self.resize(860, 640)
+        self.painel = PainelDeModelos(repo, pode_cadastrar, self)
+        self.painel.escolheu.connect(self.accept)
+        self.lista = self.painel.lista
+        if pode_cadastrar:
+            self.b_editar = self.painel.b_editar
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.button(QDialogButtonBox.Cancel).setText("Cancelar")
+        bb.accepted.connect(self.accept)
+        bb.rejected.connect(self.reject)
+        lay = QVBoxLayout(self)
+        lay.addWidget(self.painel, 1)
+        lay.addWidget(bb)
+
+    def _em_branco(self) -> None:
+        self.painel._em_branco()
+
+    def escolhido(self) -> str:
+        return self.painel.escolhido()
+
+
+class ModelosDialog(QDialog):
+    """0.100.74: Configurações ▸ Esquemas ▸ Modelos de esquema — o cadastro dos modelos, num lugar só."""
+
+    def __init__(self, repo, pode_cadastrar: bool = True, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Configurações — Modelos de esquema")
+        self.resize(900, 680)
+        self.painel = PainelDeModelos(repo, pode_cadastrar, self)
+        bb = QDialogButtonBox(QDialogButtonBox.Close)
+        bb.button(QDialogButtonBox.Close).setText("Fechar")
+        bb.rejected.connect(self.reject)
+        lay = QVBoxLayout(self)
+        lay.addWidget(self.painel, 1)
+        lay.addWidget(bb)
+
+
+def imagem_do_quadro(tab, study_uid: str):
+    """(série, SOP, quadro) da imagem no quadro ativo do visualizador, para ligar a uma marca do esquema; ela
+    passa a ser imagem-chave (o visualizador fica sabendo). None se não é uma imagem deste exame."""
+    vp = getattr(tab, "active", None) or next(iter(getattr(tab, "viewports", []) or []), None)
+    f = vp.current_frame() if vp is not None else None
+    if f is None or getattr(f, "is_virtual", False) or not f.sop_uid:
+        return None
+    if (getattr(vp, "study_uid", "") or study_uid) != study_uid:
+        return None                                      # é um exame anterior aberto ao lado: não é deste exame
+    serie = f.series_uid or getattr(vp, "series_uid", "")
+    try:
+        tab.key_set.add((f.sop_uid, int(f.frame_index or 0)))
+        vp.update()
+    except Exception:  # noqa: BLE001
+        pass
+    return serie, f.sop_uid, int(f.frame_index or 0)
+
+
 class FaixaDeEsquemas(QWidget):
     """A faixa "Esquemas-guia" da janela do laudo: as miniaturas do exame, novo, editar e a legenda."""
     inserir = Signal(str)                                # a legenda, para o texto do laudo
     gravado = Signal(str)                                # gravou no exame: quem mostra as séries atualiza
 
     def __init__(self, repo, study_uid: str, usuario: str = "", pode: bool = True, pode_cadastrar: bool = False,
-                 imagem_aberta=None, parent=None, storage_root=None):
+                 imagem_aberta=None, parent=None, storage_root=None, janela: bool = False):
         super().__init__(parent)
         self.repo, self.study_uid, self.usuario, self.storage_root = repo, study_uid, usuario, storage_root
         self.pode, self.pode_cadastrar, self.imagem_aberta = pode, pode_cadastrar, imagem_aberta
@@ -769,8 +832,15 @@ class FaixaDeEsquemas(QWidget):
         self.lista.setViewMode(QListWidget.IconMode)
         self.lista.setFlow(QListWidget.LeftToRight)
         self.lista.setWrapping(False)
-        self.lista.setIconSize(QSize(74, 74))
-        self.lista.setFixedHeight(124)
+        if janela:                                        # 0.100.74: a janela "Esquemas do exame" do visualizador
+            self.lista.setWrapping(True)
+            self.lista.setResizeMode(QListWidget.Adjust)
+            self.lista.setIconSize(QSize(170, 200))
+            self.lista.setSpacing(8)
+            self.lista.setMinimumHeight(260)
+        else:
+            self.lista.setIconSize(QSize(74, 74))
+            self.lista.setFixedHeight(124)
         self.lista.setMovement(QListWidget.Static)
         self.lista.setToolTip("Esquemas-guia deste exame: duplo clique para desenhar")
         self.lista.itemDoubleClicked.connect(lambda it: self.editar(self.lista.row(it)))
@@ -787,16 +857,22 @@ class FaixaDeEsquemas(QWidget):
         self.b_gravar.setToolTip("Grava as figuras e um SR dos esquemas no exame agora, sem precisar assinar o laudo. "
                                  "Gravar de novo troca o que havia.")
         self.b_gravar.clicked.connect(self.gravar_no_exame)
+        self.b_excluir = QPushButton("Excluir")
+        self.b_excluir.setToolTip("Tira o esquema escolhido do exame")
+        self.b_excluir.clicked.connect(self.excluir)
+        self.b_legenda.setVisible(not janela)             # a legenda entra pelo laudo ("Esquemas no laudo")
+        self.b_excluir.setVisible(janela)
         col = QVBoxLayout()
         col.setSpacing(3)
-        for b in (self.b_novo, self.b_editar, self.b_legenda, self.b_gravar):
+        for b in (self.b_novo, self.b_editar, self.b_excluir, self.b_legenda, self.b_gravar):
             col.addWidget(b)
         col.addStretch(1)
         lay = QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
-        rot = QLabel("Esquemas-guia:")
-        rot.setAlignment(Qt.AlignTop)
-        lay.addWidget(rot)
+        if not janela:
+            rot = QLabel("Esquemas-guia:")
+            rot.setAlignment(Qt.AlignTop)
+            lay.addWidget(rot)
         lay.addWidget(self.lista, 1)
         lay.addLayout(col)
         self.recarregar()
@@ -810,6 +886,7 @@ class FaixaDeEsquemas(QWidget):
         self.b_legenda.setEnabled(self.pode and bool(self.esquemas))
         self.b_gravar.setEnabled(self.pode and bool(self.esquemas) and self.storage_root is not None)
         self.b_editar.setEnabled(bool(self.esquemas))
+        self.b_excluir.setEnabled(self.pode and bool(self.esquemas))
         self.b_editar.setText("Desenhar…" if self.pode else "Ver…")
 
     def recarregar(self) -> None:
@@ -863,6 +940,16 @@ class FaixaDeEsquemas(QWidget):
             lista.append(d.esquema())
         self._gravar(lista)
 
+    def excluir(self) -> None:
+        i = self.lista.currentRow()
+        if not (0 <= i < len(self.esquemas)):
+            return
+        if QMessageBox.question(self, "Excluir o esquema", "Excluir este esquema do exame?") != QMessageBox.Yes:
+            return
+        lista = list(self.esquemas)
+        del lista[i]
+        self._gravar(lista)
+
     def gravar_no_exame(self) -> None:
         """0.100.73: as figuras e o SR dos esquemas vão para o exame agora (sem laudo assinado)."""
         from ipe.reporting import esquemas_saida as ES
@@ -880,3 +967,27 @@ class FaixaDeEsquemas(QWidget):
             QMessageBox.information(self, "Esquemas", "Nenhuma marca numerada nem setor pintado para pôr na legenda.")
             return
         self.inserir.emit(t)
+
+
+class EsquemasDoExame(QDialog):
+    """0.100.74: a janela do botão **Esquema** do visualizador — os esquemas do exame, fora do laudo: novo, desenhar,
+    excluir e gravar no exame (gravar de novo troca o que havia)."""
+
+    def __init__(self, repo, study_uid: str, usuario: str = "", pode: bool = True, imagem_aberta=None,
+                 storage_root=None, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Esquemas do exame")
+        self.resize(760, 420)
+        self.faixa = FaixaDeEsquemas(repo, study_uid, usuario, pode, False, imagem_aberta, self, storage_root, janela=True)
+        nota = QLabel("Desenhe os achados num modelo (face, corpo, tireoide, mamas, próstata…). “Gravar no exame” guarda "
+                      "as figuras e um SR no exame; gravar de novo troca o que havia. Para o esquema sair no laudo, "
+                      "marque “Esquemas no laudo” na janela do laudo. Os modelos ficam em Configurações ▸ Esquemas.")
+        nota.setWordWrap(True)
+        nota.setStyleSheet("color:#777")
+        bb = QDialogButtonBox(QDialogButtonBox.Close)
+        bb.button(QDialogButtonBox.Close).setText("Fechar")
+        bb.rejected.connect(self.reject)
+        lay = QVBoxLayout(self)
+        lay.addWidget(self.faixa, 1)
+        lay.addWidget(nota)
+        lay.addWidget(bb)

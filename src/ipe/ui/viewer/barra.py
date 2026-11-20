@@ -968,6 +968,12 @@ class BarraMixin:
         rep.setIcon(icon("report"))
         rep.setIconText("Laudo")
         self._button(tb, rep)
+        esq = self._act("esquema.open", "Esquema", self.open_esquemas)     # 0.100.74
+        esq.setIcon(icon("esquema"))
+        esq.setIconText("Esquema")
+        esq.setToolTip("Esquemas do exame: marcar os achados num desenho (face, corpo, tireoide, mamas, próstata…) e "
+                       "gravar no exame")
+        self._button(tb, esq)
         film = self._act("film.add", "Enviar ao filme", self.film_add_current)
         film.setIcon(icon("film"))
         film.setIconText("Filme")
