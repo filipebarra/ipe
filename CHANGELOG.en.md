@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.75 — Ipê Web: marks on mammography, X-ray and ultrasound show up again
+- **Saved marks reappear** in Ipê Web on images without a frame of reference (mammography, X-ray, ultrasound):
+  arrows, texts and measurements made in desktop Ipê or in Ipê Web itself were saved but did not come back on screen
+  when the exam was reopened.
+- **Mammography**: in the mammography hanging (which puts images from several series in one viewport), marks are now
+  fetched by the real series of the images.
+- **Case package**: as a result, marks on mammography cases show up on "Show the result".
+
 ## 0.100.74 — Guide diagrams separated from the report: Diagram button in the viewer and templates in Settings
 - **Diagram button in the viewer** (desktop Ipê and Ipê Web): opens the *Exam diagrams* — new, draw, delete and
   **Save to the exam** (saving again replaces what was there). The diagram belongs to the exam and needs no report.

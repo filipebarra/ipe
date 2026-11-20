@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.75 — Ipê Web: las marcas en mamografía, rayos X y ecografía vuelven a aparecer
+- **Las marcas guardadas reaparecen** en Ipê Web en imágenes sin marco de referencia (mamografía, rayos X,
+  ecografía): flechas, textos y medidas hechos en Ipê de escritorio o en Ipê Web se guardaban, pero no volvían a la
+  pantalla al reabrir el examen.
+- **Mamografía**: en la disposición de mamografía (que junta imágenes de varias series en un mismo cuadro), las
+  marcas ahora se piden por las series reales de las imágenes.
+- **Paquete de casos**: con eso, las marcas de los casos de mamografía aparecen al pedir "Mostrar el resultado".
+
 ## 0.100.74 — Esquemas guía separados del informe: botón Esquema en el visor y modelos en Configuración
 - **Botón Esquema en el visor** (Ipê de escritorio e Ipê Web): abre los *Esquemas del examen* — nuevo, dibujar,
   eliminar y **Guardar en el examen** (guardar de nuevo reemplaza lo que había). El esquema es del examen y no

@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.75 — Ipê Web: marcações em mamografia, raios X e ultrassom voltam a aparecer
+- **Marcações gravadas reaparecem** no Ipê Web em imagens sem quadro de referência (mamografia, raios X,
+  ultrassom): setas, textos e medidas feitos no Ipê de mesa ou no próprio Ipê Web eram gravados, mas não voltavam à
+  tela ao reabrir o exame.
+- **Mamografia**: na disposição de mamografia (que junta imagens de várias séries no mesmo quadro), as marcações
+  agora são buscadas pelas séries de verdade das imagens.
+- **Pacote de casos**: com isso, as marcações de casos de mamografia aparecem ao pedir "Mostrar o resultado".
+
 ## 0.100.74 — Esquemas-guia separados do laudo: botão Esquema no visualizador e modelos nas Configurações
 - **Botão Esquema no visualizador** (Ipê de mesa e Ipê Web): abre os *Esquemas do exame* — novo, desenhar, excluir
   e **Gravar no exame** (gravar de novo troca o que havia). O esquema é do exame e não depende de laudo.

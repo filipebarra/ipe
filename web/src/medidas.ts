@@ -448,9 +448,19 @@ export function ouvirAnotacoes(): void {
 
 /** Traz do banco as medidas de uma série (as dos tipos que o site desenha) para os quadros. */
 export async function carregarMedidas(study: string, series: string, imageIds: string[], elemento: HTMLDivElement): Promise<number> {
-  const r = await fetch(`${location.origin}/api/web/medidas?study=${study}&series=${series}`, { headers: cabecalhos(), cache: "no-store" });
-  if (!r.ok) return 0;
-  const regs = (await r.json()) as { id: number; sop_uid: string; frame_index: number; kind: string; data: string }[];
+  // 0.100.75: a pilha da mamografia junta imagens de várias séries (a série dela é inventada, "mg-…"): as medidas
+  // são pedidas pelas séries de verdade das imagens — antes, marcações em mamografia não voltavam a aparecer.
+  const reais = new Set<string>();
+  for (const id of imageIds) { const p = partesDoImageId(id); if (p) reais.add(p.series); }
+  if (!reais.size) reais.add(series);
+  type Reg = { id: number; sop_uid: string; frame_index: number; kind: string; data: string };
+  const regs: Reg[] = [];
+  for (const se of reais) {
+    const r = await fetch(`${location.origin}/api/web/medidas?study=${study}&series=${se}`, { headers: cabecalhos(), cache: "no-store" });
+    if (!r.ok) continue;
+    const lista = await r.json();
+    if (Array.isArray(lista)) regs.push(...(lista as Reg[]));
+  }
   const porQuadro = new Map<string, string>();
   for (const id of imageIds) {
     const p = partesDoImageId(id);
@@ -509,7 +519,9 @@ export function deRegistro(ferr: string, kind: string, pts: P2[], texto: string,
   return {
     annotationUID: csUtils.uuidv4(), highlighted: false, isLocked: false, isVisible: true, invalidated: true,
     metadata: {
-      toolName: ferr, referencedImageId: imageId, FrameOfReferenceUID: String(valor(im || {}, "00200052") ?? ""),
+      toolName: ferr, referencedImageId: imageId, // 0.100.75: imagem sem quadro de referência (mamografia, raios X, ultrassom) fica com o campo vazio de verdade —
+      // com "" o Cornerstone guardava a anotação num grupo que o quadro não lê, e a marcação gravada não reaparecia
+      FrameOfReferenceUID: (valor(im || {}, "00200052") ? String(valor(im || {}, "00200052")) : undefined) as never,
       viewPlaneNormal: normalDa(imageId) as never, viewUp: [-ups[3], -ups[4], -ups[5]] as never,
     },
     data,
