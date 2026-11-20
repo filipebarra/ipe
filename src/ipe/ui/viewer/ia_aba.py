@@ -336,6 +336,19 @@ class IAMixin:
                     alvo = vp
                     self.load_series_into(vp, serie)
                 vp = alvo
+        if tipo in ("prostata", "picai"):       # 0.100.79: rodam no T2 axial do exame, esteja ou não no quadro
+            from ipe.ai import prostata as PR
+            linha = self._series_row(getattr(vp, "series_uid", "") or "")
+            if linha is None or not PR.e_t2_axial(linha.description or ""):
+                serie, motivo = PR.escolher_serie(self.repo, vp.study_uid or self.study_uid, self.settings)
+                if not serie:
+                    QMessageBox.information(self, PR.TITULO, f"Próstata: {motivo}.")
+                    return None
+                alvo = next((v for v in self.viewports if v.series_uid == serie and v.frames), None)
+                if alvo is None:
+                    alvo = vp
+                    self.load_series_into(vp, serie)
+                vp = alvo
         return self.segmentar_orgaos(vp, simular=simular, tipo=tipo)
 
     def ferramenta_ia_botao(self, tipo: str):
@@ -345,7 +358,7 @@ class IAMixin:
         except Exception:  # noqa: BLE001
             tem = False
         if tem:
-            return self.abrir_achados()
+            return self.open_pirads() if tipo in ("prostata", "picai") else self.abrir_achados()
         return self.ferramenta_ia(tipo, self.active)
 
     def _figado_rm_do_ativo(self):
@@ -478,7 +491,13 @@ class IAMixin:
                                                    mod.config(self.settings, mod.CHAVE_DESTINOS), mod.TITULO):
                     msg += " Enviado também aos destinos escolhidos em Configurações ▸ CAD/IA."
                 self.status_message.emit(msg)
-                self.abrir_achados()
+                if saida["ferramenta"] in ("prostata", "picai"):        # 0.100.79: o resultado vai para o PI-RADS
+                    from ipe.ui import pirads_dialogo as PD
+                    PD.recarregar_aberta(self, seg.trabalho.study_uid)
+                    if not (self.__dict__.get("_janelas_pirads") or {}).get(seg.trabalho.study_uid):
+                        self.open_pirads(seg.trabalho.study_uid)
+                else:
+                    self.abrir_achados()
                 QMessageBox.information(self, seg.titulo, msg)
                 return
             if saida is not None and tipo == "neuro":

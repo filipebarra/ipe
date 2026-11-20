@@ -3,6 +3,25 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.79 — RM de próstata: PI-RADS v2.1, volumen automático y modelos de investigación aparte
+- **PI-RADS** (botón en el visor y en Ipê Web, en la RM de próstata): PSA y fecha, volumen por el elipsoide (los tres
+  diámetros, o **Tomar de las reglas**) o por la segmentación automática, y la **densidad del PSA**; cada lesión con la
+  zona, los **sectores** (clic en el mapa), el tamaño, T2, difusión, DCE, **ADC de la ROI del cuadro**, extensión
+  extraprostática y la imagen vinculada. La **categoría** sale por la regla del PI-RADS v2.1 (zona periférica por la
+  difusión, con el DCE; zona de transición por el T2, con la difusión), con avisos cuando tamaño y puntuación no
+  coinciden, y se puede cambiar a mano.
+- **Salidas**: el mapa de sectores pintado (esquema del estudio), el **SR del PI-RADS** ("Grabar en el estudio"), el
+  texto del informe y la nueva plantilla **RM de próstata multiparamétrica (PI-RADS)**, con los campos
+  `{pirads_achados}`, `{pirads}` y `{prostata_volume}`.
+- **Volumen automático de la próstata** (TotalSegmentator, en el T2 axial): volumen y extensiones en los tres ejes,
+  SEG y hallazgo; el volumen entra en el PI-RADS y da la densidad del PSA.
+- **Modelos de investigación, opcionales y fuera del Ipê**: zonas de la próstata (MONAI/Prostate158) y lesiones
+  sugeridas (PI-CAI, pesos CC BY-NC-SA 4.0). Nada viene en el instalador: el programa muestra la licencia, la persona
+  acepta "uso en investigación y enseñanza, no clínico, no comercial" y solo entonces descarga (los pesos del PI-CAI
+  se verifican por SHA-256). Las sugerencias entran como lesiones a revisar, y todo sale marcado **"modelo de
+  investigación — no usar para diagnóstico"** (pantalla, SEG, SR e informe). Configuración ▸ CAD/IA ▸ Modelos de
+  investigación.
+
 ## 0.100.78 — Mamografía: cuatro áreas de cuadrante, sincronías apagadas, SR sin revisión y envío al PACS
 - **Zoom por cuadrante con cuatro áreas** (Ipê de escritorio e Ipê Web): posterior y superior → anterior y superior
   → posterior e inferior → anterior e inferior → mama entera (tecla Q; Mayús+Q vuelve). El cuadrante anda junto en

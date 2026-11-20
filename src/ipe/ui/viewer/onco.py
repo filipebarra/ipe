@@ -306,6 +306,15 @@ class OncoMixin:
         janelas[study] = w
         w.show()
 
+    def open_pirads(self, study_uid: str | None = None):
+        """0.100.79: a janela PI-RADS (RM de próstata) do exame."""
+        from ipe.auth import session as auth
+        from ipe.ui import pirads_dialogo as PD
+        study = study_uid or (self.active.study_uid if self.active is not None and self.active.study_uid
+                              else self.study_uid)
+        usuario = getattr(auth.get(), "full_name", "") or getattr(auth.get(), "username", "") or ""
+        return PD.abrir(self, study, self.repo, usuario, auth.can("report"), getattr(self, "storage_root", None))
+
     def append_to_report(self, text: str, study_uid: str | None = None) -> bool:
         """Acrescenta um texto ao laudo aberto (abre a janela se preciso). False se não deu."""
         if not (text or "").strip():

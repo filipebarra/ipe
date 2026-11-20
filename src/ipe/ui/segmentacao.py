@@ -152,7 +152,7 @@ def abrir_instalador_extras(janela, modelos=(), settings=None, perguntar: bool =
     for k in ("PYTHONPATH", "PYTHONHOME"):
         env.pop(k, None)
     from ipe.ui import instalador_janela as IJ
-    pedidos = [m for m in modelos if m in EX.MODELOS] or list(EX.MODELOS)
+    pedidos = [m for m in modelos if m in EX.TODOS] or list(EX.MODELOS)         # os de pesquisa: só pelo nome
 
     def conferir():
         faltas = [f"{EX.NOMES[m]}: {EX.prontidao(m, settings).falta}" for m in pedidos
@@ -267,6 +267,16 @@ class Segmentacao(QObject):
         extra = "medsam2" if self.tipo == "medsam2" else getattr(self._generica, "MODELO_EXTRA", "")
         if extra and not self.trabalho.simular:          # 0.99.83: MedSAM2, autoPET, BraTS
             from ipe.ai import extras as EX
+            if EX.e_pesquisa(extra) and (not EX.licenca_aceita(self.trabalho.settings, extra)
+                                         or not EX.prontidao(extra, self.trabalho.settings).pronto):
+                # 0.100.79: modelo de pesquisa — a licença e a instalação à parte vêm antes
+                texto = (EX.motivo(extra, self.trabalho.settings) or
+                         f"{EX.NOMES[extra]}: falta aceitar a licença deste modelo de pesquisa.")
+                if QMessageBox.question(self.janela, self.titulo, texto + "\n\nVer a licença e instalar agora?") \
+                        == QMessageBox.Yes:
+                    from ipe.ui.licenca_pesquisa import instalar_pesquisa
+                    instalar_pesquisa(self.janela, extra, self.trabalho.settings)
+                return False
             if not EX.prontidao(extra, self.trabalho.settings).pronto:
                 if QMessageBox.question(self.janela, self.titulo, EX.motivo(extra, self.trabalho.settings) +
                                         "\n\nAbrir o instalador agora?") == QMessageBox.Yes:

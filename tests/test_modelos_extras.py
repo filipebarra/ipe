@@ -97,7 +97,7 @@ def test_prontidao_e_instalador(tmp_path, monkeypatch):
     src = EX.caminho_do_instalador().read_text(encoding="utf-8")
     assert "import ipe" not in src and "from ipe" not in src
     from ipe.ai import instalar_modelos_extras as IN
-    assert set(IN.PASSOS) == set(EX.MODELOS)
+    assert set(IN.PASSOS) == set(EX.TODOS) and set(IN.PESQUISA) == set(EX.PESQUISA)          # 0.100.79: + pesquisa
     assert IN.URL_MEDSAM2_PESOS.endswith("MedSAM2_latest.pt") and "8362371" in IN.ZENODO_AUTOPET
     assert IN.URL_BRATS.endswith("model.pt")
 

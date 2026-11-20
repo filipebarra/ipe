@@ -635,6 +635,25 @@ def _draw_app(name: str, p: QPainter) -> None:  # noqa: C901 - um caso por aplic
         p.setBrush(QColor(255, 90, 60))
         for x, y, r in ((15, 20, 5), (45, 18, 4), (47, 34, 5), (13, 36, 4), (30, 43, 4)):
             p.drawEllipse(QRectF(x, y, r, r))
+    elif name in ("app_pirads", "app_prostata", "app_picai"):   # 0.100.79: a próstata em corte axial
+        p.setPen(_pen(FG, 3.5))
+        p.drawEllipse(QRectF(8, 14, 48, 38))                   # a glândula
+        p.setPen(_pen(FG, 2.5))
+        p.drawEllipse(QRectF(22, 18, 20, 18))                  # zona de transição
+        p.drawEllipse(QRectF(29, 22, 6, 6))                    # uretra
+        if name == "app_pirads":                               # setor posterolateral pintado
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor(239, 108, 0))
+            p.drawPie(QRectF(8, 14, 48, 38), 200 * 16, 50 * 16)
+        elif name == "app_prostata":                           # régua do volume
+            p.setPen(_pen(ACCENT, 3))
+            p.drawLine(P(6, 58), P(58, 58))
+            p.drawLine(P(6, 54), P(6, 62))
+            p.drawLine(P(58, 54), P(58, 62))
+        else:                                                  # foco sugerido (pesquisa)
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor(198, 40, 40))
+            p.drawEllipse(QRectF(14, 34, 12, 10))
     elif name == "app_orgaos":          # fígado, rim e baço
         p.setPen(_pen(FG, 3.5))
         fig = QPainterPath()

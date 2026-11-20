@@ -193,6 +193,16 @@ def _esquemas_text(repo, study_uid: str) -> str:
     return E.texto_para_o_laudo(E.ler(repo, study_uid), repo)
 
 
+def _pirads(repo, study_uid: str) -> dict:
+    """0.100.79: os campos do formulário PI-RADS do exame (vazio sem formulário)."""
+    from ipe.reporting import pirads as P
+    d = P.ler(repo, study_uid)
+    if P.vazio(d):
+        return {"pirads": "", "pirads_achados": "", "prostata_volume": ""}
+    c = P.calcular(d)
+    return {"pirads": P.texto_impressao(c), "pirads_achados": P.texto_achados(c), "prostata_volume": P.texto_volume(c)}
+
+
 def build_context(repo, study_uid: str, fields: dict | None = None, anonymize: bool = False) -> dict:
     info = repo.study_info(study_uid) or {}
     fields = fields or {}
@@ -217,6 +227,11 @@ def build_context(repo, study_uid: str, fields: dict | None = None, anonymize: b
         except Exception as e:  # noqa: BLE001
             log.warning("campo %s: %s", key, e)
             ctx[key] = ""
+    try:
+        ctx.update(_pirads(repo, study_uid))
+    except Exception as e:  # noqa: BLE001
+        log.warning("campos do PI-RADS: %s", e)
+        ctx.update({"pirads": "", "pirads_achados": "", "prostata_volume": ""})
     if fields.get("kind"):
         ctx["composicao"] = B.composition_text(fields)
         ctx["achados_birads"] = B.findings_text(fields)

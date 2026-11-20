@@ -105,7 +105,7 @@ class SeriesRow:
 
 #: modelos de fábrica que chegaram depois da marca "report_templates_vistos" (0.99.31): quem já tinha a
 #: lista gravada recebe só estes; os de antes, que ele tenha apagado, não voltam
-MODELOS_NOVOS = frozenset({"rx_oit"})
+MODELOS_NOVOS = frozenset({"rx_oit", "rm_prostata"})          # 0.100.79: + RM de próstata (PI-RADS)
 
 
 def _filtro_de_banco(q, banco: str, visao):

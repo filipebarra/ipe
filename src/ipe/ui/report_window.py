@@ -429,7 +429,8 @@ class ReportWindow(QWidget):
                          ("volumes", "Segmentações (volume, SUV, TMTV/TLG)"), ("curva", "Curvas tempo-intensidade"),
                          ("comparacao", "Comparação com anteriores"), ("birads", "Categoria BI-RADS e conduta"),
                          ("achados_birads", "Achados BI-RADS"), ("composicao", "Composição mamária"),
-                         ("cad", "Achados de CAD/IA"), ("esquemas", "Legenda dos esquemas-guia")):
+                         ("cad", "Achados de CAD/IA"), ("esquemas", "Legenda dos esquemas-guia"),
+                         ("pirads_achados", "PI-RADS: volume, PSA e lesões"), ("pirads", "PI-RADS: impressão")):
             a = im.addAction(lab)
             a.triggered.connect(lambda _=False, k=key: self.insert_field(k))
         ins.setMenu(im)

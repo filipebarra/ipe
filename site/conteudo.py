@@ -442,6 +442,18 @@ TAREFAS = [
                "Envie um desenho e transforme em modelo, no Ipê ou no navegador.",
                "Suba un dibujo y conviértalo en plantilla, en Ipê o en el navegador."),
              T("Settings ▸ Diagrams", "Configurações ▸ Esquemas", "Configuración ▸ Esquemas")),
+            (T("PI-RADS for prostate MRI", "PI-RADS na RM de próstata", "PI-RADS en la RM de próstata"),
+             T("Volume and PSA density (ellipsoid or automatic), each lesion on the sector map with T2, diffusion, DCE "
+               "and ADC, the v2.1 category, report text and SR. Research AI models install separately, after you "
+               "accept their license, and their output is marked “not for diagnosis”.",
+               "Volume e densidade do PSA (elipsoide ou automático), cada lesão no mapa de setores com T2, difusão, DCE "
+               "e ADC, a categoria do v2.1, o texto do laudo e o SR. Os modelos de IA de pesquisa se instalam à parte, "
+               "depois de aceita a licença, e o que sai deles vem marcado “não usar para diagnóstico”.",
+               "Volumen y densidad del PSA (elipsoide o automático), cada lesión en el mapa de sectores con T2, "
+               "difusión, DCE y ADC, la categoría v2.1, el texto del informe y el SR. Los modelos de IA de investigación "
+               "se instalan aparte, tras aceptar su licencia, y lo que sale de ellos viene marcado “no usar para "
+               "diagnóstico”."),
+             T("Viewer ▸ PI-RADS", "Visualizador ▸ PI-RADS", "Visor ▸ PI-RADS")),
             (T("Films and printing", "Filmes e impressão", "Películas e impresión"),
              T("Film composer; print to paper, PDF or a DICOM printer; Ipê can also receive films from modalities.",
                "Compositor de filmes; impressão em papel, PDF ou impressora DICOM; o Ipê também recebe filmes dos "

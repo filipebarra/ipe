@@ -2060,6 +2060,11 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         from ipe.ui.segmentacao import abrir_instalador_extras
         abrir_instalador_extras(self, settings=self.settings)
 
+    def instalar_modelos_pesquisa(self) -> None:
+        """0.100.79: Configurações ▸ CAD/IA ▸ Modelos de pesquisa (próstata): a licença e o instalador à parte."""
+        from ipe.ui.licenca_pesquisa import escolher_e_instalar
+        escolher_e_instalar(self, self.settings)
+
     def _segmentacao_pronta(self, study_uid: str, saida) -> None:
         """Órgãos segmentados pelo banco: o exame aberto ganha as máscaras sem precisar reabrir."""
         from ipe.ui.segmentacao import carregar_na_aba

@@ -38,6 +38,7 @@ if (SRC / "ipe" / "casos" / "lancadores").is_dir():   # 0.100.56: os lançadores
 datas += [(str(SRC / "ipe" / "ai" / "totalseg_worker.py"), "ipe/ai")]
 # 0.99.83: o instalador dos modelos extras (MedSAM2, autoPET, BraTS) também roda no Python da segmentação
 datas += [(str(SRC / "ipe" / "ai" / "instalar_modelos_extras.py"), "ipe/ai")]
+datas += [(str(SRC / "ipe" / "ai" / "picai_trabalhador.py"), "ipe/ai")]          # 0.100.79: roda no venv_picai
 datas += [(str(SRC / "ipe" / "ai" / "medsam2_sam2.1_hiera_t512.yaml"), "ipe/ai")]     # 0.100.33
 # e o instalador dela, para quem instalou o programa pelo instalador também poder baixá-la uma vez
 # (Arquivo ▸ Instalar a segmentação de órgãos). O programa acha em resource_dir().

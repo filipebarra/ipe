@@ -975,6 +975,12 @@ class BarraMixin:
         esq.setToolTip("Esquemas do exame: marcar os achados num desenho (face, corpo, tireoide, mamas, próstata…) e "
                        "gravar no exame")
         self._button(tb, esq)
+        pir = self._act("pirads.open", "PI-RADS (RM de próstata)", self.open_pirads)     # 0.100.79
+        pir.setIcon(icon("app_pirads"))
+        pir.setIconText("PI-RADS")
+        pir.setToolTip("PI-RADS v2.1: volume e densidade do PSA, cada lesão nos setores, ADC, DCE e a categoria; "
+                       "vai para o laudo, para o mapa de setores e para o SR")
+        self._button(tb, pir, None, app="pirads")
         film = self._act("film.add", "Enviar ao filme", self.film_add_current)
         film.setIcon(icon("film"))
         film.setIconText("Filme")
@@ -1164,7 +1170,11 @@ class BarraMixin:
                 ("calcio", "Medir o escore de cálcio coronariano (Agatston) nesta TC sem contraste…",
                  "Cálcio coronariano — Agatston (IA)", "Cálcio"),
                 ("carga_pet", "Medir a carga tumoral deste PET (FDG, PSMA ou DOTA)…",
-                 "Carga tumoral no PET (FDG/PSMA/DOTA)", "Carga")):
+                 "Carga tumoral no PET (FDG/PSMA/DOTA)", "Carga"),
+                ("prostata", "Volume da próstata nesta RM (IA, TotalSegmentator)…",
+                 "Volume da próstata e densidade do PSA (IA)", "Próstata"),
+                ("picai", "Sugerir lesões da próstata — modelo de PESQUISA (PI-CAI), não usar para diagnóstico…",
+                 "Lesões da próstata — modelo de pesquisa (PI-CAI)", "PI-CAI")):
             menu_x = self._menu()
             a_x = QAction(rotulo_menu, self)
             a_x.triggered.connect(lambda _=False, tp=tipo: self.ferramenta_ia(tp, self.active))

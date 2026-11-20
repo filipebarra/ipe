@@ -218,6 +218,15 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
     Aplicacao("flames", "Lesões no FLAIR", frozenset({"MR"}), ((frozenset({"cranio"}), frozenset()),),
               descricao="Lesões de substância branca no FLAIR (IA, modelo extra): número, volume e regiões, com a "
                         "comparação com o exame anterior"),
+    # 0.100.79: RM de próstata — o formulário PI-RADS, o volume pela IA e as sugestões do modelo de pesquisa
+    Aplicacao("pirads", "PI-RADS", frozenset({"MR"}), ((frozenset({"pelve"}), frozenset()),),
+              descricao="PI-RADS v2.1 na RM de próstata: volume, densidade do PSA, lesões nos setores, ADC, DCE, "
+                        "laudo e SR"),
+    Aplicacao("prostata", "Volume da próstata", frozenset({"MR"}), ((frozenset({"pelve"}), frozenset()),),
+              descricao="Volume da próstata pela IA (TotalSegmentator), com a densidade do PSA no PI-RADS"),
+    Aplicacao("picai", "PI-CAI (pesquisa)", frozenset({"MR"}), ((frozenset({"pelve"}), frozenset()),),
+              descricao="Lesões da próstata sugeridas por um modelo de PESQUISA (PI-CAI; instalado à parte, com a "
+                        "licença aceita): não usar para diagnóstico"),
     # 0.100.37: em toda RM (antes, só quando a descrição de uma série dizia DWI/DIFF…: aparelhos que chamam a
     # difusão de outro jeito ficavam sem o botão). O painel põe as séries de difusão primeiro na lista.
     Aplicacao("difusao", "Difusão", frozenset({"MR"}),
@@ -239,7 +248,7 @@ APLICACOES: dict[str, Aplicacao] = {a.id: a for a in (
 
 #: 0.100.37: as aplicações de IA, que a barra junta num botão só ("IA", uma lista como a das medidas)
 IA = frozenset({"linfonodos", "nodulos", "composicao", "figado_rm", "enfisema", "genant", "figado_lesoes",
-                "autopet", "aorta", "calcio", "brats", "medula", "flames", "abdome"})
+                "autopet", "aorta", "calcio", "brats", "medula", "flames", "abdome", "prostata", "picai"})
 CHAVE_IA_AGRUPADA = "viewer.ia_agrupada"
 
 

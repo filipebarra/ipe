@@ -974,3 +974,30 @@ dialog.esq-janela h3 { margin: 0; }
 .esquemas-exame .esq-cartao canvas { width: 176px; }
 .esquemas-no-laudo { font-size: 13px; }
 dialog.esq-do-exame { min-height: 320px; }
+
+/* 0.100.79: PI-RADS (RM de próstata) */
+.pirads-janela, dialog.imp-janela.larga.pirads-janela { width: min(1180px, 96vw); max-width: 96vw; max-height: 94vh; }
+dialog.pirads-janela .imp-janela-corpo { max-height: 80vh; }
+.pirads { display: flex; flex-direction: column; gap: 10px; }
+.pir-pesquisa { background: #b71c1c; color: #fff; padding: 8px 10px; border-radius: 6px; font-weight: 600; }
+.pir-grupo { border: 1px solid var(--borda); border-radius: 8px; padding: 8px 10px; display: flex; flex-wrap: wrap;
+  gap: 8px 14px; align-items: flex-end; min-width: 0; }
+.pir-grupo legend { color: var(--suave); padding: 0 4px; }
+.pir-campo { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.pir-campo > span { color: var(--suave); }
+.pir-caixa { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.pir-linha { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.pir-volume { flex-basis: 100%; font-weight: 600; }
+.pir-corpo { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.pir-esq { flex: 1 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.pir-mapa { flex: 0 0 auto; width: 300px; max-width: 100%; height: auto; background: #fff; border-radius: 6px; cursor: pointer; }
+.pir-tabela { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pir-tabela th, .pir-tabela td { border-bottom: 1px solid var(--borda); padding: 4px 6px; text-align: left; }
+.pir-tabela tr { cursor: pointer; }
+.pir-tabela tr.escolhida td { background: rgba(88, 166, 255, .15); }
+.pir-tabela td.pir-cat { font-weight: 700; text-align: center; }
+.pir-cat-calc { font-weight: 700; font-size: 15px; }
+.pir-avisos { color: #e3a008; font-size: 12px; flex-basis: 100%; }
+.pir-setores { flex-basis: 100%; font-size: 13px; }
+.pir-geral { font-weight: 700; font-size: 15px; margin-right: auto; }
+.pirads textarea { width: 100%; box-sizing: border-box; font: inherit; }

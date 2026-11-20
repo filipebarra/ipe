@@ -324,6 +324,10 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
     for t in tarefas:
         nome = t["nome"]
         lab = np.zeros(vol.shape, np.uint8)
+        if t.get("prostata"):                # 0.100.79: fantoma da próstata — a glândula é tudo ≥ 800
+            lab[vol >= 800] = 1
+            saida[nome] = (lab, {1: "prostate"})
+            continue
         if t.get("linfo"):
             # fantoma dos níveis linfonodais (0.99.20): HU = 2000 + código da estrutura
             codigos = LINFO_SIM.get(nome, {})
@@ -497,7 +501,7 @@ def _simular(vol, tarefas: list, afim=None) -> dict:
 # ================================================================== modelos extras (0.99.83)
 # MedSAM2 (caixa → máscara 3D), autoPET (lesões no PET-FDG) e BraTS (glioma). Os pesos ficam em
 # IPE_PESOS (…/segmentacao/pesos), baixados pelo instalar_modelos_extras. Nada do Ipê é importado aqui.
-ESPECIAIS = ("medsam2", "autopet", "brats", "synthsr", "flames", "totalspineseg")
+ESPECIAIS = ("medsam2", "autopet", "brats", "synthsr", "flames", "totalspineseg", "prostata_zonas", "picai")
 
 
 def _pesos() -> Path:
@@ -819,6 +823,182 @@ def _sim_totalspineseg(vol):
     return lab, {int(k): f"rotulo_{int(k)}" for k in np.unique(lab) if k}
 
 
+# ------------------------------------------------------------------ próstata (0.100.79): modelos de PESQUISA
+def _glandula(anteriores: dict):
+    """A próstata do total_mr da mesma rodada, ou None."""
+    import numpy as np
+    for lab, classes in anteriores.values():
+        ids = [k for k, v in classes.items() if v == "prostate"]
+        if ids:
+            return np.isin(lab, ids)
+    return None
+
+
+def _prostata_zonas(vol, job: dict, glandula):
+    """T2 axial → 1 zona de transição / glândula central, 2 zona periférica (MONAI prostate_mri_anatomy, UNet 3D).
+
+    Como no bundle: a imagem em RAS, 0,5 mm isotrópico, intensidade 0–1 e depois z-score, janelas de 96³ com 50% de
+    sobreposição. Antes, o recorte de 108 mm no axial em torno da glândula do TotalSegmentator (o Prostate158 foi
+    recortado assim: 20% de cada lado de um campo de 180 mm). As probabilidades voltam à grade da série e ficam só
+    perto da glândula."""
+    import math
+
+    import numpy as np
+    import torch
+    import torch.nn.functional as F
+    from monai.inferers import sliding_window_inference
+    from monai.networks.nets import UNet
+    pesos = _pesos() / "prostata_zonas" / "model.pt"
+    if not pesos.is_file():
+        raise RuntimeError(f"faltam os pesos das zonas da próstata ({pesos}): rode o instalar_modelos_extras")
+    dz, dy, dx = (float(x) for x in job["espacamento"])
+    nz, ny, nx = vol.shape
+    if glandula is not None and glandula.any():
+        kk, jj, ii = np.nonzero(glandula)
+        cj, ci = float(jj.mean()), float(ii.mean())
+        mk = int(math.ceil(15.0 / max(dz, 0.1)))
+        k0, k1 = max(0, int(kk.min()) - mk), min(nz, int(kk.max()) + mk + 1)
+    else:
+        cj, ci, k0, k1 = ny / 2.0, nx / 2.0, 0, nz
+    hj, hi = int(round(54.0 / dy)), int(round(54.0 / dx))
+    j0, j1 = max(0, int(cj) - hj), min(ny, int(cj) + hj)
+    i0, i1 = max(0, int(ci) - hi), min(nx, int(ci) + hi)
+    sub = np.ascontiguousarray(vol[k0:k1, j0:j1, i0:i1], dtype=np.float32)
+    afim = np.asarray(job["affine"], float)                         # (i, j, k, 1) -> RAS mm
+    a_sub = afim.copy()
+    a_sub[:3, 3] = (afim @ np.array([i0, j0, k0, 1.0]))[:3]
+    sk, sj, si = sub.shape
+    cantos = np.array([[i, j, k, 1.0] for i in (0, si - 1) for j in (0, sj - 1) for k in (0, sk - 1)]) @ a_sub.T
+    lo, hi_ = cantos[:, :3].min(0), cantos[:, :3].max(0)
+    passo = 0.5
+    tam = [max(8, int(math.ceil((hi_[d] - lo[d]) / passo)) + 1) for d in range(3)]        # X (R), Y (A), Z (S)
+    etapa(f"zonas da próstata (pesquisa): grade de {tam[0]}×{tam[1]}×{tam[2]} a 0,5 mm")
+    inv = np.linalg.inv(a_sub)
+    # da grade RAS (x, y, z) para o índice da série (i, j, k), e normalizado para o grid_sample
+    gx, gy, gz = (lo[d] + passo * np.arange(tam[d]) for d in range(3))
+    X, Y, Z = np.meshgrid(gx, gy, gz, indexing="ij")
+    pts = np.stack([X, Y, Z, np.ones_like(X)], -1) @ inv.T
+    def norm(v, n):
+        return 2.0 * v / max(n - 1, 1) - 1.0
+    grade = np.stack([norm(pts[..., 0], si), norm(pts[..., 1], sj), norm(pts[..., 2], sk)], -1)   # (x→W=i, y→H=j, z→D=k)
+    x = torch.from_numpy(sub)[None, None]                                    # (1, 1, K, J, I)
+    img = F.grid_sample(x, torch.from_numpy(grade.astype(np.float32))[None], mode="bilinear", padding_mode="zeros",
+                        align_corners=True)                                    # (1, 1, X, Y, Z)
+    lo_v, hi_v = float(img.min()), float(img.max())
+    img = (img - lo_v) / max(hi_v - lo_v, 1e-6)                                # ScaleIntensityd(0, 1)
+    img = (img - img.mean()) / img.std().clamp_min(1e-6)                       # NormalizeIntensityd
+    net = UNet(spatial_dims=3, in_channels=1, out_channels=3, channels=(16, 32, 64, 128, 256, 512),
+               strides=(2, 2, 2, 2, 2), num_res_units=4, norm="batch", act="prelu", dropout=0.15)
+    sd = torch.load(str(pesos), map_location="cpu", weights_only=True)
+    net.load_state_dict(sd.get("model", sd) if isinstance(sd, dict) else sd)
+    net.eval()
+    etapa("zonas da próstata (pesquisa): segmentando")
+    with torch.inference_mode():
+        prob = torch.softmax(sliding_window_inference(img, roi_size=(96, 96, 96), sw_batch_size=2, predictor=net,
+                                                      overlap=0.5), 1)            # (1, 3, X, Y, Z)
+    # de volta à grade da série: cada voxel (i, j, k) do recorte → ponto RAS → índice da grade de 0,5 mm
+    kk, jj, ii = np.meshgrid(np.arange(sk), np.arange(sj), np.arange(si), indexing="ij")
+    p = np.stack([ii, jj, kk, np.ones_like(ii)], -1).astype(np.float64) @ a_sub.T
+    t = (p[..., :3] - lo) / passo
+    volta = np.stack([norm(t[..., 2], tam[2]), norm(t[..., 1], tam[1]), norm(t[..., 0], tam[0])], -1)  # W=Z, H=Y, D=X
+    pr = F.grid_sample(prob, torch.from_numpy(volta.astype(np.float32))[None], mode="bilinear",
+                       padding_mode="zeros", align_corners=True)[0].numpy()     # (3, K, J, I)
+    rec = pr.argmax(0).astype(np.uint8)
+    rec[pr.max(0) <= 0] = 0
+    try:                                                                         # a maior ilha de cada zona
+        from scipy import ndimage
+        for z in (1, 2):
+            lab, n = ndimage.label(rec == z)
+            if n > 1:
+                maior = 1 + int(np.argmax(np.bincount(lab.ravel())[1:]))
+                rec[(lab > 0) & (lab != maior)] = 0
+    except ImportError:
+        pass
+    out = np.zeros(vol.shape, np.uint8)
+    out[k0:k1, j0:j1, i0:i1] = rec
+    if glandula is not None and glandula.any():
+        perto = glandula.copy()
+        for _ in range(2):                                                       # 2 voxels de folga
+            perto = perto | np.roll(perto, 1, 1) | np.roll(perto, -1, 1) | np.roll(perto, 1, 2) | np.roll(perto, -1, 2)
+        out[~perto] = 0
+    return out, {1: "zona_transicao", 2: "zona_periferica"}
+
+
+def _sim_prostata_zonas(vol, glandula):
+    """Simulado: dentro da glândula, ≥ 1500 é zona periférica e o resto, zona de transição."""
+    import numpy as np
+    g = glandula if glandula is not None else (vol >= 800)
+    lab = np.zeros(vol.shape, np.uint8)
+    lab[g & (vol < 1500)] = 1
+    lab[g & (vol >= 1500)] = 2
+    return lab, {1: "zona_transicao", 2: "zona_periferica"}
+
+
+def _python_do_picai() -> Path:
+    base = _pesos().parent / "venv_picai"
+    for c in (base / "Scripts" / "python.exe", base / "bin" / "python"):
+        if c.is_file():
+            return c
+    raise RuntimeError(f"falta o ambiente do PI-CAI em {base}: rode o instalar_modelos_extras (picai)")
+
+
+def _picai(vol, canais: dict, job: dict, d: Path):
+    """T2 + ADC + difusão de b alto (na grade do T2) → candidatos com a probabilidade (PI-CAI, modelo de pesquisa).
+
+    Roda `picai_trabalhador.py` (ao lado deste arquivo) com o Python do `venv_picai`. Volta o mapa de detecção:
+    cada candidato vira um rótulo, e o nome da classe leva a probabilidade ("cspca_0.7312")."""
+    import subprocess
+
+    import nibabel as nib
+    import numpy as np
+    falta = [n for n in ("adc", "hbv") if n not in canais]
+    if falta:
+        raise RuntimeError("faltam as sequências: " + ", ".join(falta))
+    py = _python_do_picai()
+    ent, sai = d / "picai_in", d / "picai_out"
+    ent.mkdir(exist_ok=True)
+    sai.mkdir(exist_ok=True)
+    afim = np.asarray(job["affine"], float)
+    for nome, arr in (("t2w", vol), ("adc", canais["adc"]), ("hbv", canais["hbv"])):
+        nib.save(nib.Nifti1Image(np.ascontiguousarray(np.asarray(arr).transpose(2, 1, 0)).astype(np.float32), afim),
+                 str(ent / f"{nome}.nii.gz"))
+    etapa("PI-CAI (modelo de pesquisa): preparando e rodando o nnU-Net (um fold, CPU)")
+    env = dict(os.environ)
+    for k in ("PYTHONPATH", "PYTHONHOME", "nnUNet_raw_data_base", "nnUNet_preprocessed", "RESULTS_FOLDER"):
+        env.pop(k, None)
+    script = Path(__file__).with_name("picai_trabalhador.py")
+    r = subprocess.run([str(py), "-I", str(script), str(ent), str(sai), str(_pesos() / "picai" / "results")],
+                       capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
+    mapa = sai / "mapa.npy"
+    if r.returncode != 0 or not mapa.is_file():
+        fim = ((r.stderr or "") + (r.stdout or "")).strip().splitlines()[-8:]
+        raise RuntimeError("o PI-CAI não terminou: " + " | ".join(fim)[-900:])
+    det = np.load(mapa)
+    if det.shape != vol.shape:
+        raise RuntimeError(f"o PI-CAI devolveu outra grade ({det.shape} × {vol.shape})")
+    return _rotulos_do_mapa(det)
+
+
+def _rotulos_do_mapa(det):
+    """Mapa de detecção (cada candidato com a sua probabilidade constante) → rótulos 1..N e os nomes."""
+    import numpy as np
+    lab = np.zeros(det.shape, np.uint8)
+    classes = {}
+    for n, p in enumerate(sorted({float(v) for v in np.unique(det) if v > 0}, reverse=True)[:250], 1):
+        lab[det == p] = n
+        classes[n] = f"cspca_{p:.4f}"
+    return lab, classes
+
+
+def _sim_picai(vol, canais: dict):
+    """Simulado: na glândula, ≥ 2500 é um foco de probabilidade 0,73 (e ≥ 3500, outro de 0,31)."""
+    import numpy as np
+    det = np.zeros(vol.shape, np.float32)
+    det[(vol >= 2500) & (vol < 3500)] = 0.73
+    det[vol >= 3500] = 0.31
+    return _rotulos_do_mapa(det)
+
+
 def _versao_especial(especiais: list) -> str:
     from importlib.metadata import version
     nomes = []
@@ -829,6 +1009,10 @@ def _versao_especial(especiais: list) -> str:
             continue
         if n == "totalspineseg":
             nomes.append("TotalSpineSeg")
+            continue
+        if n in ("prostata_zonas", "picai"):
+            nomes.append({"prostata_zonas": "MONAI prostate_mri_anatomy (pesquisa)",
+                          "picai": "PI-CAI baseline nnU-Net fold 0 (pesquisa)"}[n])
             continue
         if n == "flames":
             try:
@@ -863,6 +1047,11 @@ def rodar_especial(nome: str, vol, d: Path, job: dict, t: dict, simular: bool, a
         return _sim_flames(vol, cerebro) if simular else _flames(vol, job, cerebro)
     if nome == "totalspineseg":                             # 0.100.26: medula, canal, discos e vértebras
         return _sim_totalspineseg(vol) if simular else _totalspineseg(vol, job, d)
+    if nome == "prostata_zonas":                            # 0.100.79: zonas (modelo de pesquisa)
+        g = _glandula(anteriores)
+        return _sim_prostata_zonas(vol, g) if simular else _prostata_zonas(vol, job, g)
+    if nome == "picai":                                     # 0.100.79: lesões (modelo de pesquisa do PI-CAI)
+        return _sim_picai(vol, canais) if simular else _picai(vol, canais, job, d)
     if nome == "synthsr":                                   # 0.100.23: sai uma imagem, não uma máscara
         import numpy as np
         afim = np.asarray(job["affine"], float)

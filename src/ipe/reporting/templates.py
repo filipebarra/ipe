@@ -3,6 +3,7 @@
 Campos entre chaves são preenchidos sozinhos:
 {paciente} {idade} {sexo} {data_exame} {exame} {solicitante} {comparacao} {medidas} {lesoes}
 {imagens_chave} {volumes} {birads} {achados_birads} {composicao} {conduta} {curva}
+{pirads} {pirads_achados} {prostata_volume}
 """
 
 from __future__ import annotations
@@ -25,6 +26,9 @@ PLACEHOLDERS = {
     "conduta": "Conduta recomendada pela categoria BI-RADS",
     "curva": "Curvas tempo-intensidade (RM dinâmica)",
     "esquemas": "Esquemas-guia: a legenda das marcas e dos setores pintados",
+    "pirads_achados": "PI-RADS: volume, PSA e densidade, e cada lesão (formulário PI-RADS)",
+    "pirads": "PI-RADS: a categoria geral e a densidade do PSA (impressão)",
+    "prostata_volume": "Volume da próstata e densidade do PSA",
 }
 
 _MG = """MAMOGRAFIA DIGITAL BILATERAL
@@ -150,8 +154,30 @@ Ausência de ascite ou linfonodomegalias.
 
 IMPRESSÃO:
 """},
+    {"id": "rm_prostata", "name": "RM de próstata multiparamétrica (PI-RADS)", "modalities": ["MR"],
+     "keywords": ["próstata", "prostata", "prostate", "pi-rads", "pirads", "multiparam", "mpmri"],
+     "text": """RESSONÂNCIA MAGNÉTICA MULTIPARAMÉTRICA DA PRÓSTATA
+
+Técnica: sequências ponderadas em T2 nos três planos, difusão com mapa ADC e estudo dinâmico após contraste
+(DCE), avaliadas segundo o PI-RADS® v2.1.
+
+Indicação:
+
+Comparação: {comparacao}
+
+Relatório:
+{pirads_achados}
+
+Vesículas seminais sem alterações significativas.
+Feixes neurovasculares preservados.
+Ausência de linfonodomegalias pélvicas.
+Estruturas ósseas incluídas sem lesões suspeitas.
+
+IMPRESSÃO:
+{pirads}
+"""},
     {"id": "rm_pelve", "name": "RM da pelve", "modalities": ["MR"],
-     "keywords": ["pelve", "pelvis", "próstata", "prostata", "útero", "utero", "reto"],
+     "keywords": ["pelve", "pelvis", "útero", "utero", "reto"],
      "text": """RESSONÂNCIA MAGNÉTICA DA PELVE
 
 Técnica: sequências multiplanares ponderadas em T1, T2 e difusão, antes e após contraste.

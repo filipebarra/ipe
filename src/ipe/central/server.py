@@ -964,6 +964,18 @@ class _Handler(BaseHTTPRequestHandler):
             if isinstance(r, bytes):
                 return self._send(200, r, "image/png", {"Cache-Control": "no-store"})
             return self._json(200, r, raw=True)
+        if path.startswith("/api/web/pirads/"):                             # 0.100.79: PI-RADS (RM de próstata)
+            from ipe.central import pirads_web as PW
+            try:
+                corpo = json.loads(self._body() or b"{}") if method == "POST" else {}
+                r = PW.rota(c, s, method, path.rsplit("/", 1)[-1], parse_qs(parts.query), corpo, self.client_address[0])
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except LookupError as e:
+                return self._error(404, str(e).strip("'"))
+            except (TypeError, ValueError, RuntimeError) as e:
+                return self._error(400, str(e))
+            return self._json(200, r, raw=True)
         if path.startswith("/api/web/cadastros/"):                          # 0.100.71: Cadastros (só administradores)
             from ipe.central import cadastros_web as CW
             try:

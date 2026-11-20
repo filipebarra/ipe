@@ -163,6 +163,19 @@ CREDITOS: tuple[Credito, ...] = (
             "CC BY 4.0", "https://zenodo.org/records/17955359", onde="modelo",
             citacao="Dereskewicz E, La Rosa F, et al. FLAMeS: A Robust Deep Learning Model for Automated Multiple "
                     "Sclerosis Lesion Segmentation. Journal of Neuroimaging. 2025;35(5):e70085."),
+    Credito("MONAI prostate_mri_anatomy", "zonas da próstata (transição e periférica) na RM — MODELO DE PESQUISA, "
+            "instalado à parte com a licença aceita (treinado no Prostate158)", "Apache-2.0 (código); dados de pesquisa",
+            "https://github.com/Project-MONAI/model-zoo/tree/dev/models/prostate_mri_anatomy", onde="modelo",
+            citacao="Adams LC, Makowski MR, Engel G, et al. Prostate158 — An expert-annotated 3T MRI dataset and "
+                    "algorithm for prostate cancer detection. Computers in Biology and Medicine. 2022;148:105817."),
+    Credito("PI-CAI baseline nnU-Net", "lesões da próstata na RM biparamétrica — MODELO DE PESQUISA, instalado à parte "
+            "com a licença aceita; não usar para diagnóstico", "CC BY-NC-SA 4.0 (pesos); Apache-2.0 (código)",
+            "https://github.com/DIAGNijmegen/picai_nnunet_semi_supervised_gc_algorithm", onde="modelo",
+            citacao="Saha A, Bosma JS, Twilt JJ, et al. Artificial intelligence and radiologists in prostate cancer "
+                    "detection on MRI (PI-CAI): an international, paired, non-inferiority, confirmatory study. Lancet "
+                    "Oncol. 2024;25(7):879-887.", modulos=("picai_prep", "picai_baseline", "report_guided_annotation")),
+    Credito("SimpleITK", "leitura e reamostragem das imagens no ambiente do PI-CAI (modelo de pesquisa)", "Apache-2.0",
+            "https://github.com/SimpleITK/SimpleITK", onde="modelo", modulos=("SimpleITK",)),
     Credito("SynthSeg", "segmentação do encéfalo em RM de qualquer contraste e resolução e em TC — índices do "
             "crânio (Evans, 3º ventrículo, ângulo calosal) e volumes dos hipocampos", "Apache-2.0",
             "https://github.com/BBillot/SynthSeg", onde="modelo",

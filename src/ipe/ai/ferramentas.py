@@ -31,6 +31,8 @@ GENERICAS = {
     "flames": "ipe.ai.flames",                  # 0.100.25: lesões de substância branca no FLAIR (modelo extra)
     "synthsr": "ipe.ai.synthsr",                # 0.100.23: T1 sintético de 1 mm (imagem, sem achados)
     "carga_pet": "ipe.ai.carga_pet",            # 0.99.88: limiar + órgãos do TotalSegmentator (FDG/PSMA/DOTA)
+    "prostata": "ipe.ai.prostata",              # 0.100.79: volume da próstata (+ zonas, modelo de pesquisa opcional)
+    "picai": "ipe.ai.picai",                    # 0.100.79: lesões da próstata — modelo de PESQUISA (PI-CAI)
 }
 
 

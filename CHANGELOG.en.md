@@ -3,6 +3,24 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.79 — Prostate MRI: PI-RADS v2.1, automatic volume and separate research models
+- **PI-RADS** (button in the viewer and in Ipê Web, on prostate MRI): PSA and date, volume by the ellipsoid (the
+  three diameters, or **Take from the rulers**) or by the automatic segmentation, and the **PSA density**; each lesion
+  with the zone, the **sectors** (click on the map), size, T2, diffusion, DCE, **ADC from the viewport ROI**,
+  extraprostatic extension and the linked image. The **category** follows the PI-RADS v2.1 rule (peripheral zone by
+  diffusion, with DCE; transition zone by T2, with diffusion), with warnings when size and score do not match, and
+  can be overridden by hand.
+- **Outputs**: the painted sector map (study scheme), the **PI-RADS SR** ("Save to study"), the report text and the
+  new report template **Multiparametric prostate MRI (PI-RADS)**, with the fields `{pirads_achados}`, `{pirads}` and
+  `{prostata_volume}`.
+- **Automatic prostate volume** (TotalSegmentator, on the axial T2): volume and extents along the three axes, SEG and
+  finding; the volume goes into PI-RADS and gives the PSA density.
+- **Research models, optional and outside Ipê**: prostate zones (MONAI/Prostate158) and suggested lesions (PI-CAI,
+  CC BY-NC-SA 4.0 weights). Nothing ships with the installer: the program shows the license, the person accepts
+  "research and teaching use, non-clinical, non-commercial" and only then downloads (the PI-CAI weights are checked by
+  SHA-256). Suggestions come in as lesions to be checked, and everything is marked **"research model — not for
+  diagnosis"** (screen, SEG, SR and report). Settings ▸ CAD/AI ▸ Research models.
+
 ## 0.100.78 — Mammography: four quadrant areas, sync off, SR without review and sending to the PACS
 - **Quadrant zoom with four areas** (desktop Ipê and Ipê Web): posterior and superior → anterior and superior →
   posterior and inferior → anterior and inferior → whole breast (Q key; Shift+Q goes back). The quadrant moves in all

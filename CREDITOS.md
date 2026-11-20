@@ -74,6 +74,9 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [autoPET II (nnU-Net)](https://zenodo.org/records/8362371) | lesões ávidas no PET-FDG, para o MTV e a TLG (modelo extra) | conferir no registro do Zenodo 8362371 (nnU-Net: Apache-2.0) |
 | [TotalSpineSeg](https://github.com/neuropoly/totalspineseg) | medula, canal, discos e vértebras na RM da coluna — área e índices de compressão por nível (modelo extra, num ambiente próprio) | LGPL-3.0 |
 | [FLAMeS](https://zenodo.org/records/17955359) | lesões de substância branca no FLAIR — número, volume e regiões (modelo extra, nnU-Net) | CC BY 4.0 |
+| [MONAI prostate_mri_anatomy](https://github.com/Project-MONAI/model-zoo/tree/dev/models/prostate_mri_anatomy) | zonas da próstata (transição e periférica) na RM — MODELO DE PESQUISA, instalado à parte com a licença aceita (treinado no Prostate158) | Apache-2.0 (código); dados de pesquisa |
+| [PI-CAI baseline nnU-Net](https://github.com/DIAGNijmegen/picai_nnunet_semi_supervised_gc_algorithm) | lesões da próstata na RM biparamétrica — MODELO DE PESQUISA, instalado à parte com a licença aceita; não usar para diagnóstico | CC BY-NC-SA 4.0 (pesos); Apache-2.0 (código) |
+| [SimpleITK](https://github.com/SimpleITK/SimpleITK) | leitura e reamostragem das imagens no ambiente do PI-CAI (modelo de pesquisa) | Apache-2.0 |
 | [SynthSeg](https://github.com/BBillot/SynthSeg) | segmentação do encéfalo em RM de qualquer contraste e resolução e em TC — índices do crânio (Evans, 3º ventrículo, ângulo calosal) e volumes dos hipocampos | Apache-2.0 |
 | [SynthSR](https://github.com/BBillot/SynthSR) | T1 sintético de 1 mm a partir de uma série 2D do crânio, para o MPR e os índices quando não há T1 3D (rede reescrita em PyTorch no Ipê, com os pesos originais da versão 1.0) | Apache-2.0 |
 | [Classificador de densidade da NYU](https://github.com/nyukat/breast_density_classifier) | categoria de densidade mamária (BI-RADS a–d) | BSD-2-Clause |
@@ -106,6 +109,8 @@ Os autores destas ferramentas pedem que trabalhos que as usam citem:
 - **MONAI:** Myronenko A. 3D MRI brain tumor segmentation using autoencoder regularization. BrainLes (MICCAI) 2018.
 - **TotalSpineSeg:** Warszawer Y, Molinier N, Valošek J, et al. TotalSpineSeg: Robust Spine Segmentation with Landmark-Based Labeling in MRI. arXiv 2411.09344 (2024).
 - **FLAMeS:** Dereskewicz E, La Rosa F, et al. FLAMeS: A Robust Deep Learning Model for Automated Multiple Sclerosis Lesion Segmentation. Journal of Neuroimaging. 2025;35(5):e70085.
+- **MONAI prostate_mri_anatomy:** Adams LC, Makowski MR, Engel G, et al. Prostate158 — An expert-annotated 3T MRI dataset and algorithm for prostate cancer detection. Computers in Biology and Medicine. 2022;148:105817.
+- **PI-CAI baseline nnU-Net:** Saha A, Bosma JS, Twilt JJ, et al. Artificial intelligence and radiologists in prostate cancer detection on MRI (PI-CAI): an international, paired, non-inferiority, confirmatory study. Lancet Oncol. 2024;25(7):879-887.
 - **SynthSeg:** Billot B, et al. SynthSeg: Segmentation of brain MRI scans of any contrast and resolution without retraining. Medical Image Analysis. 2023;86:102789.
 - **SynthSR:** Iglesias JE, et al. Joint super-resolution and synthesis of 1 mm isotropic MP-RAGE volumes from clinical MRI exams with scans of different orientation, resolution and contrast. NeuroImage. 2021;237:118206. Iglesias JE, et al. SynthSR: A public AI tool to turn heterogeneous clinical brain scans into high-resolution T1-weighted images for 3D morphometry. Science Advances. 2023;9(5):eadd3607.
 - **DIPY:** Garyfallidis E, et al. Dipy, a library for the analysis of diffusion MRI data. Frontiers in Neuroinformatics. 2014;8:8.

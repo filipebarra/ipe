@@ -3,6 +3,23 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.79 — RM de próstata: PI-RADS v2.1, volume automático e modelos de pesquisa à parte
+- **PI-RADS** (botão no visualizador e no Ipê Web, na RM de próstata): PSA e data, volume pelo elipsoide (os três
+  diâmetros, ou **Pegar das réguas**) ou pela segmentação automática, e a **densidade do PSA**; cada lesão com a zona,
+  os **setores** (clique no mapa), o tamanho, T2, difusão, DCE, **ADC da ROI do quadro**, extensão extraprostática e a
+  imagem ligada. A **categoria** sai pela regra do PI-RADS v2.1 (zona periférica pela difusão, com o DCE; zona de
+  transição pelo T2, com a difusão), com avisos quando tamanho e pontuação não combinam, e pode ser trocada à mão.
+- **Saídas**: o mapa de setores pintado (esquema do exame), o **SR do PI-RADS** ("Gravar no exame"), o texto para o
+  laudo e o novo modelo de laudo **RM de próstata multiparamétrica (PI-RADS)**, com os campos `{pirads_achados}`,
+  `{pirads}` e `{prostata_volume}`.
+- **Volume automático da próstata** (TotalSegmentator, no T2 axial): volume e extensões nos três eixos, SEG e achado;
+  o volume entra no PI-RADS e dá a densidade do PSA.
+- **Modelos de pesquisa, opcionais e fora do Ipê**: zonas da próstata (MONAI/Prostate158) e lesões sugeridas (PI-CAI,
+  pesos CC BY-NC-SA 4.0). Nada vem no instalador: o programa mostra a licença, a pessoa aceita "uso em pesquisa e
+  ensino, não clínico, não comercial" e só então baixa (os pesos do PI-CAI são conferidos pelo SHA-256). As
+  sugestões entram como lesões a conferir, e tudo sai marcado **"modelo de pesquisa — não usar para diagnóstico"**
+  (tela, SEG, SR e laudo). Configurações ▸ CAD/IA ▸ Modelos de pesquisa.
+
 ## 0.100.78 — Mamografia: quatro áreas de quadrante, sincronias desligadas, SR sem conferência e envio ao PACS
 - **Zoom por quadrante com quatro áreas** (Ipê de mesa e Ipê Web): posterior e superior → anterior e superior →
   posterior e inferior → anterior e inferior → mama inteira (tecla Q; Shift+Q volta). O quadrante anda junto em todos

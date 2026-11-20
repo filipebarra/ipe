@@ -1456,7 +1456,7 @@ O pior vem primeiro. **Mostrar: Só os com problema** filtra; as séries aparece
 
 Botão **Laudo** na tela inicial, ou botão direito no exame → **Laudo…**.
 
-1. Escolha um **Modelo:** e clique **Aplicar modelo**. São 18 de fábrica — mamografia (rastreamento, diagnóstica, tomossíntese, CEM), US de mamas, RM de mamas, crânio, abdome e pelve, TC de crânio, tórax, angio-TEP, abdome e oncológica, PET-FDG, PET-PSMA, radiografia de tórax pela **Classificação da OIT** (pneumoconioses: qualidade, pequenas e grandes opacidades com a profusão na escala de 12 pontos, pleura e símbolos) e laudo livre. Eles preenchem sozinhos campos como paciente, idade, data, comparação e medidas.
+1. Escolha um **Modelo:** e clique **Aplicar modelo**. São 19 de fábrica — mamografia (rastreamento, diagnóstica, tomossíntese, CEM), US de mamas, RM de mamas, crânio, abdome, pelve e **próstata multiparamétrica (PI-RADS)**, TC de crânio, tórax, angio-TEP, abdome e oncológica, PET-FDG, PET-PSMA, radiografia de tórax pela **Classificação da OIT** (pneumoconioses: qualidade, pequenas e grandes opacidades com a profusão na escala de 12 pontos, pleura e símbolos) e laudo livre. Eles preenchem sozinhos campos como paciente, idade, data, comparação e medidas.
 2. Escreva o texto. O menu **Inserir ▾** traz para dentro do laudo o que o programa já mediu: medidas do exame, acompanhamento de lesões, segmentações (volume, SUV, TMTV/TLG, distância ao mamilo), curvas tempo-intensidade, comparação com anteriores, composição mamária e achados de CAD/IA.
 3. No painel **BI-RADS**, à direita, monte os achados (mama, tipo, descritores, tamanho, localização, distância do mamilo, evolução, categoria) e a conduta; **Levar ao texto do laudo** escreve tudo no corpo.
 4. Finalize: **Salvar rascunho**, **Salvar PDF…** ou **Assinar e liberar**.
@@ -1496,6 +1496,22 @@ Sem a caixa marcada, o laudo não leva esquema nenhum. Laudo assinado não muda 
 - **Novo modelo em branco…**: uma folha vazia para desenhar o modelo do zero;
 - **Editar o modelo…**: abre o modelo com as mesmas ferramentas de desenho. O que se desenha ali passa a fazer parte do modelo, em todos os exames; também se muda o nome e o grupo. **Salvar como cópia** cria um modelo novo a partir dele (a cópia da próstata leva os setores);
 - num modelo do Ipê, o desenho original fica guardado: **Restaurar o original** desfaz as mudanças, e **Ocultar da lista de modelos** tira o modelo da escolha sem apagar nada. Um modelo próprio se exclui em **Excluir o modelo**.
+
+## PI-RADS (RM de próstata)
+
+Na RM de próstata, o botão **PI-RADS** do visualizador (e do Ipê Web) abre o formulário do **PI-RADS® v2.1**. É do exame, como o esquema; o laudo só lê o que está nele.
+
+- **Glândula e PSA**: o **PSA** e a data; os três diâmetros (AP, transverso e craniocaudal) — **Pegar das réguas** usa as três últimas réguas desenhadas no exame, nessa ordem —, ou o **Volume automático (IA)**, que segmenta a próstata no T2 axial (TotalSegmentator) e traz o volume para cá. O volume é o da segmentação quando houver (a escolha "Elipsoide" vale por cima dela) e dá a **densidade do PSA** (PSA ÷ volume). Marque também **Biparamétrica (sem DCE)**, **Hemorragia pós-biópsia** e a qualidade.
+- **Lesões**: **Nova lesão**, ou um clique no **mapa de setores** à direita (sem lesão escolhida, o clique cria uma naquele setor; com lesão, põe ou tira o setor dela). Para cada lesão: zona, setores, maior diâmetro, **T2**, **difusão**, **DCE**, **ADC** (**Da ROI do quadro** pega a média da ROI do quadro ativo — desenhe a ROI no mapa ADC), extensão extraprostática, descrição e **Ligar à imagem do quadro** (vira imagem-chave). **Curva DCE…** abre a dinâmica; as curvas medidas entram no laudo pelo campo `{curva}`.
+- **Categoria**: sai sozinha pela regra do PI-RADS v2.1 — na zona periférica manda a difusão (difusão 3 com DCE positivo vira 4); na zona de transição manda o T2 (T2 2 com difusão ≥ 4 vira 3; T2 3 com difusão 5 vira 4); na biparamétrica o DCE não conta. O programa avisa quando o tamanho e a pontuação não combinam (5 pede ≥ 15 mm ou extensão extraprostática). O estroma anterior e a zona central não têm tabela própria no PI-RADS: confira. A **categoria manual** de cada lesão e a **geral** valem por cima da regra.
+- **Saídas**: o mapa de setores pintado entra na lista de esquemas do exame (esquema "PI-RADS — mapa de setores"); **Gravar no exame (SR e mapa)** grava o SR do PI-RADS (série "PI-RADS (SR)": volume, PSA, densidade, cada lesão com as pontuações, o ADC, a categoria e a imagem) e a figura; **Mandar ao laudo** escreve o texto no laudo aberto. O modelo de laudo **RM de próstata multiparamétrica (PI-RADS)** usa os campos `{pirads_achados}` (volume, PSA e lesões) e `{pirads}` (a impressão); há também `{prostata_volume}`.
+
+**Modelos de pesquisa (opcionais, instalados à parte).** Duas IAs de **pesquisa e ensino — não clínico, não comercial** — que não vêm com o Ipê: os pesos são baixados por você, da fonte, só depois de ler e aceitar a licença (**Configurações ▸ CAD/IA ▸ Modelos de pesquisa — próstata**, ou na primeira vez que tentar usar):
+
+- **Zonas da próstata** (MONAI *prostate_mri_anatomy*, treinado no Prostate158): ligue em **Configurações ▸ CAD/IA ▸ Próstata: volume (IA) ▸ Também separar as zonas**; o volume automático passa a trazer a zona de transição e a periférica (série "Zonas da próstata (PESQUISA - não diagnóstico)").
+- **Lesões sugeridas** (nnU-Net de base do desafio **PI-CAI**, pesos CC BY-NC-SA 4.0): **Sugestões do modelo de pesquisa…** no formulário, ou o botão **PI-CAI**. Usa o T2 axial, o mapa ADC e a difusão de maior b do exame; cada foco sugerido entra no PI-RADS como lesão **a conferir**, com a probabilidade do modelo. Só roda à mão.
+
+Tudo o que vem desses modelos sai marcado **"modelo de pesquisa — não usar para diagnóstico"**: a faixa vermelha no formulário, a descrição da SEG, o SR e o texto do laudo. A lesão sugerida continua marcada como de pesquisa mesmo depois de **Conferida pelo médico**.
 
 ## IA no texto do laudo
 
@@ -1934,6 +1950,8 @@ Na TC de tórax ou de abdome, com ou sem contraste, o botão **Aorta** (ou Aplic
 A medida é **da parede externa à externa** (a máscara pega a parede e o trombo). A ACC/AHA (2022) pede a raiz e a ascendente de borda interna a interna, em TC sincronizada com o ECG; sem ECG, a raiz não vale. As referências aparecem como texto no achado, nunca como veredito: ascendente, arco e descendente ≥ 40 mm costumam ser relatados como dilatação, e ≥ 55 mm é o limiar de cirurgia (ACC/AHA 2022); na infrarrenal, aneurisma é ≥ 30 mm, com o intervalo de controle do ACR (2013) para o tamanho medido.
 
 ### Modelos extras: MedSAM2, autoPET, BraTS, FLAMeS e medula
+
+(Os modelos de **pesquisa** da próstata ficam à parte, com licença própria: veja *PI-RADS (RM de próstata)*.)
 
 Cinco IAs que não vêm com a segmentação e se instalam uma vez, com internet, em **Configurações ▸ CAD/IA ▸ Instalar os modelos extras (MedSAM2, autoPET, BraTS, FLAMeS, medula)…** (a janela diz o que já está pronto e o que falta). Rodam no mesmo ambiente do TotalSegmentator, em CPU.
 

@@ -14,6 +14,13 @@ O que baixa (uma vez; depois funciona sem internet):
 - medula: o TotalSpineSeg (NeuroPoly, LGPL-3.0) num ambiente próprio, venv_medula; o modelo (2 GB) baixa no
   primeiro uso, para pesos/totalspineseg;
 - BraTS: o MONAI e os pesos do bundle brats_mri_segmentation (19 MB, Hugging Face MONAI, Apache-2.0).
+
+0.100.79 — **modelos de pesquisa** (só com `--aceito-uso-em-pesquisa`, que o Ipê passa depois que a pessoa leu e
+aceitou a licença na tela; nunca entram no "todos"):
+
+- prostata_zonas: os pesos do MONAI prostate_mri_anatomy (Zenodo, registro 7040585), em pesos/prostata_zonas;
+- picai: o ambiente próprio venv_picai (nnU-Net 1.7, picai_prep, picai_baseline, report_guided_annotation) e os
+  pesos de um fold do PI-CAI baseline semi-supervisionado (GitHub LFS, CC BY-NC-SA 4.0), conferidos pelo SHA-256.
 """
 from __future__ import annotations
 
@@ -32,6 +39,24 @@ ZENODO_AUTOPET = "https://zenodo.org/api/records/8362371"
 ZENODO_FLAMES = "https://zenodo.org/api/records/17955359"
 URL_BRATS = "https://huggingface.co/MONAI/brats_mri_segmentation/resolve/main/models/model.pt"
 AGENTE = "Ipe-instalador-de-modelos"
+URL_ZONAS = "https://zenodo.org/records/7040585/files/anatomy.pt?download=1"
+#: PI-CAI: o repositório e o commit conferidos (os pesos estão no Git LFS; o SHA-256 é o "oid" do LFS)
+PICAI_REPO = "DIAGNijmegen/picai_nnunet_semi_supervised_gc_algorithm"
+PICAI_COMMIT = "6129f7e0fe3fc3994064672aa2c7f629584004a3"
+PICAI_PASTA = "results/nnUNet/3d_fullres/Task2203_picai_baseline/nnUNetTrainerV2_Loss_FL_and_CE_checkpoints__nnUNetPlansv2.1"
+PICAI_PESOS = {
+    "plans.pkl": ("2fe49c3272eb8cceef401b44f5c140a8f7b1d7e65d6b70393e2c867951d8669b", 950601),
+    "fold_0/model_best.model": ("66ca93a14c4eebe98dfe72c4d8b7303a843b100f25fb6c5b1a18ef892c527db0", 358653454),
+    "fold_0/model_best.model.pkl": ("0dfb583e815c32a92ff709e49983829c984e96450ba1468b396a2a12496871e1", 951121),
+}
+#: os treinadores próprios do PI-CAI (Apache-2.0), copiados para dentro do nnU-Net como no Dockerfile deles
+PICAI_TREINADORES = {
+    "nnUNetTrainerV2_focalLoss.py": "training/network_training/nnUNet_variants/loss_function",
+    "nnUNetTrainerV2_Loss_CE_checkpoints.py": "training/network_training",
+    "nnUNetTrainerV2_Loss_FL_and_CE.py": "training/network_training",
+}
+PESQUISA = ("prostata_zonas", "picai")
+ACEITE = "--aceito-uso-em-pesquisa"
 
 
 def pasta_pesos() -> Path:
@@ -195,11 +220,101 @@ def medula() -> None:
                     "AugTransformsGPU; print('  TotalSpineSeg ok')"], check=True)
 
 
-PASSOS = {"medsam2": medsam2, "autopet": autopet, "brats": brats, "flames": flames, "medula": medula}
+def _sha256(arq: Path) -> str:
+    import hashlib
+    h = hashlib.sha256()
+    with open(arq, "rb") as f:
+        for bloco in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(bloco)
+    return h.hexdigest()
+
+
+def prostata_zonas() -> None:
+    """0.100.79: zonas da próstata (MONAI prostate_mri_anatomy; modelo de PESQUISA, treinado no Prostate158)."""
+    print("\n[Zonas da próstata] MONAI prostate_mri_anatomy — MODELO DE PESQUISA (não clínico, não comercial)",
+          flush=True)
+    pip("monai>=1.3")
+    alvo = pasta_pesos() / "prostata_zonas" / "model.pt"
+    if not alvo.is_file():
+        baixar(URL_ZONAS, alvo, "anatomy.pt (Zenodo 7040585)")
+    # confere que é um checkpoint só de tensores (sem código): weights_only=True recusa qualquer outra coisa
+    teste = ("import sys, torch; d = torch.load(sys.argv[1], map_location='cpu', weights_only=True); "
+             "d = d.get('model', d) if isinstance(d, dict) else d; print('  pesos ok:', len(d), 'tensores')")
+    if subprocess.run([sys.executable, "-c", teste, str(alvo)]).returncode != 0:
+        alvo.unlink(missing_ok=True)
+        raise RuntimeError("o arquivo baixado não é um checkpoint de pesos válido (apagado)")
+
+
+def picai() -> None:
+    """0.100.79: PI-CAI baseline (nnU-Net 1.7) num ambiente só dele; os pesos de um fold, conferidos pelo SHA-256."""
+    print("\n[PI-CAI] lesões da próstata — MODELO DE PESQUISA (pesos CC BY-NC-SA 4.0: não clínico, não comercial)",
+          flush=True)
+    base = pasta_pesos().parent / "venv_picai"
+    py = base / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    if not py.is_file():
+        print("  criando o ambiente em", base, flush=True)
+        r = subprocess.run([sys.executable, "-m", "venv", str(base)])
+        if r.returncode != 0 or not py.is_file():
+            raise RuntimeError("não consegui criar o ambiente (venv)")
+    env = dict(os.environ)
+    env["SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL"] = "True"     # o nnU-Net 1.7 ainda pede "sklearn"
+
+    def pip_p(*args: str) -> None:
+        print("  pip install", " ".join(args), flush=True)
+        if subprocess.run([str(py), "-m", "pip", "install", *args], env=env).returncode != 0:
+            raise RuntimeError("o pip falhou (veja as mensagens acima)")
+    pip_p("--upgrade", "pip")
+    if sys.platform == "darwin":
+        pip_p("torch")
+    else:
+        pip_p("torch", "--index-url", "https://download.pytorch.org/whl/cpu")
+    # numpy < 2 onde há roda pronta (até o Python 3.12); no 3.13 só existe o numpy 2
+    pip_p('numpy<2; python_version < "3.13"', "nnunet==1.7.0", "SimpleITK>=2.1.1.2", "picai_prep>=2.0.0", "picai_baseline>=0.5.2",
+          "report_guided_annotation", "nibabel")
+    sitio = subprocess.run([str(py), "-c", "import nnunet, os; print(os.path.dirname(nnunet.__file__))"],
+                           capture_output=True, text=True, env=env)
+    if sitio.returncode != 0 or not sitio.stdout.strip():
+        raise RuntimeError("o nnU-Net 1.7 não instalou no ambiente do PI-CAI")
+    nn = Path(sitio.stdout.strip().splitlines()[-1].strip())     # o nnU-Net imprime um aviso de citação antes
+    if not (nn / "training" / "network_training").is_dir():
+        raise RuntimeError(f"não achei a pasta do nnU-Net 1.7 ({nn})")
+    for nome, sub in PICAI_TREINADORES.items():
+        url = f"https://raw.githubusercontent.com/{PICAI_REPO}/{PICAI_COMMIT}/{nome}"
+        baixar(url, nn / sub / nome, nome)
+    raiz = pasta_pesos() / "picai" / PICAI_PASTA
+    for rel, (sha, tam) in PICAI_PESOS.items():
+        alvo = raiz / rel
+        if alvo.is_file() and alvo.stat().st_size == tam and _sha256(alvo) == sha:
+            print("  já baixado:", rel, flush=True)
+            continue
+        url = f"https://media.githubusercontent.com/media/{PICAI_REPO}/{PICAI_COMMIT}/{PICAI_PASTA}/{rel}"
+        baixar(url, alvo, f"{rel} ({tam // (1024 * 1024)} MB)")
+        if _sha256(alvo) != sha:
+            alvo.unlink(missing_ok=True)
+            raise RuntimeError(f"{rel}: o SHA-256 não confere com o do repositório do PI-CAI (arquivo apagado)")
+    licenca = pasta_pesos() / "picai" / "LICENCA-dos-pesos.txt"
+    licenca.write_text("Pesos do PI-CAI baseline nnU-Net (DIAGNijmegen, Radboudumc): Creative Commons "
+                       "Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0).\n"
+                       f"Fonte: https://github.com/{PICAI_REPO} (commit {PICAI_COMMIT}).\n"
+                       "Uso só em pesquisa e ensino, não clínico, não comercial.\n", encoding="utf-8")
+    subprocess.run([str(py), "-c", "import nnunet, picai_prep, report_guided_annotation, SimpleITK; "
+                    "from picai_baseline.nnunet.softmax_export import save_softmax_nifti_from_softmax; "
+                    "print('  PI-CAI ok')"], check=True, env=env)
+
+
+PASSOS = {"medsam2": medsam2, "autopet": autopet, "brats": brats, "flames": flames, "medula": medula,
+          "prostata_zonas": prostata_zonas, "picai": picai}
 
 
 def main(argv: list[str]) -> int:
-    pedidos = [a for a in argv if a in PASSOS] or list(PASSOS)
+    # "todos" são só os comuns: os de pesquisa precisam ser pedidos pelo nome E com o aceite da licença
+    pedidos = [a for a in argv if a in PASSOS] or [p for p in PASSOS if p not in PESQUISA]
+    if any(p in PESQUISA for p in pedidos) and ACEITE not in argv:
+        print("[ERRO] os modelos de pesquisa (" + ", ".join(p for p in pedidos if p in PESQUISA) + ") só instalam "
+              "depois de aceita a licença no Ipê (uso em pesquisa e ensino, não clínico, não comercial).", flush=True)
+        pedidos = [p for p in pedidos if p not in PESQUISA]
+        if not pedidos:
+            return 1
     print("=== Ipe: modelos extras (" + ", ".join(pedidos) + ") ===", flush=True)
     print("Pasta dos pesos:", pasta_pesos(), flush=True)
     erros = []

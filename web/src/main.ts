@@ -33,6 +33,7 @@ import { telaGestao } from "./gestao";
 import { telaImpressoes } from "./impressoes";
 import { telaCadastros, trocarSenha } from "./cadastros";
 import { abrirEsquemasDoExame } from "./esquemas";
+import { abrirPirads } from "./pirads";
 import {
   Grade, TIPO_ARRASTO, TIPO_ARRASTO_ESTUDO, aplicarBotoes, botoes, carregarSerie, iniciar, type Botoes, type Ferramenta, type Projecao,
   ARRANJO_PET_PADRAO, type ConteudoPet, type VistaPet,
@@ -631,6 +632,7 @@ const IC: Record<string, string> = {
   vasos: "M3 19c4-9 7 4 10-4s5-9 8-12M5 15c1-2 2.5-3 4-1M14 9c1-2 2-3 3.5-4",
   densidade: "M12 3c-4 5-7 8.5-7 12a7 7 0 0 0 14 0c0-3.5-3-7-7-12zM8.5 15.5a3.5 3.5 0 0 0 3.5 3.5",
   laudo: "M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7",
+  pirads: "M3 12a9 7 0 1 0 18 0 9 7 0 1 0-18 0M8 10.5a4 3.5 0 1 0 8 0 4 3.5 0 1 0-8 0M5 15l4-2",
   esquema: "M7 5a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0-5 0M9.5 7.5v8M4 10.5l5.5-1.5 5.5 1.5M6 21l3.5-5.5L13 21M15.5 16a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0-5 0",
   petct: "M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0",
   seg: "M4 4h7v7H4zM13 13h7v7h-7zM11 7.5h5.5V13",
@@ -859,6 +861,10 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   const bLaudo = botaoIcone("Laudo", IC.laudo, { "aria-pressed": "false" });
   // 0.100.74: os esquemas-guia do exame (fora do laudo)
   const bEsquema = botaoIcone("Esquema", IC.esquema);
+  // 0.100.79: PI-RADS (RM de próstata) — só em RM com próstata/pelve na descrição do exame ou das séries
+  const bPirads = botaoIcone("PI-RADS (RM de próstata)", IC.pirads);
+  const ehProstata = /PROSTAT|PI-?RADS|PELV/i.test(`${estudo ? API.texto(estudo, "00081030") : ""} ${todas.map((x) => API.texto(x, "0008103E")).join(" ")}`);
+  if (!todas.some((x) => API.texto(x, "00080060") === "MR") || !ehProstata) bPirads.style.display = "none";
   // 0.100.9: enviar ao PACS (só com a permissão de enviar)
   const podeEnviar = !!config?.usuario.perms?.includes("send");
   const bEnviar = botaoIcone("Enviar a um destino DICOM", IC.enviar);
@@ -900,7 +906,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     el("div", { class: "grupo" }, bLayout, bMpr, bEspessura, bObliquo, bGirar),
     el("div", { class: "grupo" }, bPet, bDin, bDens, bVasos, bSeg, bCine, bCineMenu),
     el("div", { class: "grupo" }, bInverter, bRestaurar, bOverlay, bOverlayMenu),
-    el("div", { class: "grupo" }, bLaudo, bEsquema, bEnviar, bIA),
+    el("div", { class: "grupo" }, bLaudo, bEsquema, bPirads, bEnviar, bIA),
     el("div", { class: "grupo" }, bLigar, bLeitura, bAparencia));
   barraComTransbordo(nav);   // 0.100.53: o que não cabe vai para o "»"
 
@@ -1446,6 +1452,9 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   };
   bEsquema.onclick = () => {
     void abrirEsquemasDoExame(study, imagemAberta).then(() => painelLaudo?.atualizarEsquemas());
+  };
+  bPirads.onclick = () => {
+    void abrirPirads(study, imagemAberta, async (texto) => (await abrirLaudo()).inserirTexto(texto));
   };
   bLaudo.onclick = async () => {
     if (painelLaudo) {
