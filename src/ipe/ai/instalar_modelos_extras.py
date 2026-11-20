@@ -56,6 +56,11 @@ PICAI_TREINADORES = {
     "nnUNetTrainerV2_Loss_FL_and_CE.py": "training/network_training",
 }
 PESQUISA = ("prostata_zonas", "picai")
+#: 0.100.82: o PyTorch de CPU (Linux e Windows); no macOS o do PyPI já é o certo
+INDICE_CPU = "https://download.pytorch.org/whl/cpu"
+#: 0.100.82: o par torch + torchvision abre e roda um operador de verdade (o nms é o que quebra quando não combinam)
+TESTE_TORCH = ("import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5); "
+               "print('  PyTorch', torch.__version__, '+ torchvision', torchvision.__version__, 'ok', flush=True)")
 ACEITE = "--aceito-uso-em-pesquisa"
 
 
@@ -66,9 +71,49 @@ def pasta_pesos() -> Path:
     return Path(sys.executable).resolve().parents[2] / "pesos"
 
 
+def indice_torch() -> list[str]:
+    return [] if sys.platform == "darwin" else ["--index-url", INDICE_CPU]
+
+
+def par_torch(py: str | Path, env: dict | None = None) -> None:
+    """0.100.82: confere o torch + torchvision do ambiente e, se não combinam, reinstala os dois juntos.
+
+    O torchvision entra por tabela (o nnU-Net puxa o timm, que pede o torchvision) e vinha do PyPI, numa versão
+    feita para outro PyTorch (e, no Linux, para CUDA); um `pip install` depois também podia trocar o torch de CPU
+    pelo do PyPI. Com o par descasado, qualquer import do torchvision cai em "operator torchvision::nms does not
+    exist" — e com ele o TotalSegmentator inteiro."""
+    if subprocess.run([str(py), "-c", TESTE_TORCH], env=env, capture_output=True).returncode == 0:
+        subprocess.run([str(py), "-c", TESTE_TORCH], env=env)
+        return
+    print("  o torchvision não combina com o PyTorch deste ambiente: reinstalando os dois juntos…", flush=True)
+    base = [str(py), "-m", "pip", "install"]
+    if subprocess.run([*base, "--force-reinstall", "--no-deps", "torch", "torchvision", *indice_torch()],
+                      env=env).returncode != 0:
+        raise RuntimeError("o pip falhou ao reinstalar o PyTorch (veja as mensagens acima)")
+    extra = [] if sys.platform == "darwin" else ["--extra-index-url", "https://pypi.org/simple"]
+    subprocess.run([*base, "torch", "torchvision", *indice_torch(), *extra], env=env)   # só o que faltar
+    if subprocess.run([str(py), "-c", TESTE_TORCH], env=env).returncode != 0:
+        raise RuntimeError("o PyTorch e o torchvision continuam sem combinar (veja as mensagens acima)")
+
+
+def travar_torch(py: str | Path, env: dict | None = None) -> list[str]:
+    """0.100.82: ["-c", arquivo] que prende o torch e o torchvision nas versões já instaladas, para nenhum
+    `pip install` seguinte trocá-los pelos do PyPI."""
+    r = subprocess.run([str(py), "-c", "import importlib.metadata as m\nfor n in ('torch', 'torchvision'):\n"
+                        "    try: print(n + '==' + m.version(n))\n    except Exception: pass"],
+                       env=env, capture_output=True, text=True)
+    linhas = [l.strip() for l in r.stdout.splitlines() if "==" in l]
+    if r.returncode != 0 or not linhas:
+        return []
+    import tempfile
+    arq = Path(tempfile.gettempdir()) / f"ipe-travar-torch-{os.getpid()}-{abs(hash(str(py)))}.txt"
+    arq.write_text("\n".join(linhas) + "\n", encoding="utf-8")
+    return ["-c", str(arq)]
+
+
 def pip(*args: str) -> None:
     print("  pip install", " ".join(args), flush=True)
-    r = subprocess.run([sys.executable, "-m", "pip", "install", *args])
+    r = subprocess.run([sys.executable, "-m", "pip", "install", *args, *travar_torch(sys.executable)])
     if r.returncode != 0:
         raise RuntimeError("o pip falhou (veja as mensagens acima)")
 
@@ -211,11 +256,9 @@ def medula() -> None:
         if subprocess.run([str(py), "-m", "pip", "install", *args]).returncode != 0:
             raise RuntimeError("o pip falhou (veja as mensagens acima)")
     pip_m("--upgrade", "pip")
-    if sys.platform == "darwin":
-        pip_m("torch")
-    else:
-        pip_m("torch", "--index-url", "https://download.pytorch.org/whl/cpu")
-    pip_m("totalspineseg[nnunetv2]", "kornia==0.8.1")
+    pip_m("torch", "torchvision", *indice_torch())         # 0.100.82: os dois juntos, do mesmo índice
+    par_torch(py)
+    pip_m("totalspineseg[nnunetv2]", "kornia==0.8.1", *travar_torch(py))
     subprocess.run([str(py), "-c", "import totalspineseg, nnunetv2; from auglab.transforms.gpu.transforms import "
                     "AugTransformsGPU; print('  TotalSpineSeg ok')"], check=True)
 
@@ -264,13 +307,11 @@ def picai() -> None:
         if subprocess.run([str(py), "-m", "pip", "install", *args], env=env).returncode != 0:
             raise RuntimeError("o pip falhou (veja as mensagens acima)")
     pip_p("--upgrade", "pip")
-    if sys.platform == "darwin":
-        pip_p("torch")
-    else:
-        pip_p("torch", "--index-url", "https://download.pytorch.org/whl/cpu")
+    pip_p("torch", "torchvision", *indice_torch())         # 0.100.82: os dois juntos, do mesmo índice
+    par_torch(py, env)
     # numpy < 2 onde há roda pronta (até o Python 3.12); no 3.13 só existe o numpy 2
     pip_p('numpy<2; python_version < "3.13"', "nnunet==1.7.0", "SimpleITK>=2.1.1.2", "picai_prep>=2.0.0", "picai_baseline>=0.5.2",
-          "report_guided_annotation", "nibabel")
+          "report_guided_annotation", "nibabel", *travar_torch(py, env))
     sitio = subprocess.run([str(py), "-c", "import nnunet, os; print(os.path.dirname(nnunet.__file__))"],
                            capture_output=True, text=True, env=env)
     if sitio.returncode != 0 or not sitio.stdout.strip():
@@ -318,6 +359,13 @@ def main(argv: list[str]) -> int:
     print("=== Ipe: modelos extras (" + ", ".join(pedidos) + ") ===", flush=True)
     print("Pasta dos pesos:", pasta_pesos(), flush=True)
     erros = []
+    # 0.100.82: antes de tudo, o ambiente comum (o do TotalSegmentator): torch e torchvision precisam combinar
+    print("\n[PyTorch] conferindo o ambiente da segmentação", flush=True)
+    try:
+        par_torch(sys.executable)
+    except Exception as e:  # noqa: BLE001
+        erros.append(f"PyTorch: {e}")
+        print(f"[ERRO] PyTorch: {e}", flush=True)
     for p in pedidos:
         try:
             PASSOS[p]()

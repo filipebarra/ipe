@@ -10238,5 +10238,13 @@
  "{}: o ruído põe pontos abaixo de −950 HU e aumenta a %LAA; o padrão é filtro suave (ex.: B30, STANDARD)": "{}: noise puts dots below −950 HU and raises the %LAA; the standard is a soft kernel (e.g., B30, STANDARD)",
  "filtro {} (duro)": "kernel {} (sharp)",
  "ruído alto (DP do ar da traqueia {} HU)": "high noise (SD of tracheal air {} HU)",
- "; ruído reduzido antes do limiar (gaussiano σ {} mm)": "; noise reduced before the threshold (Gaussian σ {} mm)"
+ "; ruído reduzido antes do limiar (gaussiano σ {} mm)": "; noise reduced before the threshold (Gaussian σ {} mm)",
+ "  o torchvision não combina com o PyTorch deste ambiente: reinstalando os dois juntos…": "  torchvision does not match the PyTorch in this environment: reinstalling both together…",
+ "O PyTorch e o torchvision deste computador não combinam (um pip install trocou um deles). Para consertar: Configurações ▸ CAD/IA ▸ Instalar os modelos extras… — ele confere e reinstala os dois juntos antes de tudo.": "PyTorch and torchvision on this computer do not match (a pip install replaced one of them). To fix it: Settings ▸ CAD/AI ▸ Install the extra models… — it checks and reinstalls both together before anything else.",
+ "o PyTorch e o torchvision continuam sem combinar (veja as mensagens acima)": "PyTorch and torchvision still do not match (see the messages above)",
+ "o pip falhou ao reinstalar o PyTorch (veja as mensagens acima)": "pip failed to reinstall PyTorch (see the messages above)",
+ "import importlib.metadata as m\nfor n in ('torch', 'torchvision'):\n    try: print(n + '==' + m.version(n))\n    except Exception: pass": "import importlib.metadata as m\nfor n in ('torch', 'torchvision'):\n    try: print(n + '==' + m.version(n))\n    except Exception: pass",
+ "import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5); print('  PyTorch', torch.__version__, '+ torchvision', torchvision.__version__, 'ok', flush=True)": "import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5); print('  PyTorch', torch.__version__, '+ torchvision', torchvision.__version__, 'ok', flush=True)",
+ "PyTorch: {}": "PyTorch: {}",
+ "[ERRO] PyTorch: {}": "[ERRO] PyTorch: {}"
 }

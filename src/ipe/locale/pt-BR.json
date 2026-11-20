@@ -7627,7 +7627,13 @@
   "diga um nome, ID, acesso, nº do exame, descrição ou um período (busca sem filtro pesa no PACS)",
   "Enfisema: medido na série de filtro suave do exame (a do quadro tem filtro duro, que aumenta o ruído).",
   "O ruído de um filtro duro (pulmão, osso) põe pontinhos abaixo de −950 HU no pulmão todo e aumenta a %LAA. Com esta opção, nessas séries o Ipê aplica um filtro gaussiano leve (σ 0,8 mm) antes do limiar, como se faz para aproximar um filtro suave. O resultado diz quando isso foi feito.",
-  "Reduzir o ruído antes do limiar quando a série é ruidosa (filtro duro ou ar da traqueia com desvio alto)"
+  "Reduzir o ruído antes do limiar quando a série é ruidosa (filtro duro ou ar da traqueia com desvio alto)",
+  "  o torchvision não combina com o PyTorch deste ambiente: reinstalando os dois juntos…",
+  "O PyTorch e o torchvision deste computador não combinam (um pip install trocou um deles). Para consertar: Configurações ▸ CAD/IA ▸ Instalar os modelos extras… — ele confere e reinstala os dois juntos antes de tudo.",
+  "o PyTorch e o torchvision continuam sem combinar (veja as mensagens acima)",
+  "o pip falhou ao reinstalar o PyTorch (veja as mensagens acima)",
+  "import importlib.metadata as m\nfor n in ('torch', 'torchvision'):\n    try: print(n + '==' + m.version(n))\n    except Exception: pass",
+  "import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5); print('  PyTorch', torch.__version__, '+ torchvision', torchvision.__version__, 'ok', flush=True)"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -9744,6 +9750,8 @@
   "{}: o ruído põe pontos abaixo de −950 HU e aumenta a %LAA; o padrão é filtro suave (ex.: B30, STANDARD)",
   "filtro {} (duro)",
   "ruído alto (DP do ar da traqueia {} HU)",
-  "; ruído reduzido antes do limiar (gaussiano σ {} mm)"
+  "; ruído reduzido antes do limiar (gaussiano σ {} mm)",
+  "PyTorch: {}",
+  "[ERRO] PyTorch: {}"
  ]
 }

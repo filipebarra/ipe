@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.82 — Fix for "operator torchvision::nms does not exist"
+- **torchvision** came in indirectly (nnU-Net → timm) from PyPI, built for another PyTorch, and a `pip install` of the
+  extra models could replace the CPU PyTorch; with the pair mismatched, TotalSegmentator (emphysema and everything
+  else) and the spinal cord install stopped with *operator torchvision::nms does not exist*.
+- PyTorch and torchvision now install **together, from the same index**, and are pinned for later installs.
+  **Install the extra models** checks the pair first and, if they do not match, reinstalls both (fixing an
+  environment that is already broken). A task that fails for this reason says what to do.
+
 ## 0.100.81 — Emphysema: fewer false dots on noisy series
 - **Emphysema (%LAA−950)**: on a noisy series (sharp kernel, or tracheal air with a standard deviation above 30 HU)
   Ipê applies a light Gaussian filter (σ 0.8 mm) before the threshold, so noise no longer shows up as "emphysema"

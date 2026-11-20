@@ -331,3 +331,60 @@ def test_botoes_na_tela(env, tmp_path):
         assert hasattr(w, "instalar_modelos_extras")
     finally:
         w.close()
+
+
+def test_par_torch_conserta_o_torchvision_descasado(monkeypatch, tmp_path):
+    """0.100.82: "operator torchvision::nms does not exist" — o instalador reinstala torch + torchvision juntos."""
+    from ipe.ai import instalar_modelos_extras as IN
+    feitos, estado = [], {"ok": False}
+
+    class R:
+        def __init__(self, rc, out=""):
+            self.returncode, self.stdout = rc, out
+
+    def run(cmd, **_k):
+        feitos.append(list(map(str, cmd)))
+        if cmd[1] == "-c" and cmd[2] == IN.TESTE_TORCH:
+            return R(0 if estado["ok"] else 1)
+        if "--force-reinstall" in cmd:
+            estado["ok"] = True
+        return R(0)
+    monkeypatch.setattr(IN.subprocess, "run", run)
+    monkeypatch.setattr(IN.sys, "platform", "linux")
+    IN.par_torch("py")
+    reinst = [c for c in feitos if "--force-reinstall" in c]
+    assert len(reinst) == 1 and {"torch", "torchvision", "--no-deps"} <= set(reinst[0])
+    assert reinst[0][reinst[0].index("--index-url") + 1] == IN.INDICE_CPU
+    # já combinando: só confere, não reinstala nada
+    feitos.clear()
+    IN.par_torch("py")
+    assert not any("pip" in c for c in feitos)
+    # continua quebrado depois de reinstalar: erro claro
+    estado["ok"] = False
+    monkeypatch.setattr(IN.subprocess, "run", lambda cmd, **k: R(1 if cmd[1] == "-c" else 0))
+    with pytest.raises(RuntimeError, match="combinar"):
+        IN.par_torch("py")
+
+
+def test_travar_torch_prende_as_versoes(monkeypatch):
+    from ipe.ai import instalar_modelos_extras as IN
+
+    class R:
+        returncode, stdout = 0, "torch==2.14.1+cpu\ntorchvision==0.29.1+cpu\n"
+    monkeypatch.setattr(IN.subprocess, "run", lambda *a, **k: R())
+    op, arq = IN.travar_torch("py")
+    assert op == "-c"
+    from pathlib import Path
+    assert Path(arq).read_text().split() == ["torch==2.14.1+cpu", "torchvision==0.29.1+cpu"]
+    Path(arq).unlink()
+
+
+def test_erro_do_torchvision_vira_instrucao(tmp_path):
+    import json
+    from ipe.ai import totalseg as TS
+    s = TS.Trabalho.__new__(TS.Trabalho)
+    s.pasta = tmp_path
+    (tmp_path / "resultado.json").write_text(json.dumps(
+        {"ok": False, "erro": "RuntimeError: operator torchvision::nms does not exist"}), encoding="utf-8")
+    with pytest.raises(TS.Falhou, match="Instalar os modelos extras"):
+        s.ler_rotulos()

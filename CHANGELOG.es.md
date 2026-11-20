@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.82 — Arreglo del "operator torchvision::nms does not exist"
+- El **torchvision** entraba indirectamente (nnU-Net → timm) desde PyPI, hecho para otro PyTorch, y un `pip install`
+  de los modelos extra podía cambiar el PyTorch de CPU; con el par descasado, el TotalSegmentator (enfisema y todo lo
+  demás) y la instalación de la médula paraban con *operator torchvision::nms does not exist*.
+- Ahora el PyTorch y el torchvision se instalan **juntos, del mismo índice**, y quedan fijados en las instalaciones
+  siguientes. **Instalar los modelos extra** revisa el par antes de todo y, si no combinan, reinstala los dos (arregla
+  un entorno que ya se rompió). La tarea que falla por esto dice qué hacer.
+
 ## 0.100.81 — Enfisema: menos puntos falsos en la serie ruidosa
 - **Enfisema (%LAA−950)**: en una serie ruidosa (filtro duro, o aire de la tráquea con desvío estándar mayor de
   30 HU) Ipê aplica un filtro gaussiano leve (σ 0,8 mm) antes del umbral, y el ruido deja de aparecer como

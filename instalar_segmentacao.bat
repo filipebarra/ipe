@@ -113,7 +113,8 @@ set "PY=%VENV%\Scripts\python.exe"
 
 echo.
 echo [1/3] PyTorch (CPU)...
-"%PY%" -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+rem 0.100.82: torch e torchvision juntos, do mesmo indice (o torchvision do PyPI e feito para outro PyTorch)
+"%PY%" -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 if errorlevel 1 (
   echo [ERRO] !M_ERRO_TORCH!
   echo        !M_ERRO_REDE1!
@@ -143,7 +144,9 @@ if errorlevel 1 (
 echo PyTorch ok.
 echo.
 echo [2/3] TotalSegmentator...
-"%PY%" -m pip install "TotalSegmentator>=2.18"
+set "TRAVA=%TEMP%\ipe-travar-torch.txt"
+"%PY%" -c "import importlib.metadata as m; print('torch=='+m.version('torch')); print('torchvision=='+m.version('torchvision'))" > "%TRAVA%"
+"%PY%" -m pip install "TotalSegmentator>=2.18" -c "%TRAVA%"
 if errorlevel 1 ( echo [ERRO] !M_ERRO_TS! & goto :fim )
 if not exist "%VENV%\Scripts\totalseg_download_weights.exe" (
   echo [ERRO] !M_ERRO_TS_PESOS!
@@ -160,7 +163,10 @@ for %%T in (total_fast total_fast_mr liver_segments liver_segments_mr vertebrae_
 
 echo.
 echo [extra] !M_SYNTHSEG!
-"%PY%" -m pip install "dipy>=1.12"
+rem 0.100.82: o par torch + torchvision precisa abrir; se nao abre, reinstala os dois juntos
+"%PY%" -c "import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5)" >nul 2>&1
+if errorlevel 1 "%PY%" -m pip install --force-reinstall --no-deps torch torchvision --index-url https://download.pytorch.org/whl/cpu
+"%PY%" -m pip install "dipy>=1.12" -c "%TRAVA%"
 if errorlevel 1 ( echo [ERRO] !M_ERRO_DIPY! & goto :fim )
 set "DIPY_HOME=%BASE%\pesos\dipy"
 "%PY%" -c "from dipy.data import get_fnames; print(get_fnames(name='synthseg_torch_weights'))"

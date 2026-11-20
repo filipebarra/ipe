@@ -53,17 +53,27 @@ if [ ! -x "$VENV/bin/python" ]; then
   fi
 fi
 "$VENV/bin/python" -m pip install --upgrade pip
+# 0.100.82: torch e torchvision juntos, do mesmo índice. O torchvision entra por tabela (nnU-Net -> timm); vindo
+# do PyPI, é feito para outro PyTorch e tudo cai em "operator torchvision::nms does not exist".
 if [ "$(uname)" = "Darwin" ]; then                  # no macOS o PyTorch do PyPI já é o certo (CPU e GPU da Apple)
-  "$VENV/bin/python" -m pip install torch
+  INDICE=""
 else
-  "$VENV/bin/python" -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+  INDICE="--index-url https://download.pytorch.org/whl/cpu"
 fi
-"$VENV/bin/python" -m pip install "TotalSegmentator>=2.18"
+"$VENV/bin/python" -m pip install torch torchvision $INDICE
+TRAVA="$BASE/travar-torch.txt"
+"$VENV/bin/python" -c "import importlib.metadata as m; print('torch=='+m.version('torch')); print('torchvision=='+m.version('torchvision'))" > "$TRAVA"
+"$VENV/bin/python" -m pip install "TotalSegmentator>=2.18" -c "$TRAVA"
+TESTE="import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5); print('PyTorch', torch.__version__, '+ torchvision', torchvision.__version__, 'ok')"
+if ! "$VENV/bin/python" -c "$TESTE"; then
+  "$VENV/bin/python" -m pip install --force-reinstall --no-deps torch torchvision $INDICE
+  "$VENV/bin/python" -c "$TESTE"
+fi
 for t in total_fast total_fast_mr liver_segments liver_segments_mr vertebrae_mr vertebrae_body total_mr head_glands_cavities headneck_bones_vessels craniofacial_structures head_muscles headneck_muscles total lung_nodules trunk_cavities; do
   "$VENV/bin/totalseg_download_weights" -t "$t"
 done
 # SynthSeg pela DIPY (encéfalo: Evans, 3º ventrículo, ângulo calosal, hipocampos)
-"$VENV/bin/python" -m pip install "dipy>=1.12"
+"$VENV/bin/python" -m pip install "dipy>=1.12" -c "$TRAVA"
 DIPY_HOME="$BASE/pesos/dipy" "$VENV/bin/python" -c "from dipy.data import get_fnames; print(get_fnames(name='synthseg_torch_weights'))"
 # SynthSR (0.100.23): T1 sintético de 1 mm; pesos originais (53 MB). Se falhar, o programa baixa no primeiro uso.
 "$VENV/bin/python" -c "import os,sys,urllib.request as u; d=os.path.join(sys.argv[1],'pesos','synthsr'); os.makedirs(d,exist_ok=True); a=os.path.join(d,'SynthSR_v10_210712.h5'); os.path.getsize(a) if os.path.isfile(a) and os.path.getsize(a)>50000000 else u.urlretrieve('https://github.com/BBillot/SynthSR/raw/main/models/SynthSR_v10_210712.h5',a); print('SynthSR ok')" "$BASE" || echo "SynthSR: o modelo nao baixou agora; o programa tenta de novo no primeiro uso."

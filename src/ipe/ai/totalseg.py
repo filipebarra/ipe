@@ -395,6 +395,10 @@ class Trabalho:
             if "dipy" in str(r.get("erro", "")).lower() and "module" in str(r.get("erro", "")).lower():
                 raise Falhou("O SynthSeg ainda não está instalado neste computador: rode de novo o "
                              "instalar_segmentacao (ele acrescenta a DIPY e os pesos do SynthSeg).")
+            if "torchvision" in str(r.get("erro", "")):      # 0.100.82: o par torch + torchvision descasou
+                raise Falhou("O PyTorch e o torchvision deste computador não combinam (um pip install trocou um "
+                             "deles). Para consertar: Configurações ▸ CAD/IA ▸ Instalar os modelos extras… — "
+                             "ele confere e reinstala os dois juntos antes de tudo.")
             raise Falhou(f"O TotalSegmentator não terminou: {r.get('erro') or 'erro desconhecido'}")
         rotulos = {}
         self.extras = {}
