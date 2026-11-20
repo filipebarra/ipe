@@ -9910,5 +9910,6 @@
  "Põe no laudo a seção dos esquemas-guia do exame, como as imagens-chave: as figuras com a legenda no PDF, a legenda no texto e, ao assinar, os esquemas no DICOM SR. Os esquemas são desenhados pelo botão Esquema do visualizador.": "Pone en el informe la sección de los esquemas guía del examen, como las imágenes clave: las figuras con la leyenda en el PDF, la leyenda en el texto y, al firmar, los esquemas en el DICOM SR. Los esquemas se dibujan con el botón Esquema del visor.",
  "Tira o esquema escolhido do exame": "Quita el esquema elegido del examen",
  "esquemas no laudo": "esquemas no laudo",
- "Esquemas no laudo ({})": "Esquemas en el informe ({})"
+ "Esquemas no laudo ({})": "Esquemas en el informe ({})",
+ " etapa:": " etapa:"
 }

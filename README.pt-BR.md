@@ -9,6 +9,8 @@ ultrassom e radiografia, com rede DICOM, filmes, impressão e laudo.
 > outra agência. Não use as imagens, medidas ou resultados dele para laudar, decidir conduta ou
 > tratar pacientes.
 
+**Site, com vídeos de cada tarefa: <https://filipebarra.github.io/ipe/pt/>**
+
 *Outros idiomas: [English](README.md) · [Español](README.es.md) · Histórico de versões:
 [CHANGELOG.md](CHANGELOG.md)*
 

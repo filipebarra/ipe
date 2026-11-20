@@ -8,6 +8,8 @@ ecografía y radiografía, con red DICOM, placas, impresión e informe.
 > **No destinado a uso diagnóstico.** Ipê no es un dispositivo médico registrado. No use sus
 > imágenes, medidas o resultados para informar estudios, decidir conductas ni tratar pacientes.
 
+**Sitio web, con videos de cada tarea: <https://filipebarra.github.io/ipe/es/>**
+
 *Otros idiomas: [English](README.md) · [Português](README.pt-BR.md) · Historial de versiones:
 [CHANGELOG.es.md](CHANGELOG.es.md)*
 

@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.76 — Site do Ipê com vídeos por tarefa; telas mais traduzidas
+- **Site do Ipê** (GitHub Pages: <https://filipebarra.github.io/ipe/>), em inglês, português e espanhol, organizado
+  por tarefa do dia — ler um exame, mamografia, RM de mama, PET/CT, IA, laudos e esquemas, ensino com casos,
+  servidor e Ipê Web. Cada tarefa tem um vídeo curto gravado no próprio Ipê (exames de exemplo anonimizados), o passo
+  a passo e onde fica cada coisa. O tutorial "Como montar um curso com casos" está nos três idiomas. O site é gerado
+  de `site/conteudo.py` e publicado sozinho a cada mudança.
+- **Traduções**: em inglês e espanhol, passam a aparecer traduzidos os rótulos dos formulários (por exemplo, a
+  janela Organizar lista), os botões com texto próprio das janelas (Salvar, Excluir o esquema…), o cabeçalho das
+  colunas do Banco de dados e o "etapa:" da mamografia.
+
 ## 0.100.75 — Ipê Web: marcações em mamografia, raios X e ultrassom voltam a aparecer
 - **Marcações gravadas reaparecem** no Ipê Web em imagens sem quadro de referência (mamografia, raios X,
   ultrassom): setas, textos e medidas feitos no Ipê de mesa ou no próprio Ipê Web eram gravados, mas não voltavam à

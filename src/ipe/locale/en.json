@@ -3553,7 +3553,7 @@
  "Resposta metabólica completa": "Complete metabolic response",
  "Resposta metabólica parcial": "Partial metabolic response",
  "Resposta parcial": "Partial response",
- "Resposta:": "Response:",
+ "Resposta:": "Answer:",
  "Resposta: diagnóstico, anatomopatológico (fica oculto até “Revelar”)": "Answer: diagnosis, pathology (hidden until “Reveal”)",
  "Ressonância": "MRI",
  "Restaurar": "Reset",
@@ -9910,5 +9910,6 @@
  "Põe no laudo a seção dos esquemas-guia do exame, como as imagens-chave: as figuras com a legenda no PDF, a legenda no texto e, ao assinar, os esquemas no DICOM SR. Os esquemas são desenhados pelo botão Esquema do visualizador.": "Adds the exam's guide-diagram section to the report, like key images: the figures with the legend in the PDF, the legend in the text and, on signing, the diagrams in the DICOM SR. Diagrams are drawn with the viewer's Diagram button.",
  "Tira o esquema escolhido do exame": "Removes the chosen diagram from the exam",
  "esquemas no laudo": "esquemas no laudo",
- "Esquemas no laudo ({})": "Diagrams in the report ({})"
+ "Esquemas no laudo ({})": "Diagrams in the report ({})",
+ " etapa:": " stage:"
 }

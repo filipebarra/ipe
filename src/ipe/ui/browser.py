@@ -134,7 +134,8 @@ class StudyTableModel(QAbstractTableModel):
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):  # noqa: N802
         if role == Qt.DisplayRole and orientation == Qt.Horizontal:
-            return COLUMNS[section][1]
+            from ipe.core.i18n import tr
+            return tr(COLUMNS[section][1])             # 0.100.76: o cabeçalho também no idioma escolhido
         return None
 
     def perfil(self) -> str:

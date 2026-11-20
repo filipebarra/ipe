@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.76 — Ipê website with videos per task; more translated screens
+- **Ipê website** (GitHub Pages: <https://filipebarra.github.io/ipe/>), in English, Portuguese and Spanish,
+  organized by everyday task — read a study, mammography, breast MRI, PET/CT, AI, reports and diagrams, teaching with
+  cases, server and Ipê Web. Each task has a short video recorded in Ipê itself (anonymized example studies), the steps
+  and where each thing is. The "How to build a course with cases" tutorial is in the three languages. The site is
+  generated from `site/conteudo.py` and published automatically on every change.
+- **Translations**: in English and Spanish, form labels (for example, the Organize list window), dialog buttons with
+  their own text (Save, Delete diagram…), the Database column headers and the mammography "stage:" now show
+  translated.
+
 ## 0.100.75 — Ipê Web: marks on mammography, X-ray and ultrasound show up again
 - **Saved marks reappear** in Ipê Web on images without a frame of reference (mammography, X-ray, ultrasound):
   arrows, texts and measurements made in desktop Ipê or in Ipê Web itself were saved but did not come back on screen

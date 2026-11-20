@@ -55,6 +55,8 @@ _TEXT_ARGS = {
     "QTreeWidget": {"setHeaderLabels": (), "setHeaderLabel": (0,)},
     "QTableWidget": {"setHorizontalHeaderLabels": (), "setVerticalHeaderLabels": ()},
     "QMessageBox": {"addButton": (0,), "setButtonText": (1,)},
+    "QDialogButtonBox": {"addButton": (0,)},
+    "QFormLayout": {"addRow": (0,), "insertRow": (1,)},  # 0.100.76: os rótulos dos formulários          # 0.100.76: botões com texto próprio (Salvar, Excluir…)
     "QInputDialog": {"setLabelText": (0,), "setOkButtonText": (0,), "setCancelButtonText": (0,)},
     "QAction": {"setText": (0,), "setToolTip": (0,), "setIconText": (0,), "setStatusTip": (0,),
                 "setWhatsThis": (0,)},
