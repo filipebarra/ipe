@@ -3,6 +3,17 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.85 — IA en la serie del cuadro; enfisema en la serie de parénquima; menos falta de memoria
+- **"… en esta serie"**: el ítem del menú de cada IA corre en la serie del cuadro activo, aunque no sea la preferida en
+  Configuración (antes, algunas IA cambiaban a la preferida). Si hay error, el mensaje dice cuál es la serie
+  recomendada — también en Ipê Web, cuando se elige la serie del cuadro.
+- **Enfisema**: la serie preferida pasa a ser la de parénquima/pulmón (`PARENQUIMA|PULMAO|…`), y el botón ya no cambia
+  la serie de filtro duro por la de filtro suave. En un estudio con las dos, la de parénquima (con la reducción de
+  ruido de la 0.100.81) dio el resultado del informe; la de mediastino falló.
+- **Memoria**: en el modo rápido, una serie muy fina (ej.: TC de tórax de 0,6 mm) entra en el TotalSegmentator ya
+  reducida a 1,5 mm, y las máscaras vuelven a la grilla original. Y los procesos auxiliares del TotalSegmentator ya no
+  quedan trabados (unos 2 GB cada uno) cuando la IA cae — antes, la IA siguiente también se quedaba sin memoria.
+
 ## 0.100.84 — Exportar: elegir las series
 - En la ventana **Exportar** (y en **Anonimizar una copia**), la casilla **Elegir las series** muestra cada estudio
   con sus series para marcar solo las que deben salir, con **Todas** y **Ninguna**. Vale para DICOM, imágenes y la

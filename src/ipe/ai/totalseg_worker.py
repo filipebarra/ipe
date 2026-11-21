@@ -1028,6 +1028,41 @@ def _versao_especial(especiais: list) -> str:
     return ", ".join(nomes)
 
 
+#: 0.100.85: o modo rápido do TotalSegmentator trabalha em 3 mm; acima disto (em voxels), a série entra já reduzida
+#: a 1,5 mm e os rótulos voltam à grade original pelo vizinho mais próximo — o resultado é o mesmo e a memória cai
+#: várias vezes (uma TC de tórax de 0,6 mm passava de 5 GB e caía por falta de memória em máquinas de 8 GB)
+FAST_VOXELS_MAX = 40_000_000
+FAST_MM = 1.5
+
+
+def _reduzir_para_o_fast(vol, afim, nib):
+    """(imagem para o TotalSegmentator, função que devolve os rótulos à grade de `vol`) — ou (imagem, None)."""
+    import numpy as np
+    vol = np.asarray(vol)
+    if vol.size <= FAST_VOXELS_MAX:
+        return nib.Nifti1Image(np.ascontiguousarray(vol.transpose(2, 1, 0)), afim), None
+    from scipy.ndimage import zoom
+    nk, nj, ni = vol.shape
+    passo = np.linalg.norm(np.asarray(afim, float)[:3, :3], axis=0)          # mm de i, j, k
+    fator = np.maximum(1.0, FAST_MM / np.maximum(passo, 1e-6))              # só reduz
+    novo = np.maximum(1, np.round(np.array([ni, nj, nk]) / fator).astype(int))
+    xyz = np.ascontiguousarray(vol.transpose(2, 1, 0), dtype=np.float32)
+    red = zoom(xyz, novo / np.array([ni, nj, nk]), order=1, prefilter=False)
+    esc = np.array([ni, nj, nk], float) / np.array(red.shape, float)
+    afim2 = np.asarray(afim, float).copy()
+    afim2[:3, :3] = afim2[:3, :3] * esc
+    afim2[:3, 3] = np.asarray(afim, float)[:3, 3] + np.asarray(afim, float)[:3, :3] @ ((esc - 1) / 2)
+    img = nib.Nifti1Image(red, afim2)
+
+    def volta(lab):
+        import numpy as np
+        lab = np.asarray(lab)
+        idx = [np.minimum(((np.arange(n) + 0.5) * lab.shape[a] / n).astype(int), lab.shape[a] - 1)
+               for a, n in enumerate((ni, nj, nk))]
+        return lab[np.ix_(*idx)]
+    return img, volta
+
+
 def rodar_especial(nome: str, vol, d: Path, job: dict, t: dict, simular: bool, anteriores: dict):
     canais = _canais(d, job)
     if nome == "medsam2":
@@ -1134,8 +1169,11 @@ def main(pasta: str) -> int:
                     kw["roi_subset"] = list(t["roi"])
                 if t.get("fast"):
                     kw["fast"] = True
-                seg = totalsegmentator(img, None, **kw)
+                entrada, volta = _reduzir_para_o_fast(vol, afim, nib) if t.get("fast") else (img, None)
+                seg = totalsegmentator(entrada, None, **kw)
                 lab = np.asarray(seg.dataobj)
+                if volta is not None:
+                    lab = volta(lab)
                 if lab.shape != img.shape:
                     raise RuntimeError(f"{nome}: a segmentação voltou com outra grade ({lab.shape} × {img.shape})")
                 np.save(d / f"rotulos_{nome}.npy", lab.transpose(2, 1, 0).astype(np.uint8))

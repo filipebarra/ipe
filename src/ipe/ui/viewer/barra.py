@@ -1177,7 +1177,7 @@ class BarraMixin:
                  "Lesões da próstata — modelo de pesquisa (PI-CAI)", "PI-CAI")):
             menu_x = self._menu()
             a_x = QAction(rotulo_menu, self)
-            a_x.triggered.connect(lambda _=False, tp=tipo: self.ferramenta_ia(tp, self.active))
+            a_x.triggered.connect(lambda _=False, tp=tipo: self.ferramenta_ia(tp, self.active, na_serie_do_quadro=True))
             menu_x.addAction(a_x)
             a_r = QAction("Achados de IA (revisar, confirmar, descartar)…", self)
             a_r.triggered.connect(self.abrir_achados)

@@ -229,6 +229,8 @@ class Segmentacao(QObject):
         self._timer = QTimer(self)
         self._timer.setInterval(1000)
         self._timer.timeout.connect(self._atualizar)
+        self._timer.timeout.connect(self._anotar_filhos)
+        self._filhos: set[int] = set()
 
     # ------------------------------------------------------------ janela e progresso (podem sumir)
     @property
@@ -395,7 +397,31 @@ class Segmentacao(QObject):
                             "instalar_segmentacao.bat.")
 
     # ------------------------------------------------------------ fim
+    def _anotar_filhos(self) -> None:
+        """0.100.85: guarda os processos que o trabalhador abriu (o TotalSegmentator abre um gerenciador do
+        multiprocessing). Se o trabalhador cai — por falta de memória, por exemplo —, eles ficavam órfãos, presos
+        segurando uns 2 GB cada, e a próxima IA caía também."""
+        proc = getattr(self, "proc", None)
+        if proc is None or proc.state() == QProcess.NotRunning:
+            return
+        try:
+            import psutil
+            pai = psutil.Process(int(proc.processId()))
+            self._filhos.update(c.pid for c in pai.children(recursive=True))
+        except Exception:  # noqa: BLE001 - sem psutil ou o processo já acabou: nada a anotar
+            pass
+
+    def _encerrar_filhos(self) -> int:
+        """Encerra os filhos do trabalhador que sobraram depois que ele terminou."""
+        from ipe.ai.totalseg import encerrar_processos
+        n = encerrar_processos(self._filhos)
+        self._filhos.clear()
+        if n:
+            log.warning("TotalSegmentator: %d processo(s) filho(s) do trabalhador encerrado(s) depois do fim", n)
+        return n
+
     def _processo_terminou(self, *_a) -> None:
+        self._encerrar_filhos()
         if self.fase == "ancora":
             self._fim_ancora()
             return
@@ -684,6 +710,8 @@ class Segmentacao(QObject):
         if self in _rodando:
             _rodando.remove(self)
             TS.EM_CURSO.discard(self.trabalho.study_uid)
+        if saida is None and not self.cancelado and getattr(self, "recomendada", ""):
+            msg = f"{msg}\n\nA série recomendada para esta IA é “{self.recomendada}”."   # 0.100.85
         from ipe.ai import tarefas as TA
         estado = TA.PRONTO if saida is not None else (TA.CANCELADO if self.cancelado else TA.ERRO)
         TA.REGISTRO.mudar(getattr(self, "tarefa", None), estado, etapa="", mensagem=msg)

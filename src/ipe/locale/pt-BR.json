@@ -7636,7 +7636,9 @@
   "import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5); print('  PyTorch', torch.__version__, '+ torchvision', torchvision.__version__, 'ok', flush=True)",
   "Error while processing tag",
   "Escolher as séries",
-  "Marque só as séries que devem sair. Desmarcado: sai o que o item acima diz."
+  "Marque só as séries que devem sair. Desmarcado: sai o que o item acima diz.",
+  "PARENQUIMA|PULMAO|PARTES MOLES|MEDIASTINO|STANDARD|STD|SOFT|B30|B31|BR40|SEM CONTRASTE|LUNG",
+  "série recomendada"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -9757,6 +9759,8 @@
   "PyTorch: {}",
   "[ERRO] PyTorch: {}",
   "Se {}  {}  {}",
-  "{} de {} série(s) marcada(s)"
+  "{} de {} série(s) marcada(s)",
+  " — a série recomendada para esta IA é “{}”.",
+  "{}\n\nA série recomendada para esta IA é “{}”."
  ]
 }

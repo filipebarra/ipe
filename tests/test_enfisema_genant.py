@@ -238,3 +238,60 @@ class _Cfg:
 
     def get(self, chave, padrao=None):
         return self.ruido if chave == EN.CHAVE_RUIDO else padrao
+
+
+def test_roda_na_serie_do_quadro_e_recomenda_a_outra(env, tmp_path, monkeypatch):
+    """0.100.85: o item "desta série" roda na série do quadro, mesmo não sendo a preferida; a preferida do
+    enfisema passou a ser a de parênquima, e o erro diz qual é a recomendada."""
+    from pydicom.uid import generate_uid
+    from PySide6.QtWidgets import QApplication
+
+    from ipe.core.config import Settings
+    from ipe.core.sample_data import _base, _mono, _save
+    from ipe.importer.scanner import Importer
+    from ipe.ui.main_window import MainWindow
+    app = QApplication.instance() or QApplication([])
+    paths, db, repo = env
+    hu = _hu()
+    pat = {"name": "TORAX^Duas", "id": "ENF2", "birth": "19500101", "sex": "M"}
+    study = {"uid": generate_uid(), "date": "20261105", "accession": "ENF02", "description": "TC TORAX",
+             "for": generate_uid()}
+    uids = {}
+    for num, desc, kern in ((2, "MEDIASTINO", "B30f"), (3, "PARENQUIMA", "LUNG")):
+        series = {"uid": generate_uid(), "number": num, "description": desc}
+        uids[desc] = series["uid"]
+        pasta = tmp_path / desc
+        o = -(N / 2 - 0.5) * PX
+        for k in range(NZ):
+            ds = _base("1.2.840.10008.5.1.4.1.1.2", pat, study, series, "CT")
+            ds.InstanceNumber = k + 1
+            ds.ImagePositionPatient = [o, o, DZ * k]
+            ds.ImageOrientationPatient = [1, 0, 0, 0, 1, 0]
+            ds.PixelSpacing = [PX, PX]
+            ds.SliceThickness = DZ
+            ds.ConvolutionKernel = kern
+            ds.RescaleSlope, ds.RescaleIntercept = 1, 0
+            _mono(ds, hu[k], signed=True)
+            _save(ds, pasta)
+        Importer(db, paths.storage).import_paths([pasta])
+    s = Settings(paths.settings_file)
+    assert EN.escolher_serie(repo, study["uid"], s)[0] == uids["PARENQUIMA"]
+    w = MainWindow(paths, s, repo=repo, db=db)
+    w.show()
+    try:
+        assert w.handle_external({"accession": "ENF02"}) == "aberto"
+        tab = w.tabs.currentWidget()
+        app.processEvents()
+        vp = tab.viewports[0]
+        tab.load_series_into(vp, uids["MEDIASTINO"])
+        app.processEvents()
+        pedidos = []
+        monkeypatch.setattr(type(tab), "segmentar_orgaos",
+                            lambda self, v, simular=False, tipo="": pedidos.append(v.series_uid))
+        tab.ferramenta_ia("enfisema", vp, na_serie_do_quadro=True)
+        tab.ferramenta_ia("enfisema", vp)            # o botão também não troca mais pela de filtro suave
+        assert pedidos == [uids["MEDIASTINO"], uids["MEDIASTINO"]]
+        assert tab.serie_recomendada("enfisema", study["uid"], uids["MEDIASTINO"]) == "Se 3 PARENQUIMA"
+        assert tab.serie_recomendada("enfisema", study["uid"], uids["PARENQUIMA"]) == ""
+    finally:
+        w.close()

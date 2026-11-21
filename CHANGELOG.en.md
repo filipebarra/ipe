@@ -3,6 +3,17 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.85 — AI on the viewport series; emphysema on the parenchyma series; fewer out-of-memory failures
+- **"… on this series"**: each AI's menu item runs on the active viewport's series, even when it is not the preferred
+  one in Settings (some AIs used to switch to the preferred one). On error, the message names the recommended series
+  — also in Ipê Web, when the viewport series is chosen.
+- **Emphysema**: the preferred series is now the parenchyma/lung one (`PARENQUIMA|PULMAO|…`), and the button no longer
+  swaps a sharp-kernel series for a soft one. On a study with both, the parenchyma series (with the 0.100.81 noise
+  reduction) matched the report; the mediastinum series did not.
+- **Memory**: in fast mode, a very thin series (e.g., a 0.6 mm chest CT) enters TotalSegmentator already reduced to
+  1.5 mm, and the masks return to the original grid. TotalSegmentator helper processes no longer stay stuck (about
+  2 GB each) when the AI crashes — before, the next AI also ran out of memory.
+
 ## 0.100.84 — Export: choose the series
 - In the **Export** window (and in **Anonymize a copy**), the **Choose the series** box lists each study with its
   series so you tick only those to export, with **All** and **None**. It applies to DICOM, images and the anonymized

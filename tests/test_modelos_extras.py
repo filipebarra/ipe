@@ -388,3 +388,49 @@ def test_erro_do_torchvision_vira_instrucao(tmp_path):
         {"ok": False, "erro": "RuntimeError: operator torchvision::nms does not exist"}), encoding="utf-8")
     with pytest.raises(TS.Falhou, match="Instalar os modelos extras"):
         s.ler_rotulos()
+
+
+def test_fast_reduz_volume_grande_e_devolve_na_grade(monkeypatch):
+    """0.100.85: série fina demais para o modo rápido entra reduzida a 1,5 mm; os rótulos voltam à grade original."""
+    import nibabel as nib
+    import numpy as np
+    from ipe.ai import totalseg_worker as W
+    monkeypatch.setattr(W, "FAST_VOXELS_MAX", 1000)
+    vol = np.zeros((40, 60, 50), np.float32)                 # (k, j, i)
+    vol[10:30, 20:40, 15:35] = 100
+    afim = np.diag([0.75, 0.75, 0.5, 1.0])                   # i, j em 0,75 mm; k em 0,5 mm
+    img, volta = W._reduzir_para_o_fast(vol, afim, nib)
+    assert volta is not None and img.shape == (25, 30, 13)
+    assert np.allclose(np.linalg.norm(img.affine[:3, :3], axis=0), [1.5, 1.5, 40 * 0.5 / 13])
+    lab = (np.asarray(img.dataobj) > 50).astype(np.uint8)
+    de_volta = volta(lab)
+    assert de_volta.shape == (50, 60, 40)
+    orig = (vol.transpose(2, 1, 0) > 50)
+    assert (de_volta.astype(bool) == orig).mean() > 0.97
+    pequeno, nada = W._reduzir_para_o_fast(vol[:5, :5, :5], afim, nib)
+    assert nada is None and pequeno.shape == (5, 5, 5)
+
+
+def test_filhos_do_trabalhador_nao_ficam_orfaos(tmp_path):
+    """0.100.85: os filhos do trabalhador são anotados enquanto ele roda e encerrados no fim."""
+    import subprocess
+    import sys
+    import time
+
+    import psutil
+    from ipe.ai import totalseg as TS
+    script = tmp_path / "t.py"
+    script.write_text("import subprocess, sys, time\n"
+                      "f = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+                      "print('pronto', flush=True); time.sleep(3)\n")
+    p = subprocess.Popen([sys.executable, str(script)], stdout=subprocess.PIPE, text=True)
+    p.stdout.readline()
+    time.sleep(0.3)
+    filhos = TS._filhos_de(p.pid)
+    assert len(filhos) == 1
+    assert TS.encerrar_processos(filhos) == 1
+    time.sleep(0.3)
+    (pid,) = filhos
+    assert not psutil.pid_exists(pid) or psutil.Process(pid).status() == psutil.STATUS_ZOMBIE
+    p.kill()
+    p.wait()

@@ -307,11 +307,17 @@ class IAMixin:
         seg.iniciar()
         return seg
 
-    def ferramenta_ia(self, tipo: str, vp=None, simular: bool = False):
-        """0.99.77: roda uma IA do contrato comum (enfisema, Genant…) na série do quadro."""
+    def ferramenta_ia(self, tipo: str, vp=None, simular: bool = False, na_serie_do_quadro: bool = False):
+        """0.99.77: roda uma IA do contrato comum (enfisema, Genant…) na série do quadro.
+
+        `na_serie_do_quadro` (0.100.85, o item "… desta série" do menu): roda na série do quadro ativo, seja qual for
+        a série preferida nas Configurações; se der erro, a mensagem diz qual é a série recomendada. Sem ele (o
+        botão), a FLAIR, o T2 axial da próstata e a TC do PET/CT são procurados no exame."""
         vp = vp or self.active or next((v for v in self.viewports if v.frames), None)
         if vp is None:
             return None
+        if na_serie_do_quadro and not (tipo == "carga_pet" and (getattr(vp, "modality", "") or "").upper() == "PT"):
+            return self.segmentar_orgaos(vp, simular=simular, tipo=tipo)
         if tipo == "carga_pet":                 # 0.99.88: os órgãos saem da TC do PET/CT, a conta é no PET
             from ipe.ai import carga_pet as CP
             serie, motivo = CP.escolher_serie(self.repo, vp.study_uid or self.study_uid, self.settings)
@@ -336,18 +342,8 @@ class IAMixin:
                     alvo = vp
                     self.load_series_into(vp, serie)
                 vp = alvo
-        if tipo == "enfisema":                  # 0.100.81: na série de filtro suave do exame, quando o quadro tem a dura
-            from ipe.ai import enfisema as EN
-            outra = EN.serie_melhor(self.repo, vp.study_uid or self.study_uid, getattr(vp, "series_uid", "") or "",
-                                    self.settings)
-            if outra:
-                alvo = next((v for v in self.viewports if v.series_uid == outra and v.frames), None)
-                if alvo is None:
-                    alvo = vp
-                    self.load_series_into(vp, outra)
-                vp = alvo
-                self.status_message.emit("Enfisema: medido na série de filtro suave do exame (a do quadro tem filtro "
-                                         "duro, que aumenta o ruído).")
+        # 0.100.85: o enfisema não troca mais a série de filtro duro pela suave (0.100.81): no exame de teste a de
+        # parênquima deu o resultado do laudo e a de mediastino errou; a série preferida está nas Configurações
         if tipo in ("prostata", "picai"):       # 0.100.79: rodam no T2 axial do exame, esteja ou não no quadro
             from ipe.ai import prostata as PR
             linha = self._series_row(getattr(vp, "series_uid", "") or "")
@@ -374,9 +370,9 @@ class IAMixin:
         return self.ferramenta_ia(tipo, self.active)
 
     def _figado_rm_do_ativo(self):
-        return self.figado_rm_automatico(self.active)
+        return self.figado_rm_automatico(self.active, na_serie_do_quadro=True)
 
-    def figado_rm_automatico(self, vp=None, simular: bool = False):
+    def figado_rm_automatico(self, vp=None, simular: bool = False, na_serie_do_quadro: bool = False):
         """Fígado na RM (0.99.49): a IA roda na série anatômica escolhida pela regra (o fígado vem dela) e
         mede nos mapas do aparelho. O quadro ativo só decide o exame."""
         from ipe.ai import figado_rm as FR
@@ -384,6 +380,8 @@ class IAMixin:
         vp = vp or self.active or next((v for v in self.viewports if v.frames), None)
         if vp is None:
             return None
+        if na_serie_do_quadro:                  # 0.100.85: o item "desta série" do menu
+            return self.segmentar_orgaos(vp, simular=simular, tipo="figado_rm")
         uid = vp.study_uid or self.study_uid
         serie, motivo = FR.escolher_serie(self.repo, uid, self.settings)
         alvo = vp
@@ -428,6 +426,22 @@ class IAMixin:
         from ipe.ui.tarefas_ia import abrir
         return abrir(self.window())
 
+    def serie_recomendada(self, tipo: str, study_uid: str, series_uid: str) -> str:
+        """0.100.85: "Se 3 PARENQUIMA" — a série que a regra da IA escolheria no exame, se não for a do quadro."""
+        try:
+            from ipe.ai import ferramentas as FE
+            mod = FE.modulo(tipo)
+            if mod is None or not hasattr(mod, "escolher_serie"):
+                return ""
+            uid, _motivo = mod.escolher_serie(self.repo, study_uid, self.settings)
+            if not uid or uid == series_uid:
+                return ""
+            s = self._series_row(uid)
+            return f"Se {s.series_number} {s.description or ''}".strip() if s else ""
+        except Exception:  # noqa: BLE001 - a recomendação é ajuda, não pode impedir a IA
+            log.debug("série recomendada", exc_info=True)
+            return ""
+
     def segmentar_orgaos(self, vp, simular: bool = False, tipo: str = "abdome"):
         """Quadro ▸ botão direito ▸ Segmentar órgãos abdominais (0.98) ou Identificar vértebras e discos
         (tipo="coluna", 0.99.2): a série do quadro vai para o TotalSegmentator; ao terminar, o resultado
@@ -439,6 +453,7 @@ class IAMixin:
             return None
         seg = Segmentacao(self, self.repo, self.settings, storage, vp.study_uid or self.study_uid,
                           f.series_uid, cache=self.cache, simular=simular, tipo=tipo)
+        seg.recomendada = self.serie_recomendada(tipo, vp.study_uid or self.study_uid, f.series_uid)
         net, repo, settings = getattr(self, "net", None), self.repo, self.settings
 
         def pronto(saida, msg):

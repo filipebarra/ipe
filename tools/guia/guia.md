@@ -1906,13 +1906,15 @@ Para quem já tinha instalado a segmentação: rode de novo o *instalar_segmenta
 - A fração de sinal da dupla eco **não é PDFF**: não corrige T1 nem T2*. Em fase com sinal menor que fora de fase sugere ferro — e aí a gordura sai subestimada.
 - Mapa de gordura em 0–1000 (alguns fabricantes) é lido como décimos de porcento, com aviso. À mão continua valendo: uma ROI no próprio mapa mostra a média em % (ou em s⁻¹ no de R2*).
 
+**Rodar na série do quadro (0.100.85).** Cada IA tem, no menu do botão IA (ou no botão dela), o item "… nesta série" / "… desta série": ele roda na série do quadro ativo, mesmo que não seja a preferida nas Configurações. Se der erro, a mensagem diz qual é a série recomendada para aquela IA. O clique no botão continua usando a série preferida (FLAIR, T2 axial, TC do PET/CT…). No Ipê Web, a aba IA deixa escolher entre a série sugerida e a do quadro.
+
 ### Enfisema por lobo (0.99.77)
 
 Na TC de tórax, o botão **Enfisema** (ou Aplicações ▸ Enfisema) separa os cinco lobos pela IA e mede, em cada lobo, em cada pulmão e no total, a **%LAA−950** (fração do volume abaixo de −950 HU), o **Perc15** (o HU do percentil 15) e o volume, e diz a distribuição (predomínio superior, inferior ou homogêneo). O resultado vai para os Achados de IA, como um achado "Enfisema (%LAA−950)", e as áreas abaixo de −950 HU ficam numa SEG que aparece só na série calculada.
 
 O número depende da técnica, e a revisão avisa: corte fino (≤ 1,5 mm), filtro suave (B30, STANDARD; filtro de pulmão ou osso aumenta o ruído e a %LAA), sem contraste e em inspiração plena; a mediana do ar da traqueia confere a calibração (perto de −1000 HU). Use de preferência a série fina de filtro suave, se houver. A referência (limiar de −950 HU validado por Gevenois et al., 1996; %LAA acima de ~5–6% costuma ser tratada como enfisema relevante) vai como texto ao lado, não como veredito.
 
-**Ruído (0.100.81).** O ruído de um filtro duro põe pontinhos abaixo de −950 HU no pulmão todo e infla a %LAA. Por isso: se o quadro tem a série de filtro duro e o exame tem uma de filtro suave que serve, o botão mede na suave; e, numa série ruidosa (filtro duro, ou desvio-padrão do ar da traqueia acima de 30 HU), o Ipê aplica um filtro gaussiano leve (σ 0,8 mm) antes do limiar — o achado diz quando fez isso. Desliga-se em **Configurações ▸ CAD/IA ▸ Enfisema**.
+**Ruído (0.100.81).** O ruído de um filtro duro põe pontinhos abaixo de −950 HU no pulmão todo e infla a %LAA. Por isso, numa série ruidosa (filtro duro, ou desvio-padrão do ar da traqueia acima de 30 HU), o Ipê aplica um filtro gaussiano leve (σ 0,8 mm) antes do limiar — o achado diz quando fez isso. Desliga-se em **Configurações ▸ CAD/IA ▸ Enfisema**. Desde a 0.100.85 a série preferida é a de **parênquima/pulmão**: num exame com as duas, a de parênquima (com a redução de ruído) deu o resultado do laudo e a de mediastino errou.
 
 ### Fratura vertebral — Genant (0.99.77)
 

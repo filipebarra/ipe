@@ -267,6 +267,32 @@ class Falhou(RuntimeError):
     """A segmentação não terminou; a mensagem é para a tela."""
 
 
+def _filhos_de(pid: int) -> set[int]:
+    try:
+        import psutil
+        return {c.pid for c in psutil.Process(pid).children(recursive=True)}
+    except Exception:  # noqa: BLE001
+        return set()
+
+
+def encerrar_processos(pids) -> int:
+    """Encerra os que ainda estão vivos (0.100.85: filhos do trabalhador que sobreviveram a ele)."""
+    n = 0
+    try:
+        import psutil
+    except ImportError:
+        return 0
+    for pid in pids:
+        try:
+            pr = psutil.Process(pid)
+            if pr.is_running() and pr.status() != psutil.STATUS_ZOMBIE:
+                pr.kill()
+                n += 1
+        except Exception:  # noqa: BLE001
+            pass
+    return n
+
+
 @dataclass
 class Trabalho:
     """Uma segmentação de uma série: preparar → (rodar o trabalhador) → ler → gravar."""
@@ -368,13 +394,16 @@ class Trabalho:
         p = subprocess.Popen([prog, *args], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                              env=env, text=True, encoding="utf-8", errors="replace")
         self._proc = p
+        filhos: set[int] = set()
         try:
             for linha in p.stdout:
+                filhos |= _filhos_de(p.pid)
                 if ao_ler_linha is not None:
                     ao_ler_linha(linha.rstrip())
             p.wait()
         finally:
             self._proc = None
+            encerrar_processos(filhos)          # 0.100.85: o gerenciador do multiprocessing não fica órfão
         if self.cancelado:
             raise Falhou("Cancelada.")
 

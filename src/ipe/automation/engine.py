@@ -591,8 +591,13 @@ class AutomationEngine(QObject):
             "coluna": COL.escolher_serie, "cefalometria": CF.escolher_serie,
             "neuro": NE.escolher_serie, "linfonodos": LN.escolher_serie}.get(tipo, TS.escolher_serie)
         serie, motivo = escolher(self.repo, study_uid, self.settings)
+        recomendada = ""
         if (study_uid, tipo) in self._seg_escolhida:          # 0.100.10: a série pedida à mão
-            serie, motivo = self._seg_escolhida.pop((study_uid, tipo)), ""
+            pedida = self._seg_escolhida.pop((study_uid, tipo))
+            if serie and serie != pedida:                     # 0.100.85: para dizer qual seria, se der erro
+                m = self.repo.series_meta(serie) or {}
+                recomendada = f"Se {m.get('series_number') or ''} {m.get('description') or ''}".strip()
+            serie, motivo = pedida, ""
         if serie is None:
             TA.REGISTRO.mudar(tid, TA.VAZIO, mensagem=str(motivo or ""))
             self.repo.add_job_run("segmentacao", titulo, "vazio", 0, f"{nome}: {motivo}")
@@ -771,7 +776,8 @@ class AutomationEngine(QObject):
                     self.repo.add_job_run("segmentacao", titulo, "vazio", 0, f"{nome}: cancelada", None, inicio)
                 else:
                     log.warning("%s automática de %s: %s", titulo, study_uid, e)
-                    TA.REGISTRO.mudar(tid, TA.ERRO, etapa="", mensagem=str(e))
+                    TA.REGISTRO.mudar(tid, TA.ERRO, etapa="", mensagem=str(e) + (
+                        f" — a série recomendada para esta IA é “{recomendada}”." if recomendada else ""))
                     self.repo.add_job_run("segmentacao", titulo, "error", 0, f"{nome}: {e}", None, inicio)
             finally:
                 t.limpar()

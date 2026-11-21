@@ -10251,5 +10251,9 @@
  "Escolher as séries": "Choose the series",
  "Marque só as séries que devem sair. Desmarcado: sai o que o item acima diz.": "Tick only the series that should be exported. Unticked: what the item above says is exported.",
  "Se {}  {}  {}": "Se {}  {}  {}",
- "{} de {} série(s) marcada(s)": "{} of {} series ticked"
+ "{} de {} série(s) marcada(s)": "{} of {} series ticked",
+ "PARENQUIMA|PULMAO|PARTES MOLES|MEDIASTINO|STANDARD|STD|SOFT|B30|B31|BR40|SEM CONTRASTE|LUNG": "PARENQUIMA|PULMAO|PARTES MOLES|MEDIASTINO|STANDARD|STD|SOFT|B30|B31|BR40|SEM CONTRASTE|LUNG",
+ "série recomendada": "recommended series",
+ " — a série recomendada para esta IA é “{}”.": " — the recommended series for this AI is “{}”.",
+ "{}\n\nA série recomendada para esta IA é “{}”.": "{}\n\nThe recommended series for this AI is “{}”."
 }
