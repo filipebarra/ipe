@@ -21,6 +21,24 @@ from ipe.ui.viewer.barra import BarraMixin, LAYOUTS, MEASURE_TOOLS, SLAB_CHOICES
 
 log = logging.getLogger("ipe.ui.viewer.viewer_tab")      # o mesmo registro de antes da separação
 
+#: 0.100.90: as IAs que não são do contrato comum (`ai/ferramentas.py`): cada uma com a sua regra de série
+ESPECIAIS = ("abdome", "coluna", "cefalometria", "neuro", "linfonodos")
+
+
+def escolher_serie_de(tipo: str):
+    """`escolher_serie(repo, study_uid, settings)` da IA."""
+    from ipe.ai import ferramentas as FE
+    mod = FE.modulo(tipo)
+    if mod is not None:
+        return mod.escolher_serie
+    from ipe.ai import cefalometria as CF
+    from ipe.ai import coluna as COL
+    from ipe.ai import linfonodos as LN
+    from ipe.ai import neuro as NE
+    from ipe.ai import totalseg as TS
+    return {"abdome": TS.escolher_serie, "coluna": COL.escolher_serie, "cefalometria": CF.escolher_serie,
+            "neuro": NE.escolher_serie, "linfonodos": LN.escolher_serie}[tipo]
+
 
 class IAMixin:
     """IAMixin: métodos do ViewerTab separados (mesmos nomes)."""
@@ -386,13 +404,47 @@ class IAMixin:
                 self.repo.revisar_achado(a["id"], "descartado", _usuario())
             self.achados_mudaram()
         vp = self.active or next((v for v in self.viewports if v.frames), None)
-        if tipo == "composicao":
-            return self.composicao_automatica(vp, simular=simular)
-        if tipo == "figado_rm":
+        if tipo == "densidade":                  # mamografia: medem o exame inteiro, sem série
+            return self.densidade_em_segundo_plano()
+        if tipo == "calc_vascular":
+            return self.calc_vascular_em_segundo_plano()
+        if tipo == "figado_rm":                  # já escolhe a série preferida sozinho
             return self.figado_rm_automatico(vp, simular=simular)
-        if tipo == "nodulos":
-            return self.nodulos_automatico(vp, simular=simular)
-        return self.ferramenta_ia(tipo, vp, simular=simular)
+        if tipo not in ESPECIAIS:                # as do contrato comum: o clique já usa a série preferida
+            if tipo == "composicao":
+                return self.composicao_automatica(self._quadro_da_preferida(tipo, vp), simular=simular)
+            if tipo == "nodulos":
+                return self.nodulos_automatico(self._quadro_da_preferida(tipo, vp), simular=simular)
+            return self.ferramenta_ia(tipo, vp, simular=simular)
+        alvo = self._quadro_da_preferida(tipo, vp)
+        if tipo == "cefalometria":
+            return self.cefalometria_automatica(alvo, simular=simular)
+        if tipo == "neuro":
+            return self.neuro_automatica(alvo, simular=simular)
+        if tipo == "linfonodos":
+            return self.linfonodos_automatico(alvo, simular=simular)
+        if tipo == "coluna":
+            return self.segmentar_orgaos(alvo, simular=simular, tipo="coluna")
+        return self.segmentar_orgaos(alvo, simular=simular)          # "abdome"
+
+    def _quadro_da_preferida(self, tipo: str, vp):
+        """O quadro com a série que a regra da IA escolhe no exame (Configurações ▸ CAD/IA); sem regra que sirva,
+        o quadro ativo. A série preferida que não está na tela entra no quadro ativo."""
+        if vp is None:
+            return None
+        try:
+            escolher = escolher_serie_de(tipo)
+            serie, _motivo = escolher(self.repo, vp.study_uid or self.study_uid, self.settings)
+        except Exception:  # noqa: BLE001
+            log.debug("série preferida de %s", tipo, exc_info=True)
+            serie = None
+        if not serie or serie == vp.series_uid:
+            return vp
+        ja = next((v for v in self.viewports if v.series_uid == serie), None)
+        if ja is not None:
+            return ja
+        self.load_series_into(vp, serie)
+        return vp
 
     def ferramenta_ia_botao(self, tipo: str):
         """O botão: com achados desta IA no exame, abre a revisão; sem, roda."""

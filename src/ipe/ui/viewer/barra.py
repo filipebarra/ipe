@@ -1075,6 +1075,9 @@ class BarraMixin:
         a_nauto = QAction("Índices automáticos (IA, SynthSeg) desta série…", self)
         a_nauto.triggered.connect(lambda: self.neuro_automatica(self.active))
         menu_idx.addAction(a_nauto)
+        a_ref_neuro = QAction("Refazer no exame (série preferida das Configurações)…", self)          # 0.100.90
+        a_ref_neuro.triggered.connect(lambda: self.refazer_ia("neuro"))
+        menu_idx.addAction(a_ref_neuro)
         menu_idx.aboutToShow.connect(lambda: a_nres.setEnabled(self.neuro_do_exame() is not None))
         a_sr = QAction("Criar T1 sintético de 1 mm desta série (IA, SynthSR)…", self)   # 0.100.23
         a_sr.triggered.connect(lambda: self.t1_sintetico(self.active))
@@ -1098,6 +1101,9 @@ class BarraMixin:
         a_auto = QAction("Cefalometria automática (IA) desta série…", self)
         a_auto.triggered.connect(lambda: self.cefalometria_automatica(self.active))
         menu_cef.addAction(a_auto)
+        a_ref_cef = QAction("Refazer no exame (série preferida das Configurações)…", self)          # 0.100.90
+        a_ref_cef.triggered.connect(lambda: self.refazer_ia("cefalometria"))
+        menu_cef.addAction(a_ref_cef)
         a_mao = QAction("Cefalometria à mão (roteiro)…", self)
         a_mao.triggered.connect(lambda: self.abrir_cefalometria(do_exame=False))
         menu_cef.addAction(a_mao)
@@ -1107,11 +1113,18 @@ class BarraMixin:
         cef.setIconText("Cefalometria")
         self._button(tb, cef, menu_cef, app="cefalometria")
         # níveis linfonodais (0.99.20): mapa na TC de pescoço; a lesão segmentada ganha o nível
+        menu_lin = self._menu()                                       # 0.100.90: o botão ganhou menu
+        a_lin = QAction("Mapa dos níveis linfonodais desta série (IA)…", self)
+        a_lin.triggered.connect(lambda: self.linfonodos_automatico(self.active))
+        menu_lin.addAction(a_lin)
+        a_ref_lin = QAction("Refazer no exame (série preferida das Configurações)…", self)          # 0.100.90
+        a_ref_lin.triggered.connect(lambda: self.refazer_ia("linfonodos"))
+        menu_lin.addAction(a_ref_lin)
         lin = self._act("linfonodos.auto", "Mapa dos níveis linfonodais (IA)",
                         lambda: self.linfonodos_automatico(self.active))
         lin.setIcon(icon("app_linfonodos"))
         lin.setIconText("Linfonodos")
-        self._button(tb, lin, None, app="linfonodos")
+        self._button(tb, lin, menu_lin, app="linfonodos")
         # nódulos pulmonares (0.99.46): achados revisáveis
         menu_nod = self._menu()
         a_nod = QAction("Procurar nódulos pulmonares nesta série (IA)…", self)
@@ -1199,6 +1212,9 @@ class BarraMixin:
                 a_col.triggered.connect(lambda: self.active is not None
                                         and self.segmentar_orgaos(self.active, tipo="coluna"))
                 menu_x.addAction(a_col)
+                a_ref_col = QAction("Refazer a identificação das vértebras no exame (série preferida)…", self)
+                a_ref_col.triggered.connect(lambda: self.refazer_ia("coluna"))
+                menu_x.addAction(a_ref_col)
             bx = self._act(f"{tipo}.auto", nome_acao, lambda _=False, tp=tipo: self.ferramenta_ia_botao(tp))
             bx.setIcon(icon(f"app_{tipo}"))
             bx.setIconText(texto_icone)
@@ -1208,6 +1224,9 @@ class BarraMixin:
         a_abd = QAction("Segmentar órgãos abdominais desta série (IA)…", self)
         a_abd.triggered.connect(lambda: self.segmentar_orgaos(self.active))
         menu_abd.addAction(a_abd)
+        a_ref_abd = QAction("Refazer no exame (série preferida das Configurações)…", self)          # 0.100.90
+        a_ref_abd.triggered.connect(lambda: self.refazer_ia("abdome"))
+        menu_abd.addAction(a_ref_abd)
         a_tar = QAction("Tarefas de IA (andamento e cancelar)…", self)
         a_tar.triggered.connect(self.abrir_tarefas_ia)
         menu_abd.addAction(a_tar)
@@ -1230,6 +1249,9 @@ class BarraMixin:
         a_rev = QAction("Medir e revisar…", self)
         a_rev.triggered.connect(self.densidade_do_exame)
         menu_den.addAction(a_rev)
+        a_ref_den = QAction("Refazer a medida no exame (em segundo plano)", self)      # 0.100.90
+        a_ref_den.triggered.connect(lambda: self.refazer_ia("densidade"))
+        menu_den.addAction(a_ref_den)
         menu_den.addSeparator()
         a_fila = QAction("Revisar vários exames em fila…", self)
         a_fila.triggered.connect(self.revisar_densidade)
@@ -1249,6 +1271,9 @@ class BarraMixin:
         a_cv = QAction("Medir e revisar…", self)
         a_cv.triggered.connect(self.calc_vascular_do_exame)
         menu_cv.addAction(a_cv)
+        a_ref_cv = QAction("Refazer a medida no exame (em segundo plano)", self)       # 0.100.90
+        a_ref_cv.triggered.connect(lambda: self.refazer_ia("calc_vascular"))
+        menu_cv.addAction(a_ref_cv)
         cv = self._act("calc_vascular.medir", "Calcificações vasculares: medir e revisar", self.calc_vascular_do_exame)
         cv.setIcon(icon("app_calc_vascular"))
         cv.setIconText("Vasos")

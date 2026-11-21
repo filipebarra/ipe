@@ -10295,5 +10295,9 @@
  "fígado {} s⁻¹ ({} a 1,5 T)": "hígado {} s⁻¹ ({} a 1,5 T)",
  "fígado {} s⁻¹ ({} a 1,5 T) · baço {} s⁻¹": "hígado {} s⁻¹ ({} a 1,5 T) · bazo {} s⁻¹",
  "Há {} achado(s) desta IA já revisado(s) (confirmado ou corrigido). Os sugeridos serão trocados pelos novos.\n\nDescartar também os revisados antigos?": "Hay {} hallazgo(s) de esta IA ya revisado(s) (confirmado o corregido). Los sugeridos se reemplazarán por los nuevos.\n\n¿Descartar también los revisados antiguos?",
- "Refazer no exame (série preferida das Configurações)…": "Rehacer en el estudio (serie preferida de la Configuración)…"
+ "Refazer no exame (série preferida das Configurações)…": "Rehacer en el estudio (serie preferida de la Configuración)…",
+ "Segmentação abdominal (órgãos)": "Segmentación abdominal (órganos)",
+ "Mapa dos níveis linfonodais desta série (IA)…": "Mapa de los niveles ganglionares de esta serie (IA)…",
+ "Refazer a identificação das vértebras no exame (série preferida)…": "Rehacer la identificación de las vértebras en el estudio (serie preferida)…",
+ "Refazer a medida no exame (em segundo plano)": "Rehacer la medida en el estudio (en segundo plano)"
 }

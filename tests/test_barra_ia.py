@@ -36,7 +36,8 @@ def test_botao_ia_junta_as_ias(env, tmp_path):
         assert any(t.startswith("Outras IAs") for t in textos)
         sub = next(a.menu() for a in tab.ia_menu.actions() if a.text() == "Nódulos")
         itens = [a.text() for a in sub.actions()]
-        assert itens == ["Procurar nódulos pulmonares nesta série (IA)…"]      # os achados vão no fim da lista
+        assert itens == ["Procurar nódulos pulmonares nesta série (IA)…",          # os achados vão no fim da lista
+                         "Refazer no exame (série preferida das Configurações)…"]
         # cada uma com o seu botão, como antes
         tab.agrupar_ia(False)
         app.processEvents()

@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.90 — refazer em todas as IAs; as IAs no menu Configurações ▸ CAD/IA
+- **Refazer no exame em todas as IAs**: órgãos, coluna, cefalometria, índices do crânio, níveis linfonodais e as
+  do contrato comum; densidade e calcificações vasculares da mama ("Refazer a medida no exame"). Usa a série que a
+  regra da IA escolhe; aparece também na lista do botão IA.
+- **Configurações ▸ CAD/IA** lista todas as IAs (eram seis); cada item abre a página da IA.
+- Itens de menu terminados em "…" passam a sair traduzidos quando o nome já tem tradução.
+
 ## 0.100.89 — refazer a IA no exame
 - **Refazer no exame**: o menu de cada IA (Fígado, Composição, Nódulos e as outras) ganhou "Refazer no exame (série
   preferida das Configurações)…" — antes, com achados no exame, só dava para refazer na série aberta. Pergunta se

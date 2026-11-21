@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.90 — rehacer en todas las IA; las IA en el menú Configuración ▸ CAD/IA
+- **Rehacer en el estudio en todas las IA**: órganos, columna, cefalometría, índices del cráneo, niveles
+  ganglionares y las del contrato común; densidad y calcificaciones vasculares de la mama ("Rehacer la medida en el
+  estudio"). Usa la serie que elige la regla de la IA; también en la lista del botón IA.
+- **Configuración ▸ CAD/IA** lista todas las IA (eran seis); cada ítem abre la página de la IA.
+
 ## 0.100.89 — rehacer la IA en el estudio
 - **Rehacer en el estudio**: el menú de cada IA (Hígado, Composición, Nódulos y las demás) tiene "Rehacer en el
   estudio (serie preferida de la Configuración)…" — antes, con hallazgos en el estudio, solo se podía rehacer en la

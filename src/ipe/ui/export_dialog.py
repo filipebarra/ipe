@@ -83,6 +83,8 @@ class ExportDialog(QDialog):
         self.series_tree.setHeaderLabels(["Série", "Imagens"])
         self.series_tree.setRootIsDecorated(True)
         self.series_tree.setMinimumHeight(190)
+        from ipe.ui.tabelas import colunas_ajustaveis
+        colunas_ajustaveis(self.series_tree, estica_ultima=False)
         self.series_tree.itemChanged.connect(self._serie_mudou)
         self.series_resumo = QLabel()
         self.series_resumo.setStyleSheet("color:#9a9a9a")

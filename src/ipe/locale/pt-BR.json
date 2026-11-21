@@ -7669,7 +7669,11 @@
   "pelos números — confira; passe o mouse para ver de onde vem cada uma",
   "pelos números — confira",
   "Há {} achado(s) desta IA já revisado(s) (confirmado ou corrigido). Os sugeridos serão trocados pelos novos.\n\nDescartar também os revisados antigos?",
-  "Refazer no exame (série preferida das Configurações)…"
+  "Refazer no exame (série preferida das Configurações)…",
+  "Segmentação abdominal (órgãos)",
+  "Mapa dos níveis linfonodais desta série (IA)…",
+  "Refazer a identificação das vértebras no exame (série preferida)…",
+  "Refazer a medida no exame (em segundo plano)"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

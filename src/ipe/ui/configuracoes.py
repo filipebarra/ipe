@@ -22,6 +22,54 @@ from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QMenu,
                                QPushButton, QStackedWidget, QVBoxLayout, QWidget)
 
+#: 0.100.90: as IAs da aba CAD/IA, cada uma com o seu item (antes eram seis, escritas à mão)
+_NOMES_FIXOS = {"Segmentação abdominal": "Segmentação abdominal (órgãos)…",
+                "Implante de silicone": "Implante de silicone (mamografia)…",
+                "Índices do crânio": "Índices do crânio (SynthSeg)…"}
+
+
+def ferramentas_de_ia() -> list[tuple[str, str]]:
+    """(texto do item, nome na aba CAD/IA) de todas as IAs, na ordem da aba."""
+    from ipe.ai import ferramentas as FE
+    from ipe.ui.cad_ia import CadIaTab
+    nomes = [n for n, _c, _ch in CadIaTab.FERRAMENTAS]
+    for t in FE.tipos():
+        try:
+            nomes.append(FE.modulo(t).NOME_CADIA)
+        except Exception:  # noqa: BLE001 - uma IA quebrada não tira as outras do menu
+            continue
+    return [(_NOMES_FIXOS.get(n, n + "…"), n) for n in nomes]
+
+
+class _ItensCadIA(list):
+    """A lista do submenu CAD/IA: o primeiro item, as IAs (montadas só quando o menu é usado — importar todas as
+    IAs na abertura do programa atrasaria a tela inicial) e o resto."""
+
+    def __init__(self, itens):
+        super().__init__(itens)
+        self._montada = False
+
+    def _montar(self) -> None:
+        if self._montada:
+            return
+        self._montada = True
+        try:
+            ias = [(texto, (lambda w, n=nome: w.abrir_cad_ia(n)), "") for texto, nome in ferramentas_de_ia()]
+        except Exception:  # noqa: BLE001
+            import logging
+            logging.getLogger(__name__).exception("as IAs do menu CAD/IA")
+            ias = []
+        list.__init__(self, list.__getitem__(self, slice(0, 1)) + ias + list.__getitem__(self, slice(1, None)))
+
+    def __iter__(self):
+        self._montar()
+        return super().__iter__()
+
+    def __len__(self):
+        self._montar()
+        return super().__len__()
+
+
 #: (submenu, [(texto, alvo, permissão)]); permissão "" = qualquer um, "configure", "users"
 CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
     ("Visualizador", [
@@ -43,19 +91,15 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         ("Dinâmicos (juntar e separar séries)…", "p:dinamicos", ""),
         ("Regiões do corpo…", "f:abrir_config_regioes", ""),
     ]),
-    ("CAD/IA", [
+    ("CAD/IA", _ItensCadIA([
         ("Análises automáticas (CAD/IA)…", "p:cad_ia", ""),
-        ("Segmentação abdominal…", lambda w: w.abrir_cad_ia("Segmentação abdominal"), ""),
-        ("Níveis da coluna…", lambda w: w.abrir_cad_ia("Níveis da coluna"), ""),
-        ("Implante de silicone (mamografia)…", lambda w: w.abrir_cad_ia("Implante de silicone"), ""),
-        ("Cefalometria do cavum…", lambda w: w.abrir_cad_ia("Cefalometria do cavum"), ""),
-        ("Índices do crânio (SynthSeg)…", lambda w: w.abrir_cad_ia("Índices do crânio"), ""),
-        ("Níveis linfonodais…", lambda w: w.abrir_cad_ia("Níveis linfonodais"), ""),
+        # 0.100.90: aqui entram, na primeira vez que o menu abre, todas as IAs da aba CAD/IA (cada uma abre a
+        # página dela) — pedido dele: "coloque no menu as ias que temos para acessar mais rápido as configurações"
         ("Instalar a segmentação de órgãos (TotalSegmentator)…", "f:instalar_segmentacao", "configure"),
         ("Instalar os modelos extras (MedSAM2, autoPET, BraTS, FLAMeS, medula)…", "f:instalar_modelos_extras", "configure"),
         ("Modelos de pesquisa — próstata: zonas e PI-CAI (licença não comercial)…", "f:instalar_modelos_pesquisa",
          "configure"),
-    ]),
+    ])),
     ("Laudos", [
         ("Prioridade, subespecialidade e prazos (SLA)…", "f:abrir_config_sla", "users"),
         ("Busca ativa (prazos por BI-RADS)…", "f:abrir_config_busca_ativa", "users"),

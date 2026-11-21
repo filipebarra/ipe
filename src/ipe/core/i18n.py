@@ -258,6 +258,11 @@ def _tr_idioma(text):
     if hit is not None:
         return hit
     out = _state["strings"].get(text)
+    if out is None and text.endswith("…") and len(text) > 1:
+        base = text[:-1]                        # 0.100.90: "Nódulos pulmonares…" (item de menu) = o nome + "…"
+        t = _state["strings"].get(base)
+        if t is not None:
+            out = t + "…"
     if out is None and "\n\n" in text:
         out = _match_paragrafos(text)
     if out is None and ("\n" in text or "<br" in text):

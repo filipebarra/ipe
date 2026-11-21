@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.90 — redo on every AI; the AIs in the Settings ▸ CAD/AI menu
+- **Redo on the study for every AI**: organs, spine, cephalometry, head indices, lymph node levels and the common
+  ones; breast density and arterial calcifications ("Redo the measurement on the study"). It uses the series the
+  AI's rule picks; also in the AI button list.
+- **Settings ▸ CAD/AI** lists every AI (there were six); each item opens the AI's page.
+
 ## 0.100.89 — redo the AI on the study
 - **Redo on the study**: each AI menu (Liver, Composition, Nodules and the others) has "Redo on the study (preferred
   series in Settings)…" — before, with findings in the study, it could only be redone on the open series. It asks
