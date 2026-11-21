@@ -7633,7 +7633,8 @@
   "o PyTorch e o torchvision continuam sem combinar (veja as mensagens acima)",
   "o pip falhou ao reinstalar o PyTorch (veja as mensagens acima)",
   "import importlib.metadata as m\nfor n in ('torch', 'torchvision'):\n    try: print(n + '==' + m.version(n))\n    except Exception: pass",
-  "import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5); print('  PyTorch', torch.__version__, '+ torchvision', torchvision.__version__, 'ok', flush=True)"
+  "import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5); print('  PyTorch', torch.__version__, '+ torchvision', torchvision.__version__, 'ok', flush=True)",
+  "Error while processing tag"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

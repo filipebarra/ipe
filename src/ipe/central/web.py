@@ -136,12 +136,38 @@ def _meta_da_instancia(sop: str, caminho: str, url_serie: str) -> dict | None:
         # os pixels já ficaram de fora (stop_before_pixels)
         d = ds.to_json_dict(bulk_data_threshold=1 << 30, bulk_data_element_handler=_bulk(url + "/bulk"))
     except Exception:  # noqa: BLE001
-        log.exception("metadados (json): %s", caminho)
-        return None
+        # 0.100.83: um elemento com valor inválido (comum em tags privadas) derrubava a instância inteira — e o
+        # pydicom ainda gravava o erro no log, com o rastro, a cada vez. Agora o elemento ruim fica de fora e o
+        # resto da instância vai; o log diz só uma linha.
+        try:
+            d = ds.to_json_dict(bulk_data_threshold=1 << 30, bulk_data_element_handler=_bulk(url + "/bulk"),
+                                suppress_invalid_tags=True)
+        except Exception as e:  # noqa: BLE001
+            log.warning("metadados (json): %s: %s", caminho, e)
+            return None
+        log.debug("metadados (json): elemento inválido deixado de fora em %s", caminho)
     ts = str(getattr(getattr(ds, "file_meta", None), "TransferSyntaxUID", "") or EXPLICITA)
     d["00020010"] = {"vr": "UI", "Value": [ts]}
     d["7FE00010"] = {"vr": "OW", "BulkDataURI": url + "/frames/1"}
     return d
+
+
+class _SemErroDeTag(logging.Filter):
+    """0.100.83: o pydicom loga cada elemento que não vira JSON; o Ipê já trata (deixa o elemento de fora)."""
+    def filter(self, rec: logging.LogRecord) -> bool:
+        return "Error while processing tag" not in str(rec.msg)
+
+
+_FILTRO_PYDICOM = _SemErroDeTag()
+
+
+def _silenciar_pydicom_json() -> None:
+    lg = logging.getLogger("pydicom")
+    if _FILTRO_PYDICOM not in lg.filters:
+        lg.addFilter(_FILTRO_PYDICOM)
+
+
+_silenciar_pydicom_json()
 
 
 #: 0.99.99: os cabeçalhos são lidos em paralelo (no Windows, abrir arquivo é o que mais demora) e a resposta
@@ -164,20 +190,33 @@ def _assinatura(caminhos: dict) -> str:
     return h.hexdigest()
 
 
-def metadados_da_serie(repo, study_uid: str, series_uid: str, base_url: str) -> list[dict]:
+def metadados_da_serie(repo, study_uid: str, series_uid: str, base_url: str,
+                       em_fundo: bool = False) -> list[dict]:
     """DICOM JSON de cada instância da série (PS3.18 F.2), com o PixelData como BulkDataURI. Inclui a
-    sintaxe de transferência (0002,0010), que o site usa para saber como pedir o quadro."""
+    sintaxe de transferência (0002,0010), que o site usa para saber como pedir o quadro.
+
+    `em_fundo` (0.100.83): a preparação dos exames recentes lê um arquivo por vez, com uma pausa entre eles.
+    Com 8 leitores em Python puro, o servidor embutido no Ipê de mesa tomava a vez da janela, que congelava
+    ("não está respondendo") até a preparação terminar."""
     from concurrent.futures import ThreadPoolExecutor
     caminhos = {s: c for s, c in CAMINHOS.da_serie(repo, series_uid).items() if Path(c).exists()}
     url_serie = f"{base_url}/studies/{study_uid}/series/{series_uid}"
     itens = list(caminhos.items())
-    if len(itens) <= 2:
+    if em_fundo:
+        res = []
+        for s, c in itens:
+            res.append(_meta_da_instancia(s, c, url_serie))
+            time.sleep(PAUSA_FUNDO)
+    elif len(itens) <= 2:
         res = [_meta_da_instancia(s, c, url_serie) for s, c in itens]
     else:
         with ThreadPoolExecutor(max_workers=min(_LEITORES, len(itens)), thread_name_prefix="ipe-meta") as ex:
             res = list(ex.map(lambda sc: _meta_da_instancia(sc[0], sc[1], url_serie), itens))
     return [d for d in res if d is not None]
 
+
+#: 0.100.83: a pausa entre dois arquivos na preparação de fundo (deixa a janela do Ipê de mesa respirar)
+PAUSA_FUNDO = 0.02
 
 VERSAO_META = 1          # muda quando o JSON dos metadados muda de formato: o guardado em disco deixa de valer
 
@@ -231,7 +270,7 @@ def metadados_prontos(repo, study_uid: str, series_uid: str, base_url: str,
                 except (OSError, EOFError, gzip.BadGzipFile):
                     gz = None
             if gz is None:
-                meta = metadados_da_serie(repo, study_uid, series_uid, base_url)
+                meta = metadados_da_serie(repo, study_uid, series_uid, base_url, em_fundo=not guardar)
                 if not meta:
                     return None
                 corpo = json.dumps(meta).encode()

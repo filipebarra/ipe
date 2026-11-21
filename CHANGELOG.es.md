@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.83 — El Ipê de escritorio ya no se congela con el servidor integrado
+- Cuando el Ipê de escritorio es también el servidor, la preparación en segundo plano de los estudios recientes para
+  Ipê Web leía los encabezados con 8 hilos y le quitaba el turno a la ventana, que quedaba "no responde". Ahora esta
+  preparación lee un archivo a la vez, con pausa; los pedidos del navegador siguen rápidos, en paralelo.
+- Un elemento DICOM con valor inválido (común en etiquetas privadas) dejaba fuera toda la imagen de los metadatos de
+  Ipê Web y llenaba el registro; ahora solo queda fuera ese elemento.
+- **Enfisema**: el filtro de ruido de la 0.100.81 dependía de scipy, que no viene en el Ipê instalado ("No module
+  named 'scipy'" al grabar); ahora se hace solo con numpy, con el mismo resultado.
+- Linux: el aviso del sistema mostraba "IpÃª" en lugar de "Ipê".
+
 ## 0.100.82 — Arreglo del "operator torchvision::nms does not exist"
 - El **torchvision** entraba indirectamente (nnU-Net → timm) desde PyPI, hecho para otro PyTorch, y un `pip install`
   de los modelos extra podía cambiar el PyTorch de CPU; con el par descasado, el TotalSegmentator (enfisema y todo lo

@@ -189,14 +189,35 @@ def serie_melhor(repo, study_uid: str, series_uid: str, settings=None) -> str | 
 
 def reduzir_ruido(dados: np.ndarray, caixa: tuple, vol) -> np.ndarray:
     """Os HU da caixa dos pulmões com um filtro gaussiano leve (σ 0,8 mm; no z só em corte de até 1,5 mm)."""
-    from scipy.ndimage import gaussian_filter
     k0, k1, j0, j1, i0, i1 = caixa
     sub = np.asarray(dados[k0:k1, j0:j1, i0:i1], np.float32)
     dz = abs(float(vol.dz))
     sigma = (SIGMA_MM / dz if dz <= ESPESSURA_MAX else 0.0, SIGMA_MM / float(vol.dy), SIGMA_MM / float(vol.dx))
     out = np.asarray(dados, np.float32).copy()
-    out[k0:k1, j0:j1, i0:i1] = gaussian_filter(sub, sigma=sigma, mode="nearest")
+    out[k0:k1, j0:j1, i0:i1] = gaussiano(sub, sigma)
     return out
+
+
+def gaussiano(a: np.ndarray, sigma: tuple) -> np.ndarray:
+    """0.100.83: filtro gaussiano separável só com numpy (o Ipê instalado não traz o scipy) — o mesmo resultado
+    do scipy.ndimage.gaussian_filter(mode="nearest", truncate=4)."""
+    a = np.asarray(a, np.float32)
+    for eixo, s in enumerate(sigma):
+        if not s or s <= 0 or a.shape[eixo] < 2:
+            continue
+        r = int(4.0 * float(s) + 0.5)
+        x = np.arange(-r, r + 1, dtype=np.float64)
+        w = np.exp(-0.5 * (x / float(s)) ** 2)
+        w = (w / w.sum()).astype(np.float32)
+        pad = [(0, 0)] * a.ndim
+        pad[eixo] = (r, r)
+        p = np.pad(a, pad, mode="edge")
+        n = a.shape[eixo]
+        acc = np.zeros_like(a)
+        for t, peso in enumerate(w):
+            acc += peso * np.take(p, np.arange(t, t + n), axis=eixo)
+        a = acc
+    return a
 
 
 def filtro_duro(kernel: str) -> bool:

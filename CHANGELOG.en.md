@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.83 — Desktop Ipê no longer freezes with the embedded server
+- When desktop Ipê is also the server, the background preparation of recent studies for Ipê Web read the headers
+  with 8 threads and took turns away from the window, which showed "not responding". This preparation now reads one
+  file at a time, with a pause; browser requests are still fast, in parallel.
+- A DICOM element with an invalid value (common in private tags) dropped the whole image from the Ipê Web metadata
+  and filled the log; now only that element is left out.
+- **Emphysema**: the noise filter of 0.100.81 depended on scipy, which is not in the installed Ipê ("No module
+  named 'scipy'" when saving); it now uses numpy only, with the same result.
+- Linux: the system dialog showed "IpÃª" instead of "Ipê".
+
 ## 0.100.82 — Fix for "operator torchvision::nms does not exist"
 - **torchvision** came in indirectly (nnU-Net → timm) from PyPI, built for another PyTorch, and a `pip install` of the
   extra models could replace the CPU PyTorch; with the pair mismatched, TotalSegmentator (emphysema and everything

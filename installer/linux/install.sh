@@ -86,6 +86,7 @@ cat > "$APPS/$NOME.desktop" <<DESK
 Type=Application
 Name=Ipê
 GenericName=DICOM viewer
+StartupWMClass=Ipe
 GenericName[pt_BR]=Visualizador DICOM
 GenericName[es]=Visor DICOM
 Comment=Medical image viewer (DICOM)

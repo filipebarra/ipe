@@ -339,7 +339,13 @@ def run_gui(external: dict | None = None, minimized: bool = False) -> int:
         from ipe import diag
         return diag.rodar(os.environ["IPE_DIAG"])
     app = QApplication.instance() or QApplication(sys.argv)
-    app.setApplicationName(APP_NAME)
+    if sys.platform.startswith("linux"):
+        # 0.100.83: no X11 o nome do programa vira o WM_CLASS, que é Latin-1: "Ipê" aparecia como "IpÃª" no aviso
+        # "não está respondendo" do GNOME. O nome interno fica sem acento; os títulos e o atalho continuam "Ipê".
+        app.setApplicationName("Ipe")          # (sem applicationDisplayName: o Qt o poria no fim de cada título)
+        app.setDesktopFileName("ipe-viewer")
+    else:
+        app.setApplicationName(APP_NAME)
     try:
         from ipe.ui.icons import icon
         app.setWindowIcon(icon("app"))
