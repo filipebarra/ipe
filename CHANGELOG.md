@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.84 — Exportar: escolher as séries
+- Na janela **Exportar** (e em **Anonimizar uma cópia**), a caixa **Escolher as séries** mostra cada exame com as suas
+  séries para marcar só as que devem sair, com **Todas** e **Nenhuma**. Vale para DICOM, imagens e a cópia
+  anonimizada no banco; um exame sem nenhuma série marcada fica de fora.
+
 ## 0.100.83 — O Ipê de mesa não congela mais com o servidor embutido
 - Quando o Ipê de mesa é também o servidor, a preparação de fundo dos exames recentes para o Ipê Web lia os
   cabeçalhos com 8 linhas de execução e tomava a vez da janela, que ficava "não está respondendo". Agora essa

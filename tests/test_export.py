@@ -255,3 +255,41 @@ def test_visualizador_html_traduzido(env, tmp_path):
     finally:
         i18n.load(i18n.BASE_LANG)
     assert ">Mamografia<" in page(dados)          # em português, nada muda
+
+
+def test_escolher_as_series(env, sample_dir, tmp_path):
+    """0.100.84: na exportação, escolher as séries de cada exame."""
+    from PySide6.QtCore import Qt
+    from ipe.core.config import Settings
+    from ipe.ui.export_dialog import ExportDialog
+    paths, db, repo, st = _setup(env, sample_dir)
+    uids = list(st.values())
+    com_varias = next(u for u in uids if len(repo.series_for_study(u)) >= 2)
+    outro = next(u for u in uids if u != com_varias)
+    dlg = ExportDialog(repo, Settings(paths.settings_file),
+                       [("2 exames", [ExportItem(com_varias), ExportItem(outro)]),
+                        ("Imagens-chave", [ExportItem(com_varias, None, [("x", 0)])])])
+    t = dlg.series_tree
+    assert dlg.g_series.isVisibleTo(dlg) and t.topLevelItemCount() == 2
+    assert dlg.itens() == dlg.scopes[0][1]                      # sem marcar a caixa, nada muda
+    dlg.g_series.setChecked(True)
+    a, b = t.topLevelItem(0), t.topLevelItem(1)
+    a.child(0).setCheckState(0, Qt.Unchecked)                   # tira a primeira série do primeiro exame
+    for k in range(b.childCount()):
+        b.child(k).setCheckState(0, Qt.Unchecked)               # e o segundo exame inteiro
+    its = dlg.itens()
+    assert len(its) == 1 and its[0].study_uid == com_varias
+    todas = [s.series_uid for s in repo.series_for_study(com_varias)]
+    assert its[0].series_uids == todas[1:]
+    dlg.r_dicom.setChecked(True)
+    dlg.g_anon.setChecked(False)
+    dlg.c_viewer.setCurrentIndex(dlg.c_viewer.findData(""))
+    dlg.c_newdir.setChecked(False)
+    dlg.dest.setText(str(tmp_path / "dcm"))
+    res = dlg.job()
+    esperado = sum(len(repo.instances_for_series(u)) for u in todas[1:])
+    assert res.files == esperado and res.studies == 1
+    dlg._marcar_todas(False)
+    assert not dlg.ok.isEnabled()
+    dlg.scope.setCurrentIndex(1)                                # só quadros: não há série a escolher
+    assert not dlg.g_series.isVisibleTo(dlg)

@@ -9,7 +9,8 @@ from PySide6.QtCore import QObject, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QGroupBox, QHBoxLayout, QLabel,
-    QLineEdit, QMessageBox, QProgressDialog, QPushButton, QRadioButton, QSpinBox, QVBoxLayout, QWidget,
+    QLineEdit, QMessageBox, QProgressDialog, QPushButton, QRadioButton, QSpinBox, QTreeWidget, QTreeWidgetItem,
+    QVBoxLayout, QWidget,
 )
 
 from ipe.exporter.anonymize import AnonOptions
@@ -73,6 +74,33 @@ class ExportDialog(QDialog):
         self.scope = QComboBox()
         for label, _items in scopes:
             self.scope.addItem(label)
+        # 0.100.84: escolher as séries — cada exame do escopo com as suas séries marcáveis
+        self.g_series = QGroupBox("Escolher as séries")
+        self.g_series.setCheckable(True)
+        self.g_series.setChecked(False)
+        self.g_series.setToolTip("Marque só as séries que devem sair. Desmarcado: sai o que o item acima diz.")
+        self.series_tree = QTreeWidget()
+        self.series_tree.setHeaderLabels(["Série", "Imagens"])
+        self.series_tree.setRootIsDecorated(True)
+        self.series_tree.setMinimumHeight(190)
+        self.series_tree.itemChanged.connect(self._serie_mudou)
+        self.series_resumo = QLabel()
+        self.series_resumo.setStyleSheet("color:#9a9a9a")
+        b_todas = QPushButton("Todas")
+        b_todas.clicked.connect(lambda: self._marcar_todas(True))
+        b_nenhuma = QPushButton("Nenhuma")
+        b_nenhuma.clicked.connect(lambda: self._marcar_todas(False))
+        sl = QVBoxLayout(self.g_series)
+        sl.addWidget(self.series_tree)
+        srow = QHBoxLayout()
+        srow.addWidget(self.series_resumo, 1)
+        srow.addWidget(b_todas)
+        srow.addWidget(b_nenhuma)
+        sl.addLayout(srow)
+        self.g_series.toggled.connect(lambda on: (self.series_tree.setVisible(on), self.series_resumo.setVisible(on),
+                                                  b_todas.setVisible(on), b_nenhuma.setVisible(on), self.adjustSize()))
+        self._b_series = (b_todas, b_nenhuma)
+        self.scope.currentIndexChanged.connect(lambda _i: self._encher_series())
 
         self.r_dicom = QRadioButton("DICOM — pasta, CD ou pendrive (abre em outros visualizadores)")
         self.r_img = QRadioButton("Imagens — JPG ou PNG (para aulas, apresentações, artigos)")
@@ -228,6 +256,7 @@ class ExportDialog(QDialog):
         f = QFormLayout()
         f.addRow("O que exportar:", self.scope)
         lay.addLayout(f)
+        lay.addWidget(self.g_series)
         lay.addWidget(self.r_dicom)
         lay.addWidget(self.r_img)
         lay.addWidget(self.r_banco)
@@ -259,9 +288,90 @@ class ExportDialog(QDialog):
         for w in (self.r_dicom, self.r_img, self.r_banco, self.c_zip, self.c_newdir):
             w.toggled.connect(self._update)
         self.g_anon.toggled.connect(self._anon_toggled)
+        self._encher_series()
+        for w in (self.series_tree, self.series_resumo, *self._b_series):
+            w.setVisible(False)
         self._update()
         self._auto_name = self.newdir.text()
         self.result_obj = None
+
+    # ---------------------------------------------------------- séries (0.100.84)
+    def _encher_series(self) -> None:
+        """A árvore de séries do escopo atual: exame ▸ séries. Itens só de quadros (imagens-chave, a imagem do
+        quadro) não entram — ali não há série a escolher."""
+        items = self.scopes[self.scope.currentIndex()][1] if self.scopes else []
+        t = self.series_tree
+        t.blockSignals(True)
+        t.clear()
+        estudos = []
+        for it in items:
+            if it.frames or it.study_uid in estudos:
+                continue
+            estudos.append(it.study_uid)
+            info = self.repo.study_info(it.study_uid) or {}
+            d = str(info.get("study_date") or "")
+            data = f"{d[6:8]}/{d[4:6]}/{d[:4]}" if len(d) == 8 else d
+            top = QTreeWidgetItem([f"{info.get('description') or 'Exame'}  {data}".strip(), ""])
+            top.setData(0, Qt.UserRole, it.study_uid)
+            top.setFlags(top.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsAutoTristate)
+            t.addTopLevelItem(top)
+            marcadas = set(it.series_uids or [])
+            for sr in self.repo.series_for_study(it.study_uid):
+                filho = QTreeWidgetItem([f"Se {sr.series_number}  {sr.modality}  {sr.description or ''}".strip(),
+                                         str(sr.num_images)])
+                filho.setData(0, Qt.UserRole, sr.series_uid)
+                filho.setFlags(filho.flags() | Qt.ItemIsUserCheckable)
+                filho.setCheckState(0, Qt.Checked if (not marcadas or sr.series_uid in marcadas) else Qt.Unchecked)
+                top.addChild(filho)
+            top.setExpanded(True)
+        t.resizeColumnToContents(0)
+        t.blockSignals(False)
+        self.g_series.setVisible(bool(estudos))
+        if not estudos:
+            self.g_series.setChecked(False)
+        self._serie_mudou()
+
+    def _marcar_todas(self, on: bool) -> None:
+        t = self.series_tree
+        t.blockSignals(True)
+        for i in range(t.topLevelItemCount()):
+            top = t.topLevelItem(i)
+            for k in range(top.childCount()):
+                top.child(k).setCheckState(0, Qt.Checked if on else Qt.Unchecked)
+        t.blockSignals(False)
+        self._serie_mudou()
+
+    def _serie_mudou(self, *_a) -> None:
+        esc = self.series_escolhidas()
+        total = sum(self.series_tree.topLevelItem(i).childCount() for i in range(self.series_tree.topLevelItemCount()))
+        n = sum(len(v) for v in esc.values())
+        self.series_resumo.setText(f"{n} de {total} série(s) marcada(s)")
+        if hasattr(self, "ok"):
+            self.ok.setEnabled(not self.g_series.isChecked() or n > 0)
+
+    def series_escolhidas(self) -> dict[str, list[str]]:
+        """{study_uid: [series_uid marcadas]} da árvore."""
+        out = {}
+        t = self.series_tree
+        for i in range(t.topLevelItemCount()):
+            top = t.topLevelItem(i)
+            out[top.data(0, Qt.UserRole)] = [top.child(k).data(0, Qt.UserRole) for k in range(top.childCount())
+                                             if top.child(k).checkState(0) == Qt.Checked]
+        return out
+
+    def itens(self) -> list[ExportItem]:
+        """Os itens do escopo, com as séries escolhidas aplicadas (exame sem nenhuma série marcada não sai)."""
+        items = self.scopes[self.scope.currentIndex()][1]
+        if not self.g_series.isChecked():
+            return items
+        esc = self.series_escolhidas()
+        out = []
+        for it in items:
+            if it.frames or it.study_uid not in esc:
+                out.append(it)
+            elif esc[it.study_uid]:
+                out.append(ExportItem(it.study_uid, list(esc[it.study_uid]), None))
+        return out
 
     # ---------------------------------------------------------- estado
     def _default_folder_name(self, anon: bool = False) -> str:
@@ -387,7 +497,7 @@ class ExportDialog(QDialog):
         return dest
 
     def job(self, progress=None, cancel=None):
-        items = self.scopes[self.scope.currentIndex()][1]
+        items = self.itens()
         if self.mode() == "banco":
             from ipe.exporter.copia import copiar_anonimizado
             return copiar_anonimizado(self.repo, self.repo.db, self.storage_root, items, self.anon_options(),
@@ -439,7 +549,7 @@ class ExportDialog(QDialog):
             return []
         if not (self.c_zip.isChecked() or self.c_viewer.currentData()):
             return []
-        items = self.scopes[self.scope.currentIndex()][1]
+        items = self.itens()
         uids = list(dict.fromkeys(it.study_uid for it in items if it.study_uid))
         if len(uids) < 2:
             return []
@@ -521,7 +631,7 @@ class ExportDialog(QDialog):
             return
         self.result_obj = res
         from ipe.auth import session as S
-        items = self.scopes[self.scope.currentIndex()][1]
+        items = self.itens()
         if self.mode() == "banco":
             self._terminou_banco(res, items)
             return

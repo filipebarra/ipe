@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.84 — Export: choose the series
+- In the **Export** window (and in **Anonymize a copy**), the **Choose the series** box lists each study with its
+  series so you tick only those to export, with **All** and **None**. It applies to DICOM, images and the anonymized
+  copy in the database; a study with no series ticked is left out.
+
 ## 0.100.83 — Desktop Ipê no longer freezes with the embedded server
 - When desktop Ipê is also the server, the background preparation of recent studies for Ipê Web read the headers
   with 8 threads and took turns away from the window, which showed "not responding". This preparation now reads one

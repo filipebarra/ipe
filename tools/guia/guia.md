@@ -2262,6 +2262,8 @@ Botão **Usuários**. Quatro perfis de fábrica — Administrador, Médico, Resi
 - **DICOM** — pasta, CD ou pendrive, com DICOMDIR e, se quiser, um visualizador que abre no navegador (completo, com medidas, valores, ROIs e MPR; ou leve). Pode sair compactado em .zip.
 - **Imagens** — JPG ou PNG, com formato, qualidade, janela (a do arquivo ou a do quadro atual), intervalo e tamanho máximo.
 
+**Escolher as séries**: marque a caixa abaixo de *O que exportar* e aparece a lista de cada exame com as suas séries; desmarque as que não devem sair (por exemplo o topograma, as séries de dose ou as segmentações). Vale para DICOM, imagens e a cópia anonimizada; um exame sem nenhuma série marcada fica de fora.
+
 A anonimização é opção da janela — e obrigatória para quem não tem a permissão de exportar com dados do paciente.
 
 **Pacientes diferentes num pacote só**: exportar identificado, num CD/pendrive com visualizador ou num .zip, exames de pacientes diferentes pergunta antes, mostrando onde nome e ID não batem — é o pacote que se entrega a um paciente com o exame de outro dentro. Pasta solta, imagens JPG/PNG e cópias anonimizadas não perguntam (juntar casos para aula ou pesquisa é uso normal).

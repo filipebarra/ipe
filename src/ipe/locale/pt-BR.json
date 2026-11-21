@@ -7634,7 +7634,9 @@
   "o pip falhou ao reinstalar o PyTorch (veja as mensagens acima)",
   "import importlib.metadata as m\nfor n in ('torch', 'torchvision'):\n    try: print(n + '==' + m.version(n))\n    except Exception: pass",
   "import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5); print('  PyTorch', torch.__version__, '+ torchvision', torchvision.__version__, 'ok', flush=True)",
-  "Error while processing tag"
+  "Error while processing tag",
+  "Escolher as séries",
+  "Marque só as séries que devem sair. Desmarcado: sai o que o item acima diz."
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -9753,6 +9755,8 @@
   "ruído alto (DP do ar da traqueia {} HU)",
   "; ruído reduzido antes do limiar (gaussiano σ {} mm)",
   "PyTorch: {}",
-  "[ERRO] PyTorch: {}"
+  "[ERRO] PyTorch: {}",
+  "Se {}  {}  {}",
+  "{} de {} série(s) marcada(s)"
  ]
 }

@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.84 — Exportar: elegir las series
+- En la ventana **Exportar** (y en **Anonimizar una copia**), la casilla **Elegir las series** muestra cada estudio
+  con sus series para marcar solo las que deben salir, con **Todas** y **Ninguna**. Vale para DICOM, imágenes y la
+  copia anonimizada en la base; un estudio sin ninguna serie marcada queda fuera.
+
 ## 0.100.83 — El Ipê de escritorio ya no se congela con el servidor integrado
 - Cuando el Ipê de escritorio es también el servidor, la preparación en segundo plano de los estudios recientes para
   Ipê Web leía los encabezados con 8 hilos y le quitaba el turno a la ventana, que quedaba "no responde". Ahora esta

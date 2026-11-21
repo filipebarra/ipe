@@ -10247,5 +10247,9 @@
  "import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5); print('  PyTorch', torch.__version__, '+ torchvision', torchvision.__version__, 'ok', flush=True)": "import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5); print('  PyTorch', torch.__version__, '+ torchvision', torchvision.__version__, 'ok', flush=True)",
  "PyTorch: {}": "PyTorch: {}",
  "[ERRO] PyTorch: {}": "[ERRO] PyTorch: {}",
- "Error while processing tag": "Error while processing tag"
+ "Error while processing tag": "Error while processing tag",
+ "Escolher as séries": "Elegir las series",
+ "Marque só as séries que devem sair. Desmarcado: sai o que o item acima diz.": "Marque solo las series que deben salir. Desmarcado: sale lo que dice el ítem de arriba.",
+ "Se {}  {}  {}": "Se {}  {}  {}",
+ "{} de {} série(s) marcada(s)": "{} de {} serie(s) marcada(s)"
 }
