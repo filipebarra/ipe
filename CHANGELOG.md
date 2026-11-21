@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.88 — classificação sugerida da gordura e do ferro hepáticos
+- **Classificação sugerida** na janela Achados de IA (coluna nova e tabela das escalas, como nas calcificações
+  vasculares da mama): esteatose pelo PDFF (limiar de 5% e grau estimado de Tang 2015) e sobrecarga de ferro pelo
+  LIC (< 1,8 normal; 3,2–7 leve; 7–15 moderada; > 15 grave). Corrigível; a frase do laudo usa a que valer. Também no
+  Ipê Web.
+
 ## 0.100.87 — ferro hepático na RM pelo mapa certo; troca água-gordura
 - **Ferro hepático na RM (importante)**: nas RM GE com IDEAL IQ, a série "WATER: IDEAL IQ (R2\*)" (e a
   "FAT: …") era tomada pelo mapa de R2\* — o "(R2\*)" é o nome da sequência — e, vindo depois do mapa, tomava o

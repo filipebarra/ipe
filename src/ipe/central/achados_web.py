@@ -63,8 +63,15 @@ def _web(a: dict) -> dict:
             resultado = fn(a)
         except Exception:  # noqa: BLE001
             log.debug("resultado do achado %s", a.get("id"), exc_info=True)
+    escalas = []
+    fn = getattr(mod, "escalas_do_achado", None)          # 0.100.87: a classificação em tabela
+    if fn is not None:
+        try:
+            escalas = [{"nome": n, "valor": v, "dica": d} for n, v, d in fn(a)]
+        except Exception:  # noqa: BLE001
+            log.debug("escalas do achado %s", a.get("id"), exc_info=True)
     pos = a.get("posicao")
-    return {"id": a["id"], "ferramenta": a.get("ferramenta", ""), "titulo": _titulo(a.get("ferramenta", "")),
+    return {"escalas": escalas, "id": a["id"], "ferramenta": a.get("ferramenta", ""), "titulo": _titulo(a.get("ferramenta", "")),
             "rotulo": a.get("rotulo", ""), "tipo": a.get("tipo", ""), "local": a.get("local", ""),
             "estado": a.get("estado", "sugerido"), "cor": AC.CORES.get(a.get("estado", "sugerido"), "#ccc"),
             "medidas": " · ".join(AC._fmt(nums[k]) for k in chaves[:3]),

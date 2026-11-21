@@ -171,7 +171,7 @@ def test_gordura_ferro_e_dupla_eco(env, tmp_path):
         f = res.ferro
         assert f["r2_mediana"]["v"] == 80 and f["t2_ms"]["v"] == 12.5 and f["baco_r2"]["v"] == 40
         assert f["lic"]["v"] == pytest.approx(0.0254 * 80 + 0.202, abs=0.01)
-        assert f["lic_grau"]["v"].startswith("abaixo de 3,2") and "r2_15" not in f
+        assert f["lic_grau"]["v"].startswith("acima do normal (1,8–3,2)") and "r2_15" not in f
         assert any("Wood" in a for a in res.avisos_ferro) and any("Tang" in a for a in res.avisos_gordura)
         d = res.dixon
         assert d["ff_sinal"]["v"] == pytest.approx(10.0) and d["razao_ef_ff"]["v"] == 1.25
@@ -239,7 +239,7 @@ def test_outro_campo_nao_estima(env, tmp_path, monkeypatch):
 
 
 def test_faixas_do_lic():
-    assert F.grau_do_ferro(2.2).startswith("abaixo de 3,2")
+    assert F.grau_do_ferro(2.2).startswith("acima do normal") and F.grau_do_ferro(1.2) == "normal (< 1,8)"
     assert "leve" in F.grau_do_ferro(3.2) and "moderada" in F.grau_do_ferro(7.0)
     assert "grave" in F.grau_do_ferro(15.0) and F.grau_do_ferro(None) == ""
     assert F.r2_para_15t(80, 1.5) == (80, "1,5 T") and F.r2_para_15t(80, None)[0] is None
@@ -301,3 +301,30 @@ def test_troca_agua_gordura_sai_da_conta():
     gordo = np.r_[np.full(500, 40.0), np.full(500, 65.0)]        # esteatose grave de verdade: não mexe
     assert F.sem_troca(gordo)[1] == 0
     assert F.sem_troca(np.full(100, 8.0))[1] == 0
+
+
+def test_classificacao_sugerida_de_gordura_e_ferro():
+    """0.100.87: a classificação sugerida (como a das calcificações vasculares da mama)."""
+    assert F.classificar_gordura(3.0) == "Sem esteatose (PDFF < 5%)"
+    assert F.classificar_gordura(5.5).startswith("Esteatose discreta")
+    assert F.classificar_gordura(16.0) == "Esteatose leve (grau 1)"
+    assert F.classificar_gordura(20.0) == "Esteatose moderada (grau 2)"
+    assert F.classificar_gordura(30.0) == "Esteatose acentuada (grau 3)"
+    assert F.classificar_ferro(1.5) == "Sem sobrecarga de ferro"
+    assert F.classificar_ferro(2.5).startswith("Ferro acima do normal")
+    assert F.classificar_ferro(4.85) == "Sobrecarga de ferro leve"
+    assert F.classificar_ferro(14.4) == "Sobrecarga de ferro moderada"
+    assert F.classificar_ferro(20) == "Sobrecarga de ferro grave"
+    g = {"tipo": F.TIPO_GORDURA, "numeros": {"pdff_mediana": {"v": 16.0, "u": "%", "n": "PDFF"}}, "corrigidos": {}}
+    assert F.resultado_do_achado(g) == "Esteatose leve (grau 1)"
+    esc = F.escalas_do_achado(g)
+    assert esc[0][1].startswith("Sim") and esc[1][1] == "1 — leve" and "Tang" in esc[1][2]
+    assert "compatível" not in F.frase(g) and F.frase(g).endswith("— esteatose leve (grau 1).")
+    # corrigida pelo médico: vale a dele (também na frase do laudo)
+    g2 = {**g, "corrigidos": {"pdff_mediana": 25.0, "classificacao": "Esteatose acentuada"}}
+    assert F.resultado_do_achado(g2) == "Esteatose acentuada" and "esteatose acentuada" in F.frase(g2)
+    fe = {"tipo": F.TIPO_FERRO, "corrigidos": {}, "numeros": {"lic": {"v": 14.38, "u": "mg Fe/g", "n": "LIC"},
+          "r2_mediana": {"v": 558.0, "u": "s⁻¹", "n": "R2*"}, "baco_r2": {"v": 19.0, "u": "s⁻¹", "n": "baço"}}}
+    assert F.resultado_do_achado(fe) == "Sobrecarga de ferro moderada"
+    nomes = [e[0] for e in F.escalas_do_achado(fe)]
+    assert nomes == ["Ferro estimado (LIC)", "R2*"] and "baço 19" in F.escalas_do_achado(fe)[1][1]

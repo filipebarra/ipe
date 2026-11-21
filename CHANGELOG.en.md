@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.88 — suggested classification of liver fat and iron
+- **Suggested classification** in the AI findings window (new column and a table of the scales, as for breast
+  arterial calcifications): steatosis by PDFF (5% threshold and Tang 2015 estimated grade) and iron overload by LIC
+  (< 1.8 normal; 3.2–7 mild; 7–15 moderate; > 15 severe). Correctable; the report sentence uses the one that holds.
+  Also in Ipê Web.
+
 ## 0.100.87 — liver iron on MRI from the right map; water-fat swap
 - **Liver iron on MRI (important)**: on GE MRI with IDEAL IQ, the "WATER: IDEAL IQ (R2\*)" series (and "FAT: …")
   was taken as the R2\* map — "(R2\*)" is the sequence name — and, coming after the map, replaced it: the iron came

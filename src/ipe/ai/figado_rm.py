@@ -60,7 +60,13 @@ ALAM_FATOR = 2.05
 #: faixas de sobrecarga pelo LIC (mg Fe/g de peso seco) — Abdom Radiol 2022 (doi 10.1007/s00261-022-03762-4)
 LIC_GRAUS = ((15.0, "sobrecarga grave (> 15)"), (7.0, "sobrecarga moderada (7–15)"),
              (3.2, "sobrecarga leve (3,2–7)"))
-LIC_REF = "LIC 3,2–7 leve, 7–15 moderada, > 15 mg Fe/g grave"
+LIC_REF = "LIC < 1,8 normal, 3,2–7 leve, 7–15 moderada, > 15 mg Fe/g grave"
+#: 0.100.87: limite superior do normal do LIC (mg Fe/g de peso seco) — o mesmo usado na calibração de Wood
+LIC_NORMAL = 1.8
+#: graus histológicos da esteatose pelo PDFF — limiares de Tang et al. (Radiology 2015)
+PDFF_GRAUS = ((22.1, 3, "acentuada"), (17.4, 2, "moderada"), (6.4, 1, "leve"))
+#: PDFF a partir do qual se fala em esteatose (≥ 5% dos hepatócitos com gordura, o critério histológico)
+PDFF_ESTEATOSE = 5.0
 PDFF_REF = "PDFF ≥ 6,4% grau ≥ 1, ≥ 17,4% grau ≥ 2, ≥ 22,1% grau 3 (Tang et al., Radiology 2015)"
 
 _FF_DESC = ("FATFRAC", "FAT FRAC", "FAT FRACTION", "FAT_FRACTION", "PDFF", "FF MAP", "FATFRACTION", "FAT%")
@@ -99,8 +105,8 @@ EXPLICACAO_CADIA = ("Na RM de abdome: acha o fígado e o baço (e os segmentos d
                     "gordura. Os números aparecem em Aplicações ▸ Achados de IA, para conferir antes do laudo.")
 OPCOES = ((CHAVE_SEGMENTOS, "Por segmento de Couinaud (1 = sim, 0 = não):", 0.0, 1.0, "",
            "Roda também a tarefa liver_segments_mr e dá a gordura de cada segmento (uns minutos a mais)."),)
-CHAVES_GORDURA = ("pdff_mediana", "pdff_media", "pdff_p25", "pdff_p75", "pdff_segmentos", "voxels")
-CHAVES_FERRO = ("r2_mediana", "t2_ms", "r2_15", "lic", "lic_grau", "baco_r2", "r2_p25", "r2_p75")
+CHAVES_GORDURA = ("pdff_mediana", "pdff_media", "pdff_p25", "pdff_p75", "pdff_segmentos", "voxels", "classificacao")
+CHAVES_FERRO = ("r2_mediana", "t2_ms", "r2_15", "lic", "lic_grau", "baco_r2", "r2_p25", "r2_p75", "classificacao")
 CHAVES_DIXON = ("ff_sinal", "ef", "ff", "razao_ef_ff")
 CHAVES = CHAVES_GORDURA + CHAVES_FERRO + CHAVES_DIXON
 
@@ -314,7 +320,105 @@ def grau_do_ferro(lic: float | None) -> str:
     for limite, txt in LIC_GRAUS:
         if lic >= limite:
             return txt
-    return "abaixo de 3,2 (fora das faixas de sobrecarga)"
+    if lic >= LIC_NORMAL:
+        return "acima do normal (1,8–3,2), abaixo da sobrecarga leve"
+    return "normal (< 1,8)"
+
+
+def grau_da_gordura(pdff: float | None) -> int | None:
+    """Grau histológico estimado (0–3) pelos limiares de Tang et al. (Radiology 2015)."""
+    if pdff is None:
+        return None
+    for limite, g, _nome in PDFF_GRAUS:
+        if pdff >= limite:
+            return g
+    return 0
+
+
+def classificar_gordura(pdff: float | None) -> str:
+    """A classificação sugerida pelo PDFF (texto curto; o médico confirma ou corrige)."""
+    if pdff is None:
+        return ""
+    g = grau_da_gordura(pdff)
+    if g:
+        return {1: "Esteatose leve (grau 1)", 2: "Esteatose moderada (grau 2)", 3: "Esteatose acentuada (grau 3)"}[g]
+    if pdff >= PDFF_ESTEATOSE:
+        return "Esteatose discreta (5–6,4%, abaixo do grau 1)"
+    return "Sem esteatose (PDFF < 5%)"
+
+
+def classificar_ferro(lic: float | None) -> str:
+    if lic is None:
+        return ""
+    if lic >= 15.0:
+        return "Sobrecarga de ferro grave"
+    if lic >= 7.0:
+        return "Sobrecarga de ferro moderada"
+    if lic >= 3.2:
+        return "Sobrecarga de ferro leve"
+    if lic >= LIC_NORMAL:
+        return "Ferro acima do normal, abaixo da sobrecarga leve"
+    return "Sem sobrecarga de ferro"
+
+
+DICAS = {
+    "esteatose": "PDFF ≥ 5% é o limiar usual de esteatose na RM: corresponde ao critério histológico de 5% ou mais dos "
+                 "hepatócitos com gordura.",
+    "tang": "Grau histológico estimado pelo PDFF, com os limiares de alta especificidade de Tang et al. (Radiology "
+            "2015): < 6,4% grau 0; 6,4–17,4% grau 1; 17,4–22,1% grau 2; ≥ 22,1% grau 3. Estimativa, não "
+            "substitui a biópsia.",
+    "lic": "Concentração de ferro estimada pelo R2* a 1,5 T (Wood et al., Blood 2005: LIC = 0,0254 · R2* + 0,202 "
+           "mg Fe/g de peso seco; a 3 T, R2* ÷ 2,05 antes — Alam et al., JCMR 2016). Faixas: < 1,8 normal; 3,2–7 "
+           "leve; 7–15 moderada; > 15 grave.",
+    "r2": "R2* do fígado a 1,5 T: o normal costuma ficar abaixo de ~70 s⁻¹ (T2* acima de ~14 ms). O do baço ajuda a "
+          "ver o padrão: alto no baço junto com o fígado lembra o padrão reticuloendotelial (transfusões); só o "
+          "fígado, o parenquimatoso (hemocromatose) — texto de referência.",
+}
+
+
+def _valor(a: dict, k: str):
+    return (AC.numeros_validos(a).get(k) or {}).get("v")
+
+
+def resultado_do_achado(a: dict) -> str | None:
+    """A classificação sugerida (o que o médico escreveu na correção, ou refeita pelos números que valem)."""
+    if "classificacao" in (a.get("corrigidos") or {}):
+        return str(a["corrigidos"]["classificacao"] or "").strip() or None
+    if a.get("tipo") == TIPO_GORDURA:
+        v = _valor(a, "pdff_mediana")
+        return classificar_gordura(float(v)) if isinstance(v, (int, float)) else None
+    if a.get("tipo") == TIPO_FERRO:
+        v = _valor(a, "lic")
+        return classificar_ferro(float(v)) if isinstance(v, (int, float)) else None
+    return None
+
+
+def escalas_do_achado(a: dict) -> list[tuple[str, str, str]]:
+    """(escala, valor, dica) — a tabela da classificação, como a das calcificações vasculares da mama."""
+    out = []
+    if a.get("tipo") == TIPO_GORDURA:
+        v = _valor(a, "pdff_mediana")
+        if not isinstance(v, (int, float)):
+            return []
+        num = f"{float(v):.1f}".replace(".", ",")
+        out.append(("Esteatose (PDFF ≥ 5%)", ("Sim — PDFF {}%" if v >= PDFF_ESTEATOSE else "Não — PDFF {}%").format(num),
+                    DICAS["esteatose"]))
+        g = grau_da_gordura(float(v))
+        nomes = {0: "0 — sem esteatose relevante", 1: "1 — leve", 2: "2 — moderada", 3: "3 — acentuada"}
+        out.append(("Grau estimado (Tang 2015, 0–3)", nomes[g], DICAS["tang"]))
+    elif a.get("tipo") == TIPO_FERRO:
+        lic, r2, r15, baco = (_valor(a, k) for k in ("lic", "r2_mediana", "r2_15", "baco_r2"))
+        if isinstance(lic, (int, float)):
+            out.append(("Ferro estimado (LIC)", f"{float(lic):.2f}".replace(".", ",") + " mg Fe/g — "
+                        + grau_do_ferro(float(lic)), DICAS["lic"]))
+        if isinstance(r2, (int, float)):
+            txt = f"fígado {float(r2):.0f} s⁻¹"
+            if isinstance(r15, (int, float)):
+                txt += f" ({float(r15):.0f} a 1,5 T)"
+            if isinstance(baco, (int, float)):
+                txt += f" · baço {float(baco):.0f} s⁻¹"
+            out.append(("R2*", txt, DICAS["r2"]))
+    return out
 
 
 def r2_para_15t(r2: float, campo: float | None) -> tuple[float | None, str]:
@@ -448,6 +552,8 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
                     s2 = _stats(sem_troca(dados[ms_] * escala, trocados > 0)[0]) if ms_.sum() >= 5 else {}
                     if s2:
                         por_seg.append(f"{nome} {s2['mediana']:.1f}".replace(".", ","))
+                res.gordura["classificacao"] = AC.numero(classificar_gordura(st["mediana"]), "",
+                                                         "Classificação sugerida")
                 if por_seg:
                     res.gordura["pdff_segmentos"] = AC.numero(" · ".join(por_seg), "%", "PDFF por segmento")
                 res.avisos_gordura.append(f"referência: {PDFF_REF} — texto de referência, não diagnóstico")
@@ -487,6 +593,7 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
                                                 "mede pior")
                     res.ferro["lic"] = AC.numero(lic, "mg Fe/g", "Ferro estimado (LIC)")
                     res.ferro["lic_grau"] = AC.numero(grau_do_ferro(lic), "", "Faixa do LIC")
+                    res.ferro["classificacao"] = AC.numero(classificar_ferro(lic), "", "Classificação sugerida")
                     res.avisos_ferro.append("ferro estimado pela calibração de Wood et al. (Blood 2005): "
                                             "LIC = 0,0254 · R2* (1,5 T) + 0,202 mg Fe/g de peso seco — estimativa, "
                                             f"não diagnóstico; referência: {LIC_REF}")
@@ -634,6 +741,9 @@ def frase(a: dict) -> str:
         txt = f"Fração de gordura hepática (PDFF) mediana de {v('pdff_mediana')}%"
         if v("pdff_p25") and v("pdff_p75"):
             txt += f" (intervalo interquartil {v('pdff_p25')}–{v('pdff_p75')}%)"
+        cl = resultado_do_achado(a)
+        if cl:                                   # 0.100.87: a classificação (a sugerida ou a corrigida)
+            txt += f" — {cl[0].lower() + cl[1:]}"
         return txt + "."
     if a.get("tipo") == TIPO_FERRO:
         txt = f"R2* hepático mediano de {v('r2_mediana', 0)} s⁻¹ (T2* {v('t2_ms')} ms)"

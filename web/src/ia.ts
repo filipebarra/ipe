@@ -226,7 +226,7 @@ export interface CampoAchado {
 export interface AchadoIA {
   id: number; ferramenta: string; titulo: string; rotulo: string; tipo: string; local: string; estado: string;
   cor: string; medidas: string; numeros: string; campos: CampoAchado[]; nota: string; revisao: string;
-  resultado: string; elegibilidade: string; modelo: string; posicao: number[] | null; series_uid: string;
+  resultado: string; escalas?: { nome: string; valor: string; dica: string }[]; elegibilidade: string; modelo: string; posicao: number[] | null; series_uid: string;
 }
 
 const ESTADOS: Record<string, string> = { sugerido: "Sugerido", confirmado: "Confirmado", corrigido: "Corrigido", descartado: "Descartado" };
@@ -294,6 +294,8 @@ export class AchadosIA {
       el("div", { class: "achado-ferramenta" }, tr(a.titulo)),
       ...(a.local ? [el("div", { class: "achado-local" }, tr(a.local))] : []),
       ...(a.resultado ? [el("div", { class: "achado-resultado" }, `${tr("Resultado")}: ${tr(a.resultado)}`)] : []),
+      ...(a.escalas && a.escalas.length ? [el("table", { class: "achado-escalas", title: `${tr("Classificação sugerida")} — ${tr("pelos números — confira")}` },
+        ...a.escalas.map((e) => el("tr", { title: tr(e.dica) }, el("th", {}, tr(e.nome)), el("td", {}, tr(e.valor)))))] : []),
       ...(a.numeros ? [el("div", { class: "achado-numeros" }, a.numeros)] : []),
       el("div", { class: "achado-revisao" }, tr(a.revisao)));
     const botoes = el("div", { class: "botoes-achado" });

@@ -31,7 +31,7 @@ from ipe.core.i18n import tr
 
 log = logging.getLogger(__name__)
 
-COLUNAS = ["Achado", "Local", "Medidas", "Estado", "Revisão"]
+COLUNAS = ["Achado", "Local", "Medidas", "Classificação", "Estado", "Revisão"]
 
 
 def _usuario() -> str:
@@ -166,6 +166,10 @@ class AchadosPainel(QDialog):
         self.l_origem.setWordWrap(True)
         self.l_origem.setStyleSheet("color:#8b949e")
         lay.addWidget(self.l_origem)
+        self.l_escalas = QLabel("")                    # 0.100.87: a classificação sugerida, em tabela
+        self.l_escalas.setTextFormat(Qt.RichText)
+        self.l_escalas.hide()
+        lay.addWidget(self.l_escalas)
         bt = QHBoxLayout()
         self.b_ir = QPushButton("Ir até")
         self.b_ir.clicked.connect(self.ir_ate)
@@ -215,12 +219,20 @@ class AchadosPainel(QDialog):
             mod = _modulo(a["ferramenta"])
             chaves = getattr(mod, "CHAVES", None)
             nums = AC.numeros_validos(a)
-            medidas = " · ".join(AC._fmt(nums[k]) for k in [k for k in (chaves or list(nums)) if k in nums][:3])
-            cels = [f"{a['rotulo']} {tr(a['tipo'])}".strip(), tr(a.get("local", "")), medidas,
+            medidas = " · ".join(AC._fmt(nums[k]) for k in [k for k in (chaves or list(nums))
+                                                             if k in nums and k != "classificacao"][:3])
+            classe = ""
+            fn = getattr(mod, "resultado_do_achado", None)       # 0.100.87: a classificação sugerida
+            if fn is not None:
+                try:
+                    classe = fn(a) or ""
+                except Exception:  # noqa: BLE001
+                    log.debug("classificação do achado", exc_info=True)
+            cels = [f"{a['rotulo']} {tr(a['tipo'])}".strip(), tr(a.get("local", "")), medidas, tr(classe),
                     tr(AC.ESTADOS.get(a["estado"], a["estado"])), tr(AC.quem_e_quando(a))]
             for c, txt in enumerate(cels):
                 it = QTableWidgetItem(txt)
-                if c == 3:
+                if c == 4:
                     it.setForeground(QBrush(QColor(AC.CORES.get(a["estado"], "#ccc"))))
                 if c == 2:
                     it.setToolTip(tr(AC.texto_dos_numeros(a)))
@@ -273,6 +285,7 @@ class AchadosPainel(QDialog):
         self.b_laudo.setEnabled(any(x["estado"] in AC.VALEM for x in getattr(self, "todos", [])))
         if a is None:
             self.l_origem.setText("")
+            self.l_escalas.hide()
             return
         txt = f"{a.get('modelo', '')} {a.get('versao', '')}".strip()
         linhas = []
@@ -282,6 +295,19 @@ class AchadosPainel(QDialog):
         if resultado:                                  # 0.99.80: o resultado da esteatose, em destaque
             linhas.append(tr("Resultado") + ": " + tr(resultado))
         linhas.append(tr(f"{txt} — {a.get('elegibilidade', '')}" if txt else a.get("elegibilidade", "")))
+        esc_fn = getattr(mod, "escalas_do_achado", None)       # 0.100.87: a tabela das escalas (como na BAC)
+        escalas = esc_fn(a) if esc_fn is not None else []
+        if escalas:
+            import html
+            linhas_t = "".join(f"<tr><td><b>{html.escape(tr(n))}</b>&nbsp;&nbsp;</td><td>{html.escape(tr(v))}</td></tr>"
+                               for n, v, _d in escalas)
+            self.l_escalas.setText("<b>" + html.escape(tr("Classificação sugerida")) + "</b> <span style='color:gray'>("
+                                   + html.escape(tr("pelos números — confira; passe o mouse para ver de onde vem cada "
+                                                    "uma")) + ")</span>" + f"<table>{linhas_t}</table>")
+            self.l_escalas.setToolTip("\n\n".join(f"{tr(n)}: {tr(d)}" for n, _v, d in escalas))
+            self.l_escalas.show()
+        else:
+            self.l_escalas.hide()
         c = self.correspondencia(a)
         if c is not None:
             b, cr = c["achado"], c["crescimento"]

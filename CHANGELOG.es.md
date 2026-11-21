@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.88 — clasificación sugerida de la grasa y el hierro hepáticos
+- **Clasificación sugerida** en la ventana Hallazgos de IA (columna nueva y tabla de las escalas, como en las
+  calcificaciones vasculares de la mama): esteatosis por el PDFF (umbral de 5% y grado estimado de Tang 2015) y
+  sobrecarga de hierro por el LIC (< 1,8 normal; 3,2–7 leve; 7–15 moderada; > 15 grave). Corregible; la frase del
+  informe usa la que valga. También en Ipê Web.
+
 ## 0.100.87 — hierro hepático en la RM con el mapa correcto; intercambio agua-grasa
 - **Hierro hepático en la RM (importante)**: en RM GE con IDEAL IQ, la serie "WATER: IDEAL IQ (R2\*)" (y "FAT: …")
   se tomaba como el mapa de R2\* — "(R2\*)" es el nombre de la secuencia — y, al venir después del mapa, lo
