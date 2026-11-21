@@ -202,3 +202,16 @@ def test_cli_parser():
     from ipe.__main__ import _parser
     a = _parser().parse_args(["server", "--port", "9000", "--no-dicom"])
     assert a.cmd == "server" and a.port == 9000 and a.no_dicom
+
+
+def test_achados_importados_sobem_ao_servidor(central):
+    """0.100.86: os achados de um IPE_ACHADOS.json importado num cliente vão ao servidor pela RPC."""
+    paths, db, repo, srv = central
+    uid = repo.find_study_uids(accession="ACC1001")[0]
+    c = _client(srv)
+    it = {"study_uid": uid, "series_uid": "", "ferramenta": "enfisema", "rotulo": "E", "tipo": "Enfisema",
+          "numeros": {"LAA-950": [3.0, "%"]}, "estado": "confirmado"}
+    assert c.rpc("importar_achados", [it, {"study_uid": "1.2.nao.existe", "ferramenta": "x"}]) == 1
+    a = repo.achados(uid, "enfisema")
+    assert len(a) == 1 and a[0]["estado"] == "confirmado"
+    assert c.rpc("importar_achados", [it]) == 0

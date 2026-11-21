@@ -277,3 +277,17 @@ def test_banco_nao_fica_vazio_em_ingles(tmp_path):
                        capture_output=True, text=True, timeout=300)
     assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-3000:]
     assert "ok" in r.stdout
+
+
+def test_frase_montada_nao_sai_metade_em_portugues():
+    """0.100.86: "nenhum {}" pegava só o começo e o resto ia em português no inglês."""
+    from ipe.core import i18n
+    i18n.load("en")
+    try:
+        t = i18n.tr("Nódulos pulmonares prontos em 12.1 min: nenhum candidato a nódulo (mais 1 abaixo do "
+                    "diâmetro mínimo). Cada candidato está em Aplicações ▸ Achados de IA, como sugestão: confirme, "
+                    "corrija ou descarte um a um — só o que for confirmado vai ao laudo.")
+        assert t.startswith("Lung nodules ready in 12.1 min: no nodule candidate (plus 1 below the minimum diameter)")
+        assert "candidato" not in t and "Achados" not in t
+    finally:
+        i18n.load("pt")

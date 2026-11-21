@@ -2879,6 +2879,9 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         self.statusBar().showMessage(result.summary() + (f" {len(aqui)} exame(s) no meu banco deste computador."
                                                          if aqui else ""), 15000)
         from ipe.central.client_repo import upload_if_client
+        if getattr(result, "achados_itens", None) and hasattr(self.repo, "achados_depois_do_envio"):
+            self.repo.achados_depois_do_envio([it for it in result.achados_itens
+                                               if it.get("study_uid") not in aqui])
         for uid in (getattr(result, "studies", set()) or set()) - aqui:
             upload_if_client(self.repo, uid)
         try:                       # 0.99.1: implante e segmentação automáticos também na importação

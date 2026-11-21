@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.86 — hallazgos de IA en la exportación; frases armadas traducidas
+- **Hallazgos de IA en la exportación**: la exportación DICOM (carpeta, .zip, copia anonimizada en la base) lleva
+  los hallazgos de IA de los estudios en un `IPE_ACHADOS.json`; al importarlo en otro Ipê vuelven con el estado de
+  cada uno. Anonimizado, sin el revisor ni la nota.
+- **Inglés y español**: frases armadas por partes (como el final de Nódulos pulmonares) salían mitad en portugués;
+  ahora cada parte se traduce.
+
 ## 0.100.85 — IA en la serie del cuadro; enfisema en la serie de parénquima; menos falta de memoria
 - **"… en esta serie"**: el ítem del menú de cada IA corre en la serie del cuadro activo, aunque no sea la preferida en
   Configuración (antes, algunas IA cambiaban a la preferida). Si hay error, el mensaje dice cuál es la serie

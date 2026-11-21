@@ -45,6 +45,8 @@ class ImportResult:
     added: int = 0
     duplicates: int = 0
     not_dicom: int = 0
+    achados: int = 0               # 0.100.86: achados de IA trazidos pelo IPE_ACHADOS.json
+    achados_itens: list = field(default_factory=list)   # os itens lidos (no modo cliente, sobem ao servidor)
     errors: int = 0
     new_series: set[str] = field(default_factory=set)
     new_studies: set[str] = field(default_factory=set)
@@ -224,6 +226,16 @@ class Importer:
                 cache.gravar_instancias()
                 s.commit()
                 self._refresh_modalities(s, result.new_studies)
+            # 0.100.86: os achados de IA que vieram com uma exportação do Ipê (IPE_ACHADOS.json)
+            if not self._cancel:
+                try:
+                    from ipe.exporter import achados_ia as AI
+                    for arq in AI.procurar(expanded):
+                        itens = AI.ler(arq)
+                        result.achados_itens += itens
+                        result.achados += AI.importar_itens(self.db, itens)
+                except Exception:  # noqa: BLE001 - os achados são extra; as imagens já entraram
+                    log.exception("importar os achados de IA")
         finally:
             for t in tmp_dirs:
                 shutil.rmtree(t, ignore_errors=True)

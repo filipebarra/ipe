@@ -10255,5 +10255,7 @@
  "PARENQUIMA|PULMAO|PARTES MOLES|MEDIASTINO|STANDARD|STD|SOFT|B30|B31|BR40|SEM CONTRASTE|LUNG": "PARENQUIMA|PULMAO|PARTES MOLES|MEDIASTINO|STANDARD|STD|SOFT|B30|B31|BR40|SEM CONTRASTE|LUNG",
  "série recomendada": "serie recomendada",
  " — a série recomendada para esta IA é “{}”.": " — la serie recomendada para esta IA es “{}”.",
- "{}\n\nA série recomendada para esta IA é “{}”.": "{}\n\nLa serie recomendada para esta IA es “{}”."
+ "{}\n\nA série recomendada para esta IA é “{}”.": "{}\n\nLa serie recomendada para esta IA es “{}”.",
+ "encerrar os processos filhos que sobram de uma segmentação interrompida, quando instalado": "terminar los procesos hijos que quedan de una segmentación interrumpida, cuando está instalado",
+ "IPE_ACHADOS.json: os achados de IA do exame; voltam ao banco ao importar a pasta em outro Ipê.\n": "IPE_ACHADOS.json: los hallazgos de IA del estudio; vuelven a la base al importar la carpeta en otro Ipê.\n"
 }

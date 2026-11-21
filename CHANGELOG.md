@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.86 — achados de IA na exportação; frases montadas traduzidas
+- **Achados de IA na exportação**: a exportação DICOM (pasta, .zip, cópia anonimizada no banco) leva os achados de
+  IA dos exames num `IPE_ACHADOS.json`; ao importar em outro Ipê, voltam ao banco com o estado de cada um. Anonimizado,
+  sem o revisor e sem a nota. Serve para cursos, vídeos e para levar um caso já calculado a outro computador.
+- **Inglês e espanhol**: frases montadas por partes (como o fim dos Nódulos pulmonares, "nenhum candidato a nódulo
+  (mais 1 abaixo do diâmetro mínimo)") saíam metade em português; agora cada parte é traduzida.
+
 ## 0.100.85 — IA na série do quadro; enfisema na série de parênquima; menos falta de memória
 - **"… nesta série"**: o item do menu de cada IA roda na série do quadro ativo, mesmo que não seja a preferida nas
   Configurações (antes, algumas IAs trocavam pela preferida). Se der erro, a mensagem diz qual é a série

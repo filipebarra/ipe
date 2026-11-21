@@ -2266,6 +2266,8 @@ Botão **Usuários**. Quatro perfis de fábrica — Administrador, Médico, Resi
 
 **Escolher as séries**: marque a caixa abaixo de *O que exportar* e aparece a lista de cada exame com as suas séries; desmarque as que não devem sair (por exemplo o topograma, as séries de dose ou as segmentações). Vale para DICOM, imagens e a cópia anonimizada; um exame sem nenhuma série marcada fica de fora.
 
+**Os achados de IA vão junto (0.100.86)**: na exportação DICOM (pasta, .zip ou cópia anonimizada no banco) os achados de IA dos exames — a %LAA do enfisema, a composição em L3, os nódulos, com o estado de cada um (sugerido, confirmado, corrigido, descartado) — saem num arquivo `IPE_ACHADOS.json` na raiz. Ao importar essa pasta em outro Ipê, eles voltam para o banco, ligados ao exame e à série (pelos UIDs novos, quando a exportação gera UIDs novos). Anonimizado, não saem o nome de quem revisou nem a nota livre. Só vão os achados das séries que saíram.
+
 A anonimização é opção da janela — e obrigatória para quem não tem a permissão de exportar com dados do paciente.
 
 **Pacientes diferentes num pacote só**: exportar identificado, num CD/pendrive com visualizador ou num .zip, exames de pacientes diferentes pergunta antes, mostrando onde nome e ID não batem — é o pacote que se entrega a um paciente com o exame de outro dentro. Pasta solta, imagens JPG/PNG e cópias anonimizadas não perguntam (juntar casos para aula ou pesquisa é uso normal).

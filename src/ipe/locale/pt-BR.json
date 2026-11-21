@@ -7638,7 +7638,9 @@
   "Escolher as séries",
   "Marque só as séries que devem sair. Desmarcado: sai o que o item acima diz.",
   "PARENQUIMA|PULMAO|PARTES MOLES|MEDIASTINO|STANDARD|STD|SOFT|B30|B31|BR40|SEM CONTRASTE|LUNG",
-  "série recomendada"
+  "série recomendada",
+  "encerrar os processos filhos que sobram de uma segmentação interrompida, quando instalado",
+  "IPE_ACHADOS.json: os achados de IA do exame; voltam ao banco ao importar a pasta em outro Ipê.\n"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

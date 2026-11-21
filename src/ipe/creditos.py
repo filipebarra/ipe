@@ -193,6 +193,8 @@ CREDITOS: tuple[Credito, ...] = (
             "https://dipy.org", onde="segmentação", modulos=("dipy",),
             citacao="Garyfallidis E, et al. Dipy, a library for the analysis of diffusion MRI data. "
                     "Frontiers in Neuroinformatics. 2014;8:8."),
+    Credito("psutil", "encerrar os processos filhos que sobram de uma segmentação interrompida, quando instalado",
+            "BSD-3-Clause", "https://github.com/giampaolo/psutil", onde="segmentação", modulos=("psutil",)),
     Credito("h5py", "leitura dos pesos originais do SynthSR (arquivo HDF5 do Keras), no ambiente da segmentação",
             "BSD-3-Clause", "https://www.h5py.org", onde="segmentação", modulos=("h5py",)),
     Credito("SciPy", "reamostragem a 1 mm antes do SynthSR, no ambiente da segmentação; regiões conectadas em "

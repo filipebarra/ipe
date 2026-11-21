@@ -61,6 +61,7 @@ que ele usa, para quê, com qual licença e onde encontrar. O Ipê é distribuí
 | [PyTorch](https://pytorch.org) | a biblioteca de redes neurais da segmentação | BSD-3-Clause |
 | [MONAI](https://monai.io) | o SegResNet do glioma (BraTS) — parte captante, necrose e edema (modelo extra) | Apache-2.0 |
 | [DIPY](https://dipy.org) | a versão em PyTorch do SynthSeg, no ambiente da segmentação | BSD-3-Clause |
+| [psutil](https://github.com/giampaolo/psutil) | encerrar os processos filhos que sobram de uma segmentação interrompida, quando instalado | BSD-3-Clause |
 | [h5py](https://www.h5py.org) | leitura dos pesos originais do SynthSR (arquivo HDF5 do Keras), no ambiente da segmentação | BSD-3-Clause |
 | [SciPy](https://scipy.org) | reamostragem a 1 mm antes do SynthSR, no ambiente da segmentação; regiões conectadas em volume, quando instalado | BSD-3-Clause |
 | [NiBabel](https://nipy.org/nibabel) | troca de volumes (NIfTI) com o ambiente da segmentação | MIT |

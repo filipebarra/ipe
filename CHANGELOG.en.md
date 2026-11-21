@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.86 — AI findings in the export; assembled sentences translated
+- **AI findings in the export**: the DICOM export (folder, .zip, anonymized copy in the database) carries the
+  studies' AI findings in an `IPE_ACHADOS.json`; importing it into another Ipê brings them back with the state of
+  each one. Anonymized, without the reviewer or the note.
+- **English and Spanish**: sentences assembled from parts (such as the end of Lung nodules, "no nodule candidate
+  (plus 1 below the minimum diameter)") came out half in Portuguese; now each part is translated.
+
 ## 0.100.85 — AI on the viewport series; emphysema on the parenchyma series; fewer out-of-memory failures
 - **"… on this series"**: each AI's menu item runs on the active viewport's series, even when it is not the preferred
   one in Settings (some AIs used to switch to the preferred one). On error, the message names the recommended series

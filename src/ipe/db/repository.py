@@ -1125,6 +1125,11 @@ class Repository:
             a = s.get(AchadoIA, achado_id)
             return None if a is None else self._achado_dict(a)
 
+    def importar_achados(self, itens: list[dict]) -> int:
+        """0.100.86: achados que vieram de uma exportação do Ipê (IPE_ACHADOS.json), com o estado de cada um."""
+        from ipe.exporter import achados_ia as AI
+        return AI.importar_itens(self.db, itens)
+
     def gravar_achados(self, study_uid: str, ferramenta: str, itens: list[dict]) -> list[int]:
         """Troca os achados **ainda sugeridos** desta ferramenta pelos novos (uma rodada nova da IA).
         Os já revisados (confirmados, corrigidos, descartados) ficam: são decisão do médico."""

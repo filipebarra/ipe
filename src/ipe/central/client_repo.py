@@ -47,6 +47,7 @@ class ClientRepository:
         self._upload_lock = threading.Lock()
         self.on_upload_done = None           # callback(texto)
         self._banco_pendente: dict[str, tuple[str, str]] = {}   # 0.99.28: banco de exame que ainda vai subir
+        self._achados_pendentes: dict[str, list] = {}   # 0.100.86: achados importados que sobem depois das imagens
         self._baixando: dict = {}            # 0.99.85: study_uid -> (thread, primeiro_lote, parar)
         self._baixar_lock = threading.Lock()
         self._andamentos: dict[str, dict] = {}  # 0.100.0: study_uid -> andamento do download, série a série
@@ -635,6 +636,21 @@ class ClientRepository:
         return self.is_cached(study_uid)
 
     # ------------------------------------------------------------------ envio ao servidor
+    def _subir_achados(self, study_uid: str) -> None:
+        itens = self._achados_pendentes.pop(study_uid, None)
+        if itens:
+            try:
+                self.client.rpc("importar_achados", itens)
+            except Exception:  # noqa: BLE001 - as imagens subiram; os achados são extra
+                log.exception("achados de IA ao servidor central")
+
+    def achados_depois_do_envio(self, itens: list[dict]) -> None:
+        """Os achados de IA de uma importação sobem ao servidor junto com as imagens do exame (o servidor só aceita
+        achado de exame que ele já tem)."""
+        for it in itens or []:
+            if isinstance(it, dict) and it.get("study_uid"):
+                self._achados_pendentes.setdefault(it["study_uid"], []).append(it)
+
     def upload_study(self, study_uid: str, wait: bool = False) -> None:
         """Manda ao servidor (STOW-RS) as imagens do cache que ele ainda não tem."""
         def work():
@@ -648,12 +664,14 @@ class ClientRepository:
                     todo = [p for sop, p in files if sop not in have and Path(p).exists()]
                     pend = self._banco_pendente.pop(study_uid, None)
                     if not todo:
+                        self._subir_achados(study_uid)
                         return
                     meu = bool(pend and pend[0] and pend[0].lower() == (self.client.username or "").lower())
                     res = self.client.store(todo, banco="meu" if meu else "")
                     if pend and (pend[1] or (pend[0] and not meu)):
                         self.client.rpc("set_study_scope", [study_uid], pend[0], pend[1])
                     msg = f"{res['sent']} imagem(ns) enviadas ao servidor central."
+                    self._subir_achados(study_uid)
                 except Exception as e:  # noqa: BLE001
                     log.exception("envio ao servidor central")
                     msg = f"Falha ao enviar ao servidor central: {e}"

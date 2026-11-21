@@ -293,3 +293,36 @@ def test_escolher_as_series(env, sample_dir, tmp_path):
     assert not dlg.ok.isEnabled()
     dlg.scope.setCurrentIndex(1)                                # só quadros: não há série a escolher
     assert not dlg.g_series.isVisibleTo(dlg)
+
+
+def test_achados_de_ia_vao_e_voltam_com_a_exportacao(env, sample_dir, tmp_path):
+    """0.100.86: os achados de IA (números, estado) saem no IPE_ACHADOS.json e voltam ao importar,
+    ligados aos UIDs novos da cópia anonimizada; o que é de pessoa (revisor, nota) não sai."""
+    import json
+
+    from ipe.exporter import achados_ia as AI
+    paths, db, repo, st = _setup(env, sample_dir)
+    uid = st["ACC1001"]
+    se = repo.series_for_study(uid)[0].series_uid
+    ids = repo.gravar_achados(uid, "enfisema", [
+        {"series_uid": se, "rotulo": "E", "tipo": "Enfisema", "numeros": {"LAA-950": [12.5, "%"]}},
+        {"series_uid": "1.2.outra.serie", "rotulo": "X", "tipo": "Fora"}])
+    from ipe.db.models import AchadoIA
+    with db.session() as s:
+        a = s.get(AchadoIA, ids[0])
+        a.estado, a.revisor, a.nota = "confirmado", "Dr. Fulano", "nota livre"
+        s.commit()
+    opts = AnonOptions(enabled=True)
+    r = export_dicom(repo, [ExportItem(uid)], tmp_path / "anon", opts, viewer=False)
+    assert r.achados
+    dados = json.loads((tmp_path / "anon" / AI.ARQUIVO).read_text(encoding="utf-8"))["achados"]
+    assert len(dados) == 1                                  # a série que não saiu ficou de fora
+    d = dados[0]
+    assert d["study_uid"] != uid and d["series_uid"] != se and d["estado"] == "confirmado"
+    assert "revisor" not in d and "nota" not in d and d["numeros"] == {"LAA-950": [12.5, "%"]}
+    imp = Importer(db, paths.storage, copy_to_storage=True).import_paths([tmp_path / "anon"])
+    assert imp.achados == 1
+    novo = repo.achados(d["study_uid"])
+    assert len(novo) == 1 and novo[0]["numeros"] == {"LAA-950": [12.5, "%"]} and novo[0]["estado"] == "confirmado"
+    assert novo[0]["series_uid"] == d["series_uid"] and novo[0]["revisor"] == ""
+    assert AI.importar(db, tmp_path / "anon" / AI.ARQUIVO) == 0      # importar de novo não repete

@@ -262,8 +262,12 @@ def _tr_idioma(text):
         out = _match_paragrafos(text)
     if out is None and ("\n" in text or "<br" in text):
         out = _match_lines(text)
+    if out is None and _generico(text):
+        out = _match_juntos(text)               # "nenhum {}" pegaria só o começo de "nenhum candidato… (mais 1…)"
     if out is None:
         out = _match_pattern(text)
+    if out is None:
+        out = _match_juntos(text)
     if out is None:
         stripped = text.strip()
         if stripped != text:
@@ -290,6 +294,59 @@ def _match_pattern(text: str) -> str | None:
         for g in groups:
             out = out.replace("{}", _parte(g), 1)
         return out
+    return None
+
+
+#: 0.100.86: onde uma frase montada por partes costuma emendar ("nenhum candidato a nódulo" + " (mais 1 abaixo…)")
+_EMENDAS = (" (", " — ", "; ", ". ", ", ")
+
+
+def _inteiro(trecho: str) -> str | None:
+    """Tradução do trecho como frase ou padrão inteiro (sem partir), ou None."""
+    t = _state["strings"].get(trecho)
+    if t is None:
+        for src, rx, _dst in _state["patterns"]:
+            if len(src.replace("{}", "").strip()) < 10:      # "nenhum {}", "{}: {}" — genéricos demais
+                continue
+            if rx.match(trecho):
+                t = _match_pattern_um(src, rx, _dst, trecho)
+                break
+        if t == trecho:
+            t = None
+    return t
+
+
+def _generico(text: str) -> bool:
+    """O primeiro padrão que casa com o texto tem pouca parte fixa ("nenhum {}", "{}: {}")?"""
+    for src, rx, _dst in _state["patterns"]:
+        if rx.match(text):
+            return len(src.replace("{}", "").strip()) < 10
+    return False
+
+
+def _match_pattern_um(_src, rx, dst, text):
+    m = rx.match(text)
+    out = dst
+    for g in m.groups():
+        out = out.replace("{}", _parte(g), 1)
+    return out
+
+
+def _match_juntos(text: str) -> str | None:
+    """0.100.86: texto que é a soma de dois trechos com tradução própria. Antes, um padrão genérico ("nenhum {}")
+    pegava só o começo e o resto ficava em português ("none candidato a nódulo (mais 1 abaixo…)")."""
+    if len(text) > 600:
+        return None
+    for sep in _EMENDAS:
+        i = text.find(sep)
+        while i > 0:
+            a, b = text[:i], text[i:]
+            ta = _inteiro(a)
+            if ta is not None:
+                tb = _inteiro(b) or (sep + _inteiro(b[len(sep):]) if _inteiro(b[len(sep):]) else None)
+                if tb is not None:
+                    return ta + tb
+            i = text.find(sep, i + 1)
     return None
 
 

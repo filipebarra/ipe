@@ -56,6 +56,7 @@ class ExportResult:
     zip_path: Path | None = None
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    achados: bool = False          # 0.100.86: foi junto o IPE_ACHADOS.json (achados de IA)
 
 
 @dataclass
@@ -369,12 +370,22 @@ def export_dicom(repo, items: list[ExportItem], dest: Path, opts: AnonOptions | 
             res.viewer = _write_viewer(entries, work, opts.enabled, progress, cancel, done, total)
         elif viewer:
             res.viewer = _write_full_viewer(repo, entries, work, opts.enabled, progress, cancel, done, total)
+        # 0.100.86: os achados de IA do exame (números, estado) — ficam no banco, não nos arquivos DICOM
+        try:
+            from ipe.exporter import achados_ia as AI
+            estudos = {e.study_uid: {s["series_uid"] for s in e.series} for e in entries}
+            if AI.gravar(work, AI.para_exportar(repo, estudos, opts, salt)):
+                res.achados = True
+        except Exception:  # noqa: BLE001 - os achados são extra; a exportação dos arquivos já está feita
+            log.exception("exportar os achados de IA")
         (work / "LEIA-ME.txt").write_text(
             "Exportado pelo Ipê (não destinado a uso diagnóstico).\n"
             + ("Arquivos DICOM com DICOMDIR (abrem em visualizadores DICOM: pasta raiz ou DICOMDIR).\n"
                if res.dicomdir else "Arquivos DICOM na pasta DICOM.\n")
             + ("Visualizador simples: abra ABRIR_VISUALIZADOR.html no navegador.\n" if viewer else "")
-            + ("Dados do paciente removidos (anonimizado).\n" if opts.enabled else ""),
+            + ("Dados do paciente removidos (anonimizado).\n" if opts.enabled else "")
+            + ("IPE_ACHADOS.json: os achados de IA do exame; voltam ao banco ao importar a pasta em outro Ipê.\n"
+               if res.achados else ""),
             encoding="utf-8")
         res.studies = len(entries)
         if zip_output:
