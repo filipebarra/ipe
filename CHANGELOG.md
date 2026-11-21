@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.89 — refazer a IA no exame
+- **Refazer no exame**: o menu de cada IA (Fígado, Composição, Nódulos e as outras) ganhou "Refazer no exame (série
+  preferida das Configurações)…" — antes, com achados no exame, só dava para refazer na série aberta. Pergunta se
+  descarta os achados já revisados.
+
 ## 0.100.88 — classificação sugerida da gordura e do ferro hepáticos
 - **Classificação sugerida** na janela Achados de IA (coluna nova e tabela das escalas, como nas calcificações
   vasculares da mama): esteatose pelo PDFF (limiar de 5% e grau estimado de Tang 2015) e sobrecarga de ferro pelo

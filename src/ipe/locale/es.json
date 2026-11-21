@@ -10293,5 +10293,7 @@
  "fígado {} s⁻¹": "hígado {} s⁻¹",
  "fígado {} s⁻¹ · baço {} s⁻¹": "hígado {} s⁻¹ · bazo {} s⁻¹",
  "fígado {} s⁻¹ ({} a 1,5 T)": "hígado {} s⁻¹ ({} a 1,5 T)",
- "fígado {} s⁻¹ ({} a 1,5 T) · baço {} s⁻¹": "hígado {} s⁻¹ ({} a 1,5 T) · bazo {} s⁻¹"
+ "fígado {} s⁻¹ ({} a 1,5 T) · baço {} s⁻¹": "hígado {} s⁻¹ ({} a 1,5 T) · bazo {} s⁻¹",
+ "Há {} achado(s) desta IA já revisado(s) (confirmado ou corrigido). Os sugeridos serão trocados pelos novos.\n\nDescartar também os revisados antigos?": "Hay {} hallazgo(s) de esta IA ya revisado(s) (confirmado o corregido). Los sugeridos se reemplazarán por los nuevos.\n\n¿Descartar también los revisados antiguos?",
+ "Refazer no exame (série preferida das Configurações)…": "Rehacer en el estudio (serie preferida de la Configuración)…"
 }

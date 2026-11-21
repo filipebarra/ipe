@@ -10293,5 +10293,7 @@
  "fígado {} s⁻¹": "liver {} s⁻¹",
  "fígado {} s⁻¹ · baço {} s⁻¹": "liver {} s⁻¹ · spleen {} s⁻¹",
  "fígado {} s⁻¹ ({} a 1,5 T)": "liver {} s⁻¹ ({} at 1.5 T)",
- "fígado {} s⁻¹ ({} a 1,5 T) · baço {} s⁻¹": "liver {} s⁻¹ ({} at 1.5 T) · spleen {} s⁻¹"
+ "fígado {} s⁻¹ ({} a 1,5 T) · baço {} s⁻¹": "liver {} s⁻¹ ({} at 1.5 T) · spleen {} s⁻¹",
+ "Há {} achado(s) desta IA já revisado(s) (confirmado ou corrigido). Os sugeridos serão trocados pelos novos.\n\nDescartar também os revisados antigos?": "There are {} finding(s) of this AI already reviewed (confirmed or corrected). The suggested ones will be replaced by the new ones.\n\nAlso discard the old reviewed ones?",
+ "Refazer no exame (série preferida das Configurações)…": "Redo on the study (preferred series in Settings)…"
 }

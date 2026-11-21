@@ -1120,6 +1120,9 @@ class BarraMixin:
         a_ach = QAction("Achados de IA (revisar, confirmar, descartar)…", self)
         a_ach.triggered.connect(self.abrir_achados)
         menu_nod.addAction(a_ach)
+        a_ref_nodulos = QAction("Refazer no exame (série preferida das Configurações)…", self)          # 0.100.88
+        a_ref_nodulos.triggered.connect(lambda: self.refazer_ia("nodulos"))
+        menu_nod.addAction(a_ref_nodulos)
         nod = self._act("nodulos.auto", "Nódulos pulmonares (IA)", self.nodulos_botao)
         nod.setIcon(icon("app_nodulos"))
         nod.setIconText("Nódulos")
@@ -1133,6 +1136,9 @@ class BarraMixin:
         a_ach2 = QAction("Achados de IA (revisar, confirmar, descartar)…", self)
         a_ach2.triggered.connect(self.abrir_achados)
         menu_comp.addAction(a_ach2)
+        a_ref_composicao = QAction("Refazer no exame (série preferida das Configurações)…", self)          # 0.100.88
+        a_ref_composicao.triggered.connect(lambda: self.refazer_ia("composicao"))
+        menu_comp.addAction(a_ref_composicao)
         comp = self._act("composicao.auto", "Composição corporal em L3 e esteatose (IA)", self.composicao_botao)
         comp.setIcon(icon("app_composicao"))
         comp.setIconText("Composição")
@@ -1145,6 +1151,9 @@ class BarraMixin:
         a_ach3 = QAction("Achados de IA (revisar, confirmar, descartar)…", self)
         a_ach3.triggered.connect(self.abrir_achados)
         menu_fig.addAction(a_ach3)
+        a_ref_figado_rm = QAction("Refazer no exame (série preferida das Configurações)…", self)          # 0.100.88
+        a_ref_figado_rm.triggered.connect(lambda: self.refazer_ia("figado_rm"))
+        menu_fig.addAction(a_ref_figado_rm)
         fig = self._act("figado_rm.auto", "Gordura e ferro hepáticos na RM (IA)", self.figado_rm_botao)
         fig.setIcon(icon("app_figado"))
         fig.setIconText("Fígado")
@@ -1179,6 +1188,9 @@ class BarraMixin:
             a_x = QAction(rotulo_menu, self)
             a_x.triggered.connect(lambda _=False, tp=tipo: self.ferramenta_ia(tp, self.active, na_serie_do_quadro=True))
             menu_x.addAction(a_x)
+            a_ref = QAction("Refazer no exame (série preferida das Configurações)…", self)          # 0.100.88
+            a_ref.triggered.connect(lambda _=False, tp=tipo: self.refazer_ia(tp))
+            menu_x.addAction(a_ref)
             a_r = QAction("Achados de IA (revisar, confirmar, descartar)…", self)
             a_r.triggered.connect(self.abrir_achados)
             menu_x.addAction(a_r)

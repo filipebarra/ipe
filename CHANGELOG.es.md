@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.89 — rehacer la IA en el estudio
+- **Rehacer en el estudio**: el menú de cada IA (Hígado, Composición, Nódulos y las demás) tiene "Rehacer en el
+  estudio (serie preferida de la Configuración)…" — antes, con hallazgos en el estudio, solo se podía rehacer en la
+  serie abierta. Pregunta si descarta los hallazgos ya revisados.
+
 ## 0.100.88 — clasificación sugerida de la grasa y el hierro hepáticos
 - **Clasificación sugerida** en la ventana Hallazgos de IA (columna nueva y tabla de las escalas, como en las
   calcificaciones vasculares de la mama): esteatosis por el PDFF (umbral de 5% y grado estimado de Tang 2015) y

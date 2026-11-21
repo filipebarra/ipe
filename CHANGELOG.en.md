@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.89 — redo the AI on the study
+- **Redo on the study**: each AI menu (Liver, Composition, Nodules and the others) has "Redo on the study (preferred
+  series in Settings)…" — before, with findings in the study, it could only be redone on the open series. It asks
+  whether to discard the findings already reviewed.
+
 ## 0.100.88 — suggested classification of liver fat and iron
 - **Suggested classification** in the AI findings window (new column and a table of the scales, as for breast
   arterial calcifications): steatosis by PDFF (5% threshold and Tang 2015 estimated grade) and iron overload by LIC

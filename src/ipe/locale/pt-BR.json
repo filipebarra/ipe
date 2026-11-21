@@ -7667,7 +7667,9 @@
   "acima do normal (1,8–3,2), abaixo da sobrecarga leve",
   "normal (< 1,8)",
   "pelos números — confira; passe o mouse para ver de onde vem cada uma",
-  "pelos números — confira"
+  "pelos números — confira",
+  "Há {} achado(s) desta IA já revisado(s) (confirmado ou corrigido). Os sugeridos serão trocados pelos novos.\n\nDescartar também os revisados antigos?",
+  "Refazer no exame (série preferida das Configurações)…"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

@@ -274,6 +274,19 @@ def test_na_tela(env, tmp_path, monkeypatch):
         assert p.t.rowCount() == 3 and "%" in p.t.item(0, 2).text()
         tab.figado_rm_botao()
         assert tab.achados_painel.isVisible()
+        # 0.100.88: refazer no exame, mesmo com achados (o botão só abre a revisão)
+        primeiro = repo.achados(uid, F.FERRAMENTA)
+        repo.revisar_achado(primeiro[0]["id"], "confirmado", "Dr. Teste")
+        n = len(avisos)
+        tab.refazer_ia("figado_rm", simular=True, descartar_revisados=True)
+        fim = time.time() + 120
+        while len(avisos) == n and time.time() < fim:
+            app.processEvents()
+            time.sleep(0.05)
+        assert avisos[-1].startswith("Fígado na RM pronto"), avisos
+        depois = repo.achados(uid, F.FERRAMENTA)
+        assert [a["estado"] for a in depois if a["id"] == primeiro[0]["id"]] == ["descartado"]
+        assert sum(a["estado"] == "sugerido" for a in depois) == 3
     finally:
         w.close()
 

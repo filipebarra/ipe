@@ -359,6 +359,41 @@ class IAMixin:
                 vp = alvo
         return self.segmentar_orgaos(vp, simular=simular, tipo=tipo)
 
+    def refazer_ia(self, tipo: str, simular: bool = False, descartar_revisados: bool | None = None):
+        """0.100.88: refazer uma IA no exame, mesmo já tendo achados (o botão, com achados, só abre a revisão).
+        Os sugeridos são trocados pelos novos; os já revisados (confirmados, corrigidos) ficam — a não ser que o
+        médico peça para descartá-los."""
+        from PySide6.QtWidgets import QMessageBox
+
+        from ipe.core.i18n import tr
+        uids = getattr(self, "study_order", None) or [self.study_uid]
+        try:
+            revisados = [a for u in uids for a in self.repo.achados(u, tipo) if a["estado"] in ("confirmado", "corrigido")]
+        except Exception:  # noqa: BLE001
+            revisados = []
+        if revisados and descartar_revisados is None:
+            r = QMessageBox.question(
+                self, tr("Refazer"),
+                tr("Há {} achado(s) desta IA já revisado(s) (confirmado ou corrigido). Os sugeridos serão trocados "
+                   "pelos novos.\n\nDescartar também os revisados antigos?").format(len(revisados)),
+                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel, QMessageBox.No)
+            if r == QMessageBox.Cancel:
+                return None
+            descartar_revisados = r == QMessageBox.Yes
+        if revisados and descartar_revisados:
+            from ipe.ui.viewer.achados_painel import _usuario
+            for a in revisados:
+                self.repo.revisar_achado(a["id"], "descartado", _usuario())
+            self.achados_mudaram()
+        vp = self.active or next((v for v in self.viewports if v.frames), None)
+        if tipo == "composicao":
+            return self.composicao_automatica(vp, simular=simular)
+        if tipo == "figado_rm":
+            return self.figado_rm_automatico(vp, simular=simular)
+        if tipo == "nodulos":
+            return self.nodulos_automatico(vp, simular=simular)
+        return self.ferramenta_ia(tipo, vp, simular=simular)
+
     def ferramenta_ia_botao(self, tipo: str):
         """O botão: com achados desta IA no exame, abre a revisão; sem, roda."""
         try:
