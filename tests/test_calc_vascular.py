@@ -109,7 +109,9 @@ def test_exame_guardar_confirmar_previa(env, tmp_path, monkeypatch):
     cam = C.arquivo_da_imagem(repo, "7.7", g["vistas"]["R-CC"])
     assert cam == C.arquivos_das_vistas(repo, "7.7")["R-CC"]
     rgb = C.previa(pydicom.dcmread(cam), g["vistas"]["R-CC"], 120)
-    assert rgb.ndim == 3 and (rgb[..., 0] > 200).any() and (rgb[..., 1] < 100).any()   # o vermelho aparece
+    # 0.100.91: contorno branco com borda preta (aparece no monitor P&B), sem vermelho
+    assert rgb.ndim == 3 and (rgb == 255).all(axis=2).any() and (rgb == 0).all(axis=2).any()
+    assert not ((rgb[..., 0] > 200) & (rgb[..., 1] < 100)).any()
     assert C.previa_png(pydicom.dcmread(cam), g["vistas"]["R-CC"])[:4] == b"\x89PNG"
     assert C.frase_do_laudo("moderada") == "Calcificações vasculares moderadas."
 
@@ -237,3 +239,20 @@ def test_todas_as_imagens_e_rolar(env, tmp_path, monkeypatch):
     assert d.quadros["R-ML"].bt_prox.isHidden()
     d.close()
     app.processEvents()
+
+
+def test_marcas_contorno_e_setas_numeradas():
+    """0.100.91: um contorno branco com borda preta afastado do que a rede achou e setas numeradas por vaso."""
+    m = np.zeros((200, 300), bool)
+    m[50, 40:200] = True                      # um vaso comprido (trilho)
+    m[56, 40:200] = True
+    m[150, 60:100] = True                     # um vaso curto
+    m[100, 250] = m[104, 252] = True          # puntiformes
+    rgb = np.full((200, 300, 3), 120, np.uint8)
+    vasos, punt = C.vasos_da_mascara(m, 0.4)
+    assert len(vasos) == 2 and len(vasos[0]) > len(vasos[1]) and punt[100, 250]
+    out = C.marcar(rgb, m, 0.4)
+    branco = (out == 255).all(axis=2)
+    assert branco[40:50, 100].any() and not branco[50, 100] and not branco[53, 100]     # o contorno passa por fora, o trilho fica limpo
+    assert (out[m] == 120).all()                                 # nada pintado em cima da calcificação
+    assert branco[:, 205:230].any()                              # a seta depois da ponta direita do vaso 1

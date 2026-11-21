@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.91 — vascular calcifications marked for B/W monitors and the PACS
+- **Breast arterial calcification marks**: instead of red (dark gray on a B/W monitor), a **white outline with a
+  black edge** ~1 mm around what the network found and **numbered arrows** at the ends of each vessel. In the window,
+  Ipê Web and the marked images sent to the PACS (Secondary Capture) — confirm an old study again to redo its images.
+
 ## 0.100.90 — redo on every AI; the AIs in the Settings ▸ CAD/AI menu
 - **Redo on the study for every AI**: organs, spine, cephalometry, head indices, lymph node levels and the common
   ones; breast density and arterial calcifications ("Redo the measurement on the study"). It uses the series the

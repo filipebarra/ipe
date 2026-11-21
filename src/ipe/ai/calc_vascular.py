@@ -526,7 +526,8 @@ def frase_do_laudo(grau: str) -> str:
 
 # ------------------------------------------------------------------ prévia
 def previa(ds, vista: dict, largura: int = 360) -> np.ndarray:
-    """RGB (uint8) da imagem reduzida com a calcificação em vermelho — para a janela e para o navegador."""
+    """RGB (uint8) da imagem reduzida com a calcificação marcada (contorno branco e setas numeradas, desde a 0.100.91)
+    — para a janela, para o navegador e para as imagens que vão ao PACS."""
     img = oito_bits(ds)
     k = max(1, img.shape[1] // largura)
     peq = img[::k, ::k][: img.shape[0] // k, : img.shape[1] // k]
@@ -537,8 +538,101 @@ def previa(ds, vista: dict, largura: int = 360) -> np.ndarray:
         ys = np.minimum((np.arange(rgb.shape[0]) * k) // ESCALA, m.shape[0] - 1)
         xs = np.minimum((np.arange(rgb.shape[1]) * k) // ESCALA, m.shape[1] - 1)
         mm = m[ys][:, xs]
-        rgb[mm] = (np.array([255, 40, 40]) * 0.75 + rgb[mm] * 0.25).astype(np.uint8)
+        passo = float(vista.get("passo_mm") or 0.1) * k
+        try:
+            return marcar(rgb, mm, passo)
+        except Exception:  # noqa: BLE001 - sem OpenCV/PIL: o jeito antigo, pintado
+            log.debug("marcas das calcificações vasculares", exc_info=True)
+            rgb[mm] = (np.array([255, 40, 40]) * 0.75 + rgb[mm] * 0.25).astype(np.uint8)
     return rgb
+
+
+#: 0.100.91: marcas que aparecem também no monitor monocromático e no PACS de fora (o vermelho virava cinza escuro):
+#: um contorno branco com borda preta, afastado ~1 mm do que a rede achou, e uma seta em cada ponta de cada vaso,
+#: com o número dele (a mesma ordem da lista de vasos das escalas: do mais comprido ao mais curto)
+AFASTAR_MM = 1.0
+
+
+def vasos_da_mascara(mm: np.ndarray, passo: float) -> tuple[list[np.ndarray], np.ndarray]:
+    """([pontos (y, x) de cada vaso, do mais comprido ao mais curto], máscara dos puntiformes) — os trechos a até
+    `JUNTAR_MM` uns dos outros são um vaso, como nas escalas; grupo sem trecho alongado é puntiforme."""
+    import cv2
+
+    from ipe.ai import calc_vascular_escalas as E
+    m8 = mm.astype(np.uint8)
+    if not m8.any():
+        return [], np.zeros_like(mm, bool)
+    r = max(1, round(E.JUNTAR_MM / 2 / passo))
+    ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1))
+    n, grupo = cv2.connectedComponents(cv2.dilate(m8, ker), connectivity=8)
+    vasos, punt = [], np.zeros_like(mm, bool)
+    for g in range(1, n):
+        dentro = (grupo == g) & mm
+        ys, xs = np.nonzero(dentro)
+        if not len(ys):
+            continue
+        pts = np.stack([ys, xs], axis=1).astype(float)
+        _c, _u, comp, _l = E._eixo(pts)
+        if comp * passo < E.ALONGADO_MM:
+            punt |= dentro
+            continue
+        vasos.append((comp, pts))
+    vasos.sort(key=lambda x: -x[0])
+    return [p for _c, p in vasos], punt
+
+
+def marcar(rgb: np.ndarray, mm: np.ndarray, passo: float) -> np.ndarray:
+    """A imagem (RGB) com o contorno de alto contraste e as setas numeradas."""
+    import cv2
+    from PIL import Image, ImageDraw
+
+    from ipe.ai import calc_vascular_escalas as E
+    h, w = mm.shape
+    esp = max(1, round(w / 450))                              # espessura da linha: ~1 px na prévia, 3 px no PACS
+    r = max(1, round(AFASTAR_MM / passo))
+    ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1))
+    rf = max(1, round(E.TRILHO_MM[1] / 2 / passo))           # as duas paredes do trilho num tubo só
+    fecha = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * rf + 1, 2 * rf + 1))
+    tubo = cv2.dilate(cv2.morphologyEx(mm.astype(np.uint8), cv2.MORPH_CLOSE, fecha), ker)
+    cont, _h = cv2.findContours(tubo, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    tubo = cv2.drawContours(np.zeros_like(tubo), cont, -1, 1, thickness=cv2.FILLED)   # sem buracos por dentro
+    k1 = np.ones((2 * esp + 1,) * 2, np.uint8)
+    fora1 = cv2.dilate(tubo, k1).astype(bool)
+    fora2 = cv2.dilate(fora1.astype(np.uint8), k1).astype(bool)
+    dentro = tubo.astype(bool)
+    borda = fora1 & ~dentro                                   # a linha branca, logo fora do tubo
+    perto = cv2.dilate(mm.astype(np.uint8), k1).astype(bool)  # a borda preta nunca encosta na calcificação
+    halo = (fora2 & ~fora1) | (dentro & ~cv2.erode(tubo, k1).astype(bool) & ~perto)
+    out = rgb.copy()
+    out[halo] = (0, 0, 0)
+    out[borda] = (255, 255, 255)
+    im = Image.fromarray(out)
+    d = ImageDraw.Draw(im)
+    vasos, _punt = vasos_da_mascara(mm, passo)
+    seta = max(12, round(w / 22))                             # comprimento da seta
+    from ipe.ai.mama_sr import _fonte
+    fonte = _fonte(max(11, round(w / 30)))
+    for numero, pts in enumerate(vasos[:30], 1):
+        c, u, _comp, _l = E._eixo(pts)
+        proj = (pts - c) @ u
+        pontas = [pts[int(np.argmin(proj))], pts[int(np.argmax(proj))]]
+        for i, (py, px) in enumerate(pontas):
+            sinal = -1 if i == 0 else 1
+            fora = np.array([u[0] * sinal, u[1] * sinal])        # para fora do vaso, pelo eixo dele
+            cabeca = np.array([py, px]) + fora * (r + 3 * esp)
+            cauda = cabeca + fora * seta
+            lado = np.array([-fora[1], fora[0]])
+            asa1 = cabeca + fora * seta * 0.4 + lado * seta * 0.25
+            asa2 = cabeca + fora * seta * 0.4 - lado * seta * 0.25
+            xy = lambda q: (float(q[1]), float(q[0]))          # noqa: E731
+            d.line([xy(cauda), xy(cabeca)], fill=(0, 0, 0), width=esp * 3 + 2)
+            d.line([xy(cauda), xy(cabeca)], fill=(255, 255, 255), width=esp * 2)
+            d.polygon([xy(cabeca), xy(asa1), xy(asa2)], fill=(255, 255, 255), outline=(0, 0, 0))
+            if i == 0:
+                t = cauda + fora * seta * 0.35
+                d.text(xy(t), str(numero), font=fonte, fill=(255, 255, 255), anchor="mm",
+                       stroke_width=max(2, esp + 1), stroke_fill=(0, 0, 0))
+    return np.asarray(im)
 
 
 def previa_png(ds, vista: dict, largura: int = 360) -> bytes:

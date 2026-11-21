@@ -2,7 +2,7 @@
 
 Medir é medir no servidor (a SCU-Net nas quatro incidências 2D do exame, `ai/calc_vascular.py`), guardado em
 `revisao_ia` (módulo "calc_vascular"); confirmar o grau (ausente, leve, moderada, acentuada) pede a permissão de
-escrever laudos. As prévias (as incidências com o que a rede marcou em vermelho) são PNG desenhados no servidor.
+escrever laudos. As prévias (as incidências com o que a rede marcou, contornado e com setas numeradas) são PNG desenhados no servidor.
 """
 from __future__ import annotations
 

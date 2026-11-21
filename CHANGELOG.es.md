@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.91 — calcificaciones vasculares marcadas para el monitor B/N y el PACS
+- **Marcas de las calcificaciones vasculares**: en lugar del rojo (gris oscuro en el monitor B/N), un **contorno
+  blanco con borde negro** ~1 mm alrededor de lo que halló la red y **flechas numeradas** en las puntas de cada vaso.
+  En la ventana, Ipê Web y las imágenes marcadas que van al PACS (Secondary Capture) — confirme de nuevo un estudio
+  antiguo para rehacer sus imágenes.
+
 ## 0.100.90 — rehacer en todas las IA; las IA en el menú Configuración ▸ CAD/IA
 - **Rehacer en el estudio en todas las IA**: órganos, columna, cefalometría, índices del cráneo, niveles
   ganglionares y las del contrato común; densidad y calcificaciones vasculares de la mama ("Rehacer la medida en el

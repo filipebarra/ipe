@@ -6,7 +6,7 @@ acentuada** (a escala de pontos vem depois da validação).
 
 A rede (SCU-Net, `ai/calc_vascular.py`) mede todas as imagens 2D do exame (0.100.52: também as repetidas, as outras
 incidências, a compressão localizada e a ampliação); a janela mostra um quadro por incidência, que rola entre as
-imagens dela (◀ ▶ ou a rodinha), com o que foi marcado em vermelho, a área por mama e a sugestão provisória de grau (pela área dos trechos alongados). O grau é
+imagens dela (◀ ▶ ou a rodinha), com o que foi marcado (contorno branco e setas numeradas por vaso), a área por mama e a sugestão provisória de grau (pela área dos trechos alongados). O grau é
 do médico: a sugestão vem marcada de saída, ele troca se discordar e confirma.
 """
 from __future__ import annotations

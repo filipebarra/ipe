@@ -7,7 +7,7 @@ Grava três séries no exame (e substitui as de uma confirmação anterior):
 - **SR** (Comprehensive SR): a composição confirmada e as probabilidades da rede, o grau das calcificações
   confirmado e a sugestão, a área por mama e por imagem, as escalas (Margolies, CSBI, Loberant, BAC-SS), quem
   confirmou, os métodos, e as referências às imagens de origem e às imagens marcadas;
-- **imagens marcadas** (Secondary Capture): cada imagem com calcificação, com o que a rede achou em vermelho;
+- **imagens marcadas** (Secondary Capture): cada imagem com calcificação, com o que a rede achou contornado em branco e cada vaso com setas e número (0.100.91; antes em vermelho, que sumia no monitor P&B);
 - **resumo** (Secondary Capture): uma tabela com tudo, para quem não abre SR (o PACS mostra como imagem).
 
 As imagens trazem o nome do paciente escrito: vão com BurnedInAnnotation = YES. Sem Qt (roda no servidor).
@@ -247,7 +247,7 @@ def _fmt(v, casas=1) -> str:
 
 
 def imagem_marcada(ds, img: dict, paciente: str) -> np.ndarray:
-    """A mamografia com a calcificação em vermelho e uma faixa com lado, incidência, área e o nome."""
+    """A mamografia com a calcificação marcada (contorno e setas numeradas) e uma faixa com lado, incidência, área e o nome."""
     from PIL import Image, ImageDraw
 
     from ipe.ai import calc_vascular as C
