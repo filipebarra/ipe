@@ -143,7 +143,8 @@ class Pagina:
         r = self.raiz()
         yt = tu["youtube"].get(self.l) or tu["youtube"].get("en")
         arq = AQUI / "media" / "tutoriais" / f"{tid}-{self.l}.mp4"
-        lingua_arq = self.l if arq.exists() else "pt"
+        lingua_arq = self.l if arq.exists() else (
+            "en" if (AQUI / "media" / "tutoriais" / f"{tid}-en.mp4").exists() else "pt")
         src = f"{r}media/tutoriais/{tid}-{lingua_arq}"
         if yt:
             player = (f'<div class="tela tela-video"><iframe src="https://www.youtube-nocookie.com/embed/{e(yt)}" '
@@ -154,8 +155,11 @@ class Pagina:
             player = (f'<div class="tela tela-video"><video controls preload="none" poster="{src}.jpg">'
                       f'<source src="{src}.mp4" type="video/mp4"></video></div>')
             extra = f'<a href="{src}.mp4" download>{e(self.t(G["baixar_video"]))}</a>'
+        aviso = ""
+        if lingua_arq != self.l:                      # 0.100.91: o vídeo ainda só em inglês
+            aviso = f' <span class="lingua-video">{e(self.t(G["video_em_ingles"]))}</span>'
         return (f'<article class="tutorial">{player}<div class="tutorial-texto">'
-                f'<h3>{e(self.t(tu["titulo"]))} <span class="duracao">{e(tu["duracao"])}</span></h3>'
+                f'<h3>{e(self.t(tu["titulo"]))} <span class="duracao">{e(tu["duracao"])}</span>{aviso}</h3>'
                 f'<p>{e(self.t(tu["texto"]))}</p><p class="mais">{extra}</p></div></article>')
 
     def cartao_tarefa(self, ta: dict) -> str:
@@ -292,7 +296,11 @@ def pagina_tarefa(l: str, i: int) -> str:
 
 def pagina_videos(l: str) -> str:
     p = Pagina(l, "videos.html")
-    tut = "".join(p.tutorial(t) for t in C.TUTORIAIS)
+    tut = "".join(p.tutorial(t) for t, tu in C.TUTORIAIS.items() if not tu.get("grupo"))
+    for gid, nome in getattr(C, "GRUPOS_DE_TUTORIAIS", []):    # 0.100.91: os tutoriais por assunto, em grade
+        itens = "".join(p.tutorial(t) for t, tu in C.TUTORIAIS.items() if tu.get("grupo") == gid)
+        if itens:
+            tut += f'<h2 class="grupo-tutoriais">{e(p.t(nome))}</h2><div class="tutoriais-grade">{itens}</div>'
     clipes = "".join(
         f'<a class="mini" href="{e(p.link("tasks/" + ta["slug"] + ".html"))}">{p.clipe(ta["clipe"])}'
         f'<span>{e(p.t(ta["titulo"]))}</span></a>' for ta in C.TAREFAS)
