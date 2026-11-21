@@ -156,35 +156,72 @@ def _cabecalho(repo, series_uid: str):
         return None
 
 
-def tipo_do_mapa(descricao: str, image_type) -> str:
-    """"ff", "r2", "t2" ou "" — pela ImageType (o arquivo manda) e, sem ela, pela descrição."""
-    it = " ".join(str(x) for x in (image_type or [])).upper()
+#: 0.100.86: imagens do Dixon que **não** são mapa ("WATER: IDEAL IQ (R2*)" — o "(R2*)" é o nome da sequência)
+_NAO_MAPA_IT = ("WATER", "FAT", "IN_PHASE", "OUT_PHASE", "INPHASE", "OUTPHASE", "OPP_PHASE")
+_NAO_MAPA_DESC = ("WATER", "FAT", "INPHASE", "IN PHASE", "OUTPHASE", "OUT PHASE", "OPPOSED", "AGUA")
+
+
+def _mapa_pela_imagetype(image_type) -> str | None:
+    """"ff"/"r2"/"t2", "" (é imagem do Dixon, não mapa) ou None (a ImageType não diz)."""
+    partes = [str(x).upper().strip() for x in (image_type or [])]
+    it = " ".join(partes)
     if "FAT_FRACTION" in it or "FATFRACTION" in it or "PDFF" in it:
         return "ff"
     if "R2_STAR" in it or "R2STAR" in it:
         return "r2"
     if "T2_STAR" in it or "T2STAR" in it:
         return "t2"
+    if "DIXON" in partes and any(x in _NAO_MAPA_IT for x in partes):
+        return ""
+    return None
+
+
+def tipo_do_mapa(descricao: str, image_type) -> str:
+    """"ff", "r2", "t2" ou "" — pela ImageType (o arquivo manda) e, sem ela, pela descrição.
+
+    0.100.86: "WATER: IDEAL IQ (R2*)" e "FAT: IDEAL IQ (R2*)" eram lidas como mapa de R2* (o "(R2*)" é o nome da
+    sequência IDEAL IQ) — e, vindo depois do mapa verdadeiro, tomavam o lugar dele: o "R2*" era o sinal da água."""
+    pela_it = _mapa_pela_imagetype(image_type)
+    if pela_it is not None:
+        return pela_it
+    import re
     d = _sem_acento(descricao or "")
+    if ":" in d:
+        d = d.split(":", 1)[0]              # GE: "<tipo>: <sequência>"
     if any(p in d for p in _FF_DESC):
         return "ff"
-    if any(p in d for p in _R2_DESC):
+    unidade_ms = "(MS)" in d.replace(" ", "")
+    d = re.sub(r"\(.*?\)", " ", d)            # "(R2*)": o nome da sequência, não o tipo
+    if any(d.strip().startswith(p) for p in _NAO_MAPA_DESC):
+        return ""
+    junto = d.replace(" ", "")
+    if any(p.replace(" ", "") in junto for p in _R2_DESC):
         return "r2"
-    if any(p in d for p in _T2_DESC) and "MAP" in d:
+    if any(p.replace(" ", "") in junto for p in _T2_DESC) and ("MAP" in d or unidade_ms):
         return "t2"
     return ""
 
 
 def mapas_do_exame(repo, study_uid: str) -> dict:
-    """{"ff": series_uid, "r2"/"t2": series_uid} — o mais recente de cada tipo."""
-    out = {}
+    """{"ff": series_uid, "r2"/"t2": series_uid}. 0.100.86: de cada tipo, o que a ImageType confirma e, entre
+    esses, o de mais cortes (o R2* do IDEAL IQ cobre o fígado; o do STARMAP, 3 cortes) — antes, o último da lista."""
+    melhor: dict[str, tuple] = {}
     for s in repo.series_for_study(study_uid):
         if (s.modality or "").upper() != "MR":
             continue
         ds = _cabecalho(repo, s.series_uid)
-        tipo = tipo_do_mapa(s.description or "", ds.get("ImageType") if ds is not None else None)
-        if tipo:
-            out[tipo] = s.series_uid
+        it = ds.get("ImageType") if ds is not None else None
+        tipo = tipo_do_mapa(s.description or "", it)
+        if not tipo:
+            continue
+        try:
+            n = len(repo.instances_for_series(s.series_uid))
+        except Exception:  # noqa: BLE001
+            n = 0
+        nota = (_mapa_pela_imagetype(it) is not None, n)
+        if tipo not in melhor or nota > melhor[tipo][0]:
+            melhor[tipo] = (nota, s.series_uid)
+    out = {k: v[1] for k, v in melhor.items()}
     if "r2" in out:
         out.pop("t2", None)
     return out
@@ -291,6 +328,30 @@ def r2_para_15t(r2: float, campo: float | None) -> tuple[float | None, str]:
     return None, f"campo de {campo:g} T".replace(".", ",")
 
 
+#: 0.100.86: troca água-gordura do Dixon — a fração vira 100 − a verdadeira (num exame do acervo, 10% no fígado
+#: e 92–98% nos cortes da cúpula). Fígado com mais de 60% de gordura é raro; voxels acima disso, quando o resto do
+#: fígado está bem abaixo, saem da conta (com aviso).
+TROCA_LIMIAR = 60.0
+#: R2* (1,5 T) a partir do qual o aviso sobre o PDFF aparece (T2* ≈ 2,5 ms)
+R2_ALTO = 400.0
+TROCA_RESTO = 35.0
+
+
+def sem_troca(v: np.ndarray, forcar: bool = False) -> tuple[np.ndarray, float]:
+    """(valores sem os da troca água-gordura, fração tirada)."""
+    v = np.asarray(v, float)
+    v = v[np.isfinite(v)]
+    if not len(v):
+        return v, 0.0
+    alto = v > TROCA_LIMIAR
+    frac = float(alto.mean())
+    if alto.all():
+        return v, 0.0
+    if forcar or (0.02 <= frac <= 0.5 and float(np.median(v[~alto])) < TROCA_RESTO):
+        return v[~alto], (frac if not forcar else 0.0)
+    return v, 0.0
+
+
 def _stats(v: np.ndarray) -> dict:
     v = np.asarray(v, float)
     v = v[np.isfinite(v)]
@@ -366,7 +427,13 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
             m = _ero2(_amostrar(vol, figado, vff), 1)
             if m.sum() < 20:
                 m = _amostrar(vol, figado, vff)
-            st = _stats(dados[m] * escala)
+            valores, trocados = sem_troca(dados[m] * escala)
+            st = _stats(valores)
+            if trocados:
+                res.avisos_gordura.append(
+                    f"{trocados:.0%} dos voxels do fígado com fração acima de {TROCA_LIMIAR:g}% e o resto bem abaixo: "
+                    "parece troca água-gordura do Dixon (comum na cúpula, perto do pulmão, e com muito ferro) — "
+                    "ficaram fora da conta; confira o mapa")
             if st:
                 res.gordura = {
                     "pdff_mediana": AC.numero(round(st["mediana"], 1), "%", "PDFF (mediana)"),
@@ -378,7 +445,7 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
                 por_seg = []
                 for nome, mk in segs.items():
                     ms_ = _ero2(_amostrar(vol, mk, vff), 1)
-                    s2 = _stats(dados[ms_] * escala) if ms_.sum() >= 5 else {}
+                    s2 = _stats(sem_troca(dados[ms_] * escala, trocados > 0)[0]) if ms_.sum() >= 5 else {}
                     if s2:
                         por_seg.append(f"{nome} {s2['mediana']:.1f}".replace(".", ","))
                 if por_seg:
@@ -426,6 +493,9 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
                 else:
                     res.avisos_ferro.append(f"sem ferro estimado (LIC): {como} — a calibração vale a 1,5 T, e a "
                                             "3 T com a conversão de Alam")
+                if r15 is not None and r15 >= R2_ALTO and res.gordura:
+                    res.avisos_gordura.append(f"R2* alto ({r2:.0f} s⁻¹): com muito ferro o sinal cai antes das ecos do "
+                                              "Dixon e o PDFF fica menos confiável (ruído e troca água-gordura)")
                 if baco is not None:
                     mb = _ero2(_amostrar(vol, baco, vr), 1)
                     sb = _stats(dados[mb]) if mb.sum() >= 5 else {}

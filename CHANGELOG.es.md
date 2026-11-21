@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.87 — hierro hepático en la RM con el mapa correcto; intercambio agua-grasa
+- **Hierro hepático en la RM (importante)**: en RM GE con IDEAL IQ, la serie "WATER: IDEAL IQ (R2\*)" (y "FAT: …")
+  se tomaba como el mapa de R2\* — "(R2\*)" es el nombre de la secuencia — y, al venir después del mapa, lo
+  reemplazaba: el hierro salía de la señal del agua o de la grasa. Rehaga el hierro de los estudios medidos antes.
+  Ahora manda la ImageType.
+- **Intercambio agua-grasa**: los vóxeles del hígado por encima de 60% con el resto muy por debajo quedan fuera del
+  PDFF, con aviso; con R2\* alto, aviso de que el PDFF es menos confiable.
+
 ## 0.100.86 — hallazgos de IA en la exportación; frases armadas traducidas
 - **Hallazgos de IA en la exportación**: la exportación DICOM (carpeta, .zip, copia anonimizada en la base) lleva
   los hallazgos de IA de los estudios en un `IPE_ACHADOS.json`; al importarlo en otro Ipê vuelven con el estado de

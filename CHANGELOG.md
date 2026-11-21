@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.87 — ferro hepático na RM pelo mapa certo; troca água-gordura
+- **Ferro hepático na RM (importante)**: nas RM GE com IDEAL IQ, a série "WATER: IDEAL IQ (R2\*)" (e a
+  "FAT: …") era tomada pelo mapa de R2\* — o "(R2\*)" é o nome da sequência — e, vindo depois do mapa, tomava o
+  lugar dele: o ferro saía do sinal da água ou da gordura (num exame, LIC 6,0 em vez de 4,85; noutro, 3 em vez de
+  14). Refaça o ferro dos exames medidos antes. Agora a ImageType manda.
+- **Troca água-gordura**: voxels do fígado acima de 60% com o resto bem abaixo saem da conta do PDFF, com aviso;
+  com R2\* alto, aviso de que o PDFF fica menos confiável. Validado em três exames e cinco séries-base diferentes.
+
 ## 0.100.86 — achados de IA na exportação; frases montadas traduzidas
 - **Achados de IA na exportação**: a exportação DICOM (pasta, .zip, cópia anonimizada no banco) leva os achados de
   IA dos exames num `IPE_ACHADOS.json`; ao importar em outro Ipê, voltam ao banco com o estado de cada um. Anonimizado,

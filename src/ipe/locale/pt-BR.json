@@ -9763,6 +9763,8 @@
   "Se {}  {}  {}",
   "{} de {} série(s) marcada(s)",
   " — a série recomendada para esta IA é “{}”.",
-  "{}\n\nA série recomendada para esta IA é “{}”."
+  "{}\n\nA série recomendada para esta IA é “{}”.",
+  "R2* alto ({} s⁻¹): com muito ferro o sinal cai antes das ecos do Dixon e o PDFF fica menos confiável (ruído e troca água-gordura)",
+  "{} dos voxels do fígado com fração acima de {}% e o resto bem abaixo: parece troca água-gordura do Dixon (comum na cúpula, perto do pulmão, e com muito ferro) — ficaram fora da conta; confira o mapa"
  ]
 }

@@ -83,6 +83,8 @@ def _exame(env, tmp_path, com_mapas=True, com_dupla=True):
         r2[_dentro(mx, my, mz, BACO)] = 40
         _serie(pasta, pat, study, "R2*: IDEAL IQ (R2*)", 1900, r2, 3.0, 8.0, O,
                extra={"ImageType": ["DERIVED", "PRIMARY", "DIXON", "R2_STAR_MAP"]})
+        # 0.100.86: a água do IDEAL IQ vem depois do mapa e tem "(R2*)" no nome — não pode virar o R2*
+        _serie(pasta, pat, study, "WATER: IDEAL IQ (R2*)", 1901, np.full(mx.shape, 900, np.int16), 3.0, 8.0, O)
     if com_dupla:
         op = np.full(x.shape, 100, np.int16)
         ip = np.full(x.shape, 120, np.int16)
@@ -115,6 +117,12 @@ def test_tipo_do_mapa():
     assert F.tipo_do_mapa("R2*: IDEAL IQ (R2*)", None) == "r2"
     assert F.tipo_do_mapa("T2* map", None) == "t2"
     assert F.tipo_do_mapa("Ax T2 SSFSE", None) == ""
+    # 0.100.86: as imagens de água e de gordura do IDEAL IQ não são mapa de R2* (o "(R2*)" é a sequência)
+    assert F.tipo_do_mapa("WATER: IDEAL IQ (R2*)", None) == ""
+    assert F.tipo_do_mapa("FAT: IDEAL IQ (R2*)", None) == ""
+    assert F.tipo_do_mapa("WATER: IDEAL IQ (R2*)", ["DERIVED", "PRIMARY", "DIXON", "WATER"]) == ""
+    assert F.tipo_do_mapa("R2 * ( Hz )", ["DERIVED", "SECONDARY", "PROCESSED"]) == "r2"
+    assert F.tipo_do_mapa("T2 * ( ms )", None) == "t2"
 
 
 def test_amostrar_entre_grades():
@@ -283,3 +291,13 @@ def test_contrato_e_aba(env):
     nomes = [t.l_ferramentas.item(k).text().split("\n")[0] for k in range(t.l_ferramentas.count())]
     assert F.NOME_CADIA in nomes
     assert [x["nome"] for x in F.tarefas()] == ["total_mr", "liver_segments_mr"]
+
+
+def test_troca_agua_gordura_sai_da_conta():
+    """0.100.86: num exame do acervo, 10% no fígado e 92–98% nos cortes da cúpula (troca do Dixon)."""
+    v = np.r_[np.full(800, 10.0), np.full(200, 95.0)]
+    fica, tirou = F.sem_troca(v)
+    assert np.median(fica) == 10 and tirou == pytest.approx(0.2)
+    gordo = np.r_[np.full(500, 40.0), np.full(500, 65.0)]        # esteatose grave de verdade: não mexe
+    assert F.sem_troca(gordo)[1] == 0
+    assert F.sem_troca(np.full(100, 8.0))[1] == 0

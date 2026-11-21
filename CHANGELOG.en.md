@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.87 — liver iron on MRI from the right map; water-fat swap
+- **Liver iron on MRI (important)**: on GE MRI with IDEAL IQ, the "WATER: IDEAL IQ (R2\*)" series (and "FAT: …")
+  was taken as the R2\* map — "(R2\*)" is the sequence name — and, coming after the map, replaced it: the iron came
+  from the water or fat signal. Redo the iron of studies measured before. The ImageType now decides.
+- **Water-fat swap**: liver voxels above 60% while the rest is well below are left out of the PDFF, with a warning;
+  with high R2\*, a warning that the PDFF is less reliable.
+
 ## 0.100.86 — AI findings in the export; assembled sentences translated
 - **AI findings in the export**: the DICOM export (folder, .zip, anonymized copy in the database) carries the
   studies' AI findings in an `IPE_ACHADOS.json`; importing it into another Ipê brings them back with the state of

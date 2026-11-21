@@ -10257,5 +10257,7 @@
  " — a série recomendada para esta IA é “{}”.": " — the recommended series for this AI is “{}”.",
  "{}\n\nA série recomendada para esta IA é “{}”.": "{}\n\nThe recommended series for this AI is “{}”.",
  "encerrar os processos filhos que sobram de uma segmentação interrompida, quando instalado": "ending the child processes left over by an interrupted segmentation, when installed",
- "IPE_ACHADOS.json: os achados de IA do exame; voltam ao banco ao importar a pasta em outro Ipê.\n": "IPE_ACHADOS.json: the study's AI findings; they return to the database when the folder is imported into another Ipê.\n"
+ "IPE_ACHADOS.json: os achados de IA do exame; voltam ao banco ao importar a pasta em outro Ipê.\n": "IPE_ACHADOS.json: the study's AI findings; they return to the database when the folder is imported into another Ipê.\n",
+ "R2* alto ({} s⁻¹): com muito ferro o sinal cai antes das ecos do Dixon e o PDFF fica menos confiável (ruído e troca água-gordura)": "High R2* ({} s⁻¹): with much iron the signal decays before the Dixon echoes and the PDFF is less reliable (noise and water-fat swap)",
+ "{} dos voxels do fígado com fração acima de {}% e o resto bem abaixo: parece troca água-gordura do Dixon (comum na cúpula, perto do pulmão, e com muito ferro) — ficaram fora da conta; confira o mapa": "{} of the liver voxels with a fraction above {}% while the rest is well below: looks like a Dixon water-fat swap (common at the dome, near the lung, and with much iron) — they were left out; check the map"
 }
