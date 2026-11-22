@@ -222,10 +222,12 @@ TAREFAS = [
         "slug": "mammography",
         "icone": "mama",
         "titulo": T("Read mammography", "Ler mamografia", "Leer mamografía"),
-        "frase": T("Hanging protocol step by step, tomosynthesis, breast density and vascular calcifications.",
-                   "Protocolo de exibição passo a passo, tomossíntese, densidade mamária e calcificações vasculares.",
-                   "Protocolo de visualización paso a paso, tomosíntesis, densidad mamaria y calcificaciones "
-                   "vasculares."),
+        "frase": T("Hanging protocol step by step, tomosynthesis, implant correction, breast density and vascular "
+                   "calcifications.",
+                   "Protocolo de exibição passo a passo, tomossíntese, correção do implante, densidade mamária e "
+                   "calcificações vasculares.",
+                   "Protocolo de visualización paso a paso, tomosíntesis, corrección del implante, densidad mamaria y "
+                   "calcificaciones vasculares."),
         "clipe": "mamo",
         "extras": [],
         "passos": [
