@@ -3,6 +3,23 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.97 — batch from spreadsheet
+- **Network ▸ Batch from spreadsheet…** (replaces the breast batch): for each row of a spreadsheet (CSV, XLSX or
+  ODS), Ipê finds the study — by Study UID, accession number or ID + date, with a day tolerance, modality and
+  "description contains" — first in its database, then in the checked nodes, in order, and does what you choose:
+  run AIs, check the MRI protocol, send to nodes (originals, results or both), **print the AI review series**,
+  **export** (PNG, one PDF per study, DICOM) and delete what came from outside.
+- Each column's type is guessed from its title and can be corrected in the preview. A row with only the ID and
+  no date is skipped.
+- Output: the original spreadsheet with Ipê's columns, **one tab per AI** with the numbers, Summary and README.
+  **Anonymize** replaces patient data with "Case 0001…" and keeps the key in a separate file.
+- **Simulate** (only searches and counts), saved **templates** (the breast one is built in), **time window**
+  (e.g. only 8 pm to 6 am), stop and resume. The log shows no patient names.
+- **On an Ipê client, the batch runs on the central server** (its shared nodes, AIs and printers): the window
+  follows it and, at the end, downloads the spreadsheet and the exported files. **Also bring the studies to this
+  computer** copies each finished study to the local database (the server deletes what it downloaded only after the
+  copy).
+
 ## 0.100.96 — AI menu translated; liver MRI on the site
 - **Ipê in English or Spanish**: in the AI menu, the reason an AI does not apply to the study ("the study has no
   CT", "not found in the study: Skull and brain") showed in Portuguese, sometimes mixed. It now follows the chosen

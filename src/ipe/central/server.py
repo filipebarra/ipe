@@ -294,6 +294,10 @@ class CentralServer:
         from ipe.central import filme_web as FW
         if method in FW.RPC:
             return FW.rpc(self, s, method, args, kwargs, client_host)
+        # 0.100.98: lote a partir de planilha rodando no servidor, pedido pelo Ipê cliente
+        from ipe.central import lote_servidor as LS
+        if method in LS.RPC:
+            return LS.rpc(self, s, method, args, kwargs, client_host)
         if method == "change_my_password":
             old, new = args[0], args[1]
             if self.repo.authenticate(s.username, old) is None:

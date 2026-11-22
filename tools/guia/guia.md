@@ -643,21 +643,9 @@ Toda mamografia que chega — recebida pela rede, baixada do PACS (Q/R), importa
 - **Depois de gravar o SR, enviar para:** (0.100.78) os nós DICOM marcados (o PACS) recebem o SR, as imagens marcadas e o resumo — tanto sem conferência quanto depois de confirmar (confirmar de novo reenvia). O mesmo vale no Ipê Web, em Cadastros ▸ Automações de IA.
 - No computador ligado a um servidor central, quem mede é o servidor; a confirmação é feita em qualquer um.
 
-### Pesquisa: as mamografias de uma lista, em lote (0.100.69)
+### Pesquisa: as mamografias de uma lista, em lote
 
-**Rede ▸ Densidade e calcificações em lote (planilha)…** serve para estudo: você tem uma planilha com uma linha por paciente (o **ID** e a **data da mamografia**) e quer a densidade e as calcificações vasculares de todas, medidas do mesmo jeito, sem depender do que o laudo disse.
-
-1. **Planilha**: `.xlsx` ou `.csv`. O Ipê escolhe a aba que tem ID e data e adivinha as colunas; confira. A coluna do **nascimento** é opcional: com ela, o exame achado só é medido se o nascimento for o mesmo (protege contra dois pacientes com o mesmo ID).
-2. **PACS** e **Falar como**: de onde buscar. O que já está no banco do Ipê é usado direto, sem buscar.
-3. **Planilha de saída**: as colunas originais e, ao lado, as do Ipê — situação, Study UID, accession, densidade (categoria e a probabilidade de A a D), BAC (grau pela área, área em mm² da mama pior, de cada mama e de cada incidência), CSBI, Margolies, Loberant e BAC-SS estimados, prótese e avisos. Duas abas a mais: *Resumo* e *LEIA-ME* (o que é cada coluna).
-4. **Iniciar**. Para cada linha: acha o exame (ID + data + modalidade MG; se há mais de um no dia, o de mais imagens), baixa, mede e — com a caixa marcada — **apaga do Ipê o que foi baixado só para o lote** (o que já estava no Ipê nunca é apagado).
-
-- **Demora**: de meio minuto a alguns minutos por mamografia. Uma lista de milhares roda por dias. Pode **Parar** e continuar depois: escolha a mesma planilha de saída e o Ipê segue de onde parou (o andamento fica num arquivo ao lado dela). Os *não encontrados* e os *com erro* são tentados de novo, se a caixa estiver marcada. **Quantas linhas agora** faz só as primeiras N — comece com 5 ou 10 para conferir.
-- **Onde rodar**: no Ipê que guarda as imagens (o do servidor, ou um com banco próprio), com as duas redes instaladas. No Ipê cliente a janela avisa e não começa.
-- **Situações**: *medido*; *não encontrado no PACS*; *nascimento não confere* (não baixa nem mede); *erro ao baixar*; *sem mamografia 2D para medir* (faltam incidências, só tomossíntese…); *erro*.
-- A janela não mostra nome de paciente: só o número da linha e o resultado. A planilha de saída tem os dados da sua lista — guarde como dado de pesquisa.
-
-> São as **medidas automáticas, sem confirmação**. As escalas (CSBI, Margolies, Loberant, BAC-SS) são estimativas a partir do traçado da rede, não a leitura de um radiologista; com prótese não há grau de BAC. Antes de analisar, **confira uma amostra**: abra alguns exames pelo Study UID e veja o traçado — de preferência sorteados dentro de cada grau.
+Para medir a densidade e as calcificações vasculares das mamografias de uma lista (estudo), use **Rede ▸ Lote a partir de planilha…** com o modelo pronto **Densidade e calcificações da mama** — veja "Lote a partir de planilha" no capítulo *Buscar e baixar*.
 
 
 ## RM de mama dinâmica
@@ -1137,6 +1125,38 @@ Botão direito nos resultados da busca:
 | Enviar para ▸ nó ▸ como… | baixa o exame para cá (se ainda não estiver) e, ao terminar, envia ao nó escolhido com a identidade escolhida. Exame já completo aqui sai na hora |
 
 O download usa a identidade de **Como:** da busca; o envio usa a escolhida no menu — são duas, de propósito. As tarefas aparecem na fila de transferências, com andamento, cancelar e o motivo de cada erro ("X não conhece o destino Y: ele precisa estar cadastrado em X").
+
+### Lote a partir de planilha (0.100.97)
+
+**Rede ▸ Lote a partir de planilha…** faz a mesma coisa com cada exame de uma lista: acha, baixa, roda as IAs, envia, imprime e exporta — e grava uma planilha com os resultados. Serve para estudos (validar as IAs contra os laudos, densidade × escore de cálcio) e para trabalho em massa (rodar o enfisema em todas as TC de tórax de um mês, mandar os resultados ao PACS).
+
+A janela tem cinco passos (à esquerda) e, no topo, os **modelos**: escolha um e aperte **Usar**; **Salvar como modelo…** guarda a configuração para repetir (sem a planilha).
+
+1. **Planilha**: CSV/TSV, XLSX ou ODS (o `.xls` antigo, salve como `.xlsx`). O Ipê escolhe a aba com cara de lista e adivinha o tipo de cada coluna pelo título — **ID do paciente, nº de acesso, data do exame, Study Instance UID, nascimento, nome, modalidade, descrição**; o que não reconhece fica como *outra informação (manter)*. Confira na prévia e troque no seletor acima de cada coluna. *Outro dado do paciente* marca uma coluna que deve sair da planilha anonimizada (telefone, endereço…).
+2. **Achar o exame**: o Ipê usa a melhor chave da linha — **Study UID**, senão o **nº de acesso**, senão **ID + data**. Linha só com o ID, **sem data**, não é feita. Ajuste a **tolerância da data** (± dias), as **modalidades** (vazio = qualquer), **descrição contém**, o que fazer se achar **mais de um exame** (o de mais imagens, o mais próximo da data ou todos) e se confere o **nascimento** (diferente = outra pessoa com o mesmo ID: não é usado).
+3. **De onde**: primeiro o banco do Ipê; se o exame não está, os **nós marcados, na ordem** da lista (arraste ou Subir/Descer) — baixa do primeiro que tiver. O ID guardado com ou sem zeros à esquerda é achado assim mesmo.
+4. **O que fazer** (tudo opcional):
+   - **Rodar IAs**: marque quais. A que não serve para o exame pula, com o motivo; a que o exame já tem não roda de novo (a não ser com *Rodar de novo*). As da mamografia (densidade, calcificações) rodam aqui mesmo; as outras passam pela fila de IA (aparecem em *Tarefas de IA*).
+   - **Conferir o protocolo de RM**.
+   - **Enviar** para nós: os originais, os resultados das IAs ou os dois.
+   - **Imprimir** as **séries de conferência** das IAs (a tabela da densidade e das calcificações, o mosaico da rigidez hepática, o enfisema…) num destino de impressão ou numa impressora DICOM — uma imagem por folha.
+   - **Exportar** para uma pasta: as séries de conferência em **PNG** ou **um PDF por exame**, e, se quiser, **os DICOM gerados** pelas IAs.
+   - **Apagar do Ipê, no fim, os exames baixados só para o lote** — o que já estava no banco nunca é apagado.
+5. **Rodar**: a **planilha de saída**; **Anonimizar a saída**; **Só rodar entre** (ex.: 20:00 e 06:00 — fora disso o lote espera); **Quantas linhas agora** (comece com 5 ou 10). **Simular** só procura e conta (não baixa nem roda nada): use antes de um lote grande para ver se as colunas estão certas. **Iniciar** / **Parar**.
+
+**A planilha de saída**:
+- **Resultados**: as colunas originais e, ao lado, as do Ipê (situação, Study UID, nº de acesso, data, descrição, de onde veio, IAs, protocolo, enviado, impresso, exportado). Com "todos os exames", uma linha da lista vira várias.
+- **IA · …**: uma aba por IA, com os números de cada exame (a densidade com a probabilidade de A a D; as calcificações com a área e as escalas; o fígado com PDFF, R2* e rigidez; …).
+- **Resumo** e **LEIA-ME**.
+- **Anonimizada**: sem ID, nome, nascimento, acesso e UID (*Caso 0001*…); a correspondência fica num arquivo à parte (`…-chave.xlsx`), que não deve sair da instituição. Na exportação anonimizada, as imagens que trazem o nome do paciente escrito ficam de fora.
+
+**Pode parar e continuar**: escolha a mesma planilha de saída e o lote segue de onde parou (os *não encontrados* e os *com erro* são tentados de novo, se a caixa estiver marcada). A janela não mostra nome de paciente — só o número da linha e o resultado.
+
+- **No Ipê cliente** de um servidor central, o lote **roda no servidor**: os nós são os que o servidor compartilha com os clientes, as IAs e as impressoras são as dele. A janela é a mesma; ela acompanha o andamento e, no fim, baixa a planilha (e a chave, se anonimizada) para o caminho escolhido e os arquivos exportados para a pasta escolhida. Pode fechar a janela: o lote continua no servidor — mande de novo com a **mesma planilha de saída** (o nome do lote é o nome dela) para continuar ou acompanhar. Marque **Trazer os exames também para este computador** para ter cada exame feito no banco local; se o lote apaga o que baixou, o servidor só apaga depois da cópia.
+- **No Ipê com banco próprio** (inclusive o do próprio servidor), o lote roda ali mesmo.
+- **Permissões**: buscar e baixar; enviar, imprimir e exportar quando marcados (exportar com identificação pede *exportar identificado*).
+
+> São **medidas automáticas, sem confirmação**. Antes de analisar, **confira uma amostra** — abra alguns exames pelo Study UID e veja a série de conferência.
 
 ## Enviar
 

@@ -3,6 +3,22 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.97 — lote desde hoja de cálculo
+- **Red ▸ Lote desde hoja de cálculo…** (en lugar del lote de mama): para cada fila de una hoja (CSV, XLSX u ODS),
+  Ipê encuentra el estudio — por Study UID, n.º de acceso o ID + fecha, con tolerancia de días, modalidad y
+  "descripción contiene" —, primero en su base y luego en los nodos marcados, en orden, y hace lo que usted elija:
+  ejecutar IA, verificar el protocolo de RM, enviar a nodos (originales, resultados o ambos), **imprimir las series
+  de revisión** de las IA, **exportar** (PNG, un PDF por estudio, DICOM) y borrar lo que vino de fuera.
+- El tipo de cada columna se adivina por el título y se corrige en la vista previa. Una fila solo con el ID, sin
+  fecha, no se procesa.
+- Salida: la hoja original con las columnas de Ipê, **una pestaña por IA** con los números, Resumen y LÉAME.
+  **Anonimizar** cambia los datos del paciente por "Caso 0001…" y guarda la clave en un archivo aparte.
+- **Simular** (solo busca y cuenta), **modelos** guardados (el de mama viene incluido), **franja horaria**
+  (ej.: solo de 20 h a 6 h), detener y continuar. El registro no muestra nombres de pacientes.
+- **En el Ipê cliente, el lote se ejecuta en el servidor central** (sus nodos compartidos, IA e impresoras): la
+  ventana lo acompaña y, al final, descarga la hoja y los archivos exportados. **Traer los estudios también a esta
+  computadora** copia cada estudio hecho a la base local (el servidor borra lo que descargó solo después de la copia).
+
 ## 0.100.96 — menú de las IA traducido; RM de hígado en el sitio
 - **Ipê en inglés o español**: en el menú de las IA, el motivo por el que una IA no vale para el estudio ("el
   estudio no tiene CT", "no encontré en el estudio: Cráneo y encéfalo") aparecía en portugués, a veces mezclado.

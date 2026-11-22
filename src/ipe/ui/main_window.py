@@ -387,9 +387,9 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         a = QAction("Conferência de protocolos de RM…", j)
         a.triggered.connect(self.show_protocolos_rm)
         r.addAction(a)
-        # 0.100.69: pesquisa — as mamografias de uma lista, do PACS, medidas em lote
-        a = QAction("Densidade e calcificações em lote (planilha)…", j)
-        a.triggered.connect(self.abrir_lote_mama)
+        # 0.100.97: lote a partir de planilha — achar, baixar, IAs, enviar, imprimir, exportar (era o lote da mama)
+        a = QAction("Lote a partir de planilha…", j)
+        a.triggered.connect(self.abrir_lote)
         r.addAction(a)
 
         # 0.99.51 (onda B): o fluxo dos laudos — busca ativa, produtividade
@@ -799,20 +799,17 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
             self.gestao_window = GestaoWindow(self.net, self.settings, self, auto=self.auto)
         self.gestao_window.show_front()
 
-    def abrir_lote_mama(self) -> None:
-        """Rede ▸ Densidade e calcificações em lote: uma planilha de pacientes → PACS → medidas → planilha."""
-        from ipe.auth import session as S
+    def abrir_lote(self) -> None:
+        """Rede ▸ Lote a partir de planilha: uma planilha → banco/nós → IAs, envio, impressão, exportação → planilha."""
         if self.meeting is not None or getattr(self, "_privacy_on", False):
-            QMessageBox.information(self, "Densidade e calcificações em lote", "O lote fica indisponível "
-                                    "enquanto os dados do paciente estão ocultos (reunião / Ocultar).")
+            QMessageBox.information(self, "Lote a partir de planilha", "O lote fica indisponível enquanto os dados "
+                                    "do paciente estão ocultos (reunião / Ocultar).")
             return
-        if not S.require("query", self) or not S.require("retrieve", self):
-            return
-        d = getattr(self, "lote_mama_window", None)
+        d = getattr(self, "lote_window", None)
         if d is None:
-            from ipe.ui.lote_mama_dialogo import LoteMamaDialog
-            d = self.lote_mama_window = LoteMamaDialog(self.repo, self.net, self.settings, self.storage,
-                                                       getattr(self.auto, "mama", None), self)
+            from ipe.ui.lote_dialogo import LoteDialog
+            d = self.lote_window = LoteDialog(self.repo, self.db, self.net, self.settings, self.storage,
+                                              getattr(self, "auto", None), self)
             d.setModal(False)
         d.show()
         d.raise_()

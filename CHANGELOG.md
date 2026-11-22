@@ -3,6 +3,21 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.97 — lote a partir de planilha
+- **Rede ▸ Lote a partir de planilha…** (no lugar do lote da mama): para cada linha de uma planilha (CSV, XLSX ou ODS),
+  o Ipê acha o exame — pelo Study UID, pelo nº de acesso ou pelo ID + data, com tolerância de dias, modalidade e
+  "descrição contém" —, primeiro no banco e depois nos nós marcados, na ordem, e então faz o que você escolher:
+  rodar IAs, conferir o protocolo de RM, enviar a nós (originais, resultados ou os dois), **imprimir as séries de
+  conferência** das IAs, **exportar** (PNG, um PDF por exame, DICOM) e apagar o que veio de fora.
+- O tipo de cada coluna é adivinhado pelo título e corrigido na prévia. Linha só com o ID, sem data, não é feita.
+- Saída: a planilha original com as colunas do Ipê, **uma aba por IA** com os números, Resumo e LEIA-ME.
+  **Anonimizar** troca os dados do paciente por "Caso 0001…" e guarda a chave num arquivo à parte.
+- **Simular** (só procura e conta), **modelos** salvos (o da mama já vem pronto), **janela de horário**
+  (ex.: só das 20h às 6h), parar e continuar. O diário não mostra nome de paciente.
+- **No Ipê cliente, o lote roda no servidor central** (nós compartilhados, IAs e impressoras dele): a janela acompanha
+  e, no fim, baixa a planilha e os exportados. **Trazer os exames também para este computador** copia cada exame
+  feito para o banco local (o servidor só apaga o que baixou depois da cópia).
+
 ## 0.100.96 — menu das IAs traduzido; RM de fígado no site
 - **Ipê em inglês ou espanhol**: no menu das IAs, o motivo de uma IA não valer para o exame ("o exame não tem CT",
   "não achei no exame: Crânio e encéfalo") aparecia em português, às vezes misturado. Agora sai no idioma escolhido.
