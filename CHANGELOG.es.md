@@ -3,6 +3,21 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.93 — verificación de protocolos de RM; calcificaciones vasculares con implante
+- **Verificación de protocolos de RM** (Red ▸ Verificación de protocolos de RM…): cada RM que llega se compara con el
+  protocolo de referencia del estudio y del equipo — series que faltan o sobran, plano, 2D/3D, secuencia, TR, TE, TI,
+  ángulo, ETL, NEX, espesor, espacio entre cortes, matriz, FOV, ancho de banda, campo, valores de b y contraste, con
+  tolerancias por protocolo. **Crear todas desde el acervo** registra de una vez el protocolo dominante de cada
+  estudio × equipo de la base; un estudio bueno también puede ser la referencia. Resultado en la nueva columna
+  **Protocolo (RM)** de la base (y ⚠ junto al nombre), en la verificación del estudio (clic derecho ▸ Herramientas) y
+  en la pestaña *Estudios verificados*, con CSV.
+- **Calcificaciones vasculares en mamas con implante**: el borde de la prótesis todavía contaba como "calcificación" en
+  algunas proyecciones (y en las escalas). Ahora la máscara del implante de la mamografía (la misma de "borrar el
+  implante") también queda fuera, y la copia con el implante corregido no se mide (se mide la original). Use "Medir de
+  nuevo" en los estudios con prótesis ya medidos.
+- Traducciones: "mama derecha/izquierda" y "ninguna" en la ventana de calcificaciones; el aviso "Para que el PACS envíe
+  aquí…" en Red ▸ Esta computadora.
+
 ## 0.100.92 — C-GET con series comprimidas, filtro "Todas" en inglés y traducciones
 - **C-GET**: cuando quien pide solo acepta sintaxis sin compresión, Ipê descomprime las series JPEG-LS/JPEG 2000
   al momento en lugar de dejarlas atrás (antes el estudio llegaba sin esas series).

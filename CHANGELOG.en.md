@@ -3,6 +3,20 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.93 — MRI protocol check; vascular calcifications with implants
+- **MRI protocol check** (Network ▸ MRI protocol check…): every incoming MRI is compared with the reference protocol
+  of the study and scanner — missing or extra series, plane, 2D/3D, sequence, TR, TE, TI, flip angle, ETL, NEX,
+  thickness, slice spacing, matrix, FOV, bandwidth, field, b-values and contrast, with per-protocol tolerances.
+  **Build all from the archive** registers the dominant protocol of every study × scanner in the database at once; a
+  good study can also become the reference. Results in the new **MRI protocol** column of the database (and ⚠ next to
+  the name), in the study check (right click ▸ Tools) and in the *Checked studies* tab, with CSV.
+- **Vascular calcifications in breasts with implants**: the implant edge was still counted as "calcification" in some
+  views (and in the scales). The mammography implant mask (the same as "erase the implant") is now left out too, and
+  the implant-corrected copy is not measured (the original is). Use "Measure again" on implant studies already
+  measured.
+- Translations: "right/left breast" and "none" in the calcification window; the "For the PACS to send here…" note in
+  Network ▸ This computer.
+
 ## 0.100.92 — C-GET with compressed series, "All" filter in English and translations
 - **C-GET**: when the requester accepts only uncompressed syntaxes, Ipê now decompresses JPEG-LS/JPEG 2000 series
   on the fly instead of leaving them behind (the study used to arrive without those series).

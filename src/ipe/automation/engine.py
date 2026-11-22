@@ -107,6 +107,31 @@ class AutomationEngine(QObject):
             return False
         return self.mama.pedir(study_uid)
 
+    def conferir_protocolo(self, study_uid: str, info: dict | None = None) -> bool:
+        """0.100.93: RM que chegou: confere o protocolo (só cabeçalho) contra a referência do exame e do aparelho, em
+        segundo plano; o resultado vai para a coluna "Protocolo (RM)" do banco. Sem referência cadastrada, nada."""
+        from ipe.automation import mama_auto as MA
+        from ipe.imaging import protocolo_rm as PR
+        if not PR.ligado(self.settings) or not MA.local(self.repo):
+            return False
+        info = info if info is not None else self.repo.study_info(study_uid)
+        if not info or "MR" not in str(info.get("modalities") or "").upper():
+            return False
+        if not PR.referencias(self.settings):
+            return False
+        repo, settings = self.repo, self.settings
+
+        def rodar():
+            try:
+                r = PR.conferir_exame(repo, settings, study_uid)
+                if r.get("estado") not in ("sem_rm", "sem_referencia"):
+                    self.changed.emit()
+            except Exception:  # noqa: BLE001
+                log.exception("conferência do protocolo de RM")
+        import threading
+        threading.Thread(target=rodar, name="protocolo-rm", daemon=True).start()
+        return True
+
     def _mama_medida_na_linha(self, study_uid: str, out: dict, da_varredura: bool) -> None:
         """Na linha da fila: só o exame que chegou (não a varredura do banco) e só com a opção ligada."""
         from ipe.automation import mama_auto as MA
@@ -285,6 +310,7 @@ class AutomationEngine(QObject):
         self.precalcular_dinamica(study_uid, info)
         self.corrigir_implantes(study_uid, info)
         self.mama_ia(study_uid, info)
+        self.conferir_protocolo(study_uid, info)
         self.segmentar_orgaos(study_uid, info)
         self.segmentar_coluna(study_uid, info)
         self.cefalometria(study_uid, info)
@@ -315,6 +341,7 @@ class AutomationEngine(QObject):
                 continue
             self.corrigir_implantes(uid, info)
             self.mama_ia(uid, info)
+            self.conferir_protocolo(uid, info)
             self.segmentar_orgaos(uid, info)
             self.segmentar_coluna(uid, info)
             self.cefalometria(uid, info)

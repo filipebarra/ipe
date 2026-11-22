@@ -383,6 +383,10 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         a = QAction("Gestão automática (regras com horário)…", j)
         a.triggered.connect(self.show_gestao_automatica)
         r.addAction(a)
+        # 0.100.93: o protocolo de cada RM contra o de referência (série, plano, TR, TE, espessura…)
+        a = QAction("Conferência de protocolos de RM…", j)
+        a.triggered.connect(self.show_protocolos_rm)
+        r.addAction(a)
         # 0.100.69: pesquisa — as mamografias de uma lista, do PACS, medidas em lote
         a = QAction("Densidade e calcificações em lote (planilha)…", j)
         a.triggered.connect(self.abrir_lote_mama)
@@ -813,6 +817,13 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         d.show()
         d.raise_()
         d.activateWindow()
+
+    def show_protocolos_rm(self) -> None:
+        from ipe.ui.protocolo_rm_ui import ProtocolosDialog
+        d = ProtocolosDialog(self.repo, self.settings, self)
+        d.finished.connect(lambda _r: self.browser.refresh())
+        d.show()
+        self._protocolos_rm = d
 
     def show_gestao_automatica(self) -> None:
         """Rede ▸ Gestão automática: a janela de Gestão já na aba "Automático"."""

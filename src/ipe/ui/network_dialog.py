@@ -393,9 +393,10 @@ class NetworkDialog(QDialog):
         self.parallel = QSpinBox(minimum=1, maximum=8, value=int(c.get("max_parallel", 2)))
         status = QLabel(self.net.server.status_text())
         ips = ", ".join(local_ips()) or "?"
-        info = QLabel(f"Para o PACS enviar para cá (C-MOVE/C-STORE), informe à TI:<br>"
-                      f"<b>AE {c.get('ae_title', 'DICOMVIEWER')}</b> · IP <b>{ips}</b> · porta "
-                      f"<b>{c.get('port', 11112)}</b>")
+        from ipe.core.i18n import tr
+        info = QLabel(tr("Para o PACS enviar para cá (C-MOVE/C-STORE), informe à TI:")
+                      + f"<br><b>AE {c.get('ae_title', 'DICOMVIEWER')}</b> · IP <b>{ips}</b> · "
+                      + tr("porta") + f" <b>{c.get('port', 11112)}</b>")
         info.setTextInteractionFlags(Qt.TextSelectableByMouse)
         f.addRow(self.enabled)
         f.addRow("AE Title:", self.ae)

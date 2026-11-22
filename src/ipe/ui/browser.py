@@ -34,6 +34,7 @@ COLUMNS = [
     ("birads", "BI-RADS", "text"), ("densidade", "Densidade", "text"), ("busca", "Busca ativa", "busca"),
     ("prioridade", "Prioridade", "prioridade"), ("subesp", "Subespecialidade", "text"),
     ("prazo", "Prazo do laudo", "datetime"), ("sla", "SLA", "text"), ("estado", "Estado", "estado"),
+    ("protocolo", "Protocolo (RM)", "protocolo"),
     ("case_n", "Nº", "int"), ("case_name", "Caso (lista)", "text"),
 ]
 LIST_ONLY = ["case_n", "case_name"]          # aparecem sozinhas quando uma lista está aberta
@@ -57,9 +58,11 @@ MARK_AMENDED = "✔↻"
 MARK_FILM = "▦"
 MARK_IA = "✦"            # 0.99.32: o exame tem resultado de IA (segmentação, coluna, implante…)
 MARK_IA_RODANDO = "⚙"    # uma IA está na fila ou rodando neste exame agora
+MARK_PROTOCOLO = "⚠"     # 0.100.93: o protocolo da RM saiu do padrão (série faltando, plano, sequência…)
 MARK_TIPS = {MARK_COMMENT: "tem comentário", MARK_DRAFT: "laudo em rascunho",
              MARK_SIGNED: "laudo assinado", MARK_AMENDED: "laudo retificado",
-             MARK_FILM: "tem filme salvo", MARK_IA: "tem aplicação de IA", MARK_IA_RODANDO: "IA rodando ou na fila"}
+             MARK_FILM: "tem filme salvo", MARK_IA: "tem aplicação de IA", MARK_IA_RODANDO: "IA rodando ou na fila",
+             MARK_PROTOCOLO: "protocolo de RM fora do padrão"}
 REPORT_MARKS = {"rascunho": MARK_DRAFT, "assinado": MARK_SIGNED, "retificado": MARK_AMENDED}
 
 
@@ -76,6 +79,8 @@ def _mark_list(r) -> list[str]:
         marcas.append(MARK_IA)
     if _ia_rodando(r.study_uid if hasattr(r, "study_uid") else ""):
         marcas.append(MARK_IA_RODANDO)
+    if str(getattr(r, "protocolo", "") or "").startswith(MARK_PROTOCOLO):
+        marcas.append(MARK_PROTOCOLO)
     return marcas
 
 
@@ -94,6 +99,17 @@ def _texto_ia(r) -> str:
     partes = ([f"{MARK_IA} {feitas}"] if feitas else []) + \
         [f"{MARK_IA_RODANDO} {t.ferramenta.lower()} ({'na fila' if t.estado == 'fila' else 'rodando'})" for t in rod]
     return "  ".join(partes)
+
+
+def _texto_protocolo(v: str) -> str:
+    """0.100.93: "⚠ falta(m) 1 série(s), 2 aviso(s)" no idioma da tela (o banco guarda em português)."""
+    if not v:
+        return ""
+    from ipe.core.i18n import tr
+    marca, _, resto = v.partition(" ")
+    if len(marca) != 1:
+        marca, resto = "", v
+    return (marca + " " if marca else "") + ", ".join(tr(p) for p in resto.split(", "))
 
 
 def _marks(r) -> str:
@@ -180,6 +196,8 @@ class StudyTableModel(QAbstractTableModel):
                 return B.rotulo_do_banco(r)
             if kind == "ia":
                 return _texto_ia(r)
+            if kind == "protocolo":
+                return _texto_protocolo(v)
             if kind == "busca":
                 from ipe.reporting import busca_ativa as BA
                 return BA.ESTADOS.get(v, v) if v else ""
@@ -1745,6 +1763,14 @@ class Browser(QWidget):
         a_tags.setEnabled(len(rows) == 1)
         a_tags.triggered.connect(lambda: self.fix_tags_requested.emit(rows[0].study_uid))
         fm.addAction(a_tags)
+        rms = [r for r in rows if "MR" in (r.modalities or "").upper()]
+        if rms:
+            a_prot = QAction("Conferir o protocolo de RM…" if len(rms) == 1
+                             else "Conferir o protocolo de RM ({} exames)".format(len(rms)), fm)
+            a_prot.setToolTip("Compara cada série com o protocolo de referência do exame e do aparelho "
+                              "(Rede ▸ Conferência de protocolos de RM).")
+            a_prot.triggered.connect(lambda: self.conferir_protocolo(rms))
+            fm.addAction(a_prot)
         mgs = [r for r in rows if "MG" in (r.modalities or "").upper()]
         if mgs:
             a_imp = QAction("Apagar implante (salvar a mamografia sem o silicone)" if len(mgs) <= 1
@@ -1766,6 +1792,35 @@ class Browser(QWidget):
         a_del.triggered.connect(lambda: self._delete(rows))
         menu.addAction(a_del)
         return menu
+
+    def conferir_protocolo(self, rows) -> None:
+        """0.100.93: um exame abre a conferência; vários são conferidos de uma vez (coluna Protocolo (RM))."""
+        from ipe.core.i18n import tr
+        from ipe.imaging import protocolo_rm as PR
+        if len(rows) == 1:
+            from ipe.ui.protocolo_rm_ui import ConferenciaDialog
+            ConferenciaDialog(self.repo, self.settings, rows[0].study_uid, self).exec()
+            self.refresh()
+            return
+        from PySide6.QtWidgets import QApplication, QProgressDialog
+        prog = QProgressDialog(tr("Conferindo as RM…"), tr("Cancelar"), 0, len(rows), self)
+        prog.setWindowModality(Qt.WindowModal)
+        estados = {}
+        for i, r in enumerate(rows):
+            prog.setValue(i)
+            QApplication.processEvents()
+            if prog.wasCanceled():
+                break
+            try:
+                e = PR.conferir_exame(self.repo, self.settings, r.study_uid).get("estado", "")
+            except Exception:  # noqa: BLE001
+                e = "erro"
+            estados[e] = estados.get(e, 0) + 1
+        prog.setValue(len(rows))
+        self.refresh()
+        self.status_message.emit(tr("Protocolo de RM: {} conforme(s), {} com avisos, {} divergente(s), {} sem "
+                            "referência.").format(estados.get("conforme", 0), estados.get("avisos", 0),
+                                                  estados.get("divergente", 0), estados.get("sem_referencia", 0)))
 
     def apagar_implante(self, rows: list[StudyRow]) -> dict:
         """Botão direito ▸ Apagar implante: grava as cópias sem silicone das mamografias escolhidas

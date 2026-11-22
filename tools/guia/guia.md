@@ -1454,6 +1454,33 @@ O pior vem primeiro. **Mostrar: Só os com problema** filtra; as séries aparece
 
 > **Quem aceita o destino é quem envia.** No C-MOVE, o programa só escolhe o nome do destino; a modalidade decide pela tabela dela. Se ela não tem o PACS cadastrado, o envio direto não existe — por isso o padrão cai para "pelo computador". Nós DICOMweb não entram na Gestão: conferir e mandar direto são C-FIND e C-MOVE.
 
+# Conferência de protocolos de RM
+
+Cada RM que chega é comparada com o **protocolo de referência** do mesmo exame — e do mesmo aparelho, quando houver: as séries que faltam, as que sobram e os parâmetros de cada uma (plano, 2D/3D, sequência, TR, TE, TI, ângulo, ETL, NEX, espessura, espaço entre cortes, matriz, FOV, pixel, banda, campo, valores de b da difusão, pré ou pós-contraste). Só o cabeçalho é lido; nada de pixel. Ficam de fora o localizador, a calibração e o que é derivado (mapa ADC, subtração, MIP, reformatação).
+
+**Rede ▸ Conferência de protocolos de RM…** tem duas abas.
+
+**Protocolos de referência.** Três jeitos de cadastrar:
+
+- **Criar todas pelo acervo**: um protocolo para cada exame × aparelho com exames suficientes no banco (de fábrica: os últimos 6 meses, pelo menos 5 exames, lendo os 20 mais recentes). É o **protocolo dominante**: a série que aparece em ≥ 80% dos exames é obrigatória, em ≥ 50% é opcional; cada número é a mediana, o resto é o valor mais comum. É o jeito de cadastrar todas as RM do serviço de uma vez.
+- **Criar pelo acervo…**: o mesmo para um exame e aparelho escolhidos.
+- **Usar este exame como referência** (na conferência de um exame): o exame bom vira o padrão — só daquele aparelho ou de qualquer um.
+
+**Editar…** mostra as séries esperadas (obrigatória ou não, e os valores; valor vazio = não confere aquele parâmetro) e as **tolerâncias**: relativa (TR, TE, TI ±10%; FOV e pixel ±10%; banda ±15%), absoluta (ângulo ±2°, espessura ±0,3 mm, espaço entre cortes ±0,5 mm), igual (matriz, plano, 2D/3D, sequência, campo, valores de b, contraste) ou só mostrar (número de imagens). Cada protocolo pode ter as suas.
+
+**A conferência.** Com a caixa *Conferir sozinho as RM que chegam* ligada (de fábrica), toda RM recebida, baixada ou importada é conferida em segundo plano. O resultado vai para a coluna **Protocolo (RM)** do banco (✓ conforme, △ com avisos, ⚠ divergente) e o ⚠ aparece também ao lado do nome do paciente. Botão direito no exame ▸ **Ferramentas ▸ Conferir o protocolo de RM…** abre a conferência dele: cada série esperada, a achada, a situação e o que mudou ("TR: 1941 (esperado 1700 ±10%)"). Com vários exames selecionados, confere todos de uma vez.
+
+| Situação | Conta como |
+|---|---|
+| Série obrigatória faltando | divergência |
+| Plano, 2D/3D, campo, sequência, valores de b ou contraste diferentes | divergência |
+| Número fora da tolerância | aviso |
+| Série opcional faltando, série a mais | aviso |
+
+A série é achada pelo nome (a descrição, sem acento e sem maiúscula); se o nome mudou, pelo plano + sequência + 2D/3D + contraste. Série repetida: vale a última (a refeita), e a conferência diz "repetida 1×". A referência é escolhida sozinha — a do mesmo exame e aparelho, senão a do mesmo exame para qualquer aparelho; na conferência dá para escolher outra.
+
+**Exames conferidos.** O período, *Só os fora do padrão*, **Conferir o período** (confere de novo todas as RM, por exemplo depois de editar um protocolo) e **Exportar CSV** (uma linha por diferença: série, parâmetro, valor, esperado e tolerância). Duplo clique abre a conferência do exame.
+
 # Laudo
 
 Botão **Laudo** na tela inicial, ou botão direito no exame → **Laudo…**.

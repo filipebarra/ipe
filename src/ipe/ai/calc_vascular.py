@@ -235,6 +235,43 @@ def regiao_da_protese(img8: np.ndarray, passo_mm: float) -> np.ndarray | None:
     return cv2.resize(reg, (w, h), interpolation=cv2.INTER_NEAREST).astype(bool)
 
 
+def _com_a_mascara_do_implante(ds, reg: np.ndarray | None, passo_mm: float) -> np.ndarray | None:
+    """0.100.93: junta à região acima a máscara do implante da mamografia (`mammo.implant_mask`: borda forte e forma
+    convexa — a mesma do "apagar o implante"), com a faixa de `FAIXA_PROTESE_MM` em volta. A busca "lisa e clara" sozinha
+    deixava escapar a beirada da prótese em algumas incidências, e a borda virava calcificação na conta e nas escalas.
+    Só quando há prótese (o arquivo diz, ou a busca acima achou) e a incidência não é a de implante deslocado."""
+    if not (tem_protese(ds) or reg is not None):
+        return reg
+    try:
+        import cv2
+
+        from ipe.imaging import mammo as MM
+        rot = ds.get((0x0045, 0x101B))
+        rot = rot.value if rot is not None else ""
+        if isinstance(rot, bytes):
+            rot = rot.decode("latin-1", errors="ignore")
+        tags = {"BreastImplantPresent": str(getattr(ds, "BreastImplantPresent", "") or ""),
+                "rotulo": str(rot).strip("\x00 "),
+                "modificadores": [str(getattr(i, "CodeMeaning", "")) for i in
+                                  (getattr(ds, "ViewModifierCodeSequence", None) or [])]}
+        if MM.implante_esperado(tags):
+            return reg
+        px = ds.pixel_array
+        mono1 = str(getattr(ds, "PhotometricInterpretation", "") or "").upper() == "MONOCHROME1"
+        mi = MM.implant_mask(px, mono1)
+        if mi is None or mi.shape != px.shape:
+            return reg
+        raio = max(1, round(FAIXA_PROTESE_MM / passo_mm))
+        mi = cv2.dilate(mi.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * raio + 1, 2 * raio + 1)))
+        mi = mi.astype(bool)
+        if reg is None or reg.shape != mi.shape:
+            return mi
+        return reg | mi
+    except Exception:  # noqa: BLE001
+        log.warning("calcificação vascular: máscara do implante", exc_info=True)
+        return reg
+
+
 def pedacos(m: np.ndarray, passo_mm: float) -> tuple[np.ndarray, list[dict]]:
     """Os pedaços segmentados com o tamanho de cada um; devolve também a máscara só dos alongados."""
     try:
@@ -260,6 +297,7 @@ def medir_imagem(ds, dados=None, stop=None) -> dict:
     passo = float(D.espacamento(ds) or 0.1)
     # a prótese: pelo arquivo ou pela imagem (num dos exames dele o aparelho não declarava)
     reg = regiao_da_protese(img8, passo)
+    reg = _com_a_mascara_do_implante(ds, reg, passo)
     out = {"protese": tem_protese(ds) or reg is not None, "protese_achada": reg is not None,
            "descartado_protese_mm2": 0.0}
     if reg is not None:
@@ -347,6 +385,9 @@ def imagens_do_exame(repo, study_uid: str) -> list[dict]:
         if quadros > 1 or any(t in ("TOMO", "TOMOSYNTHESIS", "VOLUME") for t in tipo):
             continue
         if str(getattr(ds, "PresentationIntentType", "") or "").upper() == "FOR PROCESSING":
+            continue
+        from ipe.imaging import mammo as MM
+        if MM.eh_sem_implante(ds):        # 0.100.93: a cópia com o implante corrigido é só da tela; mede-se a original
             continue
         lado = R._lado(ds)
         if not lado:

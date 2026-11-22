@@ -275,7 +275,7 @@ class CalcVascularJanela(QDialog):
         if m.get("aviso"):
             self.lb_rede.setText(f"<b>{tr('Rede (SCU-Net)')}:</b> — {tr(m['aviso'])}")
         else:
-            lados = " · ".join(f"{tr('mama')} {tr(LADO[k])} {v:.0f} mm²" for k, v in (m.get("por_mama") or {}).items())
+            lados = " · ".join(f"{tr('mama ' + LADO[k])} {v:.0f} mm²" for k, v in (m.get("por_mama") or {}).items())
             sug = m.get("sugestao")
             self.lb_rede.setText(
                 f"<b>{tr('Rede (SCU-Net)')}:</b> " + (lados or "—")

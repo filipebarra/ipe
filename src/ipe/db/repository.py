@@ -88,6 +88,7 @@ class StudyRow:
     sla_estado: str = ""          # ok, atencao, atrasado, no_prazo, fora_do_prazo
     estado: str = ""              # 0.99.63: nao_lido, em_leitura, revisado, urgente (core/estado_exame)
     estado_manual: str = ""       # o trocado à mão ("" = automático)
+    protocolo: str = ""           # 0.100.93: conferência do protocolo de RM ("✓ conforme", "⚠ falta(m) 1 série(s)")
 
 
 @dataclass
@@ -202,6 +203,7 @@ class Repository:
             ias: dict[str, list[str]] = {}
             mama: dict[str, tuple[str, str]] = {}
             buscas: dict[str, str] = {}
+            protocolos: dict[str, str] = {}
             laudado: dict = {}
             from ipe.core import estado_exame as _EST
             from ipe.core import sla as _SLA
@@ -233,6 +235,10 @@ class Repository:
                             cat = _BR.final_category(f)
                             comp = f.get("composition" if f.get("kind") != "mri" else "fgt", "")
                             mama[uid] = (cat, str(comp or "").lower())
+                from ipe.imaging import protocolo_rm as _PR
+                for uid, dados in s.execute(select(RevisaoIA.study_uid, RevisaoIA.dados)
+                                            .where(RevisaoIA.study_uid.in_(uids), RevisaoIA.modulo == _PR.MODULO)):
+                    protocolos[uid] = _PR.texto_da_coluna(dados)
                 for uid, est in s.execute(select(BuscaAtiva.study_uid, BuscaAtiva.estado)
                                           .where(BuscaAtiva.study_uid.in_(uids)).order_by(BuscaAtiva.id)):
                     buscas[uid] = est
@@ -282,7 +288,7 @@ class Repository:
                     dono=st.dono or "", visivel_para=st.visivel_para or "",
                     ia=", ".join(ias.get(st.study_uid, [])),
                     birads=mama.get(st.study_uid, ("", ""))[0], densidade=mama.get(st.study_uid, ("", ""))[1],
-                    busca=buscas.get(st.study_uid, ""), **sla,
+                    busca=buscas.get(st.study_uid, ""), protocolo=protocolos.get(st.study_uid, ""), **sla,
                     estado=_EST.estado(st.estado_leitura or "", reports.get(st.study_uid, ""), sla.get("prioridade", ""),
                                        bool(st.unread)),
                     estado_manual=st.estado_leitura or "",
