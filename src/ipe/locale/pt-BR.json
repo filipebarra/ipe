@@ -10129,6 +10129,11 @@
   "O servidor não começou o lote: {}",
   "O servidor não respondeu às opções do lote: {}",
   "Sem resposta do servidor: {}",
-  "Destino do servidor: {}"
+  "Destino do servidor: {}",
+  "erro ao buscar em {}: {}",
+  "{} devolveu {} exame(s) que não bateram (ex.: ID {}, {}, {}).",
+  "erro ao buscar só pelo ID em {}: {}",
+  "{} não tem nenhum exame com o ID {}.",
+  "O ID tem {} exame(s) em {}, em outras datas ou modalidades — os mais próximos: {}."
  ]
 }

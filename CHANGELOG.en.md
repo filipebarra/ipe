@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.98 — batch: why it was not found
+- **Batch from spreadsheet**: when a study is not found, the note now says **why**: the node error (if the search
+  failed); the studies the node returned that the filter removed (ID, date, modality); or, searching again by ID
+  only, whether the patient has studies on **other dates or modalities** (with the closest ones) or none at all.
+- PACS that does not filter by modality in the query: the batch searches again without it and filters in Ipê.
+
 ## 0.100.97 — batch from spreadsheet
 - **Network ▸ Batch from spreadsheet…** (replaces the breast batch): for each row of a spreadsheet (CSV, XLSX or
   ODS), Ipê finds the study — by Study UID, accession number or ID + date, with a day tolerance, modality and

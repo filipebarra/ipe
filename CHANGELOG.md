@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.98 — lote: por que não achou
+- **Lote a partir de planilha**: quando um exame não é encontrado, a observação agora diz **por quê**: o erro do nó
+  (se a busca falhou); os exames que o nó devolveu e o filtro tirou (ID, data, modalidade); ou, buscando de novo só
+  pelo ID, se o paciente tem exames em **outras datas ou modalidades** (com os mais próximos) ou nenhum exame no nó.
+- PACS que não filtra pela modalidade na busca: o lote busca de novo sem a modalidade e filtra no Ipê.
+
 ## 0.100.97 — lote a partir de planilha
 - **Rede ▸ Lote a partir de planilha…** (no lugar do lote da mama): para cada linha de uma planilha (CSV, XLSX ou ODS),
   o Ipê acha o exame — pelo Study UID, pelo nº de acesso ou pelo ID + data, com tolerância de dias, modalidade e

@@ -1150,6 +1150,8 @@ A janela tem cinco passos (à esquerda) e, no topo, os **modelos**: escolha um e
 - **Resumo** e **LEIA-ME**.
 - **Anonimizada**: sem ID, nome, nascimento, acesso e UID (*Caso 0001*…); a correspondência fica num arquivo à parte (`…-chave.xlsx`), que não deve sair da instituição. Na exportação anonimizada, as imagens que trazem o nome do paciente escrito ficam de fora.
 
+**Não encontrado**: a observação diz por quê — o erro do nó, os exames que o nó devolveu e o filtro tirou, ou (buscando de novo só pelo ID) se o paciente tem exames em outras datas/modalidades, com os mais próximos. Use a Simulação para acertar as colunas e a tolerância antes de rodar de verdade.
+
 **Pode parar e continuar**: escolha a mesma planilha de saída e o lote segue de onde parou (os *não encontrados* e os *com erro* são tentados de novo, se a caixa estiver marcada). A janela não mostra nome de paciente — só o número da linha e o resultado.
 
 - **No Ipê cliente** de um servidor central, o lote **roda no servidor**: os nós são os que o servidor compartilha com os clientes, as IAs e as impressoras são as dele. A janela é a mesma; ela acompanha o andamento e, no fim, baixa a planilha (e a chave, se anonimizada) para o caminho escolhido e os arquivos exportados para a pasta escolhida. Pode fechar a janela: o lote continua no servidor — mande de novo com a **mesma planilha de saída** (o nome do lote é o nome dela) para continuar ou acompanhar. Marque **Trazer os exames também para este computador** para ter cada exame feito no banco local; se o lote apaga o que baixou, o servidor só apaga depois da cópia.

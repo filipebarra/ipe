@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.98 — lote: por qué no lo encontró
+- **Lote desde hoja de cálculo**: cuando no encuentra un estudio, la observación ahora dice **por qué**: el error
+  del nodo (si la búsqueda falló); los estudios que el nodo devolvió y el filtro quitó (ID, fecha, modalidad); o,
+  buscando de nuevo solo por el ID, si el paciente tiene estudios en **otras fechas o modalidades** (con los más
+  cercanos) o ninguno en el nodo.
+- PACS que no filtra por modalidad en la búsqueda: el lote busca de nuevo sin ella y filtra en Ipê.
+
 ## 0.100.97 — lote desde hoja de cálculo
 - **Red ▸ Lote desde hoja de cálculo…** (en lugar del lote de mama): para cada fila de una hoja (CSV, XLSX u ODS),
   Ipê encuentra el estudio — por Study UID, n.º de acceso o ID + fecha, con tolerancia de días, modalidad y

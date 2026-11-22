@@ -89,13 +89,17 @@ def servicos(repo, db, net, settings, storage_root, engine=None, chamar=None, id
         if crit.get("acesso"):
             return cli.find_studies(alvo, accession=crit["acesso"], modality=mod, limit=50)
         pid = crit["pid"]
-        achados = cli.find_studies(alvo, patient_id=pid, date_from=crit.get("data_de", ""),
-                                   date_to=crit.get("data_ate", ""), modality=mod, limit=100)
+        datas = {"date_from": crit.get("data_de", ""), "date_to": crit.get("data_ate", "")}
+        achados = cli.find_studies(alvo, patient_id=pid, modality=mod, limit=100, **datas)
+        if not achados and mod:
+            # 0.100.98: nem todo PACS filtra por ModalitiesInStudy — de novo sem a modalidade (o filtro fica aqui)
+            achados = cli.find_studies(alvo, patient_id=pid, limit=100, **datas)
         if not L.filtrar(achados, crit) and pid.lstrip("0"):
             # o PACS pode guardar o ID com (ou sem) zeros à esquerda: busca pelo fim e o filtro fica com o mesmo número
-            achados = achados + cli.find_studies(alvo, patient_id="*" + pid.lstrip("0"),
-                                                 date_from=crit.get("data_de", ""), date_to=crit.get("data_ate", ""),
-                                                 modality=mod, limit=100)
+            try:
+                achados = achados + cli.find_studies(alvo, patient_id="*" + pid.lstrip("0"), limit=100, **datas)
+            except Exception as e:  # noqa: BLE001 - PACS que não aceita curinga no começo
+                log.info("lote: busca por *%s: %s", pid.lstrip("0"), e)
         return achados
 
     def tem(uid: str) -> bool:

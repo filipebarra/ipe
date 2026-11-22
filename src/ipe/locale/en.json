@@ -10623,5 +10623,10 @@
  "O servidor não começou o lote: {}": "The server did not start the batch: {}",
  "O servidor não respondeu às opções do lote: {}": "The server did not answer the batch options: {}",
  "Sem resposta do servidor: {}": "No answer from the server: {}",
- "Destino do servidor: {}": "Server destination: {}"
+ "Destino do servidor: {}": "Server destination: {}",
+ "erro ao buscar em {}: {}": "error searching {}: {}",
+ "{} devolveu {} exame(s) que não bateram (ex.: ID {}, {}, {}).": "{} returned {} study(ies) that did not match (e.g. ID {}, {}, {}).",
+ "erro ao buscar só pelo ID em {}: {}": "error searching only by ID in {}: {}",
+ "{} não tem nenhum exame com o ID {}.": "{} has no study with ID {}.",
+ "O ID tem {} exame(s) em {}, em outras datas ou modalidades — os mais próximos: {}.": "The ID has {} study(ies) in {}, on other dates or modalities — the closest: {}."
 }

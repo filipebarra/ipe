@@ -324,6 +324,11 @@ def em_janela(agora: datetime, de: str, ate: str) -> bool:
     return a <= t < b if a < b else (t >= a or t < b)
 
 
+def _data_br(d) -> str:
+    d = str(d or "")[:8]
+    return f"{d[6:8]}/{d[4:6]}/{d[:4]}" if len(d) == 8 and d.isdigit() else (d or "?")
+
+
 def _mesmo_id(a: str, b: str) -> bool:
     a, b = str(a or "").strip(), str(b or "").strip()
     return a == b or (a.lstrip("0") == b.lstrip("0") and a.lstrip("0") != "")
@@ -439,21 +444,27 @@ class Lote:
             return {"situacao": SEM_CHAVE}
         exames = filtrar(self.s.local(crit), crit)
         origem = ""
+        erros: list[str] = []
+        brutos: dict = {}
         if not exames:
             for no in self.cfg.nos:
                 if parar is not None and parar.is_set():
                     raise InterruptedError
                 try:
-                    exames = filtrar(self.s.no(no, crit), crit)
+                    brutos[no] = self.s.no(no, crit) or []
+                    exames = filtrar(brutos[no], crit)
                 except Exception as e:  # noqa: BLE001 - um nó fora do ar não para o lote: tenta o próximo
                     log.warning("lote: busca em %s: %s", no, e)
+                    erros.append(tr("erro ao buscar em {}: {}").format(self.s.nome_no(no), str(e)[:200]))
                     exames = []
                 if exames:
                     origem = no
                     break
         if not exames:
             onde = [tr("banco do Ipê")] + [self.s.nome_no(n) for n in self.cfg.nos]
-            return {"situacao": NAO_ACHADO, "observacao": tr("Procurado em: {}.").format(", ".join(onde))}
+            obs = [tr("Procurado em: {}.").format(", ".join(onde))] + erros
+            obs.append(self._por_que_nao(crit, brutos, parar))
+            return {"situacao": NAO_ACHADO, "observacao": " ".join(x for x in obs if x)}
         escolhidos = escolher(exames, self.cfg.varios, l.data)
         r: dict = {"achados": len(exames), "exames": []}
         if len(exames) > 1 and len(escolhidos) == 1:
@@ -475,6 +486,38 @@ class Lote:
         else:
             r["situacao"] = ERRO
         return r
+
+    def _por_que_nao(self, crit: dict, brutos: dict, parar=None) -> str:
+        """0.100.98: quando não acha, diz por quê — o nó devolveu exames que o filtro tirou, ou o ID tem exames
+        em outras datas (busca de novo só pelo ID, sem data nem modalidade, no primeiro nó)."""
+        out = []
+        for no, lista in brutos.items():
+            if lista:
+                ex = lista[0]
+                out.append(tr("{} devolveu {} exame(s) que não bateram (ex.: ID {}, {}, {}).").format(
+                    self.s.nome_no(no), len(lista), ex.get("patient_id", ""), _data_br(ex.get("study_date", "")),
+                    ex.get("modalities", "") or "?"))
+        if out or not crit.get("data_de") or not self.cfg.nos or (parar is not None and parar.is_set()):
+            return " ".join(out)
+        no = self.cfg.nos[0]
+        so_id = {"pid": crit["pid"], "modalidades": [], "descricao": ""}
+        try:
+            outros = filtrar(self.s.no(no, so_id) or [], so_id)
+        except Exception as e:  # noqa: BLE001
+            return tr("erro ao buscar só pelo ID em {}: {}").format(self.s.nome_no(no), str(e)[:200])
+        if not outros:
+            return tr("{} não tem nenhum exame com o ID {}.").format(self.s.nome_no(no), crit["pid"])
+        alvo = crit["data_de"]
+
+        def dist(e):
+            d = str(e.get("study_date") or "")[:8]
+            return abs(int(d) - int(alvo)) if d.isdigit() and alvo.isdigit() else 10 ** 9
+        perto = sorted(outros, key=dist)[:3]
+        return tr("O ID tem {} exame(s) em {}, em outras datas ou modalidades — os mais próximos: {}.").format(
+            len(outros), self.s.nome_no(no), "; ".join(f"{_data_br(e.get('study_date', ''))} "
+                                                         f"{e.get('modalities', '') or '?'} "
+                                                         f"{(e.get('description') or '')[:30]}".strip()
+                                                         for e in perto))
 
     def _um_exame(self, l: Linha, ex: dict, origem: str, parar) -> dict:
         uid = str(ex.get("study_uid") or "")

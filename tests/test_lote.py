@@ -274,3 +274,41 @@ def test_executor_espera_a_fila_e_pega_os_numeros():
     assert r["enfisema"]["situacao"] == LIA.FEITA and r["enfisema"]["series"] == ["S2"]
     assert r["enfisema"]["campos"] == {"Achado": "Enfisema", "Local": "pulmões", "LAA-950 (%)": 12.345}
     assert r["calcio"]["situacao"] == LIA.NAO_SERVE and "contraste" in r["calcio"]["motivo"]
+
+
+def test_nao_encontrado_diz_por_que(tmp_path):
+    cfg = L.Config(nos=["pacs"])
+    lote, d = _lote(tmp_path, cfg, [["9", "X", "10/03/2024", "", 0], ["3", "Y", "05/04/2024", "", 0]])
+    lote.rodar()
+    r = [lote.resultados[l.chave] for l in lote.linhas]
+    assert all(x["situacao"] == L.NAO_ACHADO for x in r)
+    # o dublê devolve tudo o que tem: o filtro tira; a observação mostra o que voltou
+    assert "PACS devolveu" in r[0]["observacao"]
+
+
+def test_nao_encontrado_busca_so_pelo_id(tmp_path):
+    cfg = L.Config(nos=["pacs"])
+    cab = ["ID", "Data"]
+    dados = [["3", "05/04/2024"], ["77", "05/04/2024"]]
+    cfg.colunas = ["id", "data"]
+    linhas = L.montar_linhas(dados, cfg.colunas)
+    d = Dubles()
+
+    def no(n, crit):
+        if crit.get("data_de"):
+            return []
+        return [e for e in d.pacs.values()]
+    serv = d.servicos()
+    serv.no = no
+    lote = L.Lote(cab, dados, linhas, cfg, serv, tmp_path / "s.xlsx")
+    lote.rodar()
+    obs = [lote.resultados[l.chave]["observacao"] for l in lote.linhas]
+    assert "O ID tem 2 exame(s) em PACS" in obs[0] and "01/04/2024 MG" in obs[0]
+    assert "PACS não tem nenhum exame com o ID 77" in obs[1]
+
+    def quebra(n, crit):
+        raise ConnectionError("associação recusada")
+    serv.no = quebra
+    lote2 = L.Lote(cab, dados, linhas, cfg, serv, tmp_path / "s2.xlsx")
+    lote2.rodar()
+    assert "erro ao buscar em PACS: associação recusada" in lote2.resultados[linhas[0].chave]["observacao"]

@@ -10623,5 +10623,10 @@
  "O servidor não começou o lote: {}": "El servidor no inició el lote: {}",
  "O servidor não respondeu às opções do lote: {}": "El servidor no respondió a las opciones del lote: {}",
  "Sem resposta do servidor: {}": "Sin respuesta del servidor: {}",
- "Destino do servidor: {}": "Destino del servidor: {}"
+ "Destino do servidor: {}": "Destino del servidor: {}",
+ "erro ao buscar em {}: {}": "error al buscar en {}: {}",
+ "{} devolveu {} exame(s) que não bateram (ex.: ID {}, {}, {}).": "{} devolvió {} estudio(s) que no coincidieron (ej.: ID {}, {}, {}).",
+ "erro ao buscar só pelo ID em {}: {}": "error al buscar solo por el ID en {}: {}",
+ "{} não tem nenhum exame com o ID {}.": "{} no tiene ningún estudio con el ID {}.",
+ "O ID tem {} exame(s) em {}, em outras datas ou modalidades — os mais próximos: {}.": "El ID tiene {} estudio(s) en {}, en otras fechas o modalidades — los más cercanos: {}."
 }
