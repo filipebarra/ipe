@@ -31,6 +31,7 @@ ICONES = {   # traços simples, 24×24, herdam a cor
     "rede": '<rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v5M5 17v-5h14v5"/>',
     "impressora": '<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="1.5"/><path d="M6 14h12v7H6z"/>',
     "filme": '<rect x="3" y="3" width="18" height="18" rx="1.5"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>',
+    "figado": '<path d="M3 9c0-3 3-5 8-5 5 0 10 1 10 4 0 4-5 6-8 9-2 2-4 3-6 1-2-2-4-5-4-9z"/><path d="M12 5c-1 3-1 6 1 10"/>',
     "baixar": '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>',
     "seta": '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>',
     "voltar": '<path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/>',

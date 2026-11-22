@@ -10460,5 +10460,9 @@
  "não deu para ler a elastografia: {}": "no se pudo leer la elastografía: {}",
  "rigidez {}": "rigidez {}",
  "só {} do fígado ficou dentro da área de confiança: onda fraca ou movimento — confira": "solo {} del hígado quedó dentro del área de confianza: onda débil o movimiento — verifique",
- "Rigidez hepática média na elastografia por RM de {} kPa (mediana {} kPa; {} cortes, {} cm² de fígado medível)": "Rigidez hepática media en la elastografía por RM de {} kPa (mediana {} kPa; {} cortes, {} cm² de hígado medible)"
+ "Rigidez hepática média na elastografia por RM de {} kPa (mediana {} kPa; {} cortes, {} cm² de fígado medível)": "Rigidez hepática media en la elastografía por RM de {} kPa (mediana {} kPa; {} cortes, {} cm² de hígado medible)",
+ "Série angiográfica": "Serie angiográfica",
+ "T1 3D": "T1 3D",
+ "T2 3D fino": "T2 3D fino",
+ "Série dinâmica": "Serie dinámica"
 }

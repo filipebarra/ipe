@@ -319,6 +319,64 @@ TAREFAS = [
         "videos": [],
     },
     {
+        "slug": "liver-mri",
+        "icone": "figado",
+        "titulo": T("Liver MRI: fat, iron and stiffness", "RM de fígado: gordura, ferro e rigidez",
+                    "RM de hígado: grasa, hierro y rigidez"),
+        "frase": T("PDFF, R2* and MR elastography stiffness measured automatically, with a review series.",
+                   "PDFF, R2* e rigidez da elastografia por RM medidos automaticamente, com série para conferir.",
+                   "PDFF, R2* y rigidez de la elastografía por RM medidos automáticamente, con serie para revisar."),
+        "clipe": "figado",
+        "extras": [],
+        "passos": [
+            T("Open the liver MRI and press <b>Liver</b>: the AI outlines the liver (TotalSegmentator) and finds the "
+              "scanner maps by itself.",
+              "Abra a RM de fígado e aperte <b>Fígado</b>: a IA contorna o fígado (TotalSegmentator) e acha sozinha "
+              "os mapas do aparelho.",
+              "Abra la RM de hígado y pulse <b>Hígado</b>: la IA contornea el hígado (TotalSegmentator) y encuentra "
+              "sola los mapas del equipo."),
+            T("<b>Fat</b>: PDFF over the whole liver (mean and median; per Couinaud segment if you turn it on), with the steatosis grade "
+              "as a suggestion.",
+              "<b>Gordura</b>: PDFF no fígado inteiro (média e mediana; por segmento de Couinaud, se ligado), com o grau de "
+              "esteatose como sugestão.",
+              "<b>Grasa</b>: PDFF en todo el hígado (media y mediana; por segmento de Couinaud, si se activa), con el grado de "
+              "esteatosis como sugerencia."),
+            T("<b>Iron</b>: R2* and T2* from the scanner map, with the iron overload ranges as text.",
+              "<b>Ferro</b>: R2* e T2* do mapa do aparelho, com as faixas de sobrecarga como texto.",
+              "<b>Hierro</b>: R2* y T2* del mapa del equipo, con los rangos de sobrecarga como texto."),
+            T("<b>Stiffness</b>: on MR elastography, an automatic ROI like the manual one — 5 mm inside the edge, "
+              "inside the scanner's confidence area, without large vessels — and a review series with the value "
+              "of each slice.",
+              "<b>Rigidez</b>: na elastografia por RM, uma ROI automática como a feita à mão — 5 mm para dentro da "
+              "borda, dentro da área de confiança do aparelho, sem os vasos grandes — e uma série para conferir com "
+              "o valor de cada corte.",
+              "<b>Rigidez</b>: en la elastografía por RM, una ROI automática como la manual — 5 mm hacia dentro del "
+              "borde, dentro del área de confianza del equipo, sin los vasos grandes — y una serie para revisar con "
+              "el valor de cada corte."),
+            T("Everything comes as findings to confirm, correct or discard before going to the report.",
+              "Tudo vem como achados para confirmar, corrigir ou descartar antes de ir ao laudo.",
+              "Todo viene como hallazgos para confirmar, corregir o descartar antes de ir al informe."),
+        ],
+        "recursos": [
+            (T("Dual echo", "Dupla eco", "Doble eco"),
+             T("Without a PDFF map, the in-phase/opposed-phase signal fat fraction (marked as not PDFF).",
+               "Sem mapa de PDFF, a fração de sinal da gordura em fase / fora de fase (marcada como não PDFF).",
+               "Sin mapa de PDFF, la fracción de señal de grasa en fase / fuera de fase (marcada como no PDFF)."),
+             T("Liver", "Fígado", "Hígado")),
+            (T("Two elastography acquisitions", "Duas aquisições de elastografia", "Dos adquisiciones de elastografía"),
+             T("Standard and short-T2* are both measured; the one with more area is the main value.",
+               "A Standard e a de T2* curto são medidas; a de mais área é o valor principal.",
+               "La Standard y la de T2* corto se miden; la de más área es el valor principal."),
+             T("Liver", "Fígado", "Hígado")),
+            (T("Not validated for diagnosis", "Não validado para diagnóstico", "No validado para diagnóstico"),
+             T("The numbers are a suggestion for the radiologist to review — compare with your own ROIs.",
+               "Os números são uma sugestão para o radiologista revisar — compare com as suas ROIs.",
+               "Los números son una sugerencia para que el radiólogo revise — compare con sus propias ROI."),
+             T("AI findings", "Achados de IA", "Hallazgos de IA")),
+        ],
+        "videos": [],
+    },
+    {
         "slug": "pet-oncology",
         "icone": "alvo",
         "titulo": T("PET/CT and oncology", "PET/CT e oncologia", "PET/TC y oncología"),

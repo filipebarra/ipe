@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.96 — menú de las IA traducido; RM de hígado en el sitio
+- **Ipê en inglés o español**: en el menú de las IA, el motivo por el que una IA no vale para el estudio ("el
+  estudio no tiene CT", "no encontré en el estudio: Cráneo y encéfalo") aparecía en portugués, a veces mezclado.
+  Ahora sale en el idioma elegido.
+- **Sitio**: página nueva "RM de hígado: grasa, hierro y rigidez", con un video corto (mapas y máscara del hígado,
+  hallazgos de IA y la serie de revisión de la rigidez) en un estudio anonimizado.
+
 ## 0.100.95 — correcciones: rigidez hepática y columnas de la base
 - **La rigidez hepática no salía**: el cálculo usaba una biblioteca (SciPy) que el programa no instala — en la
   computadora del usuario la elastografía fallaba en silencio y el botón **Hígado** mostraba solo grasa y hierro.

@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.96 — menu das IAs traduzido; RM de fígado no site
+- **Ipê em inglês ou espanhol**: no menu das IAs, o motivo de uma IA não valer para o exame ("o exame não tem CT",
+  "não achei no exame: Crânio e encéfalo") aparecia em português, às vezes misturado. Agora sai no idioma escolhido.
+- **Site**: página nova "RM de fígado: gordura, ferro e rigidez", com vídeo curto (mapas e máscara do fígado,
+  achados de IA e a série de conferência da rigidez) num exame anonimizado.
+
 ## 0.100.95 — correções: rigidez hepática e colunas do banco
 - **Rigidez hepática não saía**: a conta usava uma biblioteca (SciPy) que o programa não instala — no computador do
   usuário a elastografia falhava em silêncio e o botão **Fígado** mostrava só gordura e ferro. Agora usa só o que o

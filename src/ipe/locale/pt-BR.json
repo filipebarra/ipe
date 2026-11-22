@@ -7809,7 +7809,11 @@
   "o exame não tem mapa de fração de gordura, mapa de R2*/T2*, dupla eco em fase / fora de fase nem elastografia",
   "rigidez heterogênea entre cortes ou dentro do fígado: a ROI pequena à mão pode dar outro número; a média ponderada usa todo o fígado medível",
   "só um elastograma: a confiança sai dos zeros dele",
-  "Área medida (soma dos cortes)"
+  "Área medida (soma dos cortes)",
+  "Série angiográfica",
+  "T1 3D",
+  "T2 3D fino",
+  "Série dinâmica"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

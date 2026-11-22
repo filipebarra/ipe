@@ -10460,5 +10460,9 @@
  "não deu para ler a elastografia: {}": "could not read the elastography: {}",
  "rigidez {}": "stiffness {}",
  "só {} do fígado ficou dentro da área de confiança: onda fraca ou movimento — confira": "only {} of the liver was within the confidence area: weak wave or motion — check",
- "Rigidez hepática média na elastografia por RM de {} kPa (mediana {} kPa; {} cortes, {} cm² de fígado medível)": "Mean liver stiffness on MR elastography of {} kPa (median {} kPa; {} slices, {} cm² of measurable liver)"
+ "Rigidez hepática média na elastografia por RM de {} kPa (mediana {} kPa; {} cortes, {} cm² de fígado medível)": "Mean liver stiffness on MR elastography of {} kPa (median {} kPa; {} slices, {} cm² of measurable liver)",
+ "Série angiográfica": "Angiographic series",
+ "T1 3D": "3D T1",
+ "T2 3D fino": "Thin 3D T2",
+ "Série dinâmica": "Dynamic series"
 }

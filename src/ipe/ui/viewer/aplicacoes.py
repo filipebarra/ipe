@@ -27,6 +27,8 @@ import re
 import unicodedata
 from dataclasses import dataclass, field
 
+from ipe.core.i18n import tr
+
 # ------------------------------------------------------------------ regiões do corpo
 #: id -> (nome na tela, termos separados por "|")
 REGIOES_FABRICA: dict[str, tuple[str, str]] = {
@@ -265,7 +267,7 @@ def avaliar(app: Aplicacao, ctx: Contexto, settings=None) -> tuple[bool, str]:
     """A regra vale para este exame? Devolve (vale, motivo quando não vale)."""
     if app.modalidades and not (set(app.modalidades) & ctx.modalidades):
         mods = "/".join(sorted(app.modalidades))
-        return False, f"o exame não tem {mods}"
+        return False, tr("o exame não tem {}").format(mods)
     if not app.quando:
         return True, ""
     faltas = []
@@ -275,11 +277,11 @@ def avaliar(app: Aplicacao, ctx: Contexto, settings=None) -> tuple[bool, str]:
         if ok_r and ok_t:
             return True, ""
         if not ok_r:
-            faltas.extend(nome_da_regiao(settings, r) for r in sorted(regs))
+            faltas.extend(tr(nome_da_regiao(settings, r)) for r in sorted(regs))
         if not ok_t:
-            faltas.extend(TIPOS[t][0].split(" (")[0] for t in sorted(tipos))
+            faltas.extend(tr(TIPOS[t][0].split(" (")[0]) for t in sorted(tipos))
     lista = ", ".join(dict.fromkeys(faltas))
-    return False, f"não achei no exame: {lista}"
+    return False, tr("não achei no exame: {}").format(lista)
 
 
 def _cfg(settings) -> dict:

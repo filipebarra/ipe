@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.96 — AI menu translated; liver MRI on the site
+- **Ipê in English or Spanish**: in the AI menu, the reason an AI does not apply to the study ("the study has no
+  CT", "not found in the study: Skull and brain") showed in Portuguese, sometimes mixed. It now follows the chosen
+  language.
+- **Site**: new page "Liver MRI: fat, iron and stiffness", with a short video (maps and liver mask, AI findings
+  and the stiffness review series) on an anonymized study.
+
 ## 0.100.95 — fixes: liver stiffness and database columns
 - **Liver stiffness was not measured**: the calculation used a library (SciPy) the program does not install — on the
   user's computer the elastography step failed silently and the **Liver** button showed only fat and iron. It now
