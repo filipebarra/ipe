@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.95 — fixes: liver stiffness and database columns
+- **Liver stiffness was not measured**: the calculation used a library (SciPy) the program does not install — on the
+  user's computer the elastography step failed silently and the **Liver** button showed only fat and iron. It now
+  uses only what Ipê already has.
+- **Database columns**: a column the user turned on (e.g. **Added on**) was checked in the menu but missing from the
+  table when the program opened — it had to be turned off and on again. It now shows on login.
+
 ## 0.100.94 — liver stiffness on MR elastography; scanner screen saves anonymized
 - **Automatic liver stiffness (MR elastography)**: the **Liver** button (fat and iron) now also measures stiffness
   when the study has MR elastography (MR-Touch and similar) — no neural network in the measurement, like a manual ROI:

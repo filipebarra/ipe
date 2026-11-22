@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.95 — correções: rigidez hepática e colunas do banco
+- **Rigidez hepática não saía**: a conta usava uma biblioteca (SciPy) que o programa não instala — no computador do
+  usuário a elastografia falhava em silêncio e o botão **Fígado** mostrava só gordura e ferro. Agora usa só o que o
+  Ipê já tem.
+- **Colunas do banco**: a coluna ligada pelo usuário (ex.: **Adicionado em**) aparecia marcada no menu, mas não na
+  tabela ao abrir o programa — era preciso desligar e ligar de novo. Agora aparece ao entrar.
+
 ## 0.100.94 — rigidez hepática na elastografia por RM; telas salvas anonimizadas
 - **Rigidez hepática automática (elastografia por RM)**: o botão **Fígado** (gordura e ferro) agora também mede a
   rigidez quando o exame tem elastografia (MR-Touch e afins) — sem rede neural na medida, como a ROI à mão: o fígado

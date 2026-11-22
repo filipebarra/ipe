@@ -443,3 +443,24 @@ def test_confianca_pelo_xadrez_e_faixas():
     assert EL.classificar(2.0) == "Rigidez hepática normal"
     assert EL.eh_elastograma(["DERIVED", "PRIMARY", "MR_ELASTOGRAPHY", "ELASTOGRAM"])
     assert not EL.eh_elastograma(["DERIVED", "SECONDARY", "SCREEN SAVE"], "ST8KM (Pa)")
+
+
+def test_elastografia_sem_scipy(monkeypatch):
+    """0.100.95: o programa não leva o SciPy — a rigidez caía com ModuleNotFoundError na máquina do usuário."""
+    import sys
+    monkeypatch.setitem(sys.modules, "scipy", None)
+    monkeypatch.setitem(sys.modules, "scipy.ndimage", None)
+    from ipe.ai import elastografia_rm as EL
+    z, h, w = 3, 64, 64
+    rig = np.full((z, h, w), 3000.0)
+    inteiro = rig.copy()
+    masc = rig.copy()
+    masc[:, :20, :20][::1, ::2, ::2] = 0          # xadrez de baixa confiança num canto
+    fig = np.zeros((z, h, w), bool)
+    fig[:, 10:60, 10:60] = True
+    valido = EL.confianca(masc, inteiro)
+    assert not valido[0, 5, 5] and valido[0, 40, 40]
+    m = EL.medir(rig, valido, fig, 1.0)
+    assert m["cortes"] == 3 and abs(m["kpa_media"] - 3.0) < 1e-6
+    img = EL.imagem_de_conferencia(rig, valido, fig, m["roi"], m, "teste")
+    assert img.ndim == 3 and img.shape[2] == 3

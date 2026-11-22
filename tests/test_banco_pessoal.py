@@ -172,3 +172,33 @@ def test_botao_direito_e_painel_locais(env, sample_dir, monkeypatch):
 def test_coluna_banco_existe():
     from ipe.ui.browser import COLUMNS
     assert any(c[0] == "banco" for c in COLUMNS)
+
+
+def test_colunas_do_usuario_aparecem_ao_entrar(env, sample_dir):
+    """0.100.95: a coluna ligada pelo usuário (preferência dele) aparecia marcada no menu e não na tabela ao abrir —
+    a janela nasce com as colunas da máquina e as do usuário só chegam no login."""
+    from ipe.auth.permissions import permissions_for
+    from ipe.core.config import Settings
+    from ipe.ui.browser import DEFAULT_COLUMNS, KEY_INDEX
+    from ipe.ui.main_window import MainWindow
+    QApplication.instance() or QApplication([])
+    paths, db, repo = env
+    _exames(env, sample_dir)
+    w = MainWindow(paths, Settings(paths.settings_file), repo=repo, db=db)
+    try:
+        col = KEY_INDEX["date_added"]
+        assert w.browser.table.isColumnHidden(col)
+
+        class _Auth:
+            def prefs(self, _s):
+                return {"browser": {"columns": list(DEFAULT_COLUMNS) + ["date_added"]}}
+
+            def save_prefs(self, _s, _p):
+                pass
+        w.auth = _Auth()
+        w.start_session(UserSession(username="ana", full_name="Ana", role="medico", perms=permissions_for("medico")))
+        assert "date_added" in w.browser.visible_columns()
+        assert not w.browser.table.isColumnHidden(col)
+    finally:
+        w.auth = None
+        w.close()

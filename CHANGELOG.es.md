@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.95 — correcciones: rigidez hepática y columnas de la base
+- **La rigidez hepática no salía**: el cálculo usaba una biblioteca (SciPy) que el programa no instala — en la
+  computadora del usuario la elastografía fallaba en silencio y el botón **Hígado** mostraba solo grasa y hierro.
+  Ahora usa solo lo que Ipê ya tiene.
+- **Columnas de la base**: la columna activada por el usuario (ej.: **Agregado el**) aparecía marcada en el menú,
+  pero no en la tabla al abrir el programa — había que desactivarla y activarla otra vez. Ahora aparece al entrar.
+
 ## 0.100.94 — rigidez hepática en la elastografía por RM; capturas de pantalla anonimizadas
 - **Rigidez hepática automática (elastografía por RM)**: el botón **Hígado** (grasa y hierro) ahora también mide la
   rigidez cuando el estudio tiene elastografía (MR-Touch y similares) — sin red neuronal en la medida, como la ROI a

@@ -126,7 +126,7 @@ def confianca(mascarado: np.ndarray, inteiro: np.ndarray | None) -> np.ndarray:
     """Pixels dentro da confiança (bool, mesmo formato). O xadrez de zeros do mascarado (onde o inteiro tem valor)
     é a área de baixa confiança: fecha-se o xadrez (3 × 3) para virar área. Sem o inteiro: o próprio mascarado > 0
     com o mesmo fechamento sobre os zeros isolados."""
-    from scipy import ndimage as ndi
+    from ipe.imaging import morfologia as MO
     m = np.asarray(mascarado)
     if inteiro is not None and np.asarray(inteiro).shape == m.shape:
         xadrez = (m <= 0) & (np.asarray(inteiro) > 0)
@@ -134,9 +134,8 @@ def confianca(mascarado: np.ndarray, inteiro: np.ndarray | None) -> np.ndarray:
     else:
         xadrez = m <= 0
         fora = np.zeros(m.shape, bool)
-    est = np.ones((3, 3), bool)
-    ruim = np.stack([ndi.binary_closing(x, est, iterations=2) | ndi.binary_dilation(x, est) for x in xadrez]) \
-        if m.ndim == 3 else ndi.binary_closing(xadrez, est, iterations=2) | ndi.binary_dilation(xadrez, est)
+    # fechamento 3 × 3 (2×) e uma dilatação, no plano — só NumPy: o programa não leva o SciPy (0.100.95)
+    ruim = MO.erodir(MO.dilatar(xadrez, 2), 2) | MO.dilatar(xadrez, 1)
     return ~(ruim | fora)
 
 
@@ -146,12 +145,12 @@ def medir(rigidez_pa: np.ndarray, valido: np.ndarray, figado: np.ndarray, pixel_
     """Mede corte a corte. Entradas (z, y, x): rigidez em Pa, confiança (bool), fígado (bool), magnitude (opcional).
     Devolve {"kpa_media", "kpa_mediana", "kpa_p25", "kpa_p75", "kpa_dp", "area_cm2", "cortes", "por_corte",
     "fracao_confiavel", "cv_cortes", "iqr_rel", "roi" (bool z,y,x)} — vazio sem ROI."""
-    from scipy import ndimage as ndi
+    from ipe.imaging import morfologia as MO
+    from ipe.imaging.estruturas import rotular
     rig = np.asarray(rigidez_pa, float) / 1000.0
     nz = rig.shape[0]
     px2 = pixel_mm * pixel_mm
     r_borda = max(1, int(round(BORDA_MM / pixel_mm)))
-    est = ndi.generate_binary_structure(2, 1)
     roi = np.zeros(rig.shape, bool)
     por_corte = []
     area_fig = area_conf = 0.0
@@ -159,7 +158,7 @@ def medir(rigidez_pa: np.ndarray, valido: np.ndarray, figado: np.ndarray, pixel_
         f = np.asarray(figado[k], bool)
         if f.sum() * px2 < MIN_AREA_MM2:
             continue
-        fe = ndi.binary_erosion(f, est, iterations=r_borda)
+        fe = MO.erodir(f, r_borda, quadrado=False)
         area_fig += fe.sum() * px2
         r = fe & np.asarray(valido[k], bool) & (rig[k] > 0)
         area_conf += r.sum() * px2
@@ -168,9 +167,9 @@ def medir(rigidez_pa: np.ndarray, valido: np.ndarray, figado: np.ndarray, pixel_
             ref = float(np.median(mg[fe])) if fe.any() else 0.0
             if ref > 0:
                 r &= mg >= VASO_FRACAO * ref
-        lab, n = ndi.label(r)
+        lab, n = rotular(r)
         if n:
-            tam = ndi.sum(r, lab, range(1, n + 1)) * px2
+            tam = np.bincount(lab.ravel(), minlength=n + 1)[1:] * px2
             for i, t in enumerate(tam, 1):
                 if t < MIN_ILHA_MM2:
                     r[lab == i] = False
@@ -219,10 +218,10 @@ def imagem_de_conferencia(rigidez_pa: np.ndarray, valido: np.ndarray, figado: np
     """Mosaico RGB dos cortes com ROI: o elastograma em cor (0–8 kPa), a baixa confiança em cinza, o fígado com
     contorno fino e a ROI com contorno branco de borda preta (vê-se também em monitor P&B), e o valor de cada corte."""
     from PIL import Image, ImageDraw
-    from scipy import ndimage as ndi
 
     from ipe.ai.mama_sr import _fonte
     from ipe.core.i18n import tr
+    from ipe.imaging import morfologia as MO
     f_tit, f_txt = _fonte(15), _fonte(12)
     kpa = np.asarray(rigidez_pa, float) / 1000.0
     cortes = [c["corte"] for c in resultado.get("por_corte", [])] or list(range(kpa.shape[0]))
@@ -249,10 +248,10 @@ def imagem_de_conferencia(rigidez_pa: np.ndarray, valido: np.ndarray, figado: np
         rgb[fora] = np.clip(cinza[fora].repeat(3, -1), 30, 120)
         rgb[kpa[k] <= 0] = 0
         f = np.asarray(figado[k], bool)
-        rgb[f ^ ndi.binary_erosion(f)] = (255, 220, 0)
+        rgb[f ^ MO.erodir(f, 1, quadrado=False)] = (255, 220, 0)
         r = np.asarray(roi[k], bool)
-        borda = r ^ ndi.binary_erosion(r)
-        halo = ndi.binary_dilation(borda, iterations=1) & ~borda
+        borda = r ^ MO.erodir(r, 1, quadrado=False)
+        halo = MO.dilatar(borda, 1, quadrado=False) & ~borda
         rgb[halo] = 0
         rgb[borda] = 255
         im = Image.fromarray(rgb.astype(np.uint8)).resize((w * esc, h * esc), Image.NEAREST)

@@ -1137,6 +1137,9 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         # 0.99.27: a lista e o painel Locais passam a mostrar o banco de quem entrou
         self.locations.banco = "visivel"
         self.locations.rebuild()
+        # 0.100.95: as colunas do banco são preferência de cada usuário — a lista foi montada antes do login, com as
+        # da máquina; sem isto, a coluna ligada ("Adicionado em") aparecia marcada no menu e não na tabela
+        self.browser.apply_columns()
         self.browser.set_banco("visivel")
         if self._central is not None and self.settings.get("central.atualizar_ao_entrar", True):
             QTimer.singleShot(4000, lambda: self.procurar_atualizacao(silencioso=True))   # 0.99.56 (onda B1)
@@ -1792,7 +1795,7 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
                     self.browser.refresh()
         except Exception:  # noqa: BLE001
             pass
-        vol_mb = sum(v.nbytes_mb for t in self.all_viewer_tabs() for v in t._volumes.values())
+        vol_mb = sum(v.nbytes_mb for t in self.all_viewer_tabs() for v in getattr(t, "_volumes", {}).values())
         ram = process_ram_mb()
         parts = []
         if ram is not None:
