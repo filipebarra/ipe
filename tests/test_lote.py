@@ -312,3 +312,32 @@ def test_nao_encontrado_busca_so_pelo_id(tmp_path):
     lote2 = L.Lote(cab, dados, linhas, cfg, serv, tmp_path / "s2.xlsx")
     lote2.rodar()
     assert "erro ao buscar em PACS: associação recusada" in lote2.resultados[linhas[0].chave]["observacao"]
+
+
+def test_tentativas_na_ordem_do_usuario(tmp_path):
+    """0.100.99: ele escolhe o que buscar e em que ordem; para na primeira que acha."""
+    l = L.Linha(0, pid="3", acesso="ACX", data="20240401", modalidade="MR")
+    cfg = L.Config(tentativas=["acesso", "id_data_mod", "id"])
+    assert [k for k, _c in l.criterios(cfg)] == ["acesso", "id_data_mod", "id"]
+    assert l.criterios(cfg)[1][1]["modalidades"] == ["MR"] and "data_de" not in l.criterios(cfg)[2][1]
+    # sem data: só as tentativas que não precisam dela
+    sem = L.Linha(0, pid="3")
+    assert [k for k, _c in sem.criterios(L.Config(tentativas=["id_data", "id"]))] == ["id"]
+    assert sem.criterios(L.Config()) == []
+    # o acesso não está no PACS; ID + data + MR não acha (os exames são MG); ID + data acha
+    cab, dados = ["ID", "Acesso", "Data", "Modalidade"], [["3", "NAO", "01/04/2024", "MR"]]
+    cfg = L.Config(tentativas=["acesso", "id_data_mod", "id_data"], nos=["pacs"], apagar_depois=False)
+    cfg.colunas = ["id", "acesso", "data", "modalidade"]
+    d = Dubles()
+    lote = L.Lote(cab, dados, L.montar_linhas(dados, cfg.colunas), cfg, d.servicos(), tmp_path / "s.xlsx")
+    lote.rodar()
+    r = lote.resultados[lote.linhas[0].chave]
+    assert r["situacao"] == L.FEITO and r["achado_por"] == "id_data" and r["exames"][0]["study_uid"] == "U4"
+    t = P.ler_xlsx(lote.saida, "Resultados")
+    assert dict(zip(t[0], t[1]))["Ipê: achado por"] == "ID + data"
+    # só com o acesso marcado: não acha, e diz por onde procurou
+    cfg.tentativas = ["acesso"]
+    lote = L.Lote(cab, dados, L.montar_linhas(dados, cfg.colunas), cfg, d.servicos(), tmp_path / "s2.xlsx")
+    lote.rodar()
+    r = lote.resultados[lote.linhas[0].chave]
+    assert r["situacao"] == L.NAO_ACHADO and "por: Nº de acesso" in r["observacao"]

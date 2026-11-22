@@ -10628,5 +10628,16 @@
  "{} devolveu {} exame(s) que não bateram (ex.: ID {}, {}, {}).": "{} returned {} study(ies) that did not match (e.g. ID {}, {}, {}).",
  "erro ao buscar só pelo ID em {}: {}": "error searching only by ID in {}: {}",
  "{} não tem nenhum exame com o ID {}.": "{} has no study with ID {}.",
- "O ID tem {} exame(s) em {}, em outras datas ou modalidades — os mais próximos: {}.": "The ID has {} study(ies) in {}, on other dates or modalities — the closest: {}."
+ "O ID tem {} exame(s) em {}, em outras datas ou modalidades — os mais próximos: {}.": "The ID has {} study(ies) in {}, on other dates or modalities — the closest: {}.",
+ "ID + data + modalidade": "ID + date + modality",
+ "ID + data": "ID + date",
+ "ID + modalidade (qualquer data)": "ID + modality (any date)",
+ "Só ID (qualquer data)": "ID only (any date)",
+ "Ipê: achado por": "Ipê: found by",
+ "Buscar por (na ordem) — o Ipê tenta a primeira marcada; se não acha, a seguinte:": "Search by (in order) — Ipê tries the first one checked; if it finds nothing, the next:",
+ "Marque e ponha na ordem: o Ipê tenta a primeira; se não acha, a seguinte. A modalidade e a data vêm da planilha (ou dos campos abaixo).": "Check and order them: Ipê tries the first; if it finds nothing, the next. The modality and date come from the spreadsheet (or the fields below).",
+ "Linha só com o ID, sem data, só é feita se \"Só ID\" ou \"ID + modalidade\" estiver marcado (e então, com \"Se achar mais de um exame\", o Ipê escolhe entre os exames do paciente).": "A row with only the ID and no date is processed only if \"ID only\" or \"ID + modality\" is checked (then, with \"If more than one study is found\", Ipê chooses among the patient's studies).",
+ "Nenhuma tentativa de busca marcada: vale a ordem de fábrica.": "No search attempt checked: the default order is used.",
+ "Só o ID, sem data: marque uma tentativa sem data (\"Só ID\" ou \"ID + modalidade\") ou preencha a data.": "Only the ID, no date: check an attempt without date (\"ID only\" or \"ID + modality\") or fill in the date.",
+ "Procurado em: {}; por: {}.": "Searched in: {}; by: {}."
 }

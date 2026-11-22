@@ -10628,5 +10628,16 @@
  "{} devolveu {} exame(s) que não bateram (ex.: ID {}, {}, {}).": "{} devolvió {} estudio(s) que no coincidieron (ej.: ID {}, {}, {}).",
  "erro ao buscar só pelo ID em {}: {}": "error al buscar solo por el ID en {}: {}",
  "{} não tem nenhum exame com o ID {}.": "{} no tiene ningún estudio con el ID {}.",
- "O ID tem {} exame(s) em {}, em outras datas ou modalidades — os mais próximos: {}.": "El ID tiene {} estudio(s) en {}, en otras fechas o modalidades — los más cercanos: {}."
+ "O ID tem {} exame(s) em {}, em outras datas ou modalidades — os mais próximos: {}.": "El ID tiene {} estudio(s) en {}, en otras fechas o modalidades — los más cercanos: {}.",
+ "ID + data + modalidade": "ID + fecha + modalidad",
+ "ID + data": "ID + fecha",
+ "ID + modalidade (qualquer data)": "ID + modalidad (cualquier fecha)",
+ "Só ID (qualquer data)": "Solo ID (cualquier fecha)",
+ "Ipê: achado por": "Ipê: encontrado por",
+ "Buscar por (na ordem) — o Ipê tenta a primeira marcada; se não acha, a seguinte:": "Buscar por (en orden) — Ipê intenta la primera marcada; si no encuentra, la siguiente:",
+ "Marque e ponha na ordem: o Ipê tenta a primeira; se não acha, a seguinte. A modalidade e a data vêm da planilha (ou dos campos abaixo).": "Marque y ordene: Ipê intenta la primera; si no encuentra, la siguiente. La modalidad y la fecha vienen de la hoja (o de los campos de abajo).",
+ "Linha só com o ID, sem data, só é feita se \"Só ID\" ou \"ID + modalidade\" estiver marcado (e então, com \"Se achar mais de um exame\", o Ipê escolhe entre os exames do paciente).": "Una fila solo con el ID, sin fecha, solo se procesa si \"Solo ID\" o \"ID + modalidad\" está marcado (entonces, con \"Si encuentra más de un estudio\", Ipê elige entre los estudios del paciente).",
+ "Nenhuma tentativa de busca marcada: vale a ordem de fábrica.": "Ningún intento de búsqueda marcado: vale el orden de fábrica.",
+ "Só o ID, sem data: marque uma tentativa sem data (\"Só ID\" ou \"ID + modalidade\") ou preencha a data.": "Solo el ID, sin fecha: marque un intento sin fecha (\"Solo ID\" o \"ID + modalidad\") o complete la fecha.",
+ "Procurado em: {}; por: {}.": "Buscado en: {}; por: {}."
 }

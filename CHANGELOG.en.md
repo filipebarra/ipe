@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.99 — batch: what to search by, and in which order
+- **Batch from spreadsheet ▸ Find the study**: you choose **what to search by and in which order** — Study UID,
+  accession number, ID + date + modality, ID + date, ID + modality (any date), ID only (any date). Ipê tries the
+  first one checked; if it finds nothing, the next. With "ID only" or "ID + modality", rows without a date are
+  processed too.
+- New column **Ipê: found by** (which attempt found it); for "not found", the note lists the attempts used.
+- The breast template searches only by UID, accession and ID + date + MG.
+
 ## 0.100.98 — batch: why it was not found
 - **Batch from spreadsheet**: when a study is not found, the note now says **why**: the node error (if the search
   failed); the studies the node returned that the filter removed (ID, date, modality); or, searching again by ID

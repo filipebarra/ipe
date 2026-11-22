@@ -169,7 +169,30 @@ class LoteDialog(QDialog):
 
     def _pagina_achar(self) -> QWidget:
         w = QWidget()
-        f = QFormLayout(w)
+        fora = QVBoxLayout(w)
+        fora.addWidget(QLabel(tr("Buscar por (na ordem) — o Ipê tenta a primeira marcada; se não acha, a seguinte:")))
+        f = QFormLayout()
+        # 0.100.99: as tentativas de busca, marcadas e na ordem dele; para na primeira que acha
+        h = QHBoxLayout()
+        self.l_tentativas = QListWidget()
+        self.l_tentativas.setDragDropMode(QAbstractItemView.InternalMove)
+        self.l_tentativas.setMaximumHeight(150)
+        self.l_tentativas.setToolTip(tr("Marque e ponha na ordem: o Ipê tenta a primeira; se não acha, a seguinte. "
+                                        "A modalidade e a data vêm da planilha (ou dos campos abaixo)."))
+        self._marcar_tentativas(list(L.TENTATIVAS_PADRAO))
+        h.addWidget(self.l_tentativas, 1)
+        v = QVBoxLayout()
+        for txt, d in ((tr("Subir"), -1), (tr("Descer"), 1)):
+            b = QPushButton(txt)
+            b.clicked.connect(lambda _c=False, d=d: self._mover(self.l_tentativas, d))
+            v.addWidget(b)
+        v.addStretch(1)
+        h.addLayout(v)
+        fora.addLayout(h)
+        fora.addLayout(f)
+        fora.addStretch(1)
+        self.l_tentativas.itemChanged.connect(lambda _i: self._conferir())
+        self.l_tentativas.model().rowsMoved.connect(lambda *_a: self._conferir())
         self.s_tol = QSpinBox(minimum=0, maximum=365)
         self.s_tol.setSuffix(tr(" dia(s)"))
         self.s_tol.setToolTip(tr("0 = só no dia da planilha. Vale quando a linha tem ID e data."))
@@ -188,8 +211,9 @@ class LoteDialog(QDialog):
         self.k_nasc.setChecked(True)
         self.k_nasc.setToolTip(tr("Nascimento diferente: o exame é de outra pessoa (mesmo ID) e não é usado."))
         f.addRow("", self.k_nasc)
-        nota = QLabel(tr("Linha só com o ID, sem data, não é feita: a data é obrigatória (ou o nº de acesso, ou o "
-                         "Study UID)."))
+        nota = QLabel(tr("Linha só com o ID, sem data, só é feita se \"Só ID\" ou \"ID + modalidade\" estiver "
+                         "marcado (e então, com \"Se achar mais de um exame\", o Ipê escolhe entre os exames do "
+                         "paciente)."))
         nota.setWordWrap(True)
         f.addRow("", nota)
         return w
@@ -241,12 +265,30 @@ class LoteDialog(QDialog):
         return w
 
     def _mover_no(self, d: int) -> None:
-        r = self.l_nos.currentRow()
-        if r < 0 or not 0 <= r + d < self.l_nos.count():
+        self._mover(self.l_nos, d)
+
+    @staticmethod
+    def _mover(lista: QListWidget, d: int) -> None:
+        r = lista.currentRow()
+        if r < 0 or not 0 <= r + d < lista.count():
             return
-        it = self.l_nos.takeItem(r)
-        self.l_nos.insertItem(r + d, it)
-        self.l_nos.setCurrentRow(r + d)
+        it = lista.takeItem(r)
+        lista.insertItem(r + d, it)
+        lista.setCurrentRow(r + d)
+
+    def _marcar_tentativas(self, marcadas: list[str]) -> None:
+        """A lista na ordem: as marcadas primeiro (na ordem dada), depois as outras na ordem de fábrica."""
+        self.l_tentativas.blockSignals(True)
+        self.l_tentativas.clear()
+        nomes = dict(L.TENTATIVAS)
+        ordem = [k for k in marcadas if k in nomes] + [k for k, _n in L.TENTATIVAS if k not in marcadas]
+        for k in ordem:
+            it = QListWidgetItem(tr(nomes[k]))
+            it.setData(Qt.UserRole, k)
+            it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
+            it.setCheckState(Qt.Checked if k in marcadas else Qt.Unchecked)
+            self.l_tentativas.addItem(it)
+        self.l_tentativas.blockSignals(False)
 
     def _pagina_acoes(self) -> QWidget:
         w = QWidget()
@@ -455,11 +497,13 @@ class LoteDialog(QDialog):
             self.l_lista.setText("")
             return
         cfg = self.config()
-        com_chave = sum(1 for l in ls if l.criterio(cfg) is not None)
-        sem_data = sum(1 for l in ls if l.criterio(cfg) is None and l.pid and not l.data)
+        com_chave = sum(1 for l in ls if l.criterios(cfg))
+        sem_data = sum(1 for l in ls if not l.criterios(cfg) and l.pid and not l.data)
         txt = tr("{} linhas; {} com chave para achar o exame").format(len(ls), com_chave)
         if sem_data:
             txt += tr("; {} só com o ID, sem data (não serão feitas)").format(sem_data)
+        if not self._marcados(self.l_tentativas):
+            txt += "\n" + tr("Nenhuma tentativa de busca marcada: vale a ordem de fábrica.")
         repetidos = [t for t in ("id", "acesso", "data", "uid", "nascimento", "nome") if self.tipos().count(t) > 1]
         if repetidos:
             txt += "\n" + tr("Atenção: mais de uma coluna marcada como {} — vale a primeira.").format(
@@ -488,7 +532,8 @@ class LoteDialog(QDialog):
         mods = [m.strip().upper() for m in self.e_mods.text().replace(";", ",").replace("/", ",").split(",")
                 if m.strip()]
         return L.Config(
-            aba=self.c_aba.currentText(), colunas=self.tipos(), tolerancia_dias=self.s_tol.value(),
+            aba=self.c_aba.currentText(), colunas=self.tipos(), tentativas=self._marcados(self.l_tentativas),
+            tolerancia_dias=self.s_tol.value(),
             modalidades=mods, descricao_contem=self.e_desc.text().strip(), varios=self.c_varios.currentData(),
             conferir_nascimento=self.k_nasc.isChecked(), nos=self._marcados(self.l_nos),
             ias=self._marcados(self.l_ias), refazer_ias=self.k_refazer_ias.isChecked(),
@@ -502,6 +547,7 @@ class LoteDialog(QDialog):
             refazer_erros=self.k_refazer.isChecked())
 
     def aplicar(self, cfg: L.Config) -> None:
+        self._marcar_tentativas(cfg.tentativas_validas())
         self.s_tol.setValue(int(cfg.tolerancia_dias or 0))
         self.e_mods.setText(", ".join(cfg.modalidades or []))
         self.e_desc.setText(cfg.descricao_contem or "")
@@ -608,7 +654,7 @@ class LoteDialog(QDialog):
             return None
         cfg = self.config()
         ls = self.linhas()
-        if not [l for l in ls if l.criterio(cfg) is not None]:
+        if not [l for l in ls if l.criterios(cfg)]:
             self.passos.setCurrentRow(0)
             QMessageBox.information(self, titulo, tr("Escolha a planilha e marque as colunas: ID + data, nº de acesso "
                                                      "ou Study UID."))

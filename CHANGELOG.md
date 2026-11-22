@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.99 — lote: o que buscar e em que ordem
+- **Lote a partir de planilha ▸ Achar o exame**: você escolhe **por onde buscar e em que ordem** — Study UID, nº de
+  acesso, ID + data + modalidade, ID + data, ID + modalidade (qualquer data), só ID (qualquer data). O Ipê tenta a
+  primeira marcada; se não acha, a seguinte. Com "só ID" ou "ID + modalidade", a linha sem data também é feita.
+- Nova coluna **Ipê: achado por** (qual tentativa achou); no "não encontrado", a observação diz por quais buscou.
+- O modelo da mama busca só por UID, acesso e ID + data + MG.
+
 ## 0.100.98 — lote: por que não achou
 - **Lote a partir de planilha**: quando um exame não é encontrado, a observação agora diz **por quê**: o erro do nó
   (se a busca falhou); os exames que o nó devolveu e o filtro tirou (ID, data, modalidade); ou, buscando de novo só

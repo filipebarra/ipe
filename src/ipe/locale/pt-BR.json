@@ -7942,7 +7942,17 @@
   "Este Ipê é cliente de um servidor: as imagens não ficam aqui. O lote roda no servidor.",
   "O lote roda no servidor central; esta janela acompanha (pode fechar e abrir de novo: mande com o mesmo nome para continuar).",
   "O lote roda no servidor. Marcado, cada exame feito é copiado para este computador; se o lote apaga o que baixou, o servidor só apaga depois da cópia.",
-  "Trazer os exames também para este computador (banco local)"
+  "Trazer os exames também para este computador (banco local)",
+  "ID + data + modalidade",
+  "ID + data",
+  "ID + modalidade (qualquer data)",
+  "Só ID (qualquer data)",
+  "Ipê: achado por",
+  "Buscar por (na ordem) — o Ipê tenta a primeira marcada; se não acha, a seguinte:",
+  "Marque e ponha na ordem: o Ipê tenta a primeira; se não acha, a seguinte. A modalidade e a data vêm da planilha (ou dos campos abaixo).",
+  "Linha só com o ID, sem data, só é feita se \"Só ID\" ou \"ID + modalidade\" estiver marcado (e então, com \"Se achar mais de um exame\", o Ipê escolhe entre os exames do paciente).",
+  "Nenhuma tentativa de busca marcada: vale a ordem de fábrica.",
+  "Só o ID, sem data: marque uma tentativa sem data (\"Só ID\" ou \"ID + modalidade\") ou preencha a data."
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -10134,6 +10144,7 @@
   "{} devolveu {} exame(s) que não bateram (ex.: ID {}, {}, {}).",
   "erro ao buscar só pelo ID em {}: {}",
   "{} não tem nenhum exame com o ID {}.",
-  "O ID tem {} exame(s) em {}, em outras datas ou modalidades — os mais próximos: {}."
+  "O ID tem {} exame(s) em {}, em outras datas ou modalidades — os mais próximos: {}.",
+  "Procurado em: {}; por: {}."
  ]
 }

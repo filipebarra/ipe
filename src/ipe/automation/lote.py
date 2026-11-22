@@ -85,6 +85,16 @@ def adivinhar_colunas(cabecalho: list) -> list[str]:
 
 
 # ====================================================================== a configuração (e os modelos salvos)
+#: (chave, nome) — as tentativas de busca possíveis, na ordem de fábrica
+TENTATIVAS = [
+    ("acesso", "Nº de acesso"),
+    ("id_data_mod", "ID + data + modalidade"),
+    ("id_data", "ID + data"),
+    ("id_mod", "ID + modalidade (qualquer data)"),
+    ("id", "Só ID (qualquer data)"),
+    ("uid", "Study UID"),
+]
+TENTATIVAS_PADRAO = ("uid", "acesso", "id_data_mod", "id_data")
 VARIOS = {"mais_imagens": "O de mais imagens", "mais_proximo": "O mais próximo da data", "todos": "Todos"}
 ENVIAR = {"originais": "Os originais", "resultados": "Os resultados das IAs", "ambos": "Originais e resultados"}
 
@@ -94,7 +104,8 @@ class Config:
     # planilha
     aba: str = ""
     colunas: list = field(default_factory=list)           # tipo de cada coluna (TIPOS_COLUNA)
-    # achar o exame
+    # achar o exame — 0.100.99: as tentativas, na ordem; para na primeira que acha
+    tentativas: list = field(default_factory=lambda: list(TENTATIVAS_PADRAO))
     tolerancia_dias: int = 0
     modalidades: list = field(default_factory=list)       # vazio = qualquer uma
     descricao_contem: str = ""
@@ -130,6 +141,9 @@ class Config:
                 setattr(base, k, v)
         return base
 
+    def tentativas_validas(self) -> list[str]:
+        return [k for k in (self.tentativas or []) if k in dict(TENTATIVAS)] or list(TENTATIVAS_PADRAO)
+
     def acoes(self) -> list[str]:
         """O que este lote faz, em palavras (para o diário e o LEIA-ME)."""
         out = [tr("importar")]
@@ -151,6 +165,7 @@ class Config:
 #: modelos que já vêm no Ipê
 MODELOS_PRONTOS = {
     "Densidade e calcificações da mama": Config(modalidades=["MG"], varios="mais_imagens",
+                                                tentativas=["uid", "acesso", "id_data_mod"],
                                                 ias=["densidade", "calc_vascular"], apagar_depois=True),
 }
 CHAVE_MODELOS = "lote.modelos"
@@ -207,22 +222,43 @@ class Linha:
         h = hashlib.sha1(f"{self.pid}|{self.acesso}|{self.data}|{self.uid}".encode()).hexdigest()[:10]
         return f"{self.n}:{h}"
 
-    def criterio(self, cfg: Config) -> dict | None:
-        """Como procurar o exame desta linha — None se a linha não tem chave que sirva."""
-        mods = [m.upper() for m in (cfg.modalidades or [])]
+    def modalidades(self, cfg: Config) -> list[str]:
         if self.modalidade:
-            mods = sorted({m.strip().upper() for m in self.modalidade.replace("\\", "/").split("/") if m.strip()})
-        base = {"modalidades": mods, "descricao": (self.descricao or cfg.descricao_contem or "").strip()}
-        if self.uid:
-            return dict(base, uid=self.uid, pid=self.pid)
-        if self.acesso:
-            return dict(base, acesso=self.acesso, pid=self.pid)
-        if self.pid and self.data:
+            return sorted({m.strip().upper() for m in self.modalidade.replace("\\", "/").replace(",", "/").split("/")
+                           if m.strip()})
+        return [m.upper() for m in (cfg.modalidades or [])]
+
+    def criterios(self, cfg: Config) -> list[tuple[str, dict]]:
+        """0.100.99: as tentativas marcadas, na ordem do usuário, que esta linha consegue fazer: [(tentativa, critério)].
+        Vazio = a linha não tem com que procurar."""
+        mods = self.modalidades(cfg)
+        desc = (self.descricao or cfg.descricao_contem or "").strip()
+        datas = {}
+        if self.data:
             d = datetime.strptime(self.data, "%Y%m%d").date()
             tol = max(0, int(cfg.tolerancia_dias or 0))
-            return dict(base, pid=self.pid, data_de=(d - timedelta(days=tol)).strftime("%Y%m%d"),
-                        data_ate=(d + timedelta(days=tol)).strftime("%Y%m%d"))
-        return None
+            datas = {"data_de": (d - timedelta(days=tol)).strftime("%Y%m%d"),
+                     "data_ate": (d + timedelta(days=tol)).strftime("%Y%m%d")}
+        out = []
+        for k in cfg.tentativas_validas():
+            if k == "uid" and self.uid:
+                out.append((k, {"uid": self.uid, "pid": self.pid, "modalidades": [], "descricao": ""}))
+            elif k == "acesso" and self.acesso:
+                out.append((k, {"acesso": self.acesso, "pid": self.pid, "modalidades": [], "descricao": ""}))
+            elif k == "id_data_mod" and self.pid and datas and mods:
+                out.append((k, dict(datas, pid=self.pid, modalidades=mods, descricao=desc)))
+            elif k == "id_data" and self.pid and datas:
+                out.append((k, dict(datas, pid=self.pid, modalidades=[], descricao=desc)))
+            elif k == "id_mod" and self.pid and mods:
+                out.append((k, {"pid": self.pid, "modalidades": mods, "descricao": desc}))
+            elif k == "id" and self.pid:
+                out.append((k, {"pid": self.pid, "modalidades": [], "descricao": desc}))
+        return out
+
+    def criterio(self, cfg: Config) -> dict | None:
+        """A primeira tentativa que a linha consegue fazer (ou None)."""
+        c = self.criterios(cfg)
+        return c[0][1] if c else None
 
 
 def montar_linhas(dados: list[list], tipos: list[str]) -> list[Linha]:
@@ -437,36 +473,49 @@ class Lote:
 
     # ------------------------------------------------------------ uma linha
     def uma(self, l: Linha, parar=None) -> dict:
-        crit = l.criterio(self.cfg)
-        if crit is None:
+        tentativas = l.criterios(self.cfg)
+        if not tentativas:
             if (l.pid or l.nome) and not l.data:
-                return {"situacao": SEM_DATA, "observacao": tr("Só o ID, sem data: a data é obrigatória.")}
+                return {"situacao": SEM_DATA, "observacao": tr("Só o ID, sem data: marque uma tentativa sem data "
+                                                               "(\"Só ID\" ou \"ID + modalidade\") ou preencha a data.")}
             return {"situacao": SEM_CHAVE}
-        exames = filtrar(self.s.local(crit), crit)
-        origem = ""
+        exames: list[dict] = []
+        origem, por = "", ""
         erros: list[str] = []
         brutos: dict = {}
-        if not exames:
-            for no in self.cfg.nos:
-                if parar is not None and parar.is_set():
-                    raise InterruptedError
-                try:
-                    brutos[no] = self.s.no(no, crit) or []
-                    exames = filtrar(brutos[no], crit)
-                except Exception as e:  # noqa: BLE001 - um nó fora do ar não para o lote: tenta o próximo
-                    log.warning("lote: busca em %s: %s", no, e)
-                    erros.append(tr("erro ao buscar em {}: {}").format(self.s.nome_no(no), str(e)[:200]))
-                    exames = []
-                if exames:
-                    origem = no
-                    break
+        for k, crit in tentativas:
+            exames = filtrar(self.s.local(crit), crit)
+            if not exames:
+                for no in self.cfg.nos:
+                    if parar is not None and parar.is_set():
+                        raise InterruptedError
+                    try:
+                        lista = self.s.no(no, crit) or []
+                        brutos.setdefault(no, [])
+                        brutos[no] += [e for e in lista if e not in brutos[no]]
+                        exames = filtrar(lista, crit)
+                    except Exception as e:  # noqa: BLE001 - um nó fora do ar não para o lote: tenta o próximo
+                        log.warning("lote: busca em %s: %s", no, e)
+                        msg = tr("erro ao buscar em {}: {}").format(self.s.nome_no(no), str(e)[:200])
+                        if msg not in erros:
+                            erros.append(msg)
+                        exames = []
+                    if exames:
+                        origem = no
+                        break
+            if exames:
+                por = k
+                break
         if not exames:
             onde = [tr("banco do Ipê")] + [self.s.nome_no(n) for n in self.cfg.nos]
-            obs = [tr("Procurado em: {}.").format(", ".join(onde))] + erros
-            obs.append(self._por_que_nao(crit, brutos, parar))
+            obs = [tr("Procurado em: {}; por: {}.").format(", ".join(onde),
+                                                           ", ".join(tr(dict(TENTATIVAS)[k]) for k, _c in tentativas))]
+            obs += erros
+            com_data = next((c for _k, c in tentativas if c.get("data_de")), tentativas[0][1])
+            obs.append(self._por_que_nao(com_data, brutos, parar))
             return {"situacao": NAO_ACHADO, "observacao": " ".join(x for x in obs if x)}
         escolhidos = escolher(exames, self.cfg.varios, l.data)
-        r: dict = {"achados": len(exames), "exames": []}
+        r: dict = {"achados": len(exames), "exames": [], "achado_por": por}
         if len(exames) > 1 and len(escolhidos) == 1:
             r["observacao"] = tr("{} exames batem com a linha: ficou {}.").format(
                 len(exames), tr(VARIOS.get(self.cfg.varios, "")).lower())
@@ -667,6 +716,7 @@ class Lote:
                ("study_uid", "Ipê: Study UID"), ("accession", "Ipê: nº de acesso"),
                ("data_exame", "Ipê: data do exame"), ("descricao", "Ipê: descrição do exame"),
                ("modalidades", "Ipê: modalidades"), ("imagens", "Ipê: imagens"), ("de_onde", "Ipê: de onde veio"),
+               ("achado_por", "Ipê: achado por"),
                ("ias", "Ipê: IAs"), ("protocolo", "Ipê: protocolo de RM"), ("enviado", "Ipê: enviado"),
                ("impresso", "Ipê: impresso"), ("exportado", "Ipê: exportado")]
     _SO_SEM_ANONIMIZAR = ("study_uid", "accession")
@@ -711,6 +761,7 @@ class Lote:
                         "data_exame": e.get("data_exame", ""), "descricao": e.get("descricao", ""),
                         "modalidades": e.get("modalidades", ""), "imagens": e.get("imagens"),
                         "de_onde": e.get("de_onde", ""), "ias": self._texto_ias(e),
+                        "achado_por": tr(dict(TENTATIVAS).get(r.get("achado_por", ""), "")),
                         "protocolo": self._texto_protocolo(e), "enviado": e.get("enviado", ""),
                         "impresso": e.get("impresso", ""), "exportado": e.get("exportado", "")}
                 if not r:

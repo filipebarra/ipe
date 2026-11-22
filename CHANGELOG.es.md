@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.99 — lote: qué buscar y en qué orden
+- **Lote desde hoja de cálculo ▸ Encontrar el estudio**: usted elige **por qué buscar y en qué orden** — Study UID,
+  n.º de acceso, ID + fecha + modalidad, ID + fecha, ID + modalidad (cualquier fecha), solo ID (cualquier fecha).
+  Ipê intenta la primera marcada; si no encuentra, la siguiente. Con "solo ID" o "ID + modalidad", las filas sin
+  fecha también se procesan.
+- Nueva columna **Ipê: encontrado por** (qué intento lo encontró); en "no encontrado", la observación dice por
+  cuáles buscó.
+- El modelo de mama busca solo por UID, acceso e ID + fecha + MG.
+
 ## 0.100.98 — lote: por qué no lo encontró
 - **Lote desde hoja de cálculo**: cuando no encuentra un estudio, la observación ahora dice **por qué**: el error
   del nodo (si la búsqueda falló); los estudios que el nodo devolvió y el filtro quitó (ID, fecha, modalidad); o,
