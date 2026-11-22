@@ -3,6 +3,21 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.94 — rigidez hepática en la elastografía por RM; capturas de pantalla anonimizadas
+- **Rigidez hepática automática (elastografía por RM)**: el botón **Hígado** (grasa y hierro) ahora también mide la
+  rigidez cuando el estudio tiene elastografía (MR-Touch y similares) — sin red neuronal en la medida, como la ROI a
+  mano: el hígado del TotalSegmentator a ≥ 5 mm del borde, dentro del área de confianza del equipo (el damero del
+  elastograma enmascarado), sin los vasos grandes (por la magnitud de la propia adquisición). Media ponderada por el
+  área (la del informe), mediana, p25–p75, área, cortes, fracción del hígado dentro de la confianza y
+  heterogeneidad; con dos adquisiciones, las dos. Rango de referencia (2D, 60 Hz) como texto y clasificación
+  sugerida. Serie nueva **"Rigidez hepática: ROI automática"** con el elastograma en color, la ROI y el valor de cada
+  corte, para verificar.
+- **Anonimización: capturas de pantalla del equipo** (elastograma en color, gráficos — ImageType "SCREEN SAVE",
+  Secondary Capture): el equipo graba nombre, edad, nacimiento y fecha en el encabezado de la pantalla y aun así
+  dice que no hay texto grabado. En la exportación anonimizada y en el paquete de casos, estas pantallas ahora
+  pierden el encabezado y el pie enteros. **Los estudios exportados antes con capturas de pantalla deben exportarse
+  de nuevo.**
+
 ## 0.100.93 — verificación de protocolos de RM; calcificaciones vasculares con implante
 - **Verificación de protocolos de RM** (Red ▸ Verificación de protocolos de RM…): cada RM que llega se compara con el
   protocolo de referencia del estudio y del equipo — series que faltan o sobran, plano, 2D/3D, secuencia, TR, TE, TI,

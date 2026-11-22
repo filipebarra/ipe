@@ -51,6 +51,10 @@ CHAVE_SAIDA = "figado_rm"
 TIPO_GORDURA = "Gordura hepática (PDFF)"
 TIPO_FERRO = "Ferro hepático (R2*)"
 TIPO_DIXON = "Gordura hepática (dupla eco)"
+TIPO_RIGIDEZ = "Rigidez hepática (elastografia por RM)"
+#: 0.100.94: a imagem de conferência da ROI automática da elastografia
+DESC_RIGIDEZ = "Rigidez hepática: ROI automática"
+SERIE_RIGIDEZ = 984
 
 #: Wood et al., Blood 2005;106:1460 — R2* (s⁻¹) a 1,5 T → concentração hepática de ferro (mg Fe/g de peso seco)
 WOOD_A, WOOD_B = 0.0254, 0.202
@@ -96,19 +100,25 @@ PADROES = {
 }
 PERFIL = {"modalidades": CHAVE_MODALIDADES, "exame_contem": CHAVE_EXAME_CONTEM, "prior_ct": CHAVE_PRIOR_CT,
           "prior_mr": CHAVE_PRIOR_CT, "espessura": CHAVE_ESPESSURA, "min_cortes": CHAVE_MIN_CORTES,
-          "excluir": ("FATFRAC", "FAT FRAC", "R2*", "T2*", "ADC", "DWI", "DIFUS", "FAT:", "ORIG ", "PELVE", "PELVIS")}
-NOME_CADIA = "Gordura e ferro hepáticos (RM)"
-TITULO_CADIA = "Gordura (PDFF) e ferro (R2*) do fígado na RM — TotalSegmentator + mapas do aparelho"
+          "excluir": ("FATFRAC", "FAT FRAC", "R2*", "T2*", "ADC", "DWI", "DIFUS", "FAT:", "ORIG ", "PELVE", "PELVIS",
+                      "TOUCH", "STGRY", "ATTEN", "WAVE", "ST8K", "ST20K", "MRE", "ELASTO")}
+NOME_CADIA = "Gordura, ferro e rigidez hepáticos (RM)"
+TITULO_CADIA = ("Gordura (PDFF), ferro (R2*) e rigidez (elastografia) do fígado na RM — TotalSegmentator + mapas do "
+                "aparelho")
 EXPLICACAO_CADIA = ("Na RM de abdome: acha o fígado e o baço (e os segmentos de Couinaud) numa série axial e mede "
                     "nos mapas do aparelho — fração de gordura (IDEAL IQ, mDIXON Quant, LiverLab) e R2* —, com a "
                     "estimativa de ferro a 1,5 T; com a dupla eco em fase / fora de fase, a fração de sinal de "
-                    "gordura. Os números aparecem em Aplicações ▸ Achados de IA, para conferir antes do laudo.")
+                    "gordura; com a elastografia (MR-Touch e afins), a rigidez numa ROI automática — o fígado a ≥ 5 mm da "
+                    "borda, dentro da confiança do aparelho e sem os vasos grandes —, com a imagem de conferência. Os "
+                    "números aparecem em Aplicações ▸ Achados de IA, para conferir antes do laudo.")
 OPCOES = ((CHAVE_SEGMENTOS, "Por segmento de Couinaud (1 = sim, 0 = não):", 0.0, 1.0, "",
            "Roda também a tarefa liver_segments_mr e dá a gordura de cada segmento (uns minutos a mais)."),)
 CHAVES_GORDURA = ("pdff_mediana", "pdff_media", "pdff_p25", "pdff_p75", "pdff_segmentos", "voxels", "classificacao")
 CHAVES_FERRO = ("r2_mediana", "t2_ms", "r2_15", "lic", "lic_grau", "baco_r2", "r2_p25", "r2_p75", "classificacao")
 CHAVES_DIXON = ("ff_sinal", "ef", "ff", "razao_ef_ff")
-CHAVES = CHAVES_GORDURA + CHAVES_FERRO + CHAVES_DIXON
+CHAVES_RIGIDEZ = ("kpa_media", "kpa_mediana", "kpa_p25", "kpa_p75", "area_cm2", "cortes", "fracao_confiavel",
+                  "heterogeneidade", "faixa", "outra_aquisicao", "classificacao")
+CHAVES = CHAVES_GORDURA + CHAVES_FERRO + CHAVES_DIXON + CHAVES_RIGIDEZ
 
 
 def config(settings, chave):
@@ -370,6 +380,10 @@ DICAS = {
     "lic": "Concentração de ferro estimada pelo R2* a 1,5 T (Wood et al., Blood 2005: LIC = 0,0254 · R2* + 0,202 "
            "mg Fe/g de peso seco; a 3 T, R2* ÷ 2,05 antes — Alam et al., JCMR 2016). Faixas: < 1,8 normal; 3,2–7 "
            "leve; 7–15 moderada; > 15 grave.",
+    "rigidez": "Faixas da elastografia por RM 2D a 60 Hz (Venkatesh, Yin & Ehman, JMRI 2013): < 2,5 kPa normal; "
+               "2,5–2,9 normal ou inflamação; 2,9–3,5 fibrose estágio 1–2; 3,5–4,0 estágio 2–3; 4,0–5,0 estágio 3–4; "
+               "> 5,0 estágio 4 ou cirrose. Inflamação, congestão, colestase e jejum curto também aumentam a "
+               "rigidez — texto de referência.",
     "r2": "R2* do fígado a 1,5 T: o normal costuma ficar abaixo de ~70 s⁻¹ (T2* acima de ~14 ms). O do baço ajuda a "
           "ver o padrão: alto no baço junto com o fígado lembra o padrão reticuloendotelial (transfusões); só o "
           "fígado, o parenquimatoso (hemocromatose) — texto de referência.",
@@ -390,6 +404,10 @@ def resultado_do_achado(a: dict) -> str | None:
     if a.get("tipo") == TIPO_FERRO:
         v = _valor(a, "lic")
         return classificar_ferro(float(v)) if isinstance(v, (int, float)) else None
+    if a.get("tipo") == TIPO_RIGIDEZ:
+        from ipe.ai import elastografia_rm as EL
+        v = _valor(a, "kpa_media")
+        return EL.classificar(float(v)) if isinstance(v, (int, float)) else None
     return None
 
 
@@ -418,6 +436,12 @@ def escalas_do_achado(a: dict) -> list[tuple[str, str, str]]:
             if isinstance(baco, (int, float)):
                 txt += f" · baço {float(baco):.0f} s⁻¹"
             out.append(("R2*", txt, DICAS["r2"]))
+    elif a.get("tipo") == TIPO_RIGIDEZ:
+        from ipe.ai import elastografia_rm as EL
+        v = _valor(a, "kpa_media")
+        if isinstance(v, (int, float)):
+            out.append(("Rigidez (2D, 60 Hz)", f"{float(v):.2f}".replace(".", ",") + " kPa — " + EL.faixa(float(v)),
+                        DICAS["rigidez"]))
     return out
 
 
@@ -481,6 +505,10 @@ class Resultado:
     series_uid: str = ""
     series_mapas: dict = field(default_factory=dict)
     mascaras: dict = field(default_factory=dict)
+    rigidez: dict = field(default_factory=dict)
+    avisos_rigidez: list = field(default_factory=list)
+    #: [(RGB, caminho de uma imagem do elastograma, título)] — a conferência da ROI, gravada como captura
+    rigidez_previas: list = field(default_factory=list)
 
 
 def _volume(t, frames):
@@ -640,10 +668,131 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
         except Exception as e:  # noqa: BLE001
             log.exception("dupla eco")
             res.avisos_dixon.append(f"não deu para ler a dupla eco: {e}")
-    if not (res.gordura or res.ferro or res.dixon):
-        res.avisos_gordura.append("o exame não tem mapa de fração de gordura, mapa de R2*/T2* nem dupla eco em "
-                                  "fase / fora de fase")
+    # ---------------- rigidez (elastografia), 0.100.94
+    try:
+        _rigidez(t, vol, figado, res)
+    except Exception as e:  # noqa: BLE001
+        log.exception("elastografia")
+        res.avisos_rigidez.append(f"não deu para ler a elastografia: {e}")
+    if not (res.gordura or res.ferro or res.dixon or res.rigidez):
+        res.avisos_gordura.append("o exame não tem mapa de fração de gordura, mapa de R2*/T2*, dupla eco em "
+                                  "fase / fora de fase nem elastografia")
     return res
+
+
+def _magnitude_da_elastografia(t, series_uid: str, v_el) -> np.ndarray | None:
+    """A magnitude da aquisição de elastografia na grade do elastograma: a média das imagens ≥ 0 (as de fase vão de
+    −π a π) de cada posição, casada pelo corte mais perto."""
+    import pydicom
+    if not series_uid:
+        return None
+    por_pos: dict[float, list] = {}
+    normal = np.asarray(v_el.slice_vec, float)
+    normal = normal / (np.linalg.norm(normal) or 1.0)
+    for i in t.repo.instances_for_series(series_uid):
+        try:
+            ds = pydicom.dcmread(i["path"], force=True)
+            a = ds.pixel_array.astype(float)
+            if a.min() < 0 or a.shape != v_el.data.shape[1:]:
+                continue
+            pos = float(np.dot(np.asarray(ds.ImagePositionPatient, float), normal))
+        except Exception:  # noqa: BLE001
+            continue
+        por_pos.setdefault(round(pos, 1), []).append(a)
+    if not por_pos:
+        return None
+    chaves = np.array(sorted(por_pos))
+    out = np.zeros(v_el.data.shape, float)
+    for k in range(v_el.data.shape[0]):
+        p = float(np.dot(np.asarray(v_el.voxel_to_patient(0, 0, k), float), normal))
+        j = int(np.argmin(np.abs(chaves - p)))
+        if abs(chaves[j] - p) < max(1.0, v_el.dz / 2):
+            out[k] = np.mean(por_pos[float(chaves[j])], axis=0)
+    return out
+
+
+def _rigidez(t, vol, figado, res: Resultado) -> None:
+    """Rigidez hepática da elastografia por RM, com a máscara do fígado desta mesma conta (`ai.elastografia_rm`)."""
+    from ipe.ai import elastografia_rm as EL
+    aqs = EL.aquisicoes(t.repo, t.study_uid, _cabecalho)
+    if not aqs:
+        return
+    medidas = []
+    for aq in aqs:
+        vols = []
+        for uid in aq["elastogramas"]:
+            try:
+                vols.append((uid, _volume(t, _frames(t, uid))))
+            except Exception:  # noqa: BLE001
+                log.warning("elastograma %s", uid, exc_info=True)
+        vols = [(u, v) for u, v in vols if v.data.shape == vols[0][1].data.shape] if vols else []
+        if not vols:
+            continue
+        # o mascarado (confiança) é o que tem mais zeros onde o outro tem valor; o inteiro, o outro
+        if len(vols) >= 2:
+            a, b = np.asarray(vols[0][1].data, float), np.asarray(vols[1][1].data, float)
+            if ((a <= 0) & (b > 0)).sum() >= ((b <= 0) & (a > 0)).sum():
+                masc, inteiro = vols[0], vols[1]
+            else:
+                masc, inteiro = vols[1], vols[0]
+            dados_int = np.asarray(inteiro[1].data, float)
+        else:
+            masc, dados_int = vols[0], None
+            res.avisos_rigidez.append("só um elastograma: a confiança sai dos zeros dele")
+        v_el = masc[1]
+        dados_m = np.asarray(v_el.data, float)
+        valido = EL.confianca(dados_m, dados_int)
+        rig = dados_int if dados_int is not None else dados_m
+        fig = _amostrar(vol, figado, v_el)
+        mag = _magnitude_da_elastografia(t, aq.get("origem"), v_el)
+        m = EL.medir(rig, valido, fig, float(v_el.dx), mag)
+        m["descricao"] = aq.get("descricao") or "elastografia"
+        m["caminho"] = v_el.source_path
+        m["_vol"] = (rig, valido, fig)
+        medidas.append(m)
+    boas = [m for m in medidas if m.get("cortes")]
+    if not boas:
+        res.avisos_rigidez.append("na elastografia, nenhum corte com fígado suficiente dentro da área de confiança")
+        return
+    # a principal: a de mais área medida; as outras vão como número a mais
+    boas.sort(key=lambda m: -m["area_cm2"])
+    m = boas[0]
+    res.rigidez = {
+        "kpa_media": AC.numero(m["kpa_media"], "kPa", "Rigidez (média ponderada pela área)"),
+        "kpa_mediana": AC.numero(m["kpa_mediana"], "kPa", "Rigidez (mediana)"),
+        "kpa_p25": AC.numero(m["kpa_p25"], "kPa", "Rigidez p25"),
+        "kpa_p75": AC.numero(m["kpa_p75"], "kPa", "Rigidez p75"),
+        "area_cm2": AC.numero(m["area_cm2"], "cm²", "Área medida (soma dos cortes)"),
+        "cortes": AC.numero(m["cortes"], "", "Cortes com ROI"),
+        "fracao_confiavel": AC.numero(round(100 * m["fracao_confiavel"]), "%", "Fígado dentro da confiança"),
+        "heterogeneidade": AC.numero("heterogênea" if m.get("heterogeneo") else "homogênea", "",
+                                     f"Heterogeneidade (CV entre cortes {m['cv_cortes']:.2f}; IQR/mediana "
+                                     f"{m['iqr_rel']:.2f})".replace(".", ",")),
+        "faixa": AC.numero(EL.faixa(m["kpa_media"]), "", "Faixa de referência"),
+        "classificacao": AC.numero(EL.classificar(m["kpa_media"]), "", "Classificação sugerida"),
+    }
+    if len(boas) > 1:
+        res.rigidez["outra_aquisicao"] = AC.numero(
+            " · ".join(f"{o['descricao']}: {o['kpa_media']:.2f}".replace(".", ",") for o in boas[1:]), "kPa",
+            "Outra aquisição")
+    res.avisos_rigidez.append(f"aquisição usada: {m['descricao']}; média de cada corte: "
+                              + ", ".join(f"{c['kpa_media']:.1f}".replace(".", ",") for c in m["por_corte"]) + " kPa")
+    if m["fracao_confiavel"] < EL.CONFIANCA_MINIMA:
+        res.avisos_rigidez.append(f"só {m['fracao_confiavel']:.0%} do fígado ficou dentro da área de confiança: "
+                                  "onda fraca ou movimento — confira")
+    if m.get("heterogeneo"):
+        res.avisos_rigidez.append("rigidez heterogênea entre cortes ou dentro do fígado: a ROI pequena à mão pode dar "
+                                  "outro número; a média ponderada usa todo o fígado medível")
+    res.avisos_rigidez.append("ROI automática: fígado do TotalSegmentator a ≥ 5 mm da borda, dentro da confiança do "
+                              "aparelho, sem os vasos grandes; referência: " + EL.REF + " — texto de referência, não "
+                              "diagnóstico")
+    for o in boas:
+        rig, valido, fig = o.pop("_vol")
+        try:
+            res.rigidez_previas.append((EL.imagem_de_conferencia(rig, valido, fig, o["roi"], o, o["descricao"]),
+                                        o["caminho"], o["descricao"]))
+        except Exception:  # noqa: BLE001
+            log.exception("imagem de conferência da elastografia")
 
 
 def itens_para_o_banco(res: Resultado, t, versao: str) -> list[dict]:
@@ -652,7 +801,8 @@ def itens_para_o_banco(res: Resultado, t, versao: str) -> list[dict]:
     out = []
     for rot, tipo, nums, avisos in (("PDFF", TIPO_GORDURA, res.gordura, res.avisos_gordura),
                                     ("R2*", TIPO_FERRO, res.ferro, res.avisos_ferro),
-                                    ("Dixon", TIPO_DIXON, res.dixon, res.avisos_dixon)):
+                                    ("Dixon", TIPO_DIXON, res.dixon, res.avisos_dixon),
+                                    ("MRE", TIPO_RIGIDEZ, res.rigidez, res.avisos_rigidez)):
         if nums:
             out.append({**base, "rotulo": rot, "tipo": tipo, "numeros": nums,
                         "elegibilidade": res.elegibilidade + (". Atenção: " + "; ".join(avisos) if avisos else "")})
@@ -700,6 +850,23 @@ def gravar(t, res: Resultado, versao: str, db, storage_root, repo=None, settings
             out["seg_path"] = _caminho_do_sop(db, t.study_uid, out["seg_sop"])
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
+    if res.rigidez_previas:
+        from ipe.imaging.derived import save_secondary_capture
+        for se in repo.series_for_study(t.study_uid):
+            if (se.description or "").startswith(DESC_RIGIDEZ):
+                try:
+                    repo.delete_series(se.series_uid, Path(storage_root))
+                except Exception:  # noqa: BLE001
+                    log.exception("trocar a conferência da elastografia anterior")
+        for n, (rgb, caminho, desc) in enumerate(res.rigidez_previas):
+            try:
+                uid, _sops = save_secondary_capture(rgb, caminho, db, Path(storage_root),
+                                                    description=f"{DESC_RIGIDEZ} ({desc})"[:64],
+                                                    series_number=SERIE_RIGIDEZ + n,
+                                                    parametros="ROI automática da rigidez hepática")
+                out["series"].append(uid)
+            except Exception:  # noqa: BLE001
+                log.exception("gravar a conferência da elastografia")
     out["achados"] = repo.gravar_achados(t.study_uid, FERRAMENTA, itens_para_o_banco(res, t, versao))
     return out
 
@@ -713,17 +880,19 @@ def resumo(res: Resultado) -> str:
                       + (f" (ferro ≈ {AC._fmt(res.ferro['lic'])})" if "lic" in res.ferro else ""))
     if res.dixon and res.dixon["ff_sinal"]["v"] is not None:
         partes.append(f"fração de sinal (dupla eco) {AC._fmt(res.dixon['ff_sinal'])}")
+    if res.rigidez:
+        partes.append(f"rigidez {AC._fmt(res.rigidez['kpa_media'])}")
     return "; ".join(partes) or "nada medido"
 
 
 def n_itens(res: Resultado) -> int:
-    return int(bool(res.gordura)) + int(bool(res.ferro)) + int(bool(res.dixon))
+    return int(bool(res.gordura)) + int(bool(res.ferro)) + int(bool(res.dixon)) + int(bool(res.rigidez))
 
 
 def mensagem(res: Resultado, minutos: float) -> str:
     msg = (f"Fígado na RM pronto em {minutos:.1f} min — {resumo(res)}. Os números estão em Aplicações ▸ Achados "
            f"de IA, para conferir antes do laudo; a máscara do fígado está na série “{DESC_SEG}”.")
-    avisos = res.avisos_gordura + res.avisos_ferro + res.avisos_dixon
+    avisos = res.avisos_gordura + res.avisos_ferro + res.avisos_dixon + res.avisos_rigidez
     if avisos:
         msg += "\n\nConfira: " + "; ".join(avisos) + "."
     return msg
@@ -755,6 +924,13 @@ def frase(a: dict) -> str:
                 txt += f" ({v('lic_grau')})"
         if v("baco_r2", 0):
             txt += f"; R2* do baço {v('baco_r2', 0)} s⁻¹"
+        return txt + "."
+    if a.get("tipo") == TIPO_RIGIDEZ:
+        txt = (f"Rigidez hepática média na elastografia por RM de {v('kpa_media', 2)} kPa (mediana {v('kpa_mediana', 2)} "
+               f"kPa; {v('cortes', 0)} cortes, {v('area_cm2', 0)} cm² de fígado medível)")
+        cl = resultado_do_achado(a)
+        if cl:
+            txt += f" — {cl[0].lower() + cl[1:]}"
         return txt + "."
     return (f"Fração de sinal de gordura hepática na dupla eco (em fase / fora de fase) de {v('ff_sinal')}%, "
             "sem correção de T2*.")

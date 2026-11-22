@@ -341,3 +341,105 @@ def test_classificacao_sugerida_de_gordura_e_ferro():
     assert F.resultado_do_achado(fe) == "Sobrecarga de ferro moderada"
     nomes = [e[0] for e in F.escalas_do_achado(fe)]
     assert nomes == ["Ferro estimado (LIC)", "R2*"] and "baço 19" in F.escalas_do_achado(fe)[1][1]
+
+
+# ---------------------------------------------------------------------------------------------- 0.100.94
+def _exame_com_elastografia(env, tmp_path):
+    """O fantoma de cima e uma elastografia como a do MR-Touch (GE): a série de origem "Ax MR-Touch Standard" (12;
+    fase de −π a π e magnitude ≥ 0 na mesma série), o elastograma inteiro "STGRY (Pa)" (1257) e o mascarado
+    "STGRYM (Pa)" (1250), com o xadrez de zeros na área de baixa confiança, e a atenuação (1252)."""
+    from pydicom.uid import generate_uid
+
+    from ipe.core.sample_data import _base, _mono, _save
+    uid, uid_anat = _exame(env, tmp_path, com_mapas=False, com_dupla=False)
+    paths, db, repo = env
+    info = repo.study_info(uid)
+    pat = {"name": "FIGADO^Teste", "id": "FIG1", "birth": "19700101", "sex": "M"}
+    study = {"uid": uid, "date": info["study_date"], "accession": "FIG01", "description": "RM ABDOME TOTAL",
+             "for": generate_uid()}
+    pasta = tmp_path / "mre"
+    n, nz, px, dz, z0 = 64, 5, 2.0, 10.0, 25.0
+    o = -(n / 2) * px
+    mx, my, mz = _grade(n, nz, px, dz, o, z0)
+    fig = _dentro(mx, my, mz, FIG)
+    inteiro = np.full(mx.shape, 1500, np.int16)                # fora do fígado: 1,5 kPa
+    inteiro[fig] = 3000                                        # fígado: 3,0 kPa
+    ruim = fig & (my > 5)                                      # a parte de trás do fígado: baixa confiança
+    inteiro[ruim] = 9000
+    vaso = fig & (np.abs(mx - 0) < 3) & (my < 0)               # um vaso grande (vazio de fluxo) no meio
+    inteiro[vaso] = 20000
+    xadrez = ((np.indices(mx.shape[1:]).sum(axis=0) % 2) == 0)[None]
+    mascarado = inteiro.copy()
+    mascarado[ruim & xadrez] = 0
+    mag = np.full(mx.shape, 400, np.int16)
+    mag[vaso] = 40
+    fase = np.full(mx.shape, -1000, np.int16)
+    it = {"ImageType": ["DERIVED", "PRIMARY", "MR_ELASTOGRAPHY", "ELASTOGRAM"]}
+    _serie(pasta, pat, study, "STGRY (Pa)", 1257, inteiro, px, dz, o, z0, extra=it)
+    _serie(pasta, pat, study, "STGRYM (Pa)", 1250, mascarado, px, dz, o, z0, extra=it)
+    _serie(pasta, pat, study, "Atten (m-1)", 1252, np.full(mx.shape, 10, np.int16), px, dz, o, z0,
+           extra={"ImageType": ["DERIVED", "PRIMARY", "MR_ELASTOGRAPHY", "ATTENUATION"]})
+    series = {"uid": generate_uid(), "number": 12, "description": "Ax MR-Touch Standard"}
+    for k in range(nz):
+        for j, img in enumerate((fase[k], mag[k])):
+            ds = _base("1.2.840.10008.5.1.4.1.1.4", pat, study, series, "MR")
+            ds.InstanceNumber = k * 2 + j + 1
+            ds.ImagePositionPatient = [o, o, z0 + dz * k]
+            ds.ImageOrientationPatient = [1, 0, 0, 0, 1, 0]
+            ds.PixelSpacing = [px, px]
+            ds.SliceThickness = 8
+            ds.ImageType = ["ORIGINAL", "PRIMARY", "OTHER"]
+            _mono(ds, img, signed=True)
+            _save(ds, pasta / f"touch_{j}")
+    from ipe.importer.scanner import Importer
+    Importer(db, paths.storage).import_paths([pasta])
+    return uid, uid_anat
+
+
+def test_rigidez_da_elastografia(env, tmp_path):
+    from ipe.ai import elastografia_rm as EL
+    from ipe.ai import ferramentas as FE
+    from ipe.ai import totalseg as TS
+    from ipe.imaging.series import FrameCache
+    paths, db, repo = env
+    uid, uid_anat = _exame_com_elastografia(env, tmp_path)
+    aqs = EL.aquisicoes(repo, uid, F._cabecalho)
+    assert len(aqs) == 1 and len(aqs[0]["elastogramas"]) == 2 and aqs[0]["descricao"] == "Ax MR-Touch Standard"
+    assert aqs[0]["atenuacao"]
+    t = TS.Trabalho(repo, FrameCache(256), None, uid, uid_anat, simular=True)
+    FE.preparar_trabalho(t, F)
+    t.preparar()
+    t.rodar_aqui()
+    res, versao = FE.rodar_conta(t, F, None)
+    try:
+        r = res.rigidez
+        # só o fígado bom: nem a parte de baixa confiança (9 kPa) nem o vaso (20 kPa) entram
+        assert r["kpa_media"]["v"] == pytest.approx(3.0, abs=0.01) and r["kpa_mediana"]["v"] == pytest.approx(3.0)
+        assert r["faixa"]["v"] == "fibrose estágio 1–2" and r["cortes"]["v"] >= 3
+        assert r["classificacao"]["v"] == "Rigidez compatível com fibrose estágio 1–2"
+        assert 0 < r["fracao_confiavel"]["v"] < 100
+        assert any("Venkatesh" in a for a in res.avisos_rigidez)
+        saida = F.gravar(t, res, versao, db, paths.storage, repo=repo)
+        ach = repo.achados(uid, F.FERRAMENTA)
+        rig = [a for a in ach if a["tipo"] == F.TIPO_RIGIDEZ][0]
+        assert F.frase(rig).startswith("Rigidez hepática média na elastografia por RM de 3,00 kPa")
+        assert F.resultado_do_achado(rig) == "Rigidez compatível com fibrose estágio 1–2"
+        assert F.escalas_do_achado(rig)[0][1] == "3,00 kPa — fibrose estágio 1–2"
+        descs = [s.description for s in repo.series_for_study(uid)]
+        assert any(d.startswith(F.DESC_RIGIDEZ) for d in descs) and len(saida["series"]) >= 2
+    finally:
+        t.limpar()
+
+
+def test_confianca_pelo_xadrez_e_faixas():
+    from ipe.ai import elastografia_rm as EL
+    inteiro = np.full((1, 40, 40), 3000.0)
+    masc = inteiro.copy()
+    xadrez = (np.indices((40, 40)).sum(axis=0) % 2) == 0
+    masc[0, 20:, :][xadrez[20:, :]] = 0
+    v = EL.confianca(masc, inteiro)
+    assert v[0, :17].all() and not v[0, 22:].any()
+    assert EL.faixa(2.0) == "normal" and EL.faixa(2.7) == "normal ou inflamação" and EL.faixa(6.0).endswith("cirrose")
+    assert EL.classificar(2.0) == "Rigidez hepática normal"
+    assert EL.eh_elastograma(["DERIVED", "PRIMARY", "MR_ELASTOGRAPHY", "ELASTOGRAM"])
+    assert not EL.eh_elastograma(["DERIVED", "SECONDARY", "SCREEN SAVE"], "ST8KM (Pa)")

@@ -3,6 +3,19 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.94 — rigidez hepática na elastografia por RM; telas salvas anonimizadas
+- **Rigidez hepática automática (elastografia por RM)**: o botão **Fígado** (gordura e ferro) agora também mede a
+  rigidez quando o exame tem elastografia (MR-Touch e afins) — sem rede neural na medida, como a ROI à mão: o fígado
+  do TotalSegmentator a ≥ 5 mm da borda, dentro da área de confiança do aparelho (o xadrez do elastograma
+  mascarado), sem os vasos grandes (pela magnitude da própria aquisição). Média ponderada pela área (a do laudo),
+  mediana, p25–p75, área, cortes, fração do fígado dentro da confiança e heterogeneidade; com duas aquisições, as
+  duas. Faixa de referência (2D, 60 Hz) como texto e classificação sugerida. Série nova **"Rigidez hepática: ROI
+  automática"** com o elastograma em cor, a ROI e o valor de cada corte, para conferir.
+- **Anonimização: telas salvas do aparelho** (elastograma colorido, gráficos — ImageType "SCREEN SAVE", Secondary
+  Capture): o aparelho grava nome, idade, nascimento e data no cabeçalho da tela e ainda diz que não há texto
+  gravado. Na exportação anonimizada e no pacote de casos, essas telas agora perdem o cabeçalho e o rodapé inteiros.
+  **Exames exportados antes com telas salvas devem ser exportados de novo.**
+
 ## 0.100.93 — conferência de protocolos de RM; calcificações vasculares com implante
 - **Conferência de protocolos de RM** (Rede ▸ Conferência de protocolos de RM…): cada RM que chega é comparada com o
   protocolo de referência do exame e do aparelho — séries que faltam ou sobram, plano, 2D/3D, sequência, TR, TE, TI,

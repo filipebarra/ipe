@@ -136,6 +136,12 @@ def _us_regions(ds) -> list[tuple[int, int, int, int]]:
     return out
 
 
+#: 0.100.94: quanto apagar de uma tela salva (% da altura) — na tela do MR-Touch o cabeçalho com nome, idade, data de
+#: nascimento e data do exame desce até ~23% e o rodapé técnico começa em ~80%
+BORDA_TOPO_PCT = 25.0
+BORDA_BAIXO_PCT = 20.0
+
+
 def burned_in_plan(ds, mode: str) -> str | None:
     """O que fazer com o texto gravado: "regions" (US: apaga fora das regiões de imagem), "top" ou None."""
     if mode == "none" or "PixelData" not in ds:
@@ -146,9 +152,29 @@ def burned_in_plan(ds, mode: str) -> str | None:
     flagged = str(ds.get("BurnedInAnnotation", "")).upper() == "YES"
     if modality == "US" and _us_regions(ds):
         return "regions"
+    if eh_captura_de_tela(ds):
+        return "bordas"
     if modality in ("US", "XA", "RF", "ES", "SC", "OT") or flagged:
         return "top"
     return None
+
+
+#: 0.100.94: Secondary Capture (todas as variantes 1.2.840.10008.5.1.4.1.1.7*)
+_SC_PREFIXO = "1.2.840.10008.5.1.4.1.1.7"
+
+
+def eh_captura_de_tela(ds) -> bool:
+    """Tela salva do aparelho (elastograma colorido, gráfico, "Screen Save"): o cabeçalho inteiro da tela vai gravado
+    nos pixels — nome, idade, data de nascimento, data e hora — e o aparelho ainda diz BurnedInAnnotation = NO. Achado
+    na elastografia do MR-Touch (GE), 22/11/2026. As capturas que o próprio Ipê grava (ImageType só DERIVED\\SECONDARY,
+    sem SCREEN SAVE) ficam de fora — não têm cabeçalho de tela."""
+    it = " ".join(str(x).upper() for x in (ds.get("ImageType") or []))
+    if "SCREEN SAVE" in it or "SCREENSAVE" in it:
+        return True
+    sop = str(ds.get("SOPClassUID", "") or "")
+    conv = str(ds.get("ConversionType", "") or "").upper()
+    return sop.startswith(_SC_PREFIXO) and conv == "WSD" and str(ds.get("Modality", "")).upper() not in ("OT", "SC") \
+        and "SECONDARY" in it
 
 
 def redact_burned_in(ds, mode: str = "auto", top_pct: float = 8.0) -> bool:
@@ -174,6 +200,10 @@ def redact_burned_in(ds, mode: str = "auto", top_pct: float = 8.0) -> bool:
         mask[:] = True
         for x0, y0, x1, y1 in _us_regions(ds):
             mask[max(0, y0):min(rows, y1 + 1), max(0, x0):min(cols, x1 + 1)] = False
+    elif plan == "bordas":
+        # o cabeçalho da tela (em cima) e o rodapé (embaixo), na largura toda: o nome e a data ficam nos cantos
+        mask[: max(1, int(round(rows * BORDA_TOPO_PCT / 100.0)))] = True
+        mask[rows - max(1, int(round(rows * BORDA_BAIXO_PCT / 100.0))):] = True
     else:
         mask[: max(1, int(round(rows * top_pct / 100.0)))] = True
     arr[:, mask, :] = black

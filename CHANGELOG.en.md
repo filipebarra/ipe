@@ -3,6 +3,19 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.94 — liver stiffness on MR elastography; scanner screen saves anonymized
+- **Automatic liver stiffness (MR elastography)**: the **Liver** button (fat and iron) now also measures stiffness
+  when the study has MR elastography (MR-Touch and similar) — no neural network in the measurement, like a manual ROI:
+  the TotalSegmentator liver ≥ 5 mm from the edge, within the scanner's confidence area (the checkerboard of the
+  masked elastogram), without the large vessels (from the acquisition's own magnitude). Area-weighted mean (the one
+  for the report), median, p25–p75, area, slices, fraction of the liver within confidence and heterogeneity; with two
+  acquisitions, both. Reference range (2D, 60 Hz) as text and a suggested classification. New series **"Liver
+  stiffness: automatic ROI"** with the color elastogram, the ROI and each slice's value, to check.
+- **Anonymization: scanner screen saves** (color elastogram, graphs — ImageType "SCREEN SAVE", Secondary Capture): the
+  scanner burns the name, age, birth date and date into the screen header and still says there is no burned-in
+  text. In anonymized export and case packages these screens now lose the whole header and footer. **Studies
+  exported earlier with screen saves should be exported again.**
+
 ## 0.100.93 — MRI protocol check; vascular calcifications with implants
 - **MRI protocol check** (Network ▸ MRI protocol check…): every incoming MRI is compared with the reference protocol
   of the study and scanner — missing or extra series, plane, 2D/3D, sequence, TR, TE, TI, flip angle, ETL, NEX,

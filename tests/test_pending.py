@@ -178,3 +178,31 @@ def test_burned_in_redaction(env, sample_dir):
     # CT comum: não mexe
     ct = pydicom.dcmread(repo.files_for_study(st["ACC1001"])[0])
     assert burned_in_plan(ct, "auto") is None
+
+
+def test_tela_salva_do_aparelho_perde_cabecalho_e_rodape():
+    """0.100.94: a tela salva do MR-Touch (elastograma colorido) traz nome, idade, nascimento e data gravados nos pixels
+    e diz BurnedInAnnotation = NO — na exportação anonimizada perde o cabeçalho e o rodapé."""
+    import numpy as np
+    from pydicom.dataset import Dataset, FileMetaDataset
+    from pydicom.uid import ExplicitVRLittleEndian
+
+    from ipe.exporter.anonymize import BORDA_BAIXO_PCT, BORDA_TOPO_PCT, burned_in_plan, eh_captura_de_tela, \
+        redact_burned_in
+    ds = Dataset()
+    ds.file_meta = FileMetaDataset()
+    ds.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+    ds.SOPClassUID = "1.2.840.10008.5.1.4.1.1.7"
+    ds.Modality, ds.ConversionType, ds.BurnedInAnnotation = "MR", "WSD", "NO"
+    ds.ImageType = ["DERIVED", "SECONDARY", "SCREEN SAVE"]
+    ds.Rows = ds.Columns = 100
+    ds.SamplesPerPixel, ds.PhotometricInterpretation, ds.PlanarConfiguration = 3, "RGB", 0
+    ds.BitsAllocated, ds.BitsStored, ds.HighBit, ds.PixelRepresentation = 8, 8, 7, 0
+    ds.PixelData = np.full((100, 100, 3), 200, np.uint8).tobytes()
+    assert eh_captura_de_tela(ds) and burned_in_plan(ds, "auto") == "bordas"
+    assert redact_burned_in(ds, "auto")
+    a = ds.pixel_array
+    assert not a[: int(BORDA_TOPO_PCT)].any() and not a[100 - int(BORDA_BAIXO_PCT):].any() and a[50].all()
+    ipe = Dataset()
+    ipe.SOPClassUID, ipe.Modality, ipe.ImageType = "1.2.840.10008.5.1.4.1.1.7", "MR", ["DERIVED", "SECONDARY"]
+    assert not eh_captura_de_tela(ipe)
