@@ -539,6 +539,8 @@ class Browser(QWidget):
 
     def _refresh_rows(self) -> None:
         mod = self.modality.currentText()
+        if mod == self.modality.itemText(0) or mod in ("All", "Todas"):     # 0.100.92: "All" no inglês
+            mod = "Todas"
         d_from, d_to = self._period_range()
         try:
             rows = self.repo.search_studies(self.search.text().strip(),

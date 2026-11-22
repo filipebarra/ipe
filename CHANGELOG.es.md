@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.92 — C-GET con series comprimidas, filtro "Todas" en inglés y traducciones
+- **C-GET**: cuando quien pide solo acepta sintaxis sin compresión, Ipê descomprime las series JPEG-LS/JPEG 2000
+  al momento en lugar de dejarlas atrás (antes el estudio llegaba sin esas series).
+- **Buscar en el PACS, base y listas de casos**: con el programa en inglés o español, la modalidad "Todas" iba
+  como "ALL" y no encontraba nada.
+- Traducciones que faltaban en la gestión DICOM (cola de envío, estados, reglas con horario y días), la impresión
+  (panel de películas, orígenes sin registro, envíos, "cualquiera") y el compositor de películas (ayuda y copias).
+
 ## 0.100.91 — calcificaciones vasculares marcadas para el monitor B/N y el PACS
 - **Marcas de las calcificaciones vasculares**: en lugar del rojo (gris oscuro en el monitor B/N), un **contorno
   blanco con borde negro** ~1 mm alrededor de lo que halló la red y **flechas numeradas** en las puntas de cada vaso.

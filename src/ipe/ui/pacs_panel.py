@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ipe.core.i18n import tr
+
 from datetime import date, timedelta
 
 from PySide6.QtCore import QDate, Qt, Signal
@@ -253,7 +255,9 @@ class PacsPanel(QWidget):
             d_from = (today - timedelta(days=int(modo))).strftime("%Y%m%d")
             d_to = today.strftime("%Y%m%d")
         mod = self.mod.currentText().strip()
-        if mod.lower() in ("todas", "todos"):
+        # 0.100.92: no inglês/espanhol a primeira opção aparece traduzida ("All", "Todas") — antes ia "ALL" como
+        # modalidade e a busca não achava nada
+        if mod.lower() in ("todas", "todos", "all", tr("Todas").lower()) or mod == self.mod.itemText(0):
             mod = ""
         else:                                    # "ct, mr" -> "CT\\MR" (como o padrão espera)
             mod = "\\".join(m.strip().upper() for m in mod.replace(";", ",").split(",") if m.strip())
@@ -314,9 +318,9 @@ class PacsPanel(QWidget):
         for r in rows:
             n_local = local.get(r["study_uid"], 0)
             if n_local and r["num_images"] and n_local >= r["num_images"]:
-                here = "✓ sim"
+                here = "✓ " + tr("sim")
             elif n_local:
-                here = f"parcial ({n_local})"
+                here = tr("parcial ({})").format(n_local)
             else:
                 here = "—"
             vals = [r["patient_name"], r["patient_id"], fmt_date(r["birth_date"]), fmt_date(r["study_date"]),
@@ -576,9 +580,9 @@ class PacsPanel(QWidget):
             bar.setTextVisible(True)
             self.jobs.setItemWidget(it, 3, bar)
             self._job_items[job.id] = it
-        it.setText(2, STATUS_TEXT.get(job.status, job.status) + (f" — {job.message}" if job.message
-                                                                    and job.status != "running" else ""))
-        it.setToolTip(2, job.message)
+        it.setText(2, tr(STATUS_TEXT.get(job.status, job.status)) + (f" — {tr(job.message)}" if job.message
+                                                                        and job.status != "running" else ""))
+        it.setToolTip(2, tr(job.message or ""))
         bar = self.jobs.itemWidget(it, 3)
         if bar is not None:
             if job.status == "running" and not job.total:
@@ -589,7 +593,7 @@ class PacsPanel(QWidget):
             else:
                 bar.setRange(0, 1)
                 bar.setValue(1 if job.status == "done" else 0)
-            bar.setFormat(job.message if job.status == "running" and job.message else
+            bar.setFormat(tr(job.message) if job.status == "running" and job.message else
                           ("%p%" if job.total else ""))
         color = {"error": QColor(255, 120, 120), "done": QColor(120, 220, 120)}.get(job.status)
         if color:
@@ -611,7 +615,8 @@ class PacsPanel(QWidget):
             it = self.results.topLevelItem(i)
             r = it.data(0, Qt.UserRole)
             if r and r["study_uid"] == study_uid:
-                it.setText(10, "✓ sim" if not r["num_images"] or n >= r["num_images"] else f"parcial ({n})")
+                it.setText(10, "✓ " + tr("sim") if not r["num_images"] or n >= r["num_images"]
+                           else tr("parcial ({})").format(n))
                 it.setForeground(10, QBrush(QColor(120, 220, 120)))
 
     def _cancel_selected(self) -> None:

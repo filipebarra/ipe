@@ -11,6 +11,8 @@ automático, para não existirem dois jeitos de mandar um filme.
 
 from __future__ import annotations
 
+from ipe.core.i18n import tr
+
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -202,7 +204,7 @@ def resumo(gs: list[Group]) -> str:
     elif prontos:
         partes.append(f"{prontos} trabalho(s) prontos para liberar.")
     elif parados:
-        partes.append(f"{parados} trabalho(s) parados esperando cadastro da origem.")
+        partes.append(tr("{} trabalho(s) parados esperando cadastro da origem.").format(parados))
     if sem_paciente:
         partes.append(f"{sem_paciente} trabalho(s) esperando você confirmar o paciente.")
     return " ".join(partes)

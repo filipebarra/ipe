@@ -907,3 +907,31 @@ def test_editor_da_regra_e_aba_automatico(janela, monkeypatch):
     assert p.t_regras.rowCount() == 1 and "diariamente" in p.t_regras.item(0, 2).text()
     assert p.duplicar() and p.t_regras.rowCount() == 2
     assert not repo.rule(max(r["id"] for r in repo.rules("gestao")))["active"], "a cópia nasce desligada"
+
+
+def test_c_get_leva_tambem_as_series_comprimidas(tmp_path):
+    """0.100.92: no C-GET, a imagem gravada em JPEG-LS não ia (o contexto da classe sai negociado sem compressão);
+    o exame chegava sem as séries comprimidas. Agora o servidor descomprime antes de mandar."""
+    import pydicom
+    from pydicom.uid import JPEGLSLossless
+    pacs = No(tmp_path / "pacs", "PACS_GET")
+    try:
+        ex = _exame(tmp_path / "ex", "TESTE^GET", "ACCGET", [("T1", 3), ("FLAIR", 4)])
+        for p in ex["series"][1][3].glob("*.dcm"):             # a segunda série fica em JPEG-LS
+            ds = pydicom.dcmread(p)
+            ds.compress(JPEGLSLossless)
+            ds.save_as(p, enforce_file_format=True)
+        pacs.importar(tmp_path / "ex")
+        pacs.server.start()
+        recebidas, formas = {}, []
+
+        class Sink:
+            def store(self, ds, meta, origin=""):
+                recebidas[ds.SeriesDescription] = recebidas.get(ds.SeriesDescription, 0) + 1
+                formas.append(len(ds.PixelData))
+        t = Target("PACS", "127.0.0.1", pacs.port, "PACS_GET", "CLIENTE", "CLIENTE")
+        n = DicomClient(timeout=10).get(t, ex["uid"], None, Sink())
+        assert recebidas == {"T1": 3, "FLAIR": 4}, (recebidas, formas)
+        assert n == 7 and all(f == 8 * 8 * 2 for f in formas), formas      # descomprimida: 8×8 de 16 bits
+    finally:
+        pacs.close()

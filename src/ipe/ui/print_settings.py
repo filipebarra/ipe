@@ -6,6 +6,8 @@ Separada das configurações de rede de propósito — impressão tem vida próp
 
 from __future__ import annotations
 
+from ipe.core.i18n import tr
+
 import logging
 from pathlib import Path
 
@@ -1304,8 +1306,8 @@ class PrintSettingsDialog(QDialog):
                 outras = outras.split(": ", 1)[1].rsplit(" → ", 1)[0]
                 aes_meus = {x.name: x.ae_title for x in self.servers}
                 recebido = ", ".join(f"{aes_meus[n]} ({n})" if n in aes_meus else n for n in r.servidores())
-                valores = [r.name, ", ".join(r.aes()) or "qualquer", recebido or "qualquer",
-                           ", ".join(r.modalidades()) or "qualquer",
+                valores = [r.name, ", ".join(r.aes()) or tr("qualquer"), recebido or tr("qualquer"),
+                           ", ".join(r.modalidades()) or tr("qualquer"),
                            "" if outras == "qualquer trabalho" else outras,
                            r.destination or "(sem destino)", r.template or "", "sim" if r.stop else "não"]
                 for j, v in enumerate(valores, start=1):
@@ -1464,8 +1466,8 @@ class PrintSettingsDialog(QDialog):
                 marca.setCheckState(Qt.Checked if r.enabled else Qt.Unchecked)
                 marca.setToolTip("Ligar ou desligar esta regra")
                 t.setItem(i, 0, marca)
-                valores = [r.name, ", ".join(r.calling_aes) or "qualquer", ", ".join(r.my_aes) or "qualquer",
-                           ", ".join(r.modalities) or "qualquer",
+                valores = [r.name, ", ".join(r.calling_aes) or tr("qualquer"), ", ".join(r.my_aes) or tr("qualquer"),
+                           ", ".join(r.modalities) or tr("qualquer"),
                            f"descrição com {r.description}" if r.description else "",
                            f"{r.rows}×{r.cols} {r.paper}", str(r.max_images) if r.max_images else "todas",
                            r.destination or "fica na lista", r.template or ""]

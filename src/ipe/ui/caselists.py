@@ -87,7 +87,8 @@ class SmartListDialog(QDialog):
         self.accept()
 
     def query(self) -> dict:
-        q = {"text": self.text.text().strip(), "modality": "" if self.modality.currentText() == "Todas"
+        q = {"text": self.text.text().strip(), "modality": "" if (self.modality.currentText() in ("Todas", "All")
+                                                                  or self.modality.currentText() == self.modality.itemText(0))
              else self.modality.currentText(), "days": self.days.value(), "description": self.desc.text().strip(),
              "body_part": self.body.text().strip(), "institution": self.inst.text().strip(),
              "origin": self.origin.currentData()}

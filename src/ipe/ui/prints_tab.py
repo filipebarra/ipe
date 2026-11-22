@@ -6,6 +6,8 @@ um a um ou vários de uma vez.
 
 from __future__ import annotations
 
+from ipe.core.i18n import tr
+
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -899,7 +901,7 @@ class PrintsTab(QWidget):
             quem = ", ".join(f"{o.calling_ae or '?'} ({o.remote_host or '?'})" for o in pendentes[:4])
             if len(pendentes) > 4:
                 quem = f"{quem}…"
-            partes.append(f"{len(pendentes)} origem(ns) sem cadastro: {quem}.")
+            partes.append(tr("{} origem(ns) sem cadastro: {}.").format(len(pendentes), quem))
         if parados:
             partes.append(H.resumo(grupos))
         self.faixa_origens.setText(" ".join(partes))
@@ -1063,7 +1065,7 @@ class PrintsTab(QWidget):
             return
         mais = f"<br>Mais {len(envios) - 3} no Histórico…" if len(envios) > 3 else ""
         txt = "<br>".join(self.texto_envio(e) for e in envios[:3])
-        self.envios_label.setText(f"<b>Envios ({len(envios)})</b><br>{txt}{mais}")
+        self.envios_label.setText("<b>" + tr("Envios ({})").format(len(envios)) + f"</b><br>{txt}{mais}")
 
     def show_history(self) -> None:
         sel = self.selected()

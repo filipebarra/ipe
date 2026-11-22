@@ -3787,7 +3787,7 @@
  "Seta": "Arrow",
  "Seu perfil (": "Your role (",
  "Seu perfil ({}) não permite: {}.": "Your role ({}) does not allow: {}.",
- "Sex": "Sex",
+ "Sex": "Fri",
  "Sexo": "Sex",
  "Sexo, idade e nascimento": "Sex, age and birth date",
  "Shift": "Shift",
@@ -10299,5 +10299,15 @@
  "Segmentação abdominal (órgãos)": "Abdominal segmentation (organs)",
  "Mapa dos níveis linfonodais desta série (IA)…": "Lymph node level map of this series (AI)…",
  "Refazer a identificação das vértebras no exame (série preferida)…": "Redo the vertebra identification on the study (preferred series)…",
- "Refazer a medida no exame (em segundo plano)": "Redo the measurement on the study (in the background)"
+ "Refazer a medida no exame (em segundo plano)": "Redo the measurement on the study (in the background)",
+ "Visualizador: <b>F1</b> (ou botão <b>Filme</b>) envia a imagem do quadro, <b>F2</b> a série do quadro (inteira/intervalo) · botão direito na tira de séries: imagens-chave · arraste miniaturas para uma célula.  Na célula: esquerdo = a função escolhida (janela, mover ou zoom; botão direito ▸ Mouse), <b>alça ⠿ arrastada = trocar a imagem de lugar</b>, anotação: arrastar move, a ponta da seta estica, duplo clique no texto edita · direito arrastado = zoom, meio = mover, rodinha = corte, botão direito = girar/espelhar/copiar/colar/remover. Ctrl/Shift+clique seleciona várias · Ctrl+C / Ctrl+X / Ctrl+V · Del · duplo clique = expandir.": "Viewer: <b>F1</b> (or the <b>Film</b> button) sends the frame image, <b>F2</b> the frame series (whole/range) · right click on the series strip: key images · drag thumbnails onto a cell.  On a cell: left = the chosen function (window, pan or zoom; right click ▸ Mouse), <b>drag the ⠿ handle = move the image to another place</b>, annotation: drag moves it, the arrow tip stretches, double click on the text edits · right drag = zoom, middle = pan, wheel = slice, right click = rotate/flip/copy/paste/remove. Ctrl/Shift+click selects several · Ctrl+C / Ctrl+X / Ctrl+V · Del · double click = expand.",
+ "{} exame(s) na fila:": "{} study(ies) in the queue:",
+ "Envios ({})": "Sends ({})",
+ "qualquer": "any",
+ "{}% em até 24 h": "{}% within 24 h",
+ "{} de {} no período · clique no cabeçalho para ordenar · duplo clique abre": "{} of {} in the period · click the header to sort · double click opens",
+ "entre": "between",
+ "e": "and",
+ " vez(es)": " time(s)",
+ " cópia(s)": " copy(ies)"
 }

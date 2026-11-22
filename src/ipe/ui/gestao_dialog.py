@@ -12,6 +12,8 @@ ela aceita) e o PACS; conferir o dia; mandar o que falta. A regra de rede mora e
 
 from __future__ import annotations
 
+from ipe.core.i18n import tr
+
 import csv
 import logging
 import threading
@@ -634,17 +636,17 @@ class GestaoWindow(QWidget):
     def _pintar(self, it: _Item, c: G.Conferencia) -> None:
         e = c.estudo
         ser, img = c.contagem()
-        textos = [f"{SIMBOLO.get(c.situacao, '')} {c.texto()}", c.fonte,
+        textos = [f"{SIMBOLO.get(c.situacao, '')} {tr(c.texto())}", c.fonte,
                   _data(e.get("study_date", ""), e.get("study_time", "")),
                   e.get("patient_name", ""), e.get("patient_id", ""), e.get("accession", ""),
-                  e.get("description", ""), ser, img, c.detalhe, c.envio]
+                  e.get("description", ""), ser, img, tr(c.detalhe), tr(c.envio)]
         for i, t in enumerate(textos):
             it.setText(i, t)
         it.setData(0, Qt.UserRole, G.ORDEM.get(c.situacao, 99))
         it.setData(2, Qt.UserRole, f"{e.get('study_date', '')}{e.get('study_time', '')}")
         it.setForeground(0, QBrush(COR.get(c.situacao, QColor(200, 200, 200))))
-        it.setToolTip(9, c.detalhe)
-        it.setToolTip(10, c.envio)
+        it.setToolTip(9, tr(c.detalhe))
+        it.setToolTip(10, tr(c.envio))
         it.setData(1, Qt.UserRole + 1, self._chave(c))
         it.takeChildren()
         for s in sorted(c.series, key=lambda s: (s.situacao == "so_no_pacs", s.numero)):
@@ -653,10 +655,10 @@ class GestaoWindow(QWidget):
             np_ = "—" if s.imagens_pacs is None else str(s.imagens_pacs)
             if s.situacao == "falta":
                 np_ = "0"
-            nome = f"Série {s.numero} · {s.descricao}" if s.descricao else f"Série {s.numero}"
-            vals = [G.SITUACOES_SERIE.get(s.situacao, s.situacao), "", "", nome, "", "",
+            nome = (tr("Série {}").format(s.numero) + (f" · {s.descricao}" if s.descricao else ""))
+            vals = [tr(G.SITUACOES_SERIE.get(s.situacao, s.situacao)), "", "", nome, "", "",
                     s.modalidade, "", f"{no} / {np_}",
-                    f"faltam {s.faltam}" if s.situacao in G.A_ENVIAR and s.faltam else "", ""]
+                    tr("faltam {}").format(s.faltam) if s.situacao in G.A_ENVIAR and s.faltam else "", ""]
             for i, t in enumerate(vals):
                 f.setText(i, t)
             f.setData(0, Qt.UserRole, list(G.SITUACOES_SERIE).index(s.situacao)
@@ -831,11 +833,11 @@ class GestaoWindow(QWidget):
 
     def _fila_pintar(self, it: QTreeWidgetItem, estado: str, msg: str) -> None:
         simb, txt = ESTADOS_FILA.get(estado, ("", estado))
-        it.setText(0, f"{simb} {txt}")
+        it.setText(0, f"{simb} {tr(txt)}")
         it.setData(0, Qt.UserRole + 1, estado)
         if msg:
-            it.setText(6, msg)
-            it.setToolTip(6, msg)
+            it.setText(6, tr(msg))
+            it.setToolTip(6, tr(msg))
         cor = {"ok": "#7fd07f", "nada": "#7fd07f", "falhou": "#ff8a80", "enviando": "#ffd166",
                "parado": "#9a9a9a"}.get(estado)
         for col in range(len(COLUNAS_FILA)):
@@ -865,15 +867,15 @@ class GestaoWindow(QWidget):
             self.l_fila.setText("Nada na fila.")
         else:
             n = {k: est.count(k) for k in ESTADOS_FILA}
-            partes = [f"{n['ok'] + n['nada']} enviado(s)", f"{n['fila']} esperando"]
+            partes = [tr("{} enviado(s)").format(n['ok'] + n['nada']), tr("{} esperando").format(n['fila'])]
             if n["enviando"]:
-                partes.insert(0, "1 indo agora")
+                partes.insert(0, tr("1 indo agora"))
             if n["falhou"]:
-                partes.append(f"{n['falhou']} com falha")
+                partes.append(tr("{} com falha").format(n['falhou']))
             if n["parado"]:
-                partes.append(f"{n['parado']} não foi(ram)")
-            self.l_fila.setText(f"{len(est)} exame(s) na fila: " + ", ".join(partes) + ".")
-            self.g_fila.setTitle(f"Fila de envio ({len(est)})")
+                partes.append(tr("{} não foi(ram)").format(n['parado']))
+            self.l_fila.setText(tr("{} exame(s) na fila:").format(len(est)) + " " + ", ".join(partes) + ".")
+            self.g_fila.setTitle(tr("Fila de envio ({})").format(len(est)))
         self.b_fila_parar.setEnabled(any(e in ("fila", "enviando") for e in est))
         self.b_fila_limpar.setEnabled(any(e in ("ok", "nada", "falhou", "parado") for e in est))
 

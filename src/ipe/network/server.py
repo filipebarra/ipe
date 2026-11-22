@@ -194,12 +194,46 @@ class DicomServer:
     def _on_get(self, event):
         files = local_query.files_for(self.repo.db, event.identifier)
         log.info("C-GET de %s: %d imagens", event.assoc.requestor.ae_title, len(files))
+        aceitas = _sintaxes_aceitas(event.assoc)
         yield len(files)
         for ds in self._datasets(files):
             if event.is_cancelled:
                 yield 0xFE00, None
                 return
-            yield 0xFF00, ds
+            yield 0xFF00, _para_a_sintaxe_aceita(ds, aceitas)
+
+
+def _sintaxes_aceitas(assoc) -> dict[str, set[str]]:
+    """{classe SOP: sintaxes de transferência aceitas} da associação (no C-GET, quem pede propõe uma por classe)."""
+    out: dict[str, set[str]] = defaultdict(set)
+    try:
+        for cx in assoc.accepted_contexts:
+            out[str(cx.abstract_syntax)].add(str(cx.transfer_syntax[0]))
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
+def _para_a_sintaxe_aceita(ds, aceitas: dict[str, set[str]]):
+    """0.100.92: no C-GET o contexto da classe vem negociado numa sintaxe só (em geral sem compressão). Uma imagem
+    gravada comprimida (JPEG-LS, JPEG 2000…) nessa associação não ia — o exame chegava sem as séries comprimidas.
+    Agora ela é descomprimida antes de ir; a que já está numa sintaxe aceita vai como está."""
+    if ds is None:
+        return ds
+    try:
+        cls = str(ds.SOPClassUID)
+        ts = str(ds.file_meta.TransferSyntaxUID)
+    except Exception:  # noqa: BLE001
+        return ds
+    ok = aceitas.get(cls)
+    if not ok or ts in ok or ts in UNCOMPRESSED and any(t in UNCOMPRESSED for t in ok):
+        return ds
+    if any(t in UNCOMPRESSED for t in ok):
+        try:
+            ds.decompress()
+        except Exception as e:  # noqa: BLE001
+            log.warning("C-GET: não deu para descomprimir %s (%s): %s", getattr(ds, "SOPInstanceUID", "?"), ts, e)
+    return ds
 
 
 def _contexts_for(files) -> list:

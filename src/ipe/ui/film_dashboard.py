@@ -5,6 +5,8 @@ o programa não leva biblioteca de gráficos, e duas barras não justificam uma.
 """
 from __future__ import annotations
 
+from ipe.core.i18n import tr
+
 import csv
 from datetime import date, datetime
 
@@ -506,13 +508,14 @@ class FilmDashboard(QDialog):
         self._preencher_grupo(self.t_user, r.por_usuario)
         self.visiveis = [l for l in ls if not l.impresso] if self.k_so_nao.isChecked() else ls
         self._preencher_filmes(self.visiveis)
-        self.l_lista.setText(f"<span style='color:#9a9a9a'>{len(self.visiveis)} de {len(ls)} no período"
-                             " · clique no cabeçalho para ordenar · duplo clique abre</span>")
+        self.l_lista.setText("<span style='color:#9a9a9a'>" + tr(
+            "{} de {} no período · clique no cabeçalho para ordenar · duplo clique abre").format(
+            len(self.visiveis), len(ls)) + "</span>")
         self.b_csv.setEnabled(bool(self.visiveis))
 
     def _cartoes(self, r: F.Resumo) -> None:
         def tempo(t: F.Tempo) -> tuple[str, str, str]:
-            det = f"p90 {F.duracao(t.p90)} · {t.n} filme(s)" if t.n else "sem dado"
+            det = tr("p90 {} · {} filme(s)").format(F.duracao(t.p90), t.n) if t.n else tr("sem dado")
             if t.negativos:
                 det += f" · {t.negativos} com hora errada, fora da conta"
             return F.duracao(t.mediana), det, "Mediana; o percentil 90 diz quanto demoram os 10% mais lentos."
@@ -535,7 +538,7 @@ class FilmDashboard(QDialog):
         self.k_filme_imp.mostrar(*tempo(r.filme_impressao))
         v, det, dica = tempo(r.exame_impressao)
         if r.impressos:
-            det += f" · {100 * r.impressos_24h / r.impressos:.0f}% em até 24 h"
+            det += " · " + tr("{}% em até 24 h").format(f"{100 * r.impressos_24h / r.impressos:.0f}")
         self.k_ex_imp.mostrar(v, det, dica)
         destinos = "; ".join(f"{d}: {n}" for d, n in r.por_destino[:5])
         self.k_folhas.mostrar(str(r.folhas_impressas), f"{r.impressoes} impressão(ões)",

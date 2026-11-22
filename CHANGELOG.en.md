@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.92 — C-GET with compressed series, "All" filter in English and translations
+- **C-GET**: when the requester accepts only uncompressed syntaxes, Ipê now decompresses JPEG-LS/JPEG 2000 series
+  on the fly instead of leaving them behind (the study used to arrive without those series).
+- **PACS search, database and case lists**: with the program in English or Spanish, the "All" modality was sent
+  as "ALL" and found nothing.
+- Missing translations in DICOM management (send queue, statuses, scheduled rules and weekdays), printing (films
+  dashboard, unregistered sources, sends, "any") and the film composer (help and copies).
+
 ## 0.100.91 — vascular calcifications marked for B/W monitors and the PACS
 - **Breast arterial calcification marks**: instead of red (dark gray on a B/W monitor), a **white outline with a
   black edge** ~1 mm around what the network found and **numbered arrows** at the ends of each vessel. In the window,

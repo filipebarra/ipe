@@ -7673,7 +7673,17 @@
   "Segmentação abdominal (órgãos)",
   "Mapa dos níveis linfonodais desta série (IA)…",
   "Refazer a identificação das vértebras no exame (série preferida)…",
-  "Refazer a medida no exame (em segundo plano)"
+  "Refazer a medida no exame (em segundo plano)",
+  "Visualizador: <b>F1</b> (ou botão <b>Filme</b>) envia a imagem do quadro, <b>F2</b> a série do quadro (inteira/intervalo) · botão direito na tira de séries: imagens-chave · arraste miniaturas para uma célula.  Na célula: esquerdo = a função escolhida (janela, mover ou zoom; botão direito ▸ Mouse), <b>alça ⠿ arrastada = trocar a imagem de lugar</b>, anotação: arrastar move, a ponta da seta estica, duplo clique no texto edita · direito arrastado = zoom, meio = mover, rodinha = corte, botão direito = girar/espelhar/copiar/colar/remover. Ctrl/Shift+clique seleciona várias · Ctrl+C / Ctrl+X / Ctrl+V · Del · duplo clique = expandir.",
+  "{} exame(s) na fila:",
+  "Envios ({})",
+  "qualquer",
+  "{}% em até 24 h",
+  "{} de {} no período · clique no cabeçalho para ordenar · duplo clique abre",
+  "entre",
+  "e",
+  " vez(es)",
+  " cópia(s)"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

@@ -3787,7 +3787,7 @@
  "Seta": "Flecha",
  "Seu perfil (": "Su perfil (",
  "Seu perfil ({}) não permite: {}.": "Su perfil ({}) no permite: {}.",
- "Sex": "Sex",
+ "Sex": "Vie",
  "Sexo": "Sexo",
  "Sexo, idade e nascimento": "Sexo, edad y nacimiento",
  "Shift": "Shift",
@@ -10299,5 +10299,15 @@
  "Segmentação abdominal (órgãos)": "Segmentación abdominal (órganos)",
  "Mapa dos níveis linfonodais desta série (IA)…": "Mapa de los niveles ganglionares de esta serie (IA)…",
  "Refazer a identificação das vértebras no exame (série preferida)…": "Rehacer la identificación de las vértebras en el estudio (serie preferida)…",
- "Refazer a medida no exame (em segundo plano)": "Rehacer la medida en el estudio (en segundo plano)"
+ "Refazer a medida no exame (em segundo plano)": "Rehacer la medida en el estudio (en segundo plano)",
+ "Visualizador: <b>F1</b> (ou botão <b>Filme</b>) envia a imagem do quadro, <b>F2</b> a série do quadro (inteira/intervalo) · botão direito na tira de séries: imagens-chave · arraste miniaturas para uma célula.  Na célula: esquerdo = a função escolhida (janela, mover ou zoom; botão direito ▸ Mouse), <b>alça ⠿ arrastada = trocar a imagem de lugar</b>, anotação: arrastar move, a ponta da seta estica, duplo clique no texto edita · direito arrastado = zoom, meio = mover, rodinha = corte, botão direito = girar/espelhar/copiar/colar/remover. Ctrl/Shift+clique seleciona várias · Ctrl+C / Ctrl+X / Ctrl+V · Del · duplo clique = expandir.": "Visor: <b>F1</b> (o el botón <b>Película</b>) envía la imagen del cuadro, <b>F2</b> la serie del cuadro (entera/intervalo) · clic derecho en la tira de series: imágenes clave · arrastre miniaturas a una celda.  En la celda: izquierdo = la función elegida (ventana, mover o zoom; clic derecho ▸ Mouse), <b>arrastrar la manija ⠿ = cambiar la imagen de lugar</b>, anotación: arrastrar la mueve, la punta de la flecha la estira, doble clic en el texto lo edita · derecho arrastrado = zoom, medio = mover, rueda = corte, clic derecho = girar/espejar/copiar/pegar/quitar. Ctrl/Shift+clic selecciona varias · Ctrl+C / Ctrl+X / Ctrl+V · Supr · doble clic = expandir.",
+ "{} exame(s) na fila:": "{} estudio(s) en la cola:",
+ "Envios ({})": "Envíos ({})",
+ "qualquer": "cualquiera",
+ "{}% em até 24 h": "{}% en hasta 24 h",
+ "{} de {} no período · clique no cabeçalho para ordenar · duplo clique abre": "{} de {} en el período · clic en el encabezado para ordenar · doble clic abre",
+ "entre": "entre",
+ "e": "y",
+ " vez(es)": " vez(ces)",
+ " cópia(s)": " copia(s)"
 }
