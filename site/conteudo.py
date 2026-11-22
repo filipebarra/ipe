@@ -395,7 +395,7 @@ TAREFAS = [
                "Un nodo que no acepta el formato comprimido recibe las imágenes descomprimidas al momento."),
              T("Settings ▸ Network", "Configurações ▸ Rede", "Configuración ▸ Red")),
         ],
-        "videos": ["v51", "v52"],
+        "videos": ["v51", "v52", "v56"],
     },
     {
         "slug": "printing",
@@ -858,6 +858,15 @@ TUTORIAIS = {
                    'Este vídeo mostra o compositor de filmes do Ipê. Você monta filmes com o seu layout, manda séries inteiras em lote, edita cada imagem, escreve sobre ela e imprime numa impressora DICOM de filme, numa impressora do computador, em PDF ou em imagens.',
                    'Este video muestra el compositor de películas de Ipê. Usted arma películas con su propio layout, envía series enteras en lote, edita cada imagen, escribe sobre ella e imprime en una impresora DICOM de película, una impresora de la computadora, PDF o imágenes.'),
         "duracao": "3:04",
+        "youtube": {},
+    },
+    "v56": {
+        "grupo": "rede",
+        "titulo": T('External call: open studies from the RIS, a link or the command line', 'Chamada externa: abrir exames pelo RIS, por link ou pela linha de comando', 'Llamada externa: abrir estudios desde el RIS, un enlace o la línea de comandos'),
+        "texto": T('How a RIS, a web page, a script or the command line opens the right study in Ipê: ipe-cli, the local HTTP API (also IHE Invoke Image Display), ipe:// links, OsiriX aliases and encrypted links. If the study is not here, Ipê searches a DICOM node, downloads it and opens it.',
+                   'Como um RIS, uma página web, um script ou a linha de comando abre o exame certo no Ipê: ipe-cli, a API HTTP local (também IHE Invoke Image Display), links ipe://, apelidos do OsiriX e link cifrado. Se o exame não está aqui, o Ipê busca num nó DICOM, baixa e abre.',
+                   'Cómo un RIS, una página web, un script o la línea de comandos abre el estudio correcto en Ipê: ipe-cli, la API HTTP local (también IHE Invoke Image Display), enlaces ipe://, alias de OsiriX y enlace cifrado. Si el estudio no está aquí, Ipê lo busca en un nodo DICOM, lo trae y lo abre.'),
+        "duracao": "4:02",
         "youtube": {},
     },
     "v55": {
