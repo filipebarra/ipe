@@ -156,3 +156,52 @@ def test_janela_do_link(env, sample_dir):
         QMessageBox.question = orig
     assert not LE.listar(repo, uid)[0]["ativo"]
     d.close()
+
+
+def test_criar_pelo_ipe_web(dois_exames):
+    """0.100.109: o botão "Link do exame" no visualizador do Ipê Web — cria, copia, lista, revoga; e o link funciona."""
+    pw = pytest.importorskip("playwright.sync_api")
+    srv, uid, outro = dois_exames
+    erros = []
+    with pw.sync_playwright() as p:
+        b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
+        ctx = b.new_context(viewport={"width": 1400, "height": 900})
+        ctx.grant_permissions(["clipboard-read", "clipboard-write"])
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: erros.append(str(e)))
+        pg.goto(f"http://127.0.0.1:{srv.port}/web/#/exame/{uid}")
+        pg.fill("#usuario", "admin")
+        pg.fill("#senha", "admin123")
+        pg.click("button[type=submit]")
+        pg.wait_for_selector(".quadro canvas")
+        pg.evaluate("document.querySelector(\"button[title='Link do exame (sem senha)']\").click()")   # (pode estar no »)
+        pg.wait_for_selector(".painel-link-exame")
+        pg.fill(".painel-link-exame input[type=text]", "Cirurgião")
+        pg.check(".painel-link-exame input[value=anexar]")
+        pg.click(".painel-link-exame button:has-text('Criar e copiar')")
+        pg.wait_for_selector(".painel-link-exame .link-gerado:not([hidden])")
+        url = pg.input_value(".painel-link-exame .link-gerado")
+        assert "/web/#/link/" in url
+        assert _esperar(srv, lambda: pg.locator(".painel-link-exame .link-item.ativo").count() == 1, 10)
+        links = LE.listar(srv.repo_, uid)
+        assert links[0]["rotulo"] == "Cirurgião" and links[0]["perms"] == ["anexar"]
+        # o link, num navegador sem sessão, abre o exame e não tem o botão de link
+        pg2 = b.new_context(viewport={"width": 1400, "height": 900}).new_page()
+        pg2.goto(url)
+        pg2.wait_for_selector(".quadro canvas")
+        assert pg2.evaluate("location.hash") == f"#/exame/{uid}"
+        assert not pg2.locator("button[title='Link do exame (sem senha)']").is_visible()
+        # revogar pelo painel
+        pg.on("dialog", lambda d: d.accept())
+        pg.click(".painel-link-exame .link-item.ativo button:has-text('Revogar')")
+        assert _esperar(srv, lambda: not LE.listar(srv.repo_, uid)[0]["ativo"], 10)
+        b.close()
+    assert not erros, erros
+
+
+def test_a_sessao_do_link_nao_cria_link(dois_exames):
+    srv, uid, _outro = dois_exames
+    tok, _link = LE.criar(srv.repo_, uid, ["ia", "enviar", "anexar"], 24, "", "admin")
+    t = _req(srv, "/api/link/entrar", {"token": tok})["token"]
+    assert _codigo(srv, f"/api/web/links?study={uid}", tok=t) == 403
+    assert _codigo(srv, "/api/web/links", {"study": uid}, tok=t) == 403

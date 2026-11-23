@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.109 — Study link also from Ipê Web
+- **Study link (no password)** button on the Ipê Web viewer toolbar (users who can export): for whom, what else the
+  link can do (AI, send, attach), validity; **Create and copy**; the study's links with **Revoke**. Hidden in a
+  session opened by a link (a link does not create another).
+
 ## 0.100.108 — Study link (Ipê Web), no password
 - Right-click a study ▸ **Create study link (Ipê Web)…**: a link that opens **only that study** in Ipê Web, straight
   in the viewer, **without a password** — no list, no database, no report. On creation: for whom, what else the link

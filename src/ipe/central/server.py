@@ -1109,6 +1109,36 @@ class _Handler(BaseHTTPRequestHandler):
             except (TypeError, ValueError, RuntimeError) as e:
                 return self._error(400, str(e))
             return self._json(200, r, raw=True)
+        if path in ("/api/web/links", "/api/web/links/revogar"):            # 0.100.109: link do exame pelo navegador
+            from ipe.central import links_exame as LE
+            if not s.can("export") or getattr(s, "so_exame", None):
+                return self._error(403, "criar link de exame pede a permissão de exportar")
+            try:
+                if method == "GET":
+                    study = (parse_qs(parts.query).get("study") or [""])[0]
+                    if not study or not c.pode_ver(s, study):
+                        return self._error(403, "exame fora do seu banco")
+                    r = {"links": LE.listar(c.repo, study), "permissoes": {k: v[0] for k, v in LE.PERMISSOES.items()},
+                         "validades": list(LE.VALIDADES_H)}
+                elif path == "/api/web/links" and method == "POST":
+                    d = json.loads(self._body() or b"{}")
+                    study = str(d.get("study") or "")
+                    if not study or not c.pode_ver(s, study):
+                        return self._error(403, "exame fora do seu banco")
+                    tok, link = LE.criar(c.repo, study, d.get("perms") or [], d.get("horas") or 24,
+                                         str(d.get("rotulo") or ""), s.username)
+                    r = {"link": link, "caminho": f"/web/#/link/{tok}"}
+                elif method == "POST":
+                    d = json.loads(self._body() or b"{}")
+                    x = LE.por_id(c.repo, str(d.get("id") or ""))
+                    if x is None or not c.pode_ver(s, x["study_uid"]):
+                        return self._error(403, "link de outro exame")
+                    r = {"ok": LE.revogar(c.repo, x["id"], s.username)}
+                else:
+                    return self._error(405, "método")
+            except (TypeError, ValueError) as e:
+                return self._error(400, str(e))
+            return self._json(200, r, raw=True)
         if path == "/api/web/abrir" and method == "POST":                     # 0.100.103: chamada externa
             from ipe.central import abrir_web as AW
             try:

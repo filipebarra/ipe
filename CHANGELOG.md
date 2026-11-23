@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.109 — Link do exame também pelo Ipê Web
+- Botão **Link do exame (sem senha)** na barra do visualizador do Ipê Web (quem pode exportar): para quem, o que o
+  link também pode (IA, enviar, anexar), validade; **Criar e copiar**; a lista dos links do exame com **Revogar**.
+  Não aparece numa sessão aberta por link (um link não cria outro).
+
 ## 0.100.108 — Link do exame (Ipê Web), sem senha
 - Botão direito no exame ▸ **Criar link do exame (Ipê Web)…**: um link que abre **só aquele exame** no Ipê Web, direto
   no visualizador, **sem senha** — sem lista, sem banco, sem laudo. Na criação: para quem, o que o link também pode

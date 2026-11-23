@@ -2,6 +2,7 @@
 // Rotas pelo endereço depois do # (#/lista, #/exame/<StudyInstanceUID>): o servidor só serve o index.
 
 import { parametros as parametrosAbrir, telaAbrir } from "./abrir";
+import { painelLinkExame } from "./linkexame";
 import "./estilo.css";
 import * as API from "./api";
 import { setLang, tr } from "./i18n";
@@ -618,6 +619,7 @@ const NOMES_FERRAMENTAS: Record<Ferramenta, string> = {
 const IC: Record<string, string> = {
   ia: "M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3M6 6h12v12H6zM10 10h4v4h-4z",
   enviar: "M3 11l18-8-8 18-2-8-8-2zM11 13l10-10",
+  link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
   overlay: "M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5",
   voltar: "M10 6l-6 6 6 6M4 12h16",
   janela: "M12 3a9 9 0 1 0 0.01 0M12 3v18M12 8h5M12 13h7",
@@ -882,6 +884,10 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   const podeEnviar = !!config?.usuario.perms?.includes("send");
   const bEnviar = botaoIcone("Enviar a um destino DICOM", IC.enviar);
   if (!podeEnviar) bEnviar.style.display = "none";      // (o estilo do botão de ícone venceria o hidden)
+  // 0.100.109: link do exame (sem senha) — quem pode exportar; nunca dentro de uma sessão aberta por link
+  const bLink = botaoIcone("Link do exame (sem senha)", IC.link);
+  if (!config?.usuario.perms?.includes("export") || API.linkExame() || caso) bLink.style.display = "none";
+  bLink.onclick = async () => abrirPainel(await painelLinkExame(study), bLink, tr("Link do exame"));
   const listaEnvios = new ListaEnvios();
   // 0.100.10: CAD/IA pelo navegador (só com a permissão de pedir CAD/IA)
   const podeIA = !!config?.usuario.perms?.includes("ai");
@@ -919,7 +925,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     el("div", { class: "grupo" }, bLayout, bMpr, bEspessura, bObliquo, bGirar),
     el("div", { class: "grupo" }, bPet, bDin, bDens, bVasos, bSeg, bCine, bCineMenu),
     el("div", { class: "grupo" }, bInverter, bRestaurar, bOverlay, bOverlayMenu),
-    el("div", { class: "grupo" }, bLaudo, bEsquema, bPirads, bEnviar, bIA),
+    el("div", { class: "grupo" }, bLaudo, bEsquema, bPirads, bEnviar, bLink, bIA),
     el("div", { class: "grupo" }, bLigar, bLeitura, bAparencia));
   barraComTransbordo(nav);   // 0.100.53: o que não cabe vai para o "»"
 

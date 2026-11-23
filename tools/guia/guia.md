@@ -661,7 +661,7 @@ Botão direito no exame, no banco ▸ **Criar link do exame (Ipê Web)…**. O l
 - **Vale por**: 1, 3, 7 ou 30 dias.
 - **Criar link** gera o endereço e já copia; a lista embaixo mostra os links do exame, quantas vezes foram usados e quando vencem. **Revogar o link selecionado** corta o acesso na hora, até de quem está com ele aberto.
 
-O link funciona pelo Ipê Web do servidor central (no Ipê cliente, quem cria é o servidor). Criar link pede a permissão de **exportar**. Cada criação, uso, tentativa negada e revogação fica no registro de acesso. Quem tiver o link vê o exame até ele vencer: mande só a quem deve ver.
+No **Ipê Web** (0.100.109), o mesmo está no botão **Link do exame (sem senha)** da barra do visualizador (ícone de corrente): *Criar e copiar*, e a lista dos links do exame com *Revogar*. O link funciona pelo Ipê Web do servidor central (no Ipê cliente, quem cria é o servidor). Criar link pede a permissão de **exportar**. Cada criação, uso, tentativa negada e revogação fica no registro de acesso. Quem tiver o link vê o exame até ele vencer: mande só a quem deve ver.
 
 ### Mamografia: densidade, calcificações e tirar o silicone à mão (0.100.106)
 

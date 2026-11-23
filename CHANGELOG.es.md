@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.109 — Enlace del estudio también desde Ipê Web
+- Botón **Enlace del estudio (sin contraseña)** en la barra del visor de Ipê Web (quien puede exportar): para quién,
+  qué más puede (IA, enviar, adjuntar), validez; **Crear y copiar**; los enlaces del estudio con **Revocar**. No
+  aparece en una sesión abierta por enlace (un enlace no crea otro).
+
 ## 0.100.108 — Enlace del estudio (Ipê Web), sin contraseña
 - Clic derecho en el estudio ▸ **Crear enlace del estudio (Ipê Web)…**: un enlace que abre **solo ese estudio** en
   Ipê Web, directo en el visor, **sin contraseña** — sin lista, sin base, sin informe. Al crearlo: para quién, qué más

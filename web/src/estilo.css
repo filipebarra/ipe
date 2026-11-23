@@ -616,6 +616,12 @@ table.lista .selo-laudo.assinado { background: #2f6f46; color: #e9ffe9; }
 .downloads-pacs { max-width: 640px; max-height: none; }
 /* 0.100.103: abrir por chamada externa */
 .login label.lembrar { display: flex; align-items: center; gap: 6px; font-size: .9em; cursor: pointer; }
+.painel-link-exame { display: flex; flex-direction: column; gap: 8px; max-width: 520px; }
+.painel-link-exame label { display: flex; flex-direction: column; gap: 3px; }
+.painel-link-exame label.perm { flex-direction: row; align-items: center; gap: 6px; }
+.painel-link-exame .link-gerado { width: 100%; font-family: monospace; font-size: .85em; }
+.painel-link-exame .link-item { padding: 4px 0; border-bottom: 1px solid #333; font-size: .9em; }
+.painel-link-exame .link-item.inativo { opacity: .6; }
 .chegando { padding: 4px 10px; font-size: .9em; color: #e3a52a; }
 .tela-abrir { display: flex; flex-direction: column; gap: 10px; padding: 8px 4px; }
 .tela-abrir h2 { font-size: 1.1em; margin: 0; overflow-wrap: anywhere; }
