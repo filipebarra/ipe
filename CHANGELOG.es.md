@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.104 — Ipê Web: mantener la sesión por 1 día
+- **"Mantener la sesión en esta computadora (1 día)"** en el login del Ipê Web: el inicio de sesión vale en todas las
+  pestañas del navegador y en los enlaces de apertura (`#/abrir?…`), aunque esté inactivo, por 1 día. "Salir" lo
+  olvida en todas las pestañas. Sin marcar, queda como antes (solo en la pestaña, 12 h inactivo). El servidor lo
+  registra en la auditoría; el administrador puede desactivarlo (`web.manter_conectado`).
+
 ## 0.100.103 — Ipê Web: abrir por llamada externa
 - **Dirección de apertura**: `…/web/#/abrir?acesso=12345` o `…/web/#/abrir?id=98765&data=20261123&mod=MR` (también
   `uid=`). Ipê Web busca en el servidor; si no lo encuentra, en los nodos del PACS que el servidor comparte, **lo

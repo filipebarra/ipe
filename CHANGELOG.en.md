@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.104 — Ipê Web: keep me signed in for 1 day
+- **"Keep me signed in on this computer (1 day)"** at the Ipê Web login: the login works in every browser tab and in
+  opening links (`#/abrir?…`), even when idle, for 1 day. "Sign out" forgets it in every tab. Unchecked, it stays as
+  before (this tab only, 12 h idle). The server logs it in the audit; the administrator can turn it off
+  (`web.manter_conectado`).
+
 ## 0.100.103 — Ipê Web: open by external call
 - **Opening address**: `…/web/#/abrir?acesso=12345` or `…/web/#/abrir?id=98765&data=20261123&mod=MR` (also `uid=`).
   Ipê Web searches the server; if not found, the PACS nodes the server shares, **downloads and opens** it when it

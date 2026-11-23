@@ -662,6 +662,8 @@ Outro sistema (RIS, sistema de laudos, um atalho) abre o exame no Ipê Web por u
 
 O Ipê Web procura primeiro no servidor. Se o exame não estiver lá, procura nos nós do PACS que o servidor compartilha (Configurações ▸ Rede ▸ nó ▸ *Compartilhar com os clientes*), **baixa e abre** quando chega, mostrando o andamento. Com mais de um exame, mostra a lista para escolher. O login continua obrigatório: sem sessão, o Ipê Web pede a senha e volta para o endereço. Buscar no PACS pede a permissão de busca; baixar, a de download.
 
+**Manter conectado (0.100.104):** marque *Manter conectado neste computador (1 dia)* no login. O login passa a valer em todas as abas daquele navegador e nos links de abertura, por 1 dia, mesmo parado; *Sair* esquece em todas as abas. Sem marcar, vale só na aba (e cai depois de 12 h parado). Não marque em computador compartilhado.
+
 ### IA pelo banco, fila de IA e tabela do fígado (0.100.101)
 
 - **Botão direito no exame ▸ IA**: a lista das IAs que servem para o exame, como o botão IA do visualizador. Cada uma traz as opções: **rodar na série sugerida** (ou **refazer**, se já foi feita — marcada com ✔), **rodar em outra série** e abrir o exame para ver o resultado. As que a regra deixou de fora ficam em *Outras IAs*, com o motivo, e rodam mesmo assim. Com vários exames selecionados, cada IA entra na fila em todos, na série que ela escolhe em cada um. No Ipê cliente, vale a mesma escolha de onde rodar (servidor ou este computador).

@@ -6,11 +6,32 @@
 export class SessaoEncerrada extends Error {}
 
 const CHAVE_TOKEN = "ipe.web.token";
-function lerToken(): string {
-  try { return sessionStorage.getItem(CHAVE_TOKEN) || ""; } catch { return ""; }
+// 0.100.104: "Manter conectado neste computador" — o token também fica no localStorage até o servidor deixar
+// (1 dia), e assim vale nas outras abas e nos links de abertura (#/abrir?…). Só o token: nada do paciente.
+const CHAVE_LEMBRAR = "ipe.web.lembrar";
+function lerLembrado(): string {
+  try {
+    const d = JSON.parse(localStorage.getItem(CHAVE_LEMBRAR) || "null") as { t: string; ate: number } | null;
+    if (d && d.t && d.ate * 1000 > Date.now()) return d.t;
+    if (d) localStorage.removeItem(CHAVE_LEMBRAR);
+  } catch { /* sem armazenamento */ }
+  return "";
 }
-function guardarToken(t: string): void {
+function lerToken(): string {
+  let t = "";
+  try { t = sessionStorage.getItem(CHAVE_TOKEN) || ""; } catch { /* sem armazenamento */ }
+  return t || lerLembrado();
+}
+function guardarToken(t: string, lembrarAte = 0): void {
   try { if (t) sessionStorage.setItem(CHAVE_TOKEN, t); else sessionStorage.removeItem(CHAVE_TOKEN); } catch { /* sem armazenamento */ }
+  try {
+    if (t && lembrarAte > 0) localStorage.setItem(CHAVE_LEMBRAR, JSON.stringify({ t, ate: lembrarAte }));
+    else if (!t) localStorage.removeItem(CHAVE_LEMBRAR);
+  } catch { /* sem armazenamento */ }
+}
+/** Até quando este navegador fica conectado (0 = só nesta aba). */
+export function lembradoAte(): number {
+  try { return (JSON.parse(localStorage.getItem(CHAVE_LEMBRAR) || "null") as { ate: number } | null)?.ate || 0; } catch { return 0; }
 }
 let token = lerToken();
 let aoEncerrar: (() => void) | null = null;
@@ -50,11 +71,11 @@ export interface Usuario {
   must_change?: boolean;
 }
 
-export async function entrar(username: string, password: string): Promise<Usuario> {
+export async function entrar(username: string, password: string, lembrar = false): Promise<Usuario> {
   const r = await fetch(`${location.origin}/api/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Ipe-Web": "1" },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, lembrar }),
     cache: "no-store",
   });
   if (r.status === 401) throw new Error("401");
@@ -62,7 +83,7 @@ export async function entrar(username: string, password: string): Promise<Usuari
   if (!r.ok) throw new Error(String(r.status));
   const d = await r.json();
   token = d.token;
-  guardarToken(token);
+  guardarToken(token, Number(d.lembrar_ate || 0));
   return d as Usuario;
 }
 

@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.104 — Ipê Web: manter conectado por 1 dia
+- **"Manter conectado neste computador (1 dia)"** no login do Ipê Web: o login passa a valer em todas as abas do
+  navegador e nos links de abertura (`#/abrir?…`), mesmo parado, por 1 dia. "Sair" esquece em todas as abas. Sem marcar,
+  fica como antes (só na aba, 12 h parado). O servidor registra na auditoria; o administrador pode desligar
+  (`web.manter_conectado`).
+
 ## 0.100.103 — Ipê Web: abrir por chamada externa
 - **Endereço de abertura**: `…/web/#/abrir?acesso=12345` ou `…/web/#/abrir?id=98765&data=20261123&mod=MR` (também
   `uid=`). O Ipê Web procura no servidor; se não achar, nos nós do PACS que o servidor compartilha, **baixa e abre**

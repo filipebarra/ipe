@@ -94,16 +94,21 @@ function telaLogin(msg = ""): void {
     autocorrect: "off", spellcheck: "false" }) as HTMLInputElement;     // o teclado do celular punha maiúscula e corrigia
   const s = el("input", { id: "senha", type: "password", autocomplete: "current-password", required: true }) as HTMLInputElement;
   const erro = el("div", { class: "erro", role: "alert" }, msg);
+  // 0.100.104: manter conectado por 1 dia neste computador (vale nas outras abas e nos links de abertura)
+  const lembrar = el("input", { id: "lembrar", type: "checkbox" }) as HTMLInputElement;
+  const lbLembrar = el("label", { class: "lembrar", for: "lembrar",
+    title: tr("O login vale por 1 dia neste navegador, também nas outras abas e nos links que abrem exames. Não marque em computador compartilhado.") },
+    lembrar, ` ${tr("Manter conectado neste computador (1 dia)")}`);
   const form = el("form", { class: "login" },
     el("h1", {}, tr("Ipê Web")),
     el("label", { for: "usuario" }, tr("Usuário")), u,
-    el("label", { for: "senha" }, tr("Senha")), s,
+    el("label", { for: "senha" }, tr("Senha")), s, lbLembrar,
     el("button", { type: "submit" }, tr("Entrar")), erro, tarja());
   form.onsubmit = async (ev) => {
     ev.preventDefault();
     erro.textContent = "";
     try {
-      await API.entrar(u.value.trim(), s.value);
+      await API.entrar(u.value.trim(), s.value, lembrar.checked);
       config = await API.configuracao();
       setLang(config.lang);
     } catch (e) {

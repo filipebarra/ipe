@@ -31,6 +31,8 @@ from ipe.central.rpc import POR_EXAME, POR_LISTA, RPC_METHODS, SERVER_STORAGE_AR
 
 log = logging.getLogger(__name__)
 TOKEN_IDLE_S = 12 * 3600
+#: 0.100.104: "Manter conectado neste computador" no Ipê Web — o login vale por 1 dia, mesmo parado
+LEMBRAR_S = 24 * 3600
 
 
 class Bloqueado(AuthError):
@@ -86,6 +88,7 @@ class CentralServer:
         self.certfile, self.keyfile = certfile, keyfile
         self.name = name or socket.gethostname()
         self.tokens: dict[str, tuple[UserSession, float]] = {}
+        self.lembrados: dict[str, float] = {}      # 0.100.104: token -> até quando vale (manter conectado)
         from ipe.network.acesso import Tentativas
         self.tentativas = Tentativas()      # 0.99.24: 5 senhas erradas em 10 min bloqueiam o endereço
         self._lock = threading.Lock()
@@ -171,11 +174,13 @@ class CentralServer:
             self.stop()
 
     # ------------------------------------------------------------------ sessões
-    def login(self, username: str, password: str, ip: str = "") -> tuple[str, UserSession]:
+    def login(self, username: str, password: str, ip: str = "", lembrar: bool = False) -> tuple[str, UserSession]:
         s = self._login(username, password, ip)
         tok = secrets.token_urlsafe(32)
         with self._lock:
             self.tokens[tok] = (s, time.time())
+            if lembrar:
+                self.lembrados[tok] = time.time() + LEMBRAR_S
         return tok, s
 
     def _login(self, username: str, password: str, ip: str = "") -> UserSession:
@@ -197,8 +202,12 @@ class CentralServer:
             tok = h[7:].strip()
             with self._lock:
                 item = self.tokens.get(tok)
-                if item is None or time.time() - item[1] > TOKEN_IDLE_S:
+                ate = self.lembrados.get(tok)
+                agora = time.time()
+                vencido = (agora > ate) if ate is not None else (item is not None and agora - item[1] > TOKEN_IDLE_S)
+                if item is None or vencido:
                     self.tokens.pop(tok, None)
+                    self.lembrados.pop(tok, None)
                     return None
                 self.tokens[tok] = (item[0], time.time())
                 s = item[0]
@@ -226,10 +235,18 @@ class CentralServer:
             g = self._perfis = (MUDANCAS["config"], agora, role_permissions(self.repo))
         return set(g[2].get(role, set()))
 
+    def manter_conectado_permitido(self) -> bool:
+        """0.100.104: o administrador pode desligar o "Manter conectado" (Configurações ▸ Servidor central)."""
+        try:
+            return bool(self.settings.get("web.manter_conectado", True)) if getattr(self, "settings", None) else True
+        except Exception:  # noqa: BLE001
+            return True
+
     def logout(self, headers) -> None:
         h = headers.get("Authorization", "") or ""
         with self._lock:
             self.tokens.pop(h[7:].strip(), None)
+            self.lembrados.pop(h[7:].strip(), None)
 
     # ------------------------------------------------------------------ RPC
     def rpc(self, s: UserSession, method: str, args: list, kwargs: dict, client_host: str):
@@ -765,14 +782,20 @@ class _Handler(BaseHTTPRequestHandler):
         if path == "/api/login" and method == "POST":
             try:
                 data = json.loads(self._body() or b"{}")
-                tok, s = c.login(data.get("username", ""), data.get("password", ""), self.client_address[0])
+                lembrar = bool(data.get("lembrar")) and c.manter_conectado_permitido()
+                tok, s = c.login(data.get("username", ""), data.get("password", ""), self.client_address[0],
+                                 lembrar=lembrar)
             except Bloqueado as e:
                 return self._error(429, str(e))
             except AuthError as e:
                 c.repo.audit("login_falhou", f"{data.get('username', '')}", user=data.get("username", "?"),
                              host=self.client_address[0])
                 return self._error(401, str(e))
-            return self._json(200, {"token": tok, "username": s.username, "full_name": s.full_name,
+            if lembrar:
+                c.repo.audit("login_lembrar", "manter conectado por 1 dia (navegador)", user=s.username,
+                             host=self.client_address[0])
+            return self._json(200, {"token": tok, "lembrar_ate": int(c.lembrados.get(tok, 0)),
+                                    "username": s.username, "full_name": s.full_name,
                                     "role": s.role, "user_id": s.user_id, "perms": sorted(s.perms),
                                     "must_change": bool(getattr(s, "must_change", False))}, raw=True)
         if path == "/api/web/erro" and method == "POST":                    # 0.100.18: erro do navegador no registro
