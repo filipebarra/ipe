@@ -178,6 +178,8 @@ const T: Trad = {
   "Falta no PACS": ["Missing from PACS", "Falta en el PACS"],
   "Faltam": ["Missing", "Faltan"],
   "Fila de envio": ["Send queue", "Cola de envío"],
+  // 0.100.105: o exame aparece enquanto chega
+  "o exame vai aparecendo enquanto chega": ["the study shows up as it arrives", "el estudio va apareciendo mientras llega"],
   // 0.100.104: manter conectado
   "Manter conectado neste computador (1 dia)": ["Keep me signed in on this computer (1 day)", "Mantener la sesión en esta computadora (1 día)"],
   "O login vale por 1 dia neste navegador, também nas outras abas e nos links que abrem exames. Não marque em computador compartilhado.": ["The login lasts 1 day in this browser, also in other tabs and in links that open studies. Do not check it on a shared computer.", "El inicio de sesión vale 1 día en este navegador, también en otras pestañas y en los enlaces que abren estudios. No lo marque en una computadora compartida."],

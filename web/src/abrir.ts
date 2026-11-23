@@ -48,6 +48,14 @@ function dataBr(d: string): string {
   return d && d.length === 8 ? `${d.slice(6, 8)}/${d.slice(4, 6)}/${d.slice(0, 4)}` : d;
 }
 
+/** O servidor já mostra alguma série deste exame (a primeira imagem chegou e entrou no banco)? */
+async function jaTemSerie(uid: string): Promise<boolean> {
+  try {
+    const r = await pedir(`${location.origin}/dicomweb/studies/${uid}/series`);
+    return r.ok && ((await r.json()) as unknown[]).length > 0;
+  } catch { return false; }
+}
+
 function oQueProcura(p: Record<string, string>): string {
   const partes: string[] = [];
   if (p.acesso) partes.push(`${tr("acesso")} ${p.acesso}`);
@@ -87,6 +95,11 @@ export function telaAbrir(p: Record<string, string>, abrirExame: (uid: string) =
           .filter((x) => x.study_uid === e.study_uid).sort((a, b) => b.id - a.id)[0];
       } catch { /* sem rede agora: tenta de novo */ }
       if (d?.estado === "done") { abrirExame(e.study_uid); return; }
+      // 0.100.105: abre assim que as primeiras imagens chegam; o visor acompanha o resto
+      if (d && d.feitas > 0 && (d.estado === "running" || d.estado === "waiting") && await jaTemSerie(e.study_uid)) {
+        abrirExame(e.study_uid);
+        return;
+      }
       if (d?.estado === "error" || d?.estado === "cancelled") {
         barra.hidden = true;
         estado.textContent = `${tr("O download não terminou")}: ${d.mensagem || d.estado}`;

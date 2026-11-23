@@ -59,7 +59,7 @@ def test_sem_lista_usa_os_nomes_do_release():
             raise OSError("fora")
         return _github(req, timeout)
     info = GH.consultar(abrir=abrir)
-    assert GH.pacote_para(info, "instalado")["nome"] == "Ipe-9.1.2-installer.exe"
+    assert GH.pacote_para(info, "instalado")["nome"] == "Ipe-9.1.2-windows-installer.exe"   # 0.100.105
     assert GH.pacote_para(info, "linux")["nome"] == "Ipe-9.1.2-linux-portable.tar.gz"
     assert GH.pacote_para(info, "instalado")["sha256"] == ""
 

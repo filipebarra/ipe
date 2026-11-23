@@ -170,8 +170,9 @@ export async function qido(caminho: string): Promise<DicomJson[]> {
   return (await r.json()) as DicomJson[];
 }
 
-export async function metadados(study: string, series: string): Promise<DicomJson[]> {
-  const r = await pedir(`${DICOMWEB}/studies/${study}/series/${series}/metadata`);
+export async function metadados(study: string, series: string, fresco = false): Promise<DicomJson[]> {
+  // 0.100.105: `fresco` — a série cresceu (exame chegando do PACS): o servidor relê a lista de imagens
+  const r = await pedir(`${DICOMWEB}/studies/${study}/series/${series}/metadata${fresco ? "?fresco=1" : ""}`);
   if (!r.ok) return [];
   return (await r.json()) as DicomJson[];
 }

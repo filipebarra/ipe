@@ -957,11 +957,11 @@ COMECAR = {
                "Instale, escolha como o Ipê será usado e traga seus exames.",
                "Instale, elija cómo se usará Ipê y traiga sus estudios."),
     "sistemas": [
-        ("Windows", T("<code>Ipe-&lt;version&gt;-installer.exe</code>: installs in your user profile, no administrator "
+        ("Windows", T("<code>Ipe-&lt;version&gt;-windows-installer.exe</code>: installs in your user profile, no administrator "
                       "rights. The first screen asks for the language.",
-                      "<code>Ipe-&lt;versão&gt;-installer.exe</code>: instala no seu perfil, sem pedir administrador. A "
+                      "<code>Ipe-&lt;versão&gt;-windows-installer.exe</code>: instala no seu perfil, sem pedir administrador. A "
                       "primeira tela pergunta o idioma.",
-                      "<code>Ipe-&lt;versión&gt;-installer.exe</code>: instala en su perfil, sin pedir administrador. "
+                      "<code>Ipe-&lt;versión&gt;-windows-installer.exe</code>: instala en su perfil, sin pedir administrador. "
                       "La primera pantalla pregunta el idioma.")),
         ("macOS", T("<code>.dmg</code> for Apple silicon or Intel. Not signed by Apple: the first time, right-click ▸ "
                     "Open. Experimental.",

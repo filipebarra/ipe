@@ -308,7 +308,7 @@ class AtualizacoesDialog(QDialog):
             b.clicked.connect(fn)
             h.addWidget(b)
         nota = QLabel("Publique um pacote por sistema, com o nome original do GitHub: o instalador do Windows "
-                      "(Ipe-x.y.z-installer.exe), o .dmg do macOS (arm64 = chip Apple, x86_64 = Intel) e o do Linux. "
+                      "(Ipe-x.y.z-windows-installer.exe), o .dmg do macOS (arm64 = chip Apple, x86_64 = Intel) e o do Linux. "
                       "Cada computador do canal só recebe o do seu sistema, com o aviso ao entrar (o Windows e o Mac "
                       "instalam com um clique). Publicar um sistema não mexe nos outros. Quem está no canal “teste” "
                       "se escolhe nos perfis (Configurações ▸ Usuários ▸ Perfis por grupo e computador).")

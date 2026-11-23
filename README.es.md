@@ -79,7 +79,7 @@ y existe gracias a bibliotecas abiertas de DICOM, cálculo e IA.
 
 ## Instalación
 
-**Windows — instalador:** `Ipe-<versión>-installer.exe` (o el paquete portátil `.zip`), en
+**Windows — instalador:** `Ipe-<versión>-windows-installer.exe` (o el paquete portátil `.zip`), en
 [Releases](https://github.com/filipebarra/ipe/releases); instala en el perfil del usuario, sin
 administrador, y pregunta el idioma, la carpeta del programa y la de la base.
 

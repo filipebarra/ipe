@@ -307,8 +307,8 @@ function motivoSemVolume(meta: DicomJson[]): string {
   return "";
 }
 
-export async function carregarSerie(study: string, series: string): Promise<SerieCarregada | null> {
-  const meta = await metadados(study, series);
+export async function carregarSerie(study: string, series: string, fresco = false): Promise<SerieCarregada | null> {
+  const meta = await metadados(study, series, fresco);
   if (!meta.length) return null;
   const temPosicao = meta.every((m) => m["00200032"]?.Value && m["00200037"]?.Value);
   const ordenados = [...meta].sort((a, b) =>

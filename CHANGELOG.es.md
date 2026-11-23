@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.105 — Ipê Web: el estudio abre mientras llega; instalador con "windows" en el nombre
+- **Enlace de apertura**: el estudio que viene del PACS abre en cuanto llegan las primeras imágenes; la tira recibe
+  las series nuevas y la serie que creció se recarga en el cuadro, en la misma imagen, con un aviso de cuánto llegó.
+- El instalador de Windows pasa a llamarse **`Ipe-<versión>-windows-installer.exe`** (como los paquetes de Linux y
+  macOS). La actualización automática reconoce el nombre nuevo y el antiguo.
+
 ## 0.100.104 — Ipê Web: mantener la sesión por 1 día
 - **"Mantener la sesión en esta computadora (1 día)"** en el login del Ipê Web: el inicio de sesión vale en todas las
   pestañas del navegador y en los enlaces de apertura (`#/abrir?…`), aunque esté inactivo, por 1 día. "Salir" lo

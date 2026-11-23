@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.105 — Ipê Web: the study opens while it arrives; installer with "windows" in its name
+- **Opening link**: a study coming from the PACS opens as soon as the first images arrive; new series join the strip
+  and a series that grew is reloaded in its viewport, on the same image, with a notice of how much has arrived.
+- The Windows installer is now named **`Ipe-<version>-windows-installer.exe`** (like the Linux and macOS packages).
+  Automatic updates recognize both the new and the old name.
+
 ## 0.100.104 — Ipê Web: keep me signed in for 1 day
 - **"Keep me signed in on this computer (1 day)"** at the Ipê Web login: the login works in every browser tab and in
   opening links (`#/abrir?…`), even when idle, for 1 day. "Sign out" forgets it in every tab. Unchecked, it stays as

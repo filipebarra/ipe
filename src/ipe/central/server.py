@@ -1303,6 +1303,8 @@ class _Handler(BaseHTTPRequestHandler):
         if len(seg) == 5 and seg[0] == "studies" and seg[2] == "series" and seg[4] == "metadata":
             from ipe.central import web as WEB
             # 0.99.99: lido em paralelo e guardado; e as outras séries do exame já começam a ser lidas
+            if (q.get("fresco") or [""])[0]:              # 0.100.105: a série cresceu (exame chegando)
+                WEB.CAMINHOS.esquecer(seg[3])
             WEB.aquecer_exame(c.repo, seg[1], "/dicomweb", primeiro=seg[3])
             pronto = WEB.metadados_prontos(c.repo, seg[1], seg[3], "/dicomweb")
             if not pronto:

@@ -2,7 +2,7 @@
 este computador, confere o SHA-256 que o GitHub publica e, no Windows instalado, roda o instalador sem perguntas.
 
 Qual pacote:
-- **Windows instalado** (há o desinstalador ``unins000.exe`` ao lado do programa): ``-installer.exe``. Roda com
+- **Windows instalado** (há o desinstalador ``unins000.exe`` ao lado do programa): ``-windows-installer.exe``. Roda com
   ``/SILENT``: mantém a pasta do programa, a do banco, o idioma e o modo de uso; o programa fecha e o instalador
   abre a versão nova;
 - **Windows portátil**: ``-windows-portable.zip``, baixado e a pasta aberta (trocar a pasta é à mão);
@@ -162,7 +162,8 @@ def instalar_no_mac(dmg: Path, app: Path | None = None, pid: int | None = None, 
 
 
 #: 0.99.81: nomes em inglês; os em português (até a 0.99.80) ainda servem
-SUFIXO = {"instalado": ("-installer.exe", "-instalador.exe"),
+#: 0.100.105: o instalador do Windows passou a "-windows-installer.exe" (os antigos terminam em "-installer.exe")
+SUFIXO = {"instalado": ("-windows-installer.exe", "-installer.exe", "-instalador.exe"),
           "portatil_windows": ("-windows-portable.zip", "-windows-portatil.zip"),
           "linux": ("-linux-portable.tar.gz", "-linux-portatil.tar.gz")}
 

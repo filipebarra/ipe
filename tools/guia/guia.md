@@ -54,7 +54,7 @@ Ao abrir (uma vez por dia), o Ipê procura no GitHub se saiu versão nova; **Aju
 - **Baixar** (versão portátil do Windows e Linux): baixa o pacote e abre a pasta; trocar a pasta do programa é à mão (o banco e as configurações ficam fora dela).
 - **Pular esta versão**: o aviso automático não volta para ela (a procura pelo menu continua mostrando). **Depois**: pergunta de novo no dia seguinte. **Ver a página**: abre o release no navegador.
 
-Os arquivos do release têm nomes em inglês desde a 0.99.81: `Ipe-<versão>-installer.exe`, `Ipe-<versão>-windows-portable.zip` e `Ipe-<versão>-linux-portable.tar.gz`. Desde a 0.99.86 o release não traz mais a cópia com o nome antigo (`-instalador.exe`): quem ainda está numa versão de 0.99.70 a 0.99.80 instala a nova uma vez à mão.
+Os arquivos do release têm nomes em inglês desde a 0.99.81: `Ipe-<versão>-windows-installer.exe` (até a 0.100.104, `Ipe-<versão>-installer.exe`), `Ipe-<versão>-windows-portable.zip` e `Ipe-<versão>-linux-portable.tar.gz`. Desde a 0.99.86 o release não traz mais a cópia com o nome antigo (`-instalador.exe`): quem ainda está numa versão de 0.99.70 a 0.99.80 instala a nova uma vez à mão.
 
 No modo cliente quem decide a versão é o servidor central (Ajuda ▸ Procurar atualização no servidor central…), e o aviso do GitHub não aparece. A consulta manda ao GitHub só o nome do programa e a versão.
 
@@ -661,6 +661,8 @@ Outro sistema (RIS, sistema de laudos, um atalho) abre o exame no Ipê Web por u
 - `https://<servidor>:8053/web/#/abrir?uid=<Study Instance UID>` — só para o que já está no servidor.
 
 O Ipê Web procura primeiro no servidor. Se o exame não estiver lá, procura nos nós do PACS que o servidor compartilha (Configurações ▸ Rede ▸ nó ▸ *Compartilhar com os clientes*), **baixa e abre** quando chega, mostrando o andamento. Com mais de um exame, mostra a lista para escolher. O login continua obrigatório: sem sessão, o Ipê Web pede a senha e volta para o endereço. Buscar no PACS pede a permissão de busca; baixar, a de download.
+
+Quando o exame vem do PACS, ele abre assim que as primeiras imagens chegam (0.100.105): as séries vão aparecendo na tira e a série no quadro cresce sozinha, com um aviso de quanto já chegou.
 
 **Manter conectado (0.100.104):** marque *Manter conectado neste computador (1 dia)* no login. O login passa a valer em todas as abas daquele navegador e nos links de abertura, por 1 dia, mesmo parado; *Sair* esquece em todas as abas. Sem marcar, vale só na aba (e cai depois de 12 h parado). Não marque em computador compartilhado.
 
@@ -1450,7 +1452,7 @@ Ao entrar, valem os perfis que casam, na ordem da lista (o de baixo ganha). O pe
 
 ### Atualizações pelo servidor central
 
-**Configurações ▸ Rede ▸ Atualizações pelo servidor central…** (quem gerencia usuários, no servidor ou num cliente) publica os pacotes de uma versão — **um por sistema**, com o nome original do GitHub: o instalador do Windows (`Ipe-x.y.z-installer.exe`), o `.dmg` do macOS (`arm64` para chip Apple, `x86_64` para Intel) e o do Linux — num de dois canais: **teste**, que vai primeiro para os computadores e as pessoas dos perfis marcados *Atualizações: Teste*, e **estável**, para todos. **Promover teste → estável** libera para todos o que já foi testado; **Retirar** tira o pacote do canal. Publicar o pacote de um sistema não mexe no dos outros; a janela mostra, em cada canal, o que há para cada sistema.
+**Configurações ▸ Rede ▸ Atualizações pelo servidor central…** (quem gerencia usuários, no servidor ou num cliente) publica os pacotes de uma versão — **um por sistema**, com o nome original do GitHub: o instalador do Windows (`Ipe-x.y.z-windows-installer.exe`), o `.dmg` do macOS (`arm64` para chip Apple, `x86_64` para Intel) e o do Linux — num de dois canais: **teste**, que vai primeiro para os computadores e as pessoas dos perfis marcados *Atualizações: Teste*, e **estável**, para todos. **Promover teste → estável** libera para todos o que já foi testado; **Retirar** tira o pacote do canal. Publicar o pacote de um sistema não mexe no dos outros; a janela mostra, em cada canal, o que há para cada sistema.
 
 Cada computador só recebe o pacote do seu sistema. Se o servidor não tem o pacote dele (por exemplo, um Mac quando só o do Windows e o do Linux foram publicados), nada é baixado, e **Ajuda ▸ Procurar atualização no servidor central…** diz isso e oferece procurar a versão no GitHub.
 

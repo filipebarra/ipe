@@ -1138,9 +1138,11 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   };
   (window as unknown as Record<string, unknown>).__ipeDisp = d; // testes
   const carregadas = new Map<string, Promise<Awaited<ReturnType<typeof carregarSerie>>>>();
+  const frescas = new Set<string>();                    // 0.100.105: séries que cresceram (o exame está chegando)
   const pegar = (uid: string, estudo = study) => {       // (0.100.21: `estudo` — série arrastada de outra janela, de outro exame)
     if (!carregadas.has(uid)) {
-      carregadas.set(uid, carregarSerie(estudo, uid).then((s) => {
+      const fresco = frescas.delete(uid);
+      carregadas.set(uid, carregarSerie(estudo, uid, fresco).then((s) => {
         if (s && disp === d) d.conhecer(uid, s.imageIds);
         return s;
       }));
@@ -1197,6 +1199,54 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     }
     return segsNovas;
   };
+  // 0.100.105: o exame que ainda está chegando do PACS (aberto pelo link externo enquanto baixa): de 3 em 3 s, as
+  // séries novas entram na tira e a série que cresceu é recarregada no quadro, na mesma imagem; um aviso mostra quanto
+  // já chegou. Para quando o download termina (ou o exame é fechado).
+  const chegando = el("div", { class: "chegando", role: "status" });
+  const acompanharChegada = async (): Promise<void> => {
+    if (caso || grade !== g) return;
+    type Dl = { study_uid: string; estado: string; feitas: number; total: number; id: number };
+    let dl: Dl | undefined;
+    try {
+      const r = await API.pedir(`${location.origin}/api/web/pacs/downloads`);
+      if (r.ok) dl = ((await r.json()) as { downloads: Dl[] }).downloads
+        .filter((x) => x.study_uid === study).sort((a, b) => b.id - a.id)[0];
+    } catch { /* sem rede agora */ }
+    const ativo = !!dl && (dl.estado === "waiting" || dl.estado === "running");
+    if (!ativo && !chegando.isConnected) return;               // nada chegando: nem começa
+    if (!chegando.isConnected) aviso.after(chegando);
+    try {
+      await novasSeries();
+      const agora = await API.qido(`/studies/${study}/series`).catch(() => [] as API.DicomJson[]);
+      for (const x of agora) {
+        const uid = API.texto(x, "0020000E");
+        const n = Number(API.texto(x, "00201209") || 0);
+        const s0 = series.find((y) => API.texto(y, "0020000E") === uid);
+        if (!s0 || n <= Number(API.texto(s0, "00201209") || 0)) continue;
+        s0["00201209"] = x["00201209"];                          // cresceu: rótulo, estimativa e quadros que a mostram
+        const b = barras.get(uid);
+        const rot = b?.item.querySelector("span");
+        if (rot) rot.textContent = `${API.texto(x, "00200011")} ${API.texto(x, "00080060")} · ${n}`;
+        d.estimar(uid, n);
+        carregadas.delete(uid);
+        frescas.add(uid);
+        for (let i = 0; i < g.quadros.length; i++) {
+          if (g.quadros[i].serie?.series !== uid) continue;
+          const vp = g.viewport(i) as unknown as { getCurrentImageIdIndex?: () => number } | undefined;
+          const atual = vp?.getCurrentImageIdIndex?.() ?? 0;
+          const s = await pegar(uid).catch(() => null);
+          if (s && grade === g) await g.mostrar(i, s, atual);
+        }
+      }
+    } catch { /* tenta de novo na próxima volta */ }
+    if (ativo) {
+      chegando.textContent = `${tr("Baixando do PACS")}: ${dl!.feitas}${dl!.total ? ` / ${dl!.total}` : ""} ${tr("imagens")} — ${tr("o exame vai aparecendo enquanto chega")}`;
+      window.setTimeout(() => void acompanharChegada(), 3000);
+    } else {
+      chegando.remove();
+    }
+  };
+  void acompanharChegada();
   // 0.100.56: no pacote de casos, o que precisa do servidor some; "Mostrar o resultado" traz as séries, os documentos e
   // as marcações do resultado (esconder de novo reabre o caso)
   if (caso) {

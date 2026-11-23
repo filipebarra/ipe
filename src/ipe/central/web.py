@@ -113,6 +113,12 @@ class _Caminhos:
         return mapa
 
 
+    def esquecer(self, series_uid: str) -> None:
+        """0.100.105: a série cresceu (exame chegando do PACS): a próxima leitura vai ao banco."""
+        with self._lock:
+            self._d.pop(series_uid, None)
+
+
 CAMINHOS = _Caminhos()
 
 

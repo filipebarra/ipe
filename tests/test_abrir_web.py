@@ -72,3 +72,45 @@ def test_link_externo_baixa_e_abre(servidor):
         assert _esperar(srv, lambda: "Nenhum exame" in pg.inner_text("body"), 40), pg.inner_text("body")[:600]
         b.close()
     assert not erros, erros
+
+
+def test_exame_aparece_enquanto_chega(servidor, tmp_path):
+    """0.100.105: aberto enquanto baixa, o visor acompanha: a série que cresceu é recarregada no quadro."""
+    import shutil
+    from types import SimpleNamespace
+
+    from ipe.importer.scanner import Importer
+    pw = pytest.importorskip("playwright.sync_api")
+    srv = servidor
+    arqs = sorted(srv.pacs.repo.files_for_study(srv.estudo))
+    assert len(arqs) == 60
+    metade, resto = tmp_path / "a", tmp_path / "b"
+    for pasta, lista in ((metade, arqs[:20]), (resto, arqs[20:])):
+        pasta.mkdir()
+        for f in lista:
+            shutil.copy(f, pasta / Path(f).name)
+    Importer(srv.db, srv.paths.storage).import_paths([metade])
+    job = SimpleNamespace(id=999, kind="retrieve", dono="admin", label="TC", node={"name": "PACS"},
+                          status="running", done=20, total=60, message="", started=0, finished=0,
+                          study_uids=[srv.estudo])
+    srv.net.jobs.append(job)
+    erros = []
+    with pw.sync_playwright() as p:
+        b = p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
+        pg = b.new_page(viewport={"width": 1400, "height": 900})
+        pg.on("pageerror", lambda e: erros.append(str(e)))
+        pg.goto(f"http://127.0.0.1:{srv.port}/web/#/exame/{srv.estudo}")
+        pg.fill("#usuario", "admin")
+        pg.fill("#senha", "admin123")
+        pg.click("button[type=submit]")
+        pg.wait_for_selector(".quadro canvas")
+        assert _esperar(srv, lambda: pg.locator(".chegando").count() == 1, 20)
+        assert "/ 20" in pg.inner_text(".quadro") or "20" in pg.inner_text(".serie span")
+        Importer(srv.db, srv.paths.storage).import_paths([resto])        # o resto chegou
+        job.done, job.status = 60, "done"
+        assert _esperar(srv, lambda: "/ 60" in pg.inner_text(".quadro"), 30), pg.inner_text(".quadro")
+        assert _esperar(srv, lambda: pg.locator(".chegando").count() == 0, 15)
+        assert "60" in pg.inner_text(".serie span")
+        b.close()
+    srv.net.jobs.remove(job)
+    assert not erros, erros

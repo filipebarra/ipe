@@ -165,7 +165,7 @@ usuário do Ipê. Por enquanto, para a rede interna.
 ## Instalação
 
 ### Windows — instalador
-O instalador `Ipe-<versão>-installer.exe` (e o pacote portátil `.zip`) instala no perfil do
+O instalador `Ipe-<versão>-windows-installer.exe` (e o pacote portátil `.zip`) instala no perfil do
 usuário, sem pedir administrador. A primeira tela pergunta o idioma, com o inglês marcado; depois, a pasta do programa e a do banco. Para gerá-lo a partir do código, veja
 [installer/LEIAME.md](installer/LEIAME.md).
 

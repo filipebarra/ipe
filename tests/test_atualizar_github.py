@@ -131,3 +131,13 @@ def test_nomes_antigos_em_portugues_ainda_servem():
     info["pacotes"].append({"nome": "Ipe-0.99.81-installer.exe"})
     assert GH.pacote_para(info, "instalado")["nome"] == "Ipe-0.99.81-installer.exe"
     assert GH.pacote_para(info, "codigo") is None
+
+
+def test_instalador_com_windows_no_nome():
+    """0.100.105: o instalador do Windows passou a se chamar Ipe-x.y.z-windows-installer.exe; os antigos continuam."""
+    info = {"pacotes": [{"nome": "Ipe-0.100.105-windows-installer.exe"}, {"nome": "Ipe-0.100.105-windows-portable.zip"}]}
+    assert GH.pacote_para(info, "instalado")["nome"] == "Ipe-0.100.105-windows-installer.exe"
+    assert GH.pacote_para(info, "portatil_windows")["nome"].endswith("-windows-portable.zip")
+    assert GH.pacote_para({"pacotes": [{"nome": "Ipe-0.100.104-installer.exe"}]}, "instalado")["nome"].endswith(
+        "-installer.exe")
+    assert GH.SUFIXO["instalado"][0] == "-windows-installer.exe"      # o nome que o release.yml publica

@@ -167,7 +167,7 @@ with the Ipê user. It is meant for the internal network for now.
 ## Installation
 
 ### Windows — installer
-The `Ipe-<version>-installer.exe` installer (and the portable `.zip` package) installs into the
+The `Ipe-<version>-windows-installer.exe` installer (and the portable `.zip` package) installs into the
 user profile, without asking for administrator rights. Its first screen asks for the language, with
 English selected; then it asks for the program folder and the database folder. To build it from source, see [installer/LEIAME.md](installer/LEIAME.md).
 
