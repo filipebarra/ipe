@@ -115,10 +115,19 @@ class PacsPanel(QWidget):
         b_get.clicked.connect(lambda: self.retrieve_selected(False))
         b_open = QPushButton("Baixar e abrir")
         b_open.clicked.connect(lambda: self.retrieve_selected(True))
+        # 0.100.110: no Ipê cliente — o servidor baixa do PACS, este computador traz para o banco dele e o servidor
+        # apaga o exame (se não estava lá antes) depois que ele chegou inteiro aqui
+        self.b_cliente = QPushButton(tr("Baixar direto para o cliente"))
+        self.b_cliente.setToolTip(tr("O nó manda ao servidor central, o servidor passa para o banco deste computador "
+                                     "e apaga a cópia dele quando o exame chega inteiro aqui. O que já estava no "
+                                     "servidor antes continua lá."))
+        self.b_cliente.clicked.connect(lambda: self.retrieve_selected(False, para_cliente=True))
+        self.b_cliente.setVisible(self.e_cliente())
         acts = QHBoxLayout()
         acts.addWidget(self.info, 1)
         acts.addWidget(b_get)
         acts.addWidget(b_open)
+        acts.addWidget(self.b_cliente)
 
         # --- transferências
         self.jobs = QTreeWidget()
@@ -381,7 +390,11 @@ class PacsPanel(QWidget):
                 out.append(top)
         return out
 
-    def retrieve_selected(self, open_after: bool) -> None:
+    def e_cliente(self) -> bool:
+        """Este Ipê é cliente de um servidor central?"""
+        return getattr(self.repo, "client", None) is not None and hasattr(self.repo, "upload_study")
+
+    def retrieve_selected(self, open_after: bool, para_cliente: bool = False) -> None:
         items = self._study_items()
         if not items:
             QMessageBox.information(self, "PACS", "Selecione um ou mais estudos.")
@@ -390,9 +403,10 @@ class PacsPanel(QWidget):
             r = it.data(0, Qt.UserRole)
             checked = [it.child(i).data(0, Qt.UserRole + 1)["series_uid"] for i in range(it.childCount())
                        if it.child(i).checkState(0) == Qt.Checked and it.child(i).data(0, Qt.UserRole + 1)]
-            self.retrieve(r, checked or None, open_after and it is items[0])
+            self.retrieve(r, checked or None, open_after and it is items[0], para_cliente)
 
-    def retrieve(self, r: dict, series_uids: list[str] | None, open_after: bool) -> Job | None:
+    def retrieve(self, r: dict, series_uids: list[str] | None, open_after: bool,
+                 para_cliente: bool = False) -> Job | None:
         from ipe.auth import session as S
         if not S.require("retrieve", self):
             return None
@@ -403,7 +417,11 @@ class PacsPanel(QWidget):
         if series_uids:
             label += f" ({len(series_uids)} série(s))"
         stream = self._want_stream(node, r, open_after)
-        return self.net.retrieve(node, self._identity(), r["study_uid"], label, series_uids, open_after, stream)
+        para_cliente = para_cliente and self.net.pelo_servidor(node or {})
+        if para_cliente:
+            label += " — " + tr("direto para este computador")
+        return self.net.retrieve(node, self._identity(), r["study_uid"], label, series_uids, open_after, stream,
+                                 para_cliente=para_cliente)
 
     def _want_stream(self, node: dict | None, r: dict, open_after: bool) -> bool:
         """Abrir enquanto baixa? Usa a opção do nó ou, se o download parecer demorado, pergunta."""
@@ -457,6 +475,9 @@ class PacsPanel(QWidget):
         m = QMenu(self)
         m.addAction("Baixar", lambda: self.retrieve_selected(False))
         m.addAction("Baixar e abrir", lambda: self.retrieve_selected(True))
+        if self.e_cliente():
+            a = m.addAction(tr("Baixar direto para o cliente"), lambda: self.retrieve_selected(False, para_cliente=True))
+            a.setToolTip(self.b_cliente.toolTip())
         # Pedido dele (11/10/2026): o mesmo “Enviar para” da lista do banco, com a escolha de
         # mandar como outra modalidade (identidade). O exame é baixado antes, se ainda não está aqui.
         from ipe.auth import session as S

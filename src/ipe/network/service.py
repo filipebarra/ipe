@@ -56,6 +56,10 @@ class Job:
     finished: float = 0.0
     sop_uids: list[str] | None = None   # 0.100.9: só estas imagens (o envio de uma imagem pelo navegador)
     dono: str = ""                      # 0.100.9: quem pediu pelo navegador (para mostrar só os dele)
+    para_cliente: bool = False          # 0.100.110: no cliente: o servidor baixa, o cliente traz e o servidor apaga
+    transito: bool = False              # 0.100.110: no servidor: download de passagem (sem regras de chegada)
+    apagar_apos_copia: bool = False     # 0.100.110: no servidor: apagar quando o cliente avisar que copiou
+    servidor_id: int = 0                # 0.100.110: no cliente: o número do download lá no servidor
 
     @property
     def active(self) -> bool:
@@ -394,7 +398,7 @@ class NetworkService(QObject):
     # ------------------------------------------------------------ transferências
     def retrieve(self, node: dict, identity: dict | None, study_uid: str, label: str,
                  series_uids: list[str] | None = None, open_after: bool = False,
-                 stream: bool = False, banco: tuple[str, str] | None = None) -> Job:
+                 stream: bool = False, banco: tuple[str, str] | None = None, para_cliente: bool = False) -> Job:
         """`banco`: (dono, visível para) do exame novo. None = a escolha de quem está logado ("Exames
         que eu importo ou baixo vão para"); a automação passa o banco da regra ou o do exame de origem
         (0.99.36)."""
@@ -405,6 +409,7 @@ class NetworkService(QObject):
                 j.stream = j.stream or stream
                 return j
         job = Job("retrieve", label, node, identity, [study_uid], series_uids, open_after, stream)
+        job.para_cliente = bool(para_cliente) and self.pelo_servidor(node)
         try:
             from ipe.db import banco as B
             if self.repo.study_info(study_uid) is None:
@@ -446,6 +451,43 @@ class NetworkService(QObject):
         job = Job("send", label, node, identity, list(study_uids), series_uids, sop_uids=sop_uids or None, dono=dono)
         self._submit(job)
         return job
+
+    def _trazer_do_servidor(self, job: Job, progress) -> str:
+        """0.100.110: "Baixar direto para o cliente": o servidor já baixou do PACS; traz o exame para o banco deste
+        computador e, só quando chegou **inteiro**, avisa o servidor — que apaga o dele se o exame não estava lá
+        antes. Tenta de novo o que faltou, até 3 vezes; se não chegar inteiro, o exame fica no servidor."""
+        uid = job.study_uids[0]
+        repo = self.repo
+        faltam: list = ["?"]
+        for tentativa in range(3):
+            if job.cancel.is_set():
+                raise DicomError("cancelado: o exame ficou no servidor")
+            if progress:
+                progress(0, 0, "trazendo do servidor para este computador…")
+            th, _primeiro, parar = repo.baixar_em_segundo_plano(uid)
+            while th.is_alive():
+                if job.cancel.is_set():
+                    parar.set()
+                th.join(0.5)
+            faltam = repo.missing_series(uid)
+            if not faltam:
+                break
+            log.warning("direto para o cliente: %s chegou incompleto (%d série(s)), tentativa %d", uid, len(faltam),
+                        tentativa + 1)
+        if faltam:
+            raise DicomError("o exame não chegou inteiro a este computador; ficou no servidor")
+        try:
+            n = int(repo.local.imagens_por_exame([uid]).get(uid, 0))
+        except Exception:  # noqa: BLE001
+            n = 0
+        try:
+            r = repo.client.rpc("pacs_copiado", job.servidor_id, n) or {}
+        except Exception as e:  # noqa: BLE001
+            log.exception("avisar o servidor da cópia")
+            return f"{n} imagens neste computador — não consegui avisar o servidor ({e}); ficou lá também"
+        if r.get("apagado"):
+            return f"{n} imagens neste computador — apagado do servidor"
+        return f"{n} imagens neste computador" + (f" — {r['motivo']}" if r.get("motivo") else "")
 
     # ------------------------------------------------------------ download série a série
     def _series_plan(self, job: Job, t) -> list[dict]:
@@ -555,6 +597,8 @@ class NetworkService(QObject):
                 # 0.100.37: o servidor baixa para o banco dele, no banco escolhido aqui (ele mesmo marca)
                 msg = cli.baixar(job, progress)
                 job.dono_destino = job.visivel_destino = ""
+                if job.para_cliente:
+                    msg = self._trazer_do_servidor(job, progress)
                 return msg
             # No DICOMweb não existe C-MOVE: o download é sempre o WADO-RS, que volta pela
             # mesma conexão — é o equivalente do C-GET.

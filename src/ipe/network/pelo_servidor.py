@@ -45,10 +45,11 @@ class ClienteDoServidor:
     def baixar(self, job, progress=None, intervalo: float = 1.0) -> str:
         """Pede o download ao servidor e acompanha até o fim. Cancelar aqui cancela lá."""
         r = self._rpc("pacs_baixar", self._id(job.node), job.study_uids[0], job.series_uids, job.label,
-                      [job.dono_destino, job.visivel_destino]) or {}
+                      [job.dono_destino, job.visivel_destino], bool(getattr(job, "para_cliente", False))) or {}
         jid = (r.get("download") or {}).get("id")
         if not jid:
             raise DicomError("o servidor não aceitou o download")
+        job.servidor_id = int(jid)
         a: dict = {}
         while True:
             if job.cancel.is_set():

@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.110 — PACS: descargar directo al cliente
+- Ipê cliente, ventana **PACS**: botón y clic derecho **Descargar directo al cliente**. El nodo envía al servidor
+  central, el servidor pasa el estudio a la base de esta computadora y **borra su copia cuando el estudio llega entero
+  aquí** (hasta 3 intentos para lo que falte). Lo que ya estaba en el servidor antes sigue allí. El servidor no ejecuta
+  las reglas de llegada en el estudio de paso; las de esta computadora se ejecutan cuando llega. Queda en el registro
+  de acceso (`transito_apagado`).
+
 ## 0.100.109 — Enlace del estudio también desde Ipê Web
 - Botón **Enlace del estudio (sin contraseña)** en la barra del visor de Ipê Web (quien puede exportar): para quién,
   qué más puede (IA, enviar, adjuntar), validez; **Crear y copiar**; los enlaces del estudio con **Revocar**. No

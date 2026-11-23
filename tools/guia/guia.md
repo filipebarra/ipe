@@ -1171,6 +1171,7 @@ Botão direito nos resultados da busca:
 |---|---|
 | Baixar para ▸ | o exame (ou as séries marcadas) vai **do nó direto para outro destino**, sem passar por este computador: um C-MOVE pedido ao nó de origem, com a identidade de *Como:*. **Outro AE…** aceita um destino não cadastrado. Quem decide se aceita o destino é o nó de origem |
 | Enviar para ▸ nó ▸ como… | baixa o exame para cá (se ainda não estiver) e, ao terminar, envia ao nó escolhido com a identidade escolhida. Exame já completo aqui sai na hora |
+| Baixar direto para o cliente | só no **Ipê cliente** (0.100.110), para os nós do servidor central: o nó manda ao servidor, o servidor passa o exame para o banco **deste computador** e apaga a cópia dele quando o exame chega inteiro aqui (até 3 tentativas para o que faltar). O que já estava no servidor antes do download continua lá. O servidor não roda as regras de chegada no exame de passagem; as deste computador rodam quando ele chega. Também é um botão ao lado de *Baixar e abrir* |
 
 O download usa a identidade de **Como:** da busca; o envio usa a escolhida no menu — são duas, de propósito. As tarefas aparecem na fila de transferências, com andamento, cancelar e o motivo de cada erro ("X não conhece o destino Y: ele precisa estar cadastrado em X").
 

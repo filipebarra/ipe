@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.110 — PACS: download straight to the client
+- Ipê client, **PACS** window: button and right-click **Download straight to the client**. The node sends to the central
+  server, the server passes the study to this computer's database and **deletes its own copy once the whole study has
+  arrived here** (up to 3 retries for anything missing). Whatever was already on the server before stays there. The
+  server does not run arrival rules on a pass-through study; this computer's rules run when it arrives. Logged in the
+  access log (`transito_apagado`).
+
 ## 0.100.109 — Study link also from Ipê Web
 - **Study link (no password)** button on the Ipê Web viewer toolbar (users who can export): for whom, what else the
   link can do (AI, send, attach), validity; **Create and copy**; the study's links with **Revoke**. Hidden in a

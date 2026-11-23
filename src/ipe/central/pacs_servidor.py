@@ -98,11 +98,11 @@ def series(c, s, node_id, study_uid: str) -> dict:
 def _job(j) -> dict:
     return {"id": j.id, "rotulo": j.label, "no": (j.node or {}).get("name", ""), "estado": j.status,
             "feitas": j.done, "total": j.total, "mensagem": j.message, "inicio": j.started, "fim": j.finished,
-            "study_uid": (j.study_uids or [""])[0]}
+            "study_uid": (j.study_uids or [""])[0], "transito": bool(getattr(j, "transito", False))}
 
 
 def baixar(c, s, node_id, study_uid: str, series_uids=None, rotulo: str = "", banco=None,
-           host: str = "") -> dict:
+           host: str = "", para_cliente: bool = False) -> dict:
     """Põe o download na fila do servidor. `banco`: (dono, visível para) do exame novo — só o próprio banco de quem
     pede (ou "" = compartilhado); o administrador escolhe qualquer um."""
     _exigir(s, "retrieve")
@@ -125,11 +125,47 @@ def baixar(c, s, node_id, study_uid: str, series_uids=None, rotulo: str = "", ba
         raise PermissionError("o exame já está no servidor, no banco pessoal de outro usuário")
     lista = [str(x) for x in (series_uids or []) if x] or None
     rot = (rotulo or uid)[:200] + " — pelo " + ("navegador" if host == "web" else "cliente")
+    existia = c.repo.study_info(uid) is not None
+    antes = {j.id for j in net.jobs}
     job = net.retrieve(no, None, uid, rot, lista, banco=(dono, visivel))
-    job.dono = s.username
+    novo_job = job.id not in antes
+    if novo_job or not job.dono:
+        job.dono = s.username
+    if para_cliente and host != "web" and novo_job:
+        # 0.100.110: "Baixar direto para o cliente" — o servidor é só passagem: não roda as regras de chegada e,
+        # se o exame não estava aqui antes, apaga quando o cliente disser que o tem inteiro (pacs_copiado)
+        job.transito = True
+        job.apagar_apos_copia = not existia
+        job.label += " — " + ("passagem para o cliente; apaga depois" if not existia
+                              else "passagem para o cliente; já estava aqui, fica")
     c.repo.audit("baixar", f"{no['name']} (pelo servidor, para {s.username}): {rotulo or uid}",
                  user=s.username, study_uid=uid, host="" if host == "web" else host)
     return {"ok": True, "download": _job(job)}
+
+
+def copiado(c, s, job_id, imagens: int = 0) -> dict:
+    """0.100.110: o cliente diz que o exame do download de passagem chegou inteiro ao banco dele. Se o exame não
+    estava no servidor antes do download (e o cliente tem pelo menos as imagens que o servidor tem), apaga daqui."""
+    net = _net(c)
+    jid = int(job_id or 0)
+    j = next((x for x in net.jobs if x.id == jid and x.kind == "retrieve" and x.dono == s.username), None)
+    if j is None:
+        raise KeyError("download não encontrado")
+    uid = (j.study_uids or [""])[0]
+    if not getattr(j, "transito", False):
+        return {"apagado": False, "motivo": "o download não era de passagem"}
+    if j.status != "done":
+        return {"apagado": False, "motivo": "o download do servidor não terminou"}
+    if not getattr(j, "apagar_apos_copia", False):
+        return {"apagado": False, "motivo": "o exame já estava no servidor antes: fica lá"}
+    aqui = int(c.repo.instance_counts([uid]).get(uid, 0) or 0)
+    if int(imagens or 0) < aqui:
+        return {"apagado": False, "motivo": f"o cliente tem {int(imagens or 0)} de {aqui} imagens: fica no servidor"}
+    j.apagar_apos_copia = False
+    c.repo.delete_study(uid, c.storage)
+    c.repo.audit("transito_apagado", f"exame baixado de passagem para o cliente ({aqui} imagens) apagado do "
+                 "servidor depois da cópia", user=s.username, study_uid=uid)
+    return {"apagado": True, "motivo": ""}
 
 
 def downloads(c, s) -> dict:
@@ -161,7 +197,7 @@ def cancelar(c, s, job_id) -> dict:
 
 # o que o Ipê cliente chama pelo RPC (o servidor trata, com a sessão de quem pede)
 RPC = ("pacs_nos", "pacs_buscar", "pacs_series", "pacs_baixar", "pacs_andamento", "pacs_cancelar",
-       "pacs_downloads")
+       "pacs_downloads", "pacs_copiado")
 
 
 def rpc(c, s, method: str, args: list, kwargs: dict, host: str = ""):
@@ -177,7 +213,9 @@ def rpc(c, s, method: str, args: list, kwargs: dict, host: str = ""):
         return series(c, s, arg(0, "node_id"), arg(1, "study_uid", ""))
     if method == "pacs_baixar":
         return baixar(c, s, arg(0, "node_id"), arg(1, "study_uid", ""), arg(2, "series_uids"),
-                      arg(3, "rotulo", ""), arg(4, "banco"), host)
+                      arg(3, "rotulo", ""), arg(4, "banco"), host, bool(arg(5, "para_cliente", False)))
+    if method == "pacs_copiado":
+        return copiado(c, s, arg(0, "job_id"), int(arg(1, "imagens", 0) or 0))
     if method == "pacs_andamento":
         return andamento(c, s, arg(0, "job_id"))
     if method == "pacs_cancelar":

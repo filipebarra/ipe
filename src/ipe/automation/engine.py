@@ -285,6 +285,8 @@ class AutomationEngine(QObject):
             return
         uid = job.study_uids[0]
         tag = self._job_tags.pop(job.id, {})
+        if getattr(job, "transito", False):     # 0.100.110: passagem para o cliente: as regras são as do cliente
+            return
         if tag.get("prefetch"):
             if tag.get("was_new"):
                 self.repo.set_study_origin(uid, "prefetch")

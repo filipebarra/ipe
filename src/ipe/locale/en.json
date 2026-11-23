@@ -10773,5 +10773,22 @@
  "link {}": "link {}",
  "link {} ({})": "link {} ({})",
  "link {} ({}; {} h) {}": "link {} ({}; {} h) {}",
- "{} · {} · {} {}": "{} · {} · {} {}"
+ "{} · {} · {} {}": "{} · {} · {} {}",
+ "Baixar direto para o cliente": "Download straight to the client",
+ "O nó manda ao servidor central, o servidor passa para o banco deste computador e apaga a cópia dele quando o exame chega inteiro aqui. O que já estava no servidor antes continua lá.": "The node sends to the central server, the server passes it to this computer's database and deletes its own copy once the whole study has arrived here. Whatever was already on the server before stays there.",
+ "avisar o servidor da cópia": "notify the server of the copy",
+ "cancelado: o exame ficou no servidor": "cancelled: the study stayed on the server",
+ "direto para este computador": "straight to this computer",
+ "o download do servidor não terminou": "the server download has not finished",
+ "o download não era de passagem": "the download was not a pass-through",
+ "o exame já estava no servidor antes: fica lá": "the study was already on the server before: it stays there",
+ "o exame não chegou inteiro a este computador; ficou no servidor": "the study did not arrive whole on this computer; it stayed on the server",
+ "trazendo do servidor para este computador…": "bringing from the server to this computer…",
+ "passagem para o cliente; apaga depois": "pass-through to the client; deleted afterwards",
+ "passagem para o cliente; já estava aqui, fica": "pass-through to the client; it was already here, it stays",
+ "exame baixado de passagem para o cliente ({} imagens) apagado do servidor depois da cópia": "study downloaded as pass-through to the client ({} images) deleted from the server after the copy",
+ "o cliente tem {} de {} imagens: fica no servidor": "the client has {} of {} images: it stays on the server",
+ "{} imagens neste computador": "{} images on this computer",
+ "{} imagens neste computador — apagado do servidor": "{} images on this computer — deleted from the server",
+ "{} imagens neste computador — não consegui avisar o servidor ({}); ficou lá também": "{} images on this computer — could not notify the server ({}); it stayed there too"
 }

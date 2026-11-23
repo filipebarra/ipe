@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.110 — PACS: baixar direto para o cliente
+- Ipê cliente, janela **PACS**: botão e botão direito **Baixar direto para o cliente**. O nó manda ao servidor central,
+  o servidor passa o exame para o banco deste computador e **apaga a cópia dele quando o exame chega inteiro aqui**
+  (até 3 tentativas para o que faltar). O que já estava no servidor antes continua lá. O servidor não roda as regras de
+  chegada no exame de passagem; as deste computador rodam quando ele chega. Fica no registro de acesso
+  (`transito_apagado`).
+
 ## 0.100.109 — Link do exame também pelo Ipê Web
 - Botão **Link do exame (sem senha)** na barra do visualizador do Ipê Web (quem pode exportar): para quem, o que o
   link também pode (IA, enviar, anexar), validade; **Criar e copiar**; a lista dos links do exame com **Revogar**.

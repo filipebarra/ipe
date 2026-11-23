@@ -303,3 +303,84 @@ def test_numero_do_exame_vai_na_consulta():
     q.StudyInstanceUID = "1.2.3"
     assert linha_estudo(q)["study_id"] == "4567"
     assert query_estudos().StudyID == ""                 # vazio: só pede de volta
+
+
+def _cliente(servidor, tmp_path):
+    from ipe.central.client_repo import ClientRepository
+    from ipe.central.remote import RemoteClient
+    from ipe.core.config import Settings
+    from ipe.db.repository import Repository
+    from ipe.db.session import Database
+    from ipe.network.service import NetworkService
+    _compartilhar(servidor)
+    cli = RemoteClient(f"http://127.0.0.1:{servidor.port}")
+    cli.login("admin", "admin123")
+    cache = Database(tmp_path / "cache" / "cache.sqlite")
+    repo = ClientRepository(Repository(cache), cli, tmp_path / "cache" / "Storage")
+    net = NetworkService(cache, repo, tmp_path / "cache" / "Storage", Settings(tmp_path / "c.json"))
+    return repo, net
+
+
+def test_baixar_direto_para_o_cliente(servidor, tmp_path):
+    """0.100.110: o servidor baixa do PACS, o cliente traz para o banco dele e o servidor apaga a cópia dele (o exame
+    não estava lá antes). As regras de chegada do servidor não rodam no exame de passagem."""
+    repo, net = _cliente(servidor, tmp_path)
+    try:
+        no = repo.node(-servidor.no)
+        job = net.retrieve(no, None, servidor.estudo, "TC direto", para_cliente=True)
+        assert job.para_cliente
+        assert _esperar(servidor, lambda: not job.active, 120)
+        assert job.status == "done", job.message
+        assert "apagado do servidor" in job.message, job.message
+        assert repo.local.study_uids_present([servidor.estudo])                 # aqui, inteiro
+        assert repo.local.imagens_por_exame([servidor.estudo])[servidor.estudo] == 60
+        assert servidor.repo_.study_info(servidor.estudo) is None               # e saiu do servidor
+        acoes = [a["action"] for a in servidor.repo_.access_log(limit=50)]
+        assert "transito_apagado" in acoes
+        srv_job = next(j for j in servidor.net.jobs if j.id == job.servidor_id)
+        assert srv_job.transito and "passagem" in srv_job.label
+    finally:
+        net.shutdown()
+
+
+def test_direto_para_o_cliente_nao_apaga_o_que_ja_estava_no_servidor(servidor, tmp_path):
+    repo, net = _cliente(servidor, tmp_path)
+    try:
+        no = repo.node(-servidor.no)
+        antes = net.retrieve(no, None, servidor.estudo, "TC no servidor")             # entra no servidor primeiro
+        assert _esperar(servidor, lambda: not antes.active, 120) and antes.status == "done"
+        job = net.retrieve(no, None, servidor.estudo, "TC direto", para_cliente=True)
+        assert _esperar(servidor, lambda: not job.active, 120)
+        assert job.status == "done", job.message
+        assert "fica lá" in job.message, job.message
+        assert repo.local.study_uids_present([servidor.estudo])
+        assert servidor.repo_.study_info(servidor.estudo) is not None           # continua no servidor
+        # outro usuário não confirma a cópia do download de outro; e o "copiado" com menos imagens não apaga
+        from ipe.central import pacs_servidor as PS
+        from ipe.auth.session import UserSession
+        outro = UserSession(username="med", full_name="", role="medico", user_id=None, perms={"view"})
+        with pytest.raises(KeyError):
+            PS.copiado(servidor, outro, job.servidor_id, 60)
+    finally:
+        net.shutdown()
+
+
+def test_botao_direto_para_o_cliente_so_no_cliente(servidor, tmp_path):
+    from ipe.ui.pacs_panel import PacsPanel
+    repo, net = _cliente(servidor, tmp_path)
+    try:
+        p = PacsPanel(net, repo)
+        assert not p.b_cliente.isHidden()
+        p.results.clear()
+        from PySide6.QtWidgets import QTreeWidgetItem
+        it = QTreeWidgetItem(["x"])
+        it.setData(0, 0x0100, {"node_id": -servidor.no, "study_uid": servidor.estudo, "patient_name": "", "study_date": "",
+                               "modalities": "", "description": "", "num_images": 60})
+        p.results.addTopLevelItem(it)
+        it.setSelected(True)
+        textos = [a.text() for a in p.menu_dos_resultados().actions()]
+        assert "Baixar direto para o cliente" in textos
+    finally:
+        net.shutdown()
+    p2 = PacsPanel(servidor.net, servidor.repo_)                                 # no servidor/autônomo: não tem
+    assert p2.b_cliente.isHidden()

@@ -8065,7 +8065,19 @@
   "tentativas demais; espere alguns minutos",
   "ativo",
   "vencido",
-  "revogado"
+  "revogado",
+  "Baixar direto para o cliente",
+  "O nó manda ao servidor central, o servidor passa para o banco deste computador e apaga a cópia dele quando o exame chega inteiro aqui. O que já estava no servidor antes continua lá.",
+  "avisar o servidor da cópia",
+  "cancelado: o exame ficou no servidor",
+  "direto para este computador",
+  "o download do servidor não terminou",
+  "o download não era de passagem",
+  "o exame já estava no servidor antes: fica lá",
+  "o exame não chegou inteiro a este computador; ficou no servidor",
+  "trazendo do servidor para este computador…",
+  "passagem para o cliente; apaga depois",
+  "passagem para o cliente; já estava aqui, fica"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -10279,6 +10291,11 @@
   "link {}",
   "link {} ({})",
   "link {} ({}; {} h) {}",
-  "{} · {} · {} {}"
+  "{} · {} · {} {}",
+  "exame baixado de passagem para o cliente ({} imagens) apagado do servidor depois da cópia",
+  "o cliente tem {} de {} imagens: fica no servidor",
+  "{} imagens neste computador",
+  "{} imagens neste computador — apagado do servidor",
+  "{} imagens neste computador — não consegui avisar o servidor ({}); ficou lá também"
  ]
 }

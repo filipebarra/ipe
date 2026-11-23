@@ -10773,5 +10773,22 @@
  "link {}": "enlace {}",
  "link {} ({})": "enlace {} ({})",
  "link {} ({}; {} h) {}": "enlace {} ({}; {} h) {}",
- "{} · {} · {} {}": "{} · {} · {} {}"
+ "{} · {} · {} {}": "{} · {} · {} {}",
+ "Baixar direto para o cliente": "Descargar directo al cliente",
+ "O nó manda ao servidor central, o servidor passa para o banco deste computador e apaga a cópia dele quando o exame chega inteiro aqui. O que já estava no servidor antes continua lá.": "El nodo envía al servidor central, el servidor lo pasa a la base de esta computadora y borra su copia cuando el estudio llega entero aquí. Lo que ya estaba en el servidor antes sigue allí.",
+ "avisar o servidor da cópia": "avisar al servidor de la copia",
+ "cancelado: o exame ficou no servidor": "cancelado: el estudio quedó en el servidor",
+ "direto para este computador": "directo a esta computadora",
+ "o download do servidor não terminou": "la descarga del servidor no terminó",
+ "o download não era de passagem": "la descarga no era de paso",
+ "o exame já estava no servidor antes: fica lá": "el estudio ya estaba en el servidor antes: queda allí",
+ "o exame não chegou inteiro a este computador; ficou no servidor": "el estudio no llegó entero a esta computadora; quedó en el servidor",
+ "trazendo do servidor para este computador…": "trayendo del servidor a esta computadora…",
+ "passagem para o cliente; apaga depois": "de paso al cliente; se borra después",
+ "passagem para o cliente; já estava aqui, fica": "de paso al cliente; ya estaba aquí, queda",
+ "exame baixado de passagem para o cliente ({} imagens) apagado do servidor depois da cópia": "estudio descargado de paso al cliente ({} imágenes) borrado del servidor después de la copia",
+ "o cliente tem {} de {} imagens: fica no servidor": "el cliente tiene {} de {} imágenes: queda en el servidor",
+ "{} imagens neste computador": "{} imágenes en esta computadora",
+ "{} imagens neste computador — apagado do servidor": "{} imágenes en esta computadora — borrado del servidor",
+ "{} imagens neste computador — não consegui avisar o servidor ({}); ficou lá também": "{} imágenes en esta computadora — no pude avisar al servidor ({}); quedó allí también"
 }
