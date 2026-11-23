@@ -3,6 +3,17 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.108 — Enlace del estudio (Ipê Web), sin contraseña
+- Clic derecho en el estudio ▸ **Crear enlace del estudio (Ipê Web)…**: un enlace que abre **solo ese estudio** en
+  Ipê Web, directo en el visor, **sin contraseña** — sin lista, sin base, sin informe. Al crearlo: para quién, qué más
+  puede (**ejecutar y revisar IA**, **enviar al PACS**, **adjuntar PDF e imágenes**) y la validez (1, 3, 7 o 30 días).
+  La ventana lista los enlaces del estudio (usos, validez) y los **revoca** — quien lo tenga abierto pierde el acceso
+  al instante.
+- Seguridad: token aleatorio por enlace (el servidor guarda solo el hash), después del "#" y quitado de la barra de
+  direcciones; el servidor solo deja pasar las rutas permitidas y los UID de ese estudio; los intentos erróneos por IP
+  están limitados; creación, uso, rechazo y revocación quedan en la auditoría. Crear un enlace requiere el permiso de
+  exportar.
+
 ## 0.100.107 — Lote en el Ipê cliente: traer a esta computadora y borrar del servidor
 - En el paso **Qué hacer** del lote (Ipê cliente), con **Traer los estudios también a esta computadora** marcado, la
   opción de borrar dice lo que hace: **borrar del servidor los estudios que el lote descargó del PACS, después de que

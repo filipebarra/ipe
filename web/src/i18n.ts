@@ -178,6 +178,11 @@ const T: Trad = {
   "Falta no PACS": ["Missing from PACS", "Falta en el PACS"],
   "Faltam": ["Missing", "Faltan"],
   "Fila de envio": ["Send queue", "Cola de envío"],
+  // 0.100.108: link de exame
+  "Abrindo o exame…": ["Opening the study…", "Abriendo el estudio…"],
+  "Entrar com usuário e senha": ["Sign in with user and password", "Entrar con usuario y contraseña"],
+  "Este link não abre mais o exame (vencido, revogado ou inválido). Peça um novo a quem o enviou.": ["This link no longer opens the study (expired, revoked or invalid). Ask whoever sent it for a new one.", "Este enlace ya no abre el estudio (vencido, revocado o inválido). Pida uno nuevo a quien lo envió."],
+  "Você saiu do exame. Para ver de novo, abra o link outra vez.": ["You left the study. To see it again, open the link once more.", "Salió del estudio. Para verlo de nuevo, abra el enlace otra vez."],
   // 0.100.106: IAs de mamografia no Ipê Web
   "todas as imagens de mamografia do exame": ["all mammography images of the study", "todas las imágenes de mamografía del estudio"],
   "Densidade mamária (BI-RADS)": ["Breast density (BI-RADS)", "Densidad mamaria (BI-RADS)"],

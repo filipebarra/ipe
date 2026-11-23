@@ -211,6 +211,14 @@ class CentralServer:
                     return None
                 self.tokens[tok] = (item[0], time.time())
                 s = item[0]
+            if getattr(s, "link_id", None):                  # 0.100.108: link de exame — revogado/vencido cai na hora
+                from ipe.central import links_exame as LE
+                if not LE.ativo(LE.por_id(self.repo, s.link_id)):
+                    with self._lock:
+                        self.tokens.pop(tok, None)
+                        self.lembrados.pop(tok, None)
+                    return None
+                return s
             # permissões atualizadas (o admin pode ter mudado o perfil)
             s.perms = self._permissoes(s.role)
             return s
@@ -412,6 +420,20 @@ class CentralServer:
         if method == "apagar_series_da_mama":      # 0.100.60: só as séries "(Ipê)" da densidade e das calcificações
             from ipe.ai import mama_sr as MS
             return MS._apagar_anteriores(self.repo, str(alvo or ""), self.storage)
+        if method in ("links_exame_criar", "links_exame_listar", "links_exame_revogar"):   # 0.100.108
+            from ipe.central import links_exame as LE
+            if method == "links_exame_criar":
+                kw = dict(kwargs or {})
+                tok, link = LE.criar(self.repo, str(alvo or ""), kw.get("perms") or [], kw.get("horas") or 24,
+                                     kw.get("rotulo") or "", s.username, kw.get("ips") or [])
+                return {"token": tok, "link": link, "caminho": f"/web/#/link/{tok}"}
+            arg = str(args[0] if args else kwargs.get("id") or kwargs.get("study_uid") or "")
+            if method == "links_exame_listar":
+                return [x for x in LE.listar(self.repo, arg) if self.pode_ver(s, x["study_uid"])]
+            x = LE.por_id(self.repo, arg)
+            if x is None or not self.pode_ver(s, x["study_uid"]):
+                raise PermissionError("link de outro exame")
+            return LE.revogar(self.repo, arg, s.username)
         if method == "refazer_resumo_do_figado":   # 0.100.102: o resumo (OT) da RM do fígado, depois de revisar
             from ipe.ai import figado_resumo as FR
             return FR.gravar(self.repo, self.db, self.storage, str(alvo or ""))
@@ -441,6 +463,8 @@ class CentralServer:
         """O dono, quem ele escolheu, o compartilhado — e o administrador (decisão dele)."""
         from ipe.auth import visibilidade as V
         from ipe.db.repository import MUDANCAS
+        if getattr(s, "so_exame", None):                     # 0.100.108: link de exame — só aquele
+            return study_uid == s.so_exame
         v = self._visao(s)
         if v is None or v.admin:
             return True
@@ -535,6 +559,7 @@ _RUIDO: bytes | None = None
 
 
 #: 0.100.18: erros relatados pelo navegador, por endereço (no máximo 20 por minuto)
+_FALHAS_LINK: dict[str, list[float]] = {}        # 0.100.108: tentativas erradas de link de exame, por IP
 _ERROS_WEB: dict[str, list[float]] = {}
 
 class _Servidor(ThreadingHTTPServer):
@@ -654,6 +679,8 @@ class _Handler(BaseHTTPRequestHandler):
         self._json(code, {"error": msg}, raw=True)
 
     def _body(self) -> bytes:
+        if getattr(self, "_corpo_guardado", None) is not None:       # 0.100.108: o portão do link já leu
+            return self._corpo_guardado
         n = int(self.headers.get("Content-Length") or 0)
         self._corpo_lido = True
         return self.rfile.read(n) if n else b""
@@ -677,6 +704,33 @@ class _Handler(BaseHTTPRequestHandler):
             self.rfile.read(n)
         except OSError:
             self.close_connection = True
+
+    def _entrar_com_link(self, c) -> None:
+        """0.100.108: troca o token do link de exame por uma sessão presa ao exame."""
+        from ipe.central import links_exame as LE
+        ip = self.client_address[0]
+        agora = time.time()
+        falhas = [t for t in _FALHAS_LINK.get(ip, []) if agora - t < 600]
+        if len(falhas) >= 20:
+            return self._error(429, "tentativas demais; espere alguns minutos")
+        try:
+            d = json.loads(self._body() or b"{}")
+            link = LE.usar(c.repo, str(d.get("token") or ""), ip)
+        except (ValueError, PermissionError) as e:
+            _FALHAS_LINK[ip] = falhas + [agora]
+            try:
+                c.repo.audit("link_exame_negado", str(e), user="link", host=ip)
+            except Exception:  # noqa: BLE001
+                pass
+            return self._error(403, str(e))
+        s = LE.sessao(link)
+        tok = secrets.token_urlsafe(32)
+        with c._lock:
+            c.tokens[tok] = (s, agora)
+            c.lembrados[tok] = min(float(link["expira"]), agora + LEMBRAR_S)
+        return self._json(200, {"token": tok, "study": link["study_uid"], "username": s.username,
+                                "full_name": s.full_name, "role": "link", "user_id": None, "perms": sorted(s.perms),
+                                "link": sorted(s.link_perms), "expira": int(link["expira"])}, raw=True)
 
     def _auth(self) -> UserSession | None:
         try:
@@ -812,9 +866,20 @@ class _Handler(BaseHTTPRequestHandler):
                 except Exception:  # noqa: BLE001
                     pass
             return self._json(200, {"ok": True}, raw=True)
+        if path == "/api/link/entrar" and method == "POST":      # 0.100.108: link de exame (público)
+            return self._entrar_com_link(c)
         s = self._auth()
         if s is None:
             return None
+        if getattr(s, "so_exame", None):                         # 0.100.108: o link só vê o exame dele
+            from ipe.central import links_exame as LE
+            corpo = b""
+            if method == "POST":
+                corpo = self._body()
+                self._corpo_guardado = corpo
+            motivo = LE.portao(c.repo, s, method, path, parts.query, corpo)
+            if motivo:
+                return self._error(403, motivo)
         if path == "/api/logout":
             c.logout(self.headers)
             return self._json(200, {"ok": True}, raw=True)

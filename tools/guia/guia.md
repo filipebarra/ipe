@@ -652,6 +652,17 @@ No Ipê ligado a um servidor central, **Preferências ▸ CAD/IA ▸ No Ipê cli
 - No **lote a partir de planilha**, a mesma escolha: com "Neste computador", o servidor busca, baixa e faz o resto, mas pede as IAs a este computador — deixe a janela do lote aberta enquanto ele roda. O que não der certo aqui, o servidor faz ele mesmo.
 - A segmentação pela caixa (MedSAM2), que é interativa, roda sempre neste computador.
 
+### Link do exame: abrir um exame no Ipê Web sem senha (0.100.108)
+
+Botão direito no exame, no banco ▸ **Criar link do exame (Ipê Web)…**. O link abre **só aquele exame**, direto no visualizador do Ipê Web, **sem pedir senha** — quem o recebe não vê a lista, o banco, os laudos nem outros exames.
+
+- **Para quem**: um nome, para você saber depois quem tem o link.
+- **O link também pode**: *Rodar e revisar IA*, *Enviar ao PACS e a outros nós*, *Anexar PDF e imagens*. Sem marcar nada, só ver (com medidas).
+- **Vale por**: 1, 3, 7 ou 30 dias.
+- **Criar link** gera o endereço e já copia; a lista embaixo mostra os links do exame, quantas vezes foram usados e quando vencem. **Revogar o link selecionado** corta o acesso na hora, até de quem está com ele aberto.
+
+O link funciona pelo Ipê Web do servidor central (no Ipê cliente, quem cria é o servidor). Criar link pede a permissão de **exportar**. Cada criação, uso, tentativa negada e revogação fica no registro de acesso. Quem tiver o link vê o exame até ele vencer: mande só a quem deve ver.
+
 ### Mamografia: densidade, calcificações e tirar o silicone à mão (0.100.106)
 
 Na aba **IA** do Ipê Web — e no botão direito ▸ **IA** do banco, no Ipê de mesa — a mamografia mostra três ferramentas: **Densidade mamária (BI-RADS)**, **Calcificações vasculares da mama** e **Implante de silicone: tirar o silicone**. Elas rodam no exame inteiro, na fila de IA do servidor, e não precisam do pacote de segmentação. *Tirar o silicone* grava a cópia " · sem implante" mesmo com a correção na chegada desligada — é o caminho para os exames antigos, que chegaram antes dela. A densidade e as calcificações medidas assim aparecem para conferir, como as da chegada.

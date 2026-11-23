@@ -74,6 +74,9 @@ RPC_METHODS: dict[str, str] = {
     # 0.100.60: regravar o SR da mamografia pelo cliente — o servidor apaga só as séries que o próprio Ipê gravou
     "apagar_series_da_mama": "view",
     "refazer_resumo_do_figado": "view",   # 0.100.102: o resumo (OT) da RM do fígado
+    "links_exame_criar": "export",       # 0.100.108: link de exame do Ipê Web (sem senha, só aquele exame)
+    "links_exame_listar": "export",
+    "links_exame_revogar": "export",
     "apagar_series_dos_esquemas": "report",   # 0.100.73
     # 0.100.61: a linha da abertura do Ipê de mesa no modo cliente, para o registro do servidor
     "abertura_cliente": "",
@@ -86,7 +89,7 @@ POR_EXAME = {
     "comments", "mark_opened", "key_images", "key_image_set", "toggle_key_image", "count_annotations",
     "series_groups", "save_series_group", "reports", "lists_of_study", "set_locked", "delete_study",
     "dados_do_exame", "retirar_do_servidor", "historico_do_exame", "revisao_ia", "salvar_revisao_ia",
-    "apagar_series_da_mama", "apagar_series_dos_esquemas", "refazer_resumo_do_figado",
+    "apagar_series_da_mama", "apagar_series_dos_esquemas", "refazer_resumo_do_figado", "links_exame_criar",
 }
 
 # 0.99.30: o primeiro argumento é a lista de casos; o servidor confere se quem pede enxerga a lista

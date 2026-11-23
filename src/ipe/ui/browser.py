@@ -1768,6 +1768,13 @@ class Browser(QWidget):
                                         lambda: self.film_requested.emit({"kind": "saved", "study_uid": st}))
                 a.setEnabled(bool(n_filmes))
 
+        # ---- 0.100.108: link do exame (Ipê Web), só com um exame selecionado
+        if len(rows) == 1:
+            from ipe.core.i18n import tr
+            a = menu.addAction(tr("Criar link do exame (Ipê Web)…"))
+            a.setEnabled(S.can("export"))
+            a.triggered.connect(lambda _=False, r=rows[0]: self.link_do_exame(r))
+
         # ---- IA ▸ (0.100.101): as IAs do exame, com as opções de cada uma, como o botão IA do visualizador
         ia = menu.addMenu("IA")
         ia.setToolTipsVisible(True)
@@ -1949,6 +1956,18 @@ class Browser(QWidget):
         if OND.cliente(self.repo):
             a = m.addAction(tr("Roda no servidor central"))
             a.setEnabled(False)
+
+    def link_do_exame(self, r) -> None:
+        """0.100.108: o link que abre só este exame no Ipê Web, sem senha."""
+        from ipe.core.i18n import tr
+        from ipe.ui.link_exame_dialogo import Fonte, LinkExameDialog
+        fonte = Fonte(self.repo, getattr(self.window(), "central", None))
+        motivo = fonte.disponivel()
+        if motivo:
+            QMessageBox.information(self, tr("Link do exame (Ipê Web)"), motivo)
+            return
+        desc = f"{r.patient_name or ''} · {r.study_date or ''} · {r.modalities or ''} {r.description or ''}".strip()
+        LinkExameDialog(fonte, r.study_uid, desc, self).exec()
 
     def _abrir_tarefas_ia(self):
         from ipe.ui.tarefas_ia import abrir

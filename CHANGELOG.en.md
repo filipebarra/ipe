@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.108 — Study link (Ipê Web), no password
+- Right-click a study ▸ **Create study link (Ipê Web)…**: a link that opens **only that study** in Ipê Web, straight
+  in the viewer, **without a password** — no list, no database, no report. On creation: for whom, what else the link
+  can do (**run and review AI**, **send to the PACS**, **attach PDF and images**) and how long it lasts (1, 3, 7 or 30
+  days). The window lists the study's links (uses, expiry) and **revokes** them — whoever has one open loses access
+  immediately.
+- Security: random token per link (the server stores only its hash), after the "#" and removed from the address bar;
+  the server only lets through the allowed routes and that study's UIDs; wrong attempts per IP are limited; creation,
+  use, denial and revocation are audited. Creating a link requires the export permission.
+
 ## 0.100.107 — Batch on an Ipê client: bring to this computer and delete from the server
 - In the batch's **What to do** step (Ipê client), with **Also bring the studies to this computer** checked, the
   delete option now says what it does: **delete from the server the studies the batch downloaded from the PACS, after

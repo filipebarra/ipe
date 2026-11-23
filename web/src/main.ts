@@ -223,9 +223,16 @@ function cabecalho(...extra: Node[]): HTMLElement {
   app.classList.remove("leitura");
   const quem = config?.usuario.full_name || config?.usuario.username || "";
   // 0.100.5: com um exame aberto, "Sair" fecha o exame e volta à lista; na lista, sai do Ipê Web
-  const noExame = /^#\/(exame|mg|caso)\//.test(location.hash);
+  const noExame = /^#\/(exame|mg|caso)\//.test(location.hash) && !API.linkExame();
   const b = el("button", { class: "sair", title: noExame ? tr("Fechar o exame e voltar à lista") : quem,
     onclick: async () => {
+      if (API.linkExame()) {                         // 0.100.108: link de exame — sai e não volta a lista nenhuma
+        JAN.sairDasJanelas();
+        await API.sair();
+        config = null;
+        telaLinkEncerrado();
+        return;
+      }
       if (noExame || CASO.emModoCaso()) { voltarALista(); return; }
       JAN.sairDasJanelas();
       await API.sair();
@@ -2019,7 +2026,39 @@ async function telaDaGestao(): Promise<void> {
 }
 
 // ------------------------------------------------------------------ rotas
+/** 0.100.108: o link de exame — troca o token por uma sessão presa ao exame e abre o visualizador. */
+async function entrarPeloLink(t: string): Promise<void> {
+  history.replaceState(null, "", `${location.pathname}${location.search}#/abrindo`);   // o token sai da barra
+  app.replaceChildren(el("div", { class: "estado" }, tr("Abrindo o exame…")));
+  try {
+    const d = await API.entrarComLink(t);
+    config = null;
+    location.replace(`${location.pathname}${location.search}#/exame/${d.study}`);
+  } catch (e) {
+    const entrar = el("button", { type: "button", onclick: () => { location.hash = "#/lista"; telaLogin(); } },
+      tr("Entrar com usuário e senha"));
+    app.replaceChildren(el("div", { class: "estado link-invalido" },
+      el("p", {}, tr("Este link não abre mais o exame (vencido, revogado ou inválido). Peça um novo a quem o enviou.")),
+      el("p", { class: "detalhe" }, (e as Error).message), entrar));
+  }
+}
+
+function telaLinkEncerrado(): void {
+  app.replaceChildren(el("div", { class: "estado link-invalido" },
+    el("p", {}, tr("Você saiu do exame. Para ver de novo, abra o link outra vez."))));
+}
+
 function rota(): void {
+  const ml = location.hash.match(/^#\/link\/([A-Za-z0-9_-]{20,})$/);
+  if (ml) { void entrarPeloLink(ml[1]); return; }
+  const so = API.linkExame();
+  if (so && API.tokenAtual()) {                      // 0.100.108: com link, só o exame dele (e as janelas dele)
+    const pode = [`#/exame/${so}`, `#/mg/${so}/2`];
+    if (!pode.includes(location.hash) && !new RegExp(`^#/exame/${so.replace(/\./g, "\\.")}/j[1-9]$|^#/espera/j[1-9]$`).test(location.hash)) {
+      location.replace(`${location.pathname}${location.search}#/exame/${so}`);
+      return;
+    }
+  }
   if (!API.tokenAtual()) {
     // a segunda tela da mamografia: o token vem da janela que a abriu
     if (/^#\/(mg\/[0-9.]+\/2|exame\/[0-9.]+\/j[1-9]|espera\/j[1-9])$/.test(location.hash) && window.opener) {

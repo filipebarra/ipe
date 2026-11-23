@@ -87,7 +87,32 @@ export async function entrar(username: string, password: string, lembrar = false
   return d as Usuario;
 }
 
+// 0.100.108: link de exame — abre só um exame, sem senha (o servidor prende a sessão a ele)
+const CHAVE_LINK = "ipe.web.link";
+export interface EntradaLink { token: string; study: string; perms: string[]; link: string[]; full_name: string; expira: number }
+export async function entrarComLink(t: string): Promise<EntradaLink> {
+  const r = await fetch(`${location.origin}/api/link/entrar`, {
+    method: "POST", headers: { "Content-Type": "application/json", "X-Ipe-Web": "1" },
+    body: JSON.stringify({ token: t }), cache: "no-store",
+  });
+  if (!r.ok) {
+    let msg = String(r.status);
+    try { msg = ((await r.json()) as { error?: string }).error || msg; } catch { /* sem corpo */ }
+    throw new Error(msg);
+  }
+  const d = (await r.json()) as EntradaLink;
+  token = d.token;
+  guardarToken(token);
+  try { sessionStorage.setItem(CHAVE_LINK, d.study); } catch { /* sem armazenamento */ }
+  return d;
+}
+/** O exame do link (vazio = sessão comum). */
+export function linkExame(): string {
+  try { return sessionStorage.getItem(CHAVE_LINK) || ""; } catch { return ""; }
+}
+
 export async function sair(): Promise<void> {
+  try { sessionStorage.removeItem(CHAVE_LINK); } catch { /* sem armazenamento */ }
   try {
     await pedir(`${location.origin}/api/logout`);
   } catch {

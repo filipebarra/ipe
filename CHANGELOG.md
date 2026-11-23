@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.108 — Link do exame (Ipê Web), sem senha
+- Botão direito no exame ▸ **Criar link do exame (Ipê Web)…**: um link que abre **só aquele exame** no Ipê Web, direto
+  no visualizador, **sem senha** — sem lista, sem banco, sem laudo. Na criação: para quem, o que o link também pode
+  (**rodar e revisar IA**, **enviar ao PACS**, **anexar PDF e imagens**) e a validade (1, 3, 7 ou 30 dias). A janela
+  lista os links do exame (usos, validade) e **revoga** — quem estiver com ele aberto perde o acesso na hora.
+- Segurança: token aleatório por link (o servidor guarda só o hash), depois do "#" e tirado da barra de endereço;
+  o servidor só deixa passar as rotas liberadas e os UIDs daquele exame; tentativas erradas por IP são limitadas;
+  criação, uso, negação e revogação na auditoria. Criar link pede a permissão de exportar.
+
 ## 0.100.107 — Lote no Ipê cliente: trazer para este computador e apagar do servidor
 - No passo **O que fazer** do lote (Ipê cliente), com **Trazer os exames também para este computador** marcado, a
   opção de apagar passa a dizer o que faz: **apagar do servidor os exames que o lote baixou do PACS, depois que
