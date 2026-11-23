@@ -124,6 +124,9 @@ class Config:
     exportar_imagens: str = "png"                          # png | pdf | "" (nenhuma)
     exportar_dicom: bool = False
     apagar_depois: bool = True
+    #: 0.100.101: o exame que já estava no Ipê passa pelas regras da chegada (IA automática, roteamento, impressão),
+    #: como o que foi baixado
+    regras_chegada: bool = True
     # saída e execução
     anonimizar: bool = False
     janela_de: str = ""                                    # "HH:MM" — vazio = a qualquer hora
@@ -159,6 +162,8 @@ class Config:
             out.append(tr("exportar"))
         if self.apagar_depois:
             out.append(tr("apagar o que veio de fora"))
+        if self.regras_chegada:
+            out.append(tr("regras da chegada também no que já estava no Ipê"))
         return out
 
 
@@ -314,6 +319,7 @@ class Servicos:
     - `exportar(study_uid, series, pasta, nome, formato_imagem, dicom, anonimizar)` → mensagem
     - `apagar(study_uid)`
     - `nome_no(no_id)` → nome para mostrar
+    - `chegada(study_uid)` → as regras da chegada num exame que já estava no Ipê (opcional)
     """
     local: callable
     no: callable
@@ -326,6 +332,9 @@ class Servicos:
     exportar: callable
     apagar: callable
     nome_no: callable = lambda no_id: str(no_id)
+    #: 0.100.101: `chegada(study_uid)` — as regras da chegada (IA automática, roteamento, impressão) num exame que
+    #: já estava no Ipê, como se tivesse acabado de ser baixado; None = não há
+    chegada: callable = None
 
 
 @dataclass
@@ -589,6 +598,14 @@ class Lote:
                 if not ok:
                     return dict(e, situacao=SEM_DOWNLOAD, observacao=msg)
                 baixou = True
+            if not baixou and self.cfg.regras_chegada and self.s.chegada is not None:
+                # 0.100.101, pedido dele: o exame que já estava no banco passa pelas regras de IA, envio e impressão
+                # da chegada, como se tivesse sido baixado (o baixado passa por elas ao terminar o download)
+                try:
+                    self.s.chegada(uid)
+                    e["regras_chegada"] = True
+                except Exception as x:  # noqa: BLE001
+                    falhas.append(tr("regras da chegada: {}").format(x))
             series_conf: list[str] = []
             if self.cfg.ias:
                 res = self.s.ias(uid, list(self.cfg.ias), bool(self.cfg.refazer_ias), parar) or {}

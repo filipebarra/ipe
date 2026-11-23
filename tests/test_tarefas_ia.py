@@ -237,3 +237,39 @@ def test_cancelar_todas_com_a_aba_fechada(env, tmp_path, monkeypatch):
     d = TarefasIADialog()
     assert d.cancelar_todas() == 2 and not TA.REGISTRO.ativas() and not SG.ocupado()
     d.close()
+
+
+def test_segunda_ia_entra_na_fila_e_comeca_sozinha(env, tmp_path, monkeypatch):
+    """0.100.101: pedir uma IA com outra rodando não bloqueia — avisa, põe na fila e começa quando a outra termina."""
+    import time
+
+    from PySide6.QtWidgets import QMessageBox
+    SG, seg, aba, uid = _seg_rodando(env, tmp_path, monkeypatch)
+    paths, _db, repo = env
+    serie = seg.trabalho.series_uid
+    bloqueou = []
+    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: bloqueou.append(a[2])))
+    seg2 = SG.Segmentacao(aba, repo, _settings(paths), paths.storage, uid, serie, simular=True, tipo="coluna")
+    assert seg2.iniciar() and not bloqueou
+    t2 = next(x for x in TA.REGISTRO.tarefas() if x.id == seg2.tarefa)
+    assert t2.estado == TA.FILA and "fila (1º)" in t2.etapa and seg2 in SG._fila
+    avisos = [w for w in QApplication.topLevelWidgets() if isinstance(w, QMessageBox) and w.isVisible()]
+    assert any("entrou na fila" in w.text() for w in avisos)
+    # a primeira termina: a da fila começa sozinha, com a mesma tarefa
+    seg._fim(None, "cancelada")
+    fim = time.time() + 10
+    while time.time() < fim and seg2 in SG._fila:
+        QApplication.processEvents()
+        time.sleep(0.05)
+    assert seg2 not in SG._fila and SG.ocupado()
+    t2 = next(x for x in TA.REGISTRO.tarefas() if x.id == seg2.tarefa)
+    assert t2.estado == TA.PREPARANDO
+    # tirar da fila pela janela de tarefas
+    seg3 = SG.Segmentacao(aba, repo, _settings(paths), paths.storage, uid, serie, simular=True)
+    assert seg3.iniciar() and seg3 in SG._fila
+    assert TA.REGISTRO.cancelar(seg3.tarefa)
+    assert seg3 not in SG._fila
+    seg2._fim(None, "fim")
+    for w in avisos:
+        w.close()
+    aba.close()

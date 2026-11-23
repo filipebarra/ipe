@@ -166,6 +166,7 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
                                      open_uids=lambda: {u for t in self.all_viewer_tabs() for u in t.study_order},
                                      parent=self, cache=self.cache)
         self.auto.notify.connect(self.show_notification)
+        self.browser.motor_ia = self.auto                  # 0.100.101: botão direito ▸ IA no banco
         self.auto.implante_corrigido.connect(self._implante_pronto)
         self.auto.segmentacao_pronta.connect(self._segmentacao_pronta)
         self._really_quit = False
@@ -402,6 +403,9 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         lm.addAction(a)
         a = QAction("Densidade mamária: medidas e confirmações…", j)      # 0.100.46
         a.triggered.connect(self.abrir_densidades_medidas)
+        lm.addAction(a)
+        a = QAction("Fígado na RM (esteatose, ferro, rigidez): medidas e confirmações…", j)   # 0.100.101
+        a.triggered.connect(self.abrir_figados_medidos)
         lm.addAction(a)
         if janela is None:
             self.laudos_menu = lm

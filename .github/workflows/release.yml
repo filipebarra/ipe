@@ -248,7 +248,7 @@ jobs:
                 "(`sudo apt install ./Ipe-*-linux-amd64.deb`; the command is `ipe-viewer`). Or extract the portable "
                 "and run `Ipe/install.sh` (installs for your user, no administrator; `--system` for all users, "
                 "`--uninstall` to remove), or just run `Ipe/Ipe`. On first launch it asks for the language, with "
-                "English selected.\n\n**macOS (experimental):** `-macos-arm64.dmg` for Apple silicon, "
+                "English selected.\n\n**macOS:** `-macos-arm64.dmg` for Apple silicon, "
                 "`-macos-x86_64.dmg` for Intel. Drag Ipe to Applications; the app is not signed by Apple: the first "
                 "time, right-click ▸ Open ▸ Open (or `xattr -dr com.apple.quarantine /Applications/Ipe.app`).\n\n"
                 "Organ segmentation (TotalSegmentator) is installed separately, with `instalar_segmentacao`.\n\n"

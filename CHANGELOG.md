@@ -3,6 +3,19 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.101 — IA pelo banco, fila de IA, tabela do fígado
+- **Botão direito no exame ▸ IA**: as IAs do exame, como no botão IA do visualizador, cada uma com as opções (série
+  sugerida, refazer, outra série); as que a regra deixou de fora em *Outras IAs*. Vários exames: a IA entra na fila
+  em todos.
+- **Fila de IA**: pedir uma IA com outra rodando neste computador não é mais bloqueado — ela entra na fila e começa
+  sozinha (aparece em Tarefas de IA, onde dá para tirar).
+- **Laudos ▸ Fígado na RM (esteatose, ferro, rigidez): medidas e confirmações…**: a tabela de todos os exames com a
+  IA de fígado, como a da densidade mamária, com filtros e CSV.
+- **Coluna "Neste computador"** no Ipê cliente: o exame do servidor está também aqui, completo ou parcial.
+- **Lote a partir de planilha**: o exame que já está no Ipê passa pelas regras da chegada (IA automática, roteamento,
+  impressão), como um exame baixado (opção marcada de fábrica no passo "O que fazer").
+- Notas da versão: o macOS deixou de ser "experimental".
+
 ## 0.100.100 — Ipê cliente: IAs no servidor ou neste computador
 - **Preferências ▸ CAD/IA ▸ No Ipê cliente, rodar as IAs**: **no servidor central** (padrão) — a IA pedida no
   visualizador vai para a fila do servidor e o resultado vem para o exame aberto — ou **neste computador**, e então

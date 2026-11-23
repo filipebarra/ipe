@@ -1158,7 +1158,7 @@ class BarraMixin:
         self._button(tb, comp, menu_comp, app="composicao")
         # gordura e ferro hepáticos na RM (0.99.49)
         menu_fig = self._menu()
-        a_fig = QAction("Medir a gordura (PDFF) e o ferro (R2*) do fígado nesta RM (IA)…", self)
+        a_fig = QAction("Medir a gordura (PDFF), o ferro (R2*) e a rigidez (elastografia) do fígado nesta RM (IA)…", self)
         a_fig.triggered.connect(self._figado_rm_do_ativo)
         menu_fig.addAction(a_fig)
         a_ach3 = QAction("Achados de IA (revisar, confirmar, descartar)…", self)
@@ -1167,6 +1167,9 @@ class BarraMixin:
         a_ref_figado_rm = QAction("Refazer no exame (série preferida das Configurações)…", self)          # 0.100.88
         a_ref_figado_rm.triggered.connect(lambda: self.refazer_ia("figado_rm"))
         menu_fig.addAction(a_ref_figado_rm)
+        a_tab_fig = QAction("Fígado na RM: todos os exames, com as confirmações…", self)          # 0.100.101
+        a_tab_fig.triggered.connect(self.figados_medidos)
+        menu_fig.addAction(a_tab_fig)
         fig = self._act("figado_rm.auto", "Gordura e ferro hepáticos na RM (IA)", self.figado_rm_botao)
         fig.setIcon(icon("app_figado"))
         fig.setIconText("Fígado")

@@ -1,7 +1,6 @@
 # Ipê
 
-**Visualizador DICOM para pesquisa e ensino**, em Python (PySide6), para Windows, Linux e macOS
-(experimental). Nasceu numa
+**Visualizador DICOM para pesquisa e ensino**, em Python (PySide6), para Windows, Linux e macOS. Nasceu numa
 estação de laudo de imagem da mama e cresceu para cobrir TC, RM, PET/CT, medicina nuclear,
 ultrassom e radiografia, com rede DICOM, filmes, impressão e laudo.
 
@@ -189,7 +188,7 @@ Pelo código:
 ./executar.sh
 ```
 
-### macOS (experimental)
+### macOS
 Pelos [releases](https://github.com/filipebarra/ipe/releases) (sem Python), desde a 0.100.28:
 - `Ipe-<versão>-macos-arm64.dmg` para Mac com chip Apple (M1 em diante); `Ipe-<versão>-macos-x86_64.dmg` para Mac
   com processador Intel.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QSize, Qt, Signal
@@ -35,6 +36,7 @@ COLUMNS = [
     ("prioridade", "Prioridade", "prioridade"), ("subesp", "Subespecialidade", "text"),
     ("prazo", "Prazo do laudo", "datetime"), ("sla", "SLA", "text"), ("estado", "Estado", "estado"),
     ("protocolo", "Protocolo (RM)", "protocolo"),
+    ("no_computador", "Neste computador", "local"),
     ("case_n", "Nº", "int"), ("case_name", "Caso (lista)", "text"),
 ]
 LIST_ONLY = ["case_n", "case_name"]          # aparecem sozinhas quando uma lista está aberta
@@ -44,6 +46,7 @@ SENSITIVE = {"patient_name", "patient_id", "birth_date", "accession", "instituti
 ORIGINS = {"import": "importado", "received": "recebido", "retrieved": "baixado", "prefetch": "pré-busca",
            "anonymized": "anonimizado"}
 KEY_INDEX = {c[0]: i for i, c in enumerate(COLUMNS)}
+log = logging.getLogger(__name__)
 
 
 def fmt_date(d: str) -> str:
@@ -136,6 +139,7 @@ class StudyTableModel(QAbstractTableModel):
         self.anonymize = False
         self.case_names: dict[str, str] = {}      # modo reunião: nome amigável no lugar do paciente
         self.settings = None                      # para o perfil de ocultação (0.99.42)
+        self.locais: dict[str, str] = {}          # 0.100.101: modo cliente, o exame também está aqui?
 
     def set_rows(self, rows: list[StudyRow]) -> None:
         self.beginResetModel()
@@ -179,6 +183,12 @@ class StudyTableModel(QAbstractTableModel):
                 return self.case_names.get(r.study_uid) or "Paciente oculto"
             if self.anonymize and key in SENSITIVE:
                 return "•••"
+            if kind == "local":
+                from ipe.core.i18n import tr
+                est = self.locais.get(r.study_uid, "")
+                if role == Qt.UserRole:
+                    return {"completo": 2, "parcial": 1}.get(est, 0)
+                return {"completo": "✔ " + tr("completo"), "parcial": "◐ " + tr("parcial")}.get(est, "")
             if role == Qt.UserRole:
                 return v                                  # ordenação pelo valor bruto
             if kind == "date":
@@ -228,6 +238,10 @@ class StudyTableModel(QAbstractTableModel):
             if cor:
                 from PySide6.QtGui import QColor
                 return QColor(*cor)
+        if role == Qt.ToolTipRole and key == "no_computador" and self.locais.get(r.study_uid):
+            from ipe.core.i18n import tr
+            return (tr("O exame inteiro também está no banco deste computador") if self.locais[r.study_uid] ==
+                    "completo" else tr("Só parte das imagens está no banco deste computador"))
         if role == Qt.ToolTipRole and key == "estado" and getattr(r, "estado_manual", ""):
             return "Trocado à mão (botão direito ▸ Estado do exame ▸ Automático volta ao automático)"
         if role == Qt.UserRole + 1 and key == "estado":
@@ -579,6 +593,8 @@ class Browser(QWidget):
         for r in rows:
             r.case_n = order.get(r.study_uid, 0)
             r.case_name = names.get(r.study_uid, "")
+        self.model.locais = (self.repo.no_computador(rows) if hasattr(type(self.repo), "no_computador")
+                             else {})
         self.model.set_rows(rows)
         widths = self._settings_get("browser.column_widths", {}) or {}
         self._applying_columns = True
@@ -1752,6 +1768,12 @@ class Browser(QWidget):
                                         lambda: self.film_requested.emit({"kind": "saved", "study_uid": st}))
                 a.setEnabled(bool(n_filmes))
 
+        # ---- IA ▸ (0.100.101): as IAs do exame, com as opções de cada uma, como o botão IA do visualizador
+        ia = menu.addMenu("IA")
+        ia.setToolTipsVisible(True)
+        ia.setEnabled(S.can("ai"))
+        ia.aboutToShow.connect(lambda m=ia, rr=list(rows): self._encher_menu_ia(m, rr))
+
         # ---- Ferramentas ▸
         fm = menu.addMenu("Ferramentas")
         a_anon = QAction("Anonimizar cópias destes {} exames…".format(len(rows)) if len(rows) > 1
@@ -1792,6 +1814,176 @@ class Browser(QWidget):
         a_del.triggered.connect(lambda: self._delete(rows))
         menu.addAction(a_del)
         return menu
+
+    # ------------------------------------------------------------------ IA pelo banco (0.100.101)
+    def _onde_ia(self) -> tuple[str, str]:
+        from ipe.ai import onde as OND
+        try:
+            return OND.decidir(self.repo, self.settings)
+        except Exception:  # noqa: BLE001
+            log.debug("onde rodar a IA", exc_info=True)
+            return (OND.SERVIDOR if OND.cliente(self.repo) else OND.LOCAL), ""
+
+    def ferramentas_ia(self, study_uid: str) -> list[dict]:
+        """As IAs para este exame, como no Ipê Web: {tipo, titulo, serie, motivo, ja_feita, andando}. No Ipê cliente
+        que roda as IAs no servidor, a lista vem do servidor (o que já foi feito e o que está na fila de lá)."""
+        from ipe.ai import onde as OND
+        if self._onde_ia()[0] == OND.SERVIDOR and OND.cliente(self.repo):
+            try:
+                return list(self.repo.client.rpc("ia_ferramentas", {"study": study_uid}).get("ferramentas") or [])
+            except Exception:  # noqa: BLE001
+                log.warning("a lista de IAs do servidor", exc_info=True)
+        motor = self.motor_ia
+        if motor is None:
+            return []
+        return motor.ferramentas_do_exame(study_uid)
+
+    @property
+    def motor_ia(self):
+        m = getattr(self, "_motor_ia", None)
+        if m is None:
+            m = getattr(self.window(), "auto", None)
+        return m
+
+    @motor_ia.setter
+    def motor_ia(self, valor) -> None:
+        self._motor_ia = valor
+
+    def _rotulo_serie(self, se) -> str:
+        n = int(getattr(se, "num_images", 0) or 0)
+        return f"{se.series_number or '–'} · {se.modality} · {se.description or ''}".strip() + (f" ({n})" if n else "")
+
+    def _encher_menu_ia(self, m: QMenu, rows: list[StudyRow]) -> None:
+        """Como a lista do botão IA do visualizador: as IAs que servem para o exame, cada uma com as opções (a série
+        sugerida, outra série, refazer); as outras num submenu (rodam mesmo assim); e as tarefas."""
+        from ipe.ai import onde as OND
+        from ipe.core.i18n import tr
+        m.clear()
+        onde, aviso = self._onde_ia()
+        if len(rows) > 1:
+            self._encher_menu_ia_varios(m, rows, onde)
+            return
+        uid = rows[0].study_uid
+        try:
+            lista = self.ferramentas_ia(uid)
+        except Exception as e:  # noqa: BLE001
+            log.exception("ferramentas de IA do exame")
+            lista, aviso = [], str(e)
+        try:
+            series = [se for se in self.repo.series_for_study(uid) if (se.modality or "").upper() not in ("SR", "SEG",
+                                                                                                         "OT", "PR")]
+        except Exception:  # noqa: BLE001
+            series = []
+        valem = [f for f in lista if f.get("serie")]
+        outras = [f for f in lista if not f.get("serie")]
+        if hasattr(m, "addSection"):
+            m.addSection(tr("Para este exame"))
+        for f in valem:
+            self._item_ia_do_banco(m, uid, f, series)
+        if not valem:
+            a = m.addAction(tr("Nenhuma IA para este exame pela regra"))
+            a.setEnabled(False)
+        if outras:
+            sub = m.addMenu(tr("Outras IAs (não são deste exame; rodam mesmo assim)"))
+            sub.setToolTipsVisible(True)
+            for f in outras:
+                self._item_ia_do_banco(sub, uid, f, series)
+        m.addSeparator()
+        a = m.addAction(tr("Tarefas de IA (andamento e cancelar)…"))
+        a.triggered.connect(self._abrir_tarefas_ia)
+        if OND.cliente(self.repo):
+            a = m.addAction(tr("Roda no servidor central") if onde == OND.SERVIDOR else tr("Roda neste computador"))
+            a.setEnabled(False)
+            if aviso:
+                a.setToolTip(tr(aviso))
+
+    def _item_ia_do_banco(self, menu: QMenu, uid: str, f: dict, series) -> None:
+        from ipe.core.i18n import tr
+        titulo = tr(f.get("titulo") or f.get("tipo") or "")
+        marca = (" ✔" if f.get("ja_feita") else "") + (" ⚙" if f.get("andando") else "")
+        texto = titulo + marca + (f" — {tr(f['motivo'])}" if f.get("motivo") else "")
+        sub = menu.addMenu(texto)
+        sub.setToolTipsVisible(True)
+        if f.get("andando"):
+            a = sub.addAction(tr("Já está na fila ou rodando neste exame"))
+            a.setEnabled(False)
+        sugerida = f.get("serie")
+        if sugerida:
+            se = next((x for x in series if x.series_uid == sugerida), None)
+            rot = f.get("serie_rotulo") or (self._rotulo_serie(se) if se is not None else "")
+            a = sub.addAction((tr("Refazer na série sugerida: {}") if f.get("ja_feita")
+                               else tr("Rodar na série sugerida: {}")).format(rot))
+            a.setEnabled(not f.get("andando"))
+            a.triggered.connect(lambda _=False, t=f["tipo"], s=sugerida: self.rodar_ia(uid, t, s))
+        outra = sub.addMenu(tr("Rodar em outra série"))
+        for se in series:
+            if se.series_uid == sugerida:
+                continue
+            a = outra.addAction(self._rotulo_serie(se))
+            a.setEnabled(not f.get("andando"))
+            a.triggered.connect(lambda _=False, t=f["tipo"], s=se.series_uid: self.rodar_ia(uid, t, s))
+        outra.setEnabled(bool(outra.actions()))
+        if f.get("ja_feita"):
+            a = sub.addAction(tr("Abrir o exame para ver o resultado"))
+            a.triggered.connect(self._open_selected)
+
+    def _encher_menu_ia_varios(self, m: QMenu, rows, onde: str) -> None:
+        """Vários exames: cada IA roda em todos, na série que ela escolhe em cada um."""
+        from ipe.ai import onde as OND
+        from ipe.core.i18n import tr
+        try:
+            lista = self.ferramentas_ia(rows[0].study_uid)
+        except Exception:  # noqa: BLE001
+            lista = []
+        if hasattr(m, "addSection"):
+            m.addSection(tr("Nos {} exames (na série que cada IA escolhe)").format(len(rows)))
+        for f in lista:
+            a = m.addAction(tr(f.get("titulo") or f["tipo"]))
+            a.triggered.connect(lambda _=False, t=f["tipo"]: self.rodar_ia_varios([r.study_uid for r in rows], t))
+        if not lista:
+            a = m.addAction(tr("Nenhuma IA disponível"))
+            a.setEnabled(False)
+        m.addSeparator()
+        a = m.addAction(tr("Tarefas de IA (andamento e cancelar)…"))
+        a.triggered.connect(self._abrir_tarefas_ia)
+        if OND.cliente(self.repo):
+            a = m.addAction(tr("Roda no servidor central"))
+            a.setEnabled(False)
+
+    def _abrir_tarefas_ia(self):
+        from ipe.ui.tarefas_ia import abrir
+        return abrir(self.window())
+
+    def rodar_ia(self, study_uid: str, tipo: str, series_uid: str, simular: bool = False):
+        """Uma IA num exame pelo banco: o mesmo caminho do visualizador — no servidor ou aqui (0.100.100) e, se já
+        houver uma rodando aqui, na fila (0.100.101)."""
+        return self.segmentar_orgaos(study_uid, series_uid, simular=simular, tipo=tipo)
+
+    def rodar_ia_varios(self, uids: list[str], tipo: str) -> dict:
+        """A IA em vários exames: na fila do servidor (Ipê cliente) ou na fila de IA deste computador."""
+        from ipe.ai import onde as OND
+        from ipe.auth import session as S
+        from ipe.core.i18n import tr
+        no_servidor = OND.cliente(self.repo)
+        pedidos, erros = 0, []
+        for uid in uids:
+            try:
+                if no_servidor:
+                    self.repo.client.rpc("ia_pedir", {"study": uid, "tipo": tipo, "serie": ""})
+                else:
+                    motor = self.motor_ia
+                    if motor is None:
+                        raise RuntimeError(tr("a fila de IA não está ligada"))
+                    motor.pedir(uid, tipo, None, getattr(S.get(), "username", "") or "")
+                pedidos += 1
+            except Exception as e:  # noqa: BLE001
+                erros.append(str(e))
+        txt = tr("{} exame(s) na fila de IA {}.").format(
+            pedidos, tr("do servidor central") if no_servidor else tr("deste computador"))
+        if erros:
+            txt += "\n\n" + tr("Não entraram:") + "\n" + "\n".join(sorted(set(erros))[:8])
+        QMessageBox.information(self, "IA", txt)
+        return {"pedidos": pedidos, "erros": erros}
 
     def conferir_protocolo(self, rows) -> None:
         """0.100.93: um exame abre a conferência; vários são conferidos de uma vez (coluna Protocolo (RM))."""

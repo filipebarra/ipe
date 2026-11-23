@@ -1,7 +1,6 @@
 # Ipê
 
-**Visor DICOM para investigación y docencia**, en Python (PySide6), para Windows, Linux y macOS
-(experimental). Nació
+**Visor DICOM para investigación y docencia**, en Python (PySide6), para Windows, Linux y macOS. Nació
 como estación de lectura de imagen mamaria y creció para cubrir TC, RM, PET/TC, medicina nuclear,
 ecografía y radiografía, con red DICOM, placas, impresión e informe.
 
@@ -88,7 +87,7 @@ administrador, y pregunta el idioma, la carpeta del programa y la de la base.
 `instalar.bat` una vez y luego en `executar.bat`. Para generar el instalador de Windows vea
 [installer/LEIAME.md](installer/LEIAME.md).
 
-**macOS (experimental):** desde los [releases](https://github.com/filipebarra/ipe/releases) (sin Python), desde la
+**macOS:** desde los [releases](https://github.com/filipebarra/ipe/releases) (sin Python), desde la
 0.100.28: `Ipe-<versión>-macos-arm64.dmg` para Mac con chip Apple (M1 en adelante) o `Ipe-<versión>-macos-x86_64.dmg`
 para Mac con Intel. Abra el `.dmg` y arrastre **Ipe** a Aplicaciones. El programa **no está firmado por Apple**: la
 primera vez, clic derecho (o Control+clic) ▸ **Abrir** ▸ **Abrir**; si macOS dice que la app "está dañada", ejecute

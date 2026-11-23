@@ -151,6 +151,22 @@ class ClientRepository:
     def is_cached(self, study_uid: str) -> bool:
         return bool(self.local.study_uids_present([study_uid]))
 
+    def no_computador(self, rows) -> dict[str, str]:
+        """0.100.101: o exame do servidor está também neste computador? {uid: "completo" | "parcial" | ""},
+        comparando as imagens do cache com as do servidor (uma consulta só ao banco local)."""
+        rows = list(rows or [])
+        try:
+            aqui = self.local.imagens_por_exame([r.study_uid for r in rows])
+        except Exception:  # noqa: BLE001
+            log.debug("imagens no cache", exc_info=True)
+            return {}
+        out = {}
+        for r in rows:
+            n = aqui.get(r.study_uid, 0)
+            total = int(getattr(r, "num_images", 0) or 0)
+            out[r.study_uid] = "" if not n else ("completo" if n >= total else "parcial")
+        return out
+
     # ------------------------------------------------------------------ especiais
     def audit(self, action: str, detail: str, user: str = "", study_uid: str = "", host: str = "") -> None:
         try:

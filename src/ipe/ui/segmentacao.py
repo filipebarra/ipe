@@ -22,6 +22,32 @@ log = logging.getLogger(__name__)
 
 _rodando: list = []            # a segmentação em curso (e a referência que a mantém viva)
 _rodando_servidor: list = []   # 0.100.100: as pedidas ao servidor central (só a referência; não ocupam este PC)
+_fila: list = []               # 0.100.101: as pedidas enquanto outra rodava — começam sozinhas, na ordem
+_vigia: list = []              # o QTimer que olha a fila
+
+
+def _vigiar_fila() -> None:
+    """A cada 2 s, se nada roda e há alguém na fila, o primeiro começa (inclusive depois de uma automática)."""
+    if _vigia:
+        if not _vigia[0].isActive():
+            _vigia[0].start()
+        return
+    t = QTimer(QApplication.instance())
+    t.setInterval(2000)
+
+    def olhar():
+        if not _fila:
+            t.stop()
+            return
+        if ocupado():
+            from ipe.ai import tarefas as TA
+            for i, s in enumerate(list(_fila), start=1):
+                TA.REGISTRO.mudar(getattr(s, "tarefa", None), etapa=f"na fila ({i}º)")
+            return
+        _fila.pop(0)._sair_da_fila()
+    t.timeout.connect(olhar)
+    _vigia.append(t)
+    t.start()
 
 
 def _valido(obj) -> bool:
@@ -260,11 +286,6 @@ class Segmentacao(QObject):
             onde, aviso = OND.decidir(self.repo, self.trabalho.settings)
             if onde == OND.SERVIDOR:
                 return self._no_servidor(aviso)
-        if ocupado():
-            QMessageBox.information(self.janela, self.titulo,
-                                    "Já há uma segmentação rodando. Espere ela terminar, ou veja e cancele em "
-                                    "Aplicações ▸ Tarefas de IA… (também no menu Exibir).")
-            return False
         if not self.trabalho.simular and not TS.instalado(self.trabalho.settings):
             if QMessageBox.question(
                     self.janela, self.titulo,
@@ -273,6 +294,9 @@ class Segmentacao(QObject):
                     == QMessageBox.Yes:
                 abrir_instalador(self.janela, perguntar=False)
             return False
+        if ocupado() and not getattr(self, "_saindo_da_fila", False):
+            # 0.100.101: já há uma IA rodando — esta entra na fila e começa sozinha quando a outra terminar
+            return self._para_a_fila()
         extra = "medsam2" if self.tipo == "medsam2" else getattr(self._generica, "MODELO_EXTRA", "")
         if extra and not self.trabalho.simular:          # 0.99.83: MedSAM2, autoPET, BraTS
             from ipe.ai import extras as EX
@@ -298,9 +322,13 @@ class Segmentacao(QObject):
             info = self.repo.study_info(self.trabalho.study_uid) or {}
         except Exception:  # noqa: BLE001
             info = {}
-        self.tarefa = TA.REGISTRO.nova(self.titulo, self.trabalho.study_uid,
-                                       f"{info.get('patient_name', '')} {info.get('description', '')}".strip(),
-                                       "manual", TA.PREPARANDO, cancelar=self.cancelar).id
+        if getattr(self, "tarefa", None) is not None:        # saiu da fila: a mesma tarefa segue
+            TA.REGISTRO.mudar(self.tarefa, TA.PREPARANDO, etapa="")
+            TA.REGISTRO.ao_cancelar(self.tarefa, self.cancelar)
+        else:
+            self.tarefa = TA.REGISTRO.nova(self.titulo, self.trabalho.study_uid,
+                                           f"{info.get('patient_name', '')} {info.get('description', '')}".strip(),
+                                           "manual", TA.PREPARANDO, cancelar=self.cancelar).id
         eu = self
         TA.REGISTRO.ao_liberar(self.tarefa, lambda: _liberar(eu))
         self.dlg = QProgressDialog("Montando o volume da série…", "Cancelar", 0, 0, self.janela)
@@ -312,6 +340,56 @@ class Segmentacao(QObject):
         self.dlg.show()
         QApplication.processEvents()
         return self._lancar()
+
+    # ------------------------------------------------------------ fila local (0.100.101)
+    def _para_a_fila(self) -> bool:
+        """Pedido dele: *"tentei rodar uma ia, mas fui bloqueado pois já tinha uma rodando. não quero que isso
+        aconteça. avise que já tem uma e coloque na fila"*."""
+        from ipe.ai import tarefas as TA
+        try:
+            info = self.repo.study_info(self.trabalho.study_uid) or {}
+        except Exception:  # noqa: BLE001
+            info = {}
+        eu = self
+
+        def tirar_da_fila():
+            if eu in _fila:
+                _fila.remove(eu)
+            TA.REGISTRO.mudar(eu.tarefa, TA.CANCELADO, etapa="", mensagem="tirada da fila")
+        self.tarefa = TA.REGISTRO.nova(self.titulo, self.trabalho.study_uid,
+                                       f"{info.get('patient_name', '')} {info.get('description', '')}".strip(),
+                                       "manual", TA.FILA, cancelar=tirar_da_fila).id
+        _fila.append(self)
+        n = len(_fila)
+        TA.REGISTRO.mudar(self.tarefa, etapa=f"na fila ({n}º)")
+        _vigiar_fila()
+        texto = (f"Já há uma IA rodando. “{self.titulo}” entrou na fila ({n}º) e começa sozinha quando a outra "
+                 "terminar. Para acompanhar ou tirar da fila: Aplicações ▸ Tarefas de IA… (também no menu Exibir).")
+        sinal = getattr(self.janela, "status_message", None) if self.janela_viva() else None
+        if sinal is not None:
+            try:
+                sinal.emit(texto)
+            except RuntimeError:
+                pass
+        if self.janela_viva():
+            caixa = QMessageBox(QMessageBox.Information, self.titulo, texto, QMessageBox.Ok, self.janela)
+            caixa.setWindowModality(Qt.NonModal)              # aviso, não bloqueia
+            caixa.setAttribute(Qt.WA_DeleteOnClose)
+            caixa.show()
+        return True
+
+    def _sair_da_fila(self) -> None:
+        self._saindo_da_fila = True
+        try:
+            if not self.iniciar():
+                from ipe.ai import tarefas as TA
+                TA.REGISTRO.mudar(self.tarefa, TA.ERRO, etapa="", mensagem="não começou ao sair da fila")
+        except Exception as e:  # noqa: BLE001
+            log.exception("começar a IA que estava na fila")
+            from ipe.ai import tarefas as TA
+            TA.REGISTRO.mudar(self.tarefa, TA.ERRO, etapa="", mensagem=str(e))
+        finally:
+            self._saindo_da_fila = False
 
     # ------------------------------------------------------------ no servidor central (Ipê cliente, 0.100.100)
     def _no_servidor(self, aviso: str = "") -> bool:

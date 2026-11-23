@@ -3,6 +3,18 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.101 — AI from the database, AI queue, liver table
+- **Right-click a study ▸ AI**: the study's AIs, as in the viewer's AI button, each with its options (suggested
+  series, redo, another series); those the rule left out under *Other AIs*. Several studies: the AI is queued on all.
+- **AI queue**: requesting an AI while another runs on this computer is no longer blocked — it joins the queue and
+  starts by itself (shown in AI tasks, where it can be removed).
+- **Reports ▸ Liver MRI (steatosis, iron, stiffness): measurements and confirmations…**: the table of every study
+  with the liver AI, like the breast density one, with filters and CSV.
+- **"On this computer" column** on an Ipê client: the server's study is also here, complete or partial.
+- **Batch from spreadsheet**: a study already in Ipê goes through the arrival rules (automatic AI, routing,
+  printing), like a downloaded study (option checked by default in the "What to do" step).
+- Release notes: macOS is no longer "experimental".
+
 ## 0.100.100 — Ipê client: AIs on the server or on this computer
 - **Preferences ▸ CAD/AI ▸ On an Ipê client, run the AIs**: **on the central server** (default) — the AI requested
   in the viewer goes to the server queue and the result comes to the open study — or **on this computer**, and then

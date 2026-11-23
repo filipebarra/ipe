@@ -365,6 +365,12 @@ class LoteDialog(QDialog):
         self.k_apagar.setChecked(True)
         self.k_apagar.setToolTip(tr("O que já estava no banco do Ipê nunca é apagado."))
         lay.addWidget(self.k_apagar)
+        self.k_chegada = QCheckBox(tr("Exame que já está no Ipê: aplicar as regras da chegada (IA, envio, impressão), "
+                                      "como num exame baixado"))
+        self.k_chegada.setChecked(True)
+        self.k_chegada.setToolTip(tr("As regras de Preferências ▸ CAD/IA e de Configurações ▸ Rede ▸ Automação que valem para o exame "
+                                     "que chega. O exame baixado pelo lote já passa por elas ao terminar o download."))
+        lay.addWidget(self.k_chegada)
         # 0.100.98: no cliente, o lote roda no servidor; o exame pode vir também para o banco deste computador
         self.k_trazer = QCheckBox(tr("Trazer os exames também para este computador (banco local)"))
         self.k_trazer.setToolTip(tr("O lote roda no servidor. Marcado, cada exame feito é copiado para este "
@@ -542,6 +548,7 @@ class LoteDialog(QDialog):
             enviar_o_que=self.c_enviar.currentData(), imprimir=self.c_imprimir.currentData() or "",
             exportar_pasta=self.e_exportar.text().strip(), exportar_imagens=self.c_formato.currentData() or "",
             exportar_dicom=self.k_dicom.isChecked(), apagar_depois=self.k_apagar.isChecked(),
+            regras_chegada=self.k_chegada.isChecked(),
             anonimizar=self.k_anon.isChecked(),
             janela_de=self.t_de.time().toString("HH:mm") if self.k_janela.isChecked() else "",
             janela_ate=self.t_ate.time().toString("HH:mm") if self.k_janela.isChecked() else "",
@@ -565,6 +572,7 @@ class LoteDialog(QDialog):
         self.c_formato.setCurrentIndex(max(0, self.c_formato.findData(cfg.exportar_imagens or "")))
         self.k_dicom.setChecked(bool(cfg.exportar_dicom))
         self.k_apagar.setChecked(bool(cfg.apagar_depois))
+        self.k_chegada.setChecked(bool(cfg.regras_chegada))
         self.k_anon.setChecked(bool(cfg.anonimizar))
         self.k_janela.setChecked(bool(cfg.janela_de and cfg.janela_ate))
         if cfg.janela_de and cfg.janela_ate:

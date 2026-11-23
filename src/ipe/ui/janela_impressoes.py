@@ -369,6 +369,11 @@ class ImpressoesMixin:
         from ipe.ui import densidades_medidas
         return densidades_medidas.abrir(self)
 
+    def abrir_figados_medidos(self):
+        """0.100.101: esteatose, ferro e rigidez de todos os exames com a IA de fígado, com as revisões."""
+        from ipe.ui import figados_medidos
+        return figados_medidos.abrir(self)
+
     def abrir_revisao_densidade(self) -> None:
         """0.100.43: a fila de mamografias para o médico confirmar ou corrigir a densidade sugerida."""
         from ipe.ui import densidade_revisao

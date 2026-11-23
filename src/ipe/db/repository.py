@@ -2645,6 +2645,44 @@ class Repository:
                     "avisos": d.get("avisos") or []})
             return out
 
+    def figados_medidos(self, date_from: str = "", date_to: str = "", banco: str = "visivel",
+                        limit: int = 5000) -> list[dict]:
+        """0.100.101: os exames com o resultado da IA de fígado (gordura, ferro, rigidez), um por linha, com a
+        situação de cada achado — para a tela "Fígado na RM: medidas e confirmações"."""
+        from ipe.ai import figado_rm as F
+        from ipe.ai import figado_tabela as FT
+        from ipe.auth import visibilidade as V
+        visao = V.visao_atual()
+        with self.db.session() as s:
+            q = (select(AchadoIA, Study, Patient).join(Study, Study.study_uid == AchadoIA.study_uid)
+                 .join(Patient, Study.patient_fk == Patient.id).where(AchadoIA.ferramenta == F.FERRAMENTA))
+            if date_from:
+                q = q.where(Study.study_date >= date_from)
+            if date_to:
+                q = q.where(Study.study_date <= date_to)
+            q = _filtro_de_banco(q, banco, visao).order_by(Study.study_date.desc(), Study.study_uid, AchadoIA.id)
+            grupos: dict[str, tuple[dict, list]] = {}
+            for a, st, pa in s.execute(q):
+                if not _no_banco(st, banco, visao):
+                    continue
+                if st.study_uid not in grupos:
+                    if len(grupos) >= limit:
+                        break
+                    grupos[st.study_uid] = ({"study_uid": st.study_uid, "patient_name": pa.name or "",
+                                             "patient_id": pa.patient_id or "", "study_date": st.study_date or "",
+                                             "description": st.description or "", "aparelho": ""}, [])
+                d = self._achado_dict(a)
+                d["revisado_em"] = a.revisado_em.strftime("%Y-%m-%d %H:%M") if a.revisado_em else ""
+                d["criado_em"] = a.criado_em.strftime("%Y-%m-%d %H:%M") if a.criado_em else ""
+                grupos[st.study_uid][1].append(d)
+            if grupos:
+                for uid, mod in s.execute(select(Study.study_uid, Series.device)
+                                          .join(Series, Series.study_fk == Study.id)
+                                          .where(Study.study_uid.in_(list(grupos)[:5000]))):
+                    if mod and not grupos[uid][0]["aparelho"]:
+                        grupos[uid][0]["aparelho"] = mod
+        return [FT.linha(base, itens) for base, itens in grupos.values()]
+
     def revisoes_densidade(self, usuario: str = "", todos: bool = False) -> list[dict]:
         """As revisões do revisor (ou de todos), da mais antiga à mais nova."""
         import json
@@ -2683,6 +2721,21 @@ class Repository:
             return set()
         with self.db.session() as s:
             return set(s.scalars(select(Study.study_uid).where(Study.study_uid.in_(list(uids)))))
+
+    def imagens_por_exame(self, uids) -> dict[str, int]:
+        """0.100.101: quantas imagens de cada exame estão neste banco (a coluna "Neste computador" do cliente)."""
+        uids = [u for u in (uids or []) if u]
+        if not uids:
+            return {}
+        from sqlalchemy import func
+        out: dict[str, int] = {}
+        with self.db.session() as s:
+            for i in range(0, len(uids), 900):
+                q = (select(Study.study_uid, func.count(Instance.id)).join(Series, Series.study_fk == Study.id)
+                     .join(Instance, Instance.series_fk == Series.id)
+                     .where(Study.study_uid.in_(uids[i:i + 900])).group_by(Study.study_uid))
+                out.update({u: int(n) for u, n in s.execute(q)})
+        return out
 
     def sop_uids_for_study(self, study_uid: str) -> list[str]:
         with self.db.session() as s:

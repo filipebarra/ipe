@@ -341,3 +341,21 @@ def test_tentativas_na_ordem_do_usuario(tmp_path):
     lote.rodar()
     r = lote.resultados[lote.linhas[0].chave]
     assert r["situacao"] == L.NAO_ACHADO and "por: Nº de acesso" in r["observacao"]
+
+
+def test_exame_que_ja_estava_passa_pelas_regras_da_chegada(tmp_path):
+    """0.100.101: o que já estava no banco passa pelas regras da chegada, como um exame baixado; o baixado não
+    (ele passa ao terminar o download)."""
+    cfg = L.Config(tolerancia_dias=1, nos=["pacs"])
+    lote, d = _lote(tmp_path, cfg, DADOS[:2])
+    chegadas = []
+    lote.s.chegada = chegadas.append
+    lote.rodar()
+    assert chegadas == ["U1"]
+    cfg2 = L.Config(tolerancia_dias=1, nos=["pacs"], regras_chegada=False)
+    (tmp_path / "b").mkdir()
+    lote2, _d = _lote(tmp_path / "b", cfg2, DADOS[:1])
+    chegadas.clear()
+    lote2.s.chegada = chegadas.append
+    lote2.rodar()
+    assert chegadas == []

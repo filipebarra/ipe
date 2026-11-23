@@ -257,5 +257,10 @@ def servicos(repo, db, net, settings, storage_root, engine=None, chamar=None, id
     def apagar(uid: str) -> None:
         repo.delete_study(uid, storage_root)
 
+    def chegada(uid: str) -> None:
+        """0.100.101: as regras da chegada (as mesmas de um exame baixado: IA automática, roteamento, impressão)."""
+        chamar(lambda: engine.study_arrived(uid, "retrieved"))
+
     return L.Servicos(local=local, no=no, tem=tem, baixar=baixar, ias=ias, protocolo=protocolo, enviar=enviar,
-                      imprimir=imprimir, exportar=exportar, apagar=apagar, nome_no=nome_no)
+                      imprimir=imprimir, exportar=exportar, apagar=apagar, nome_no=nome_no,
+                      chegada=chegada if engine is not None and hasattr(engine, "study_arrived") else None)

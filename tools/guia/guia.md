@@ -652,6 +652,14 @@ No Ipê ligado a um servidor central, **Preferências ▸ CAD/IA ▸ No Ipê cli
 - No **lote a partir de planilha**, a mesma escolha: com "Neste computador", o servidor busca, baixa e faz o resto, mas pede as IAs a este computador — deixe a janela do lote aberta enquanto ele roda. O que não der certo aqui, o servidor faz ele mesmo.
 - A segmentação pela caixa (MedSAM2), que é interativa, roda sempre neste computador.
 
+### IA pelo banco, fila de IA e tabela do fígado (0.100.101)
+
+- **Botão direito no exame ▸ IA**: a lista das IAs que servem para o exame, como o botão IA do visualizador. Cada uma traz as opções: **rodar na série sugerida** (ou **refazer**, se já foi feita — marcada com ✔), **rodar em outra série** e abrir o exame para ver o resultado. As que a regra deixou de fora ficam em *Outras IAs*, com o motivo, e rodam mesmo assim. Com vários exames selecionados, cada IA entra na fila em todos, na série que ela escolhe em cada um. No Ipê cliente, vale a mesma escolha de onde rodar (servidor ou este computador).
+- **Fila**: pedir uma IA enquanto outra roda neste computador não é mais recusado — o Ipê avisa, põe a nova na fila e ela começa sozinha quando a outra terminar. A fila aparece em **Tarefas de IA…**, onde também dá para tirá-la.
+- **Laudos ▸ Fígado na RM (esteatose, ferro, rigidez): medidas e confirmações…** (também no menu do botão Fígado do visualizador): uma linha por exame com PDFF e grau, dupla eco, R2* e ferro estimado (LIC), rigidez e faixa, a situação da revisão, quem revisou e quando; filtros (não revisadas, com esteatose, com sobrecarga de ferro, com rigidez acima do normal), duplo clique abre o exame e o CSV leva a tabela. Os números são os que valem: os corrigidos pelo médico por cima dos da IA.
+- **Lote a partir de planilha**: o exame que **já está no Ipê** passa pelas regras da chegada (IA automática, roteamento, impressão), como um exame baixado — opção marcada de fábrica no passo *O que fazer* (o exame baixado pelo lote já passava por elas ao terminar o download).
+- **Coluna "Neste computador"** (no Ipê cliente): diz se o exame do servidor também está no banco deste computador — **completo** ou **parcial** (só parte das imagens).
+
 ### Pesquisa: as mamografias de uma lista, em lote
 
 Para medir a densidade e as calcificações vasculares das mamografias de uma lista (estudo), use **Rede ▸ Lote a partir de planilha…** com o modelo pronto **Densidade e calcificações da mama** — veja "Lote a partir de planilha" no capítulo *Buscar e baixar*.

@@ -1,7 +1,6 @@
 # Ipê
 
-**DICOM viewer for research and teaching**, written in Python (PySide6), for Windows, Linux and macOS
-(experimental). It started as a breast-imaging reading station and grew to cover CT, MR, PET/CT, nuclear medicine,
+**DICOM viewer for research and teaching**, written in Python (PySide6), for Windows, Linux and macOS. It started as a breast-imaging reading station and grew to cover CT, MR, PET/CT, nuclear medicine,
 ultrasound and radiography, with DICOM networking, films, printing and reporting.
 
 > **Not intended for diagnostic use.** Ipê is not a medical device registered with ANVISA or any
@@ -192,7 +191,7 @@ From the source code:
 ./executar.sh
 ```
 
-### macOS (experimental)
+### macOS
 From the [releases](https://github.com/filipebarra/ipe/releases) (no Python needed), since 0.100.28:
 - `Ipe-<version>-macos-arm64.dmg` for Apple silicon (M1 and later); `Ipe-<version>-macos-x86_64.dmg` for Intel Macs.
 - Open the `.dmg` and drag **Ipe** to Applications. The app is **not signed by Apple**: the first time, right-click

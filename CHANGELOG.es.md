@@ -3,6 +3,19 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.101 — IA desde la base, cola de IA, tabla del hígado
+- **Clic derecho en el estudio ▸ IA**: las IA del estudio, como en el botón IA del visor, cada una con sus opciones
+  (serie sugerida, rehacer, otra serie); las que la regla dejó fuera en *Otras IA*. Varios estudios: la IA entra en
+  la cola en todos.
+- **Cola de IA**: pedir una IA con otra ejecutándose en esta computadora ya no se bloquea — entra en la cola y
+  empieza sola (aparece en Tareas de IA, donde se puede quitar).
+- **Informes ▸ Hígado en la RM (esteatosis, hierro, rigidez): medidas y confirmaciones…**: la tabla de todos los
+  estudios con la IA de hígado, como la de la densidad mamaria, con filtros y CSV.
+- **Columna "En esta computadora"** en el Ipê cliente: el estudio del servidor también está aquí, completo o parcial.
+- **Lote desde planilla**: el estudio que ya está en el Ipê pasa por las reglas de llegada (IA automática, ruteo,
+  impresión), como un estudio descargado (opción marcada de fábrica en el paso "Qué hacer").
+- Notas de la versión: macOS dejó de ser "experimental".
+
 ## 0.100.100 — Ipê cliente: IA en el servidor o en esta computadora
 - **Preferencias ▸ CAD/IA ▸ En el Ipê cliente, ejecutar las IA**: **en el servidor central** (predeterminado) — la
   IA pedida en el visor va a la cola del servidor y el resultado llega al estudio abierto — o **en esta
