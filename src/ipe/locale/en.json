@@ -10722,5 +10722,9 @@
  "Implante de silicone: tirar o silicone": "Silicone implant: remove the silicone",
  "ferramentas de mamografia": "mammography tools",
  "o exame não tem imagem de mamografia": "the study has no mammography image",
- "o exame não tem mamografia ou o silicone já está sendo tirado": "the study has no mammography or the silicone is already being removed"
+ "o exame não tem mamografia ou o silicone já está sendo tirado": "the study has no mammography or the silicone is already being removed",
+ "Apagar do servidor os exames que o lote baixou do PACS, depois que chegarem inteiros a este computador": "Delete from the server the studies the batch downloaded from the PACS, after they arrive complete on this computer",
+ "Apagar do servidor, no fim, os exames que o lote baixou do PACS": "At the end, delete from the server the studies the batch downloaded from the PACS",
+ "Ficam só no banco deste computador. O que já estava no servidor antes do lote nunca é apagado.": "They stay only in this computer's database. What was already on the server before the batch is never deleted.",
+ "O que já estava no servidor antes do lote nunca é apagado.": "What was already on the server before the batch is never deleted."
 }

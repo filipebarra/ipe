@@ -149,3 +149,34 @@ def test_cliente_de_servidor_nao_roda_aqui():
             return False
     ok, motivo = LP.pronto(Cliente())
     assert not ok and "cliente de um servidor" in motivo
+
+
+def test_cliente_so_avisa_a_copia_quando_chega_inteiro():
+    """0.100.107: o servidor só apaga o exame dele depois que o cliente diz que copiou — e o cliente só diz isso
+    quando o exame chegou inteiro (tenta de novo o que faltou)."""
+    import threading
+    from types import SimpleNamespace
+
+    from ipe.ui.lote_dialogo import LoteDialog
+    avisos, faltas = [], [["s2"], ["s2"], []]
+
+    class Repo:
+        client = SimpleNamespace(rpc=lambda *a: avisos.append(a))
+
+        def baixar_em_segundo_plano(self, uid):
+            t = threading.Thread(target=lambda: None)
+            t.start()
+            return t, None, None
+
+        def missing_series(self, uid):
+            return faltas.pop(0)
+
+        def is_cached(self, uid):
+            return True
+    eu = SimpleNamespace(repo=Repo(), parar=threading.Event(), remoto_id="L1")
+    LoteDialog._copiar(eu, "1.2.3")
+    assert avisos == [("lote_copiado", "L1", "1.2.3")] and not faltas      # na 3ª tentativa
+    avisos.clear()
+    faltas.extend([["s1"]] * 3)
+    LoteDialog._copiar(eu, "1.2.3")
+    assert avisos == []                                                    # nunca chegou inteiro: não avisa

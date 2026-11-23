@@ -8020,7 +8020,11 @@
   "Implante de silicone: tirar o silicone",
   "ferramentas de mamografia",
   "o exame não tem imagem de mamografia",
-  "o exame não tem mamografia ou o silicone já está sendo tirado"
+  "o exame não tem mamografia ou o silicone já está sendo tirado",
+  "Apagar do servidor os exames que o lote baixou do PACS, depois que chegarem inteiros a este computador",
+  "Apagar do servidor, no fim, os exames que o lote baixou do PACS",
+  "Ficam só no banco deste computador. O que já estava no servidor antes do lote nunca é apagado.",
+  "O que já estava no servidor antes do lote nunca é apagado."
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

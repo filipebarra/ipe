@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.107 — Lote en el Ipê cliente: traer a esta computadora y borrar del servidor
+- En el paso **Qué hacer** del lote (Ipê cliente), con **Traer los estudios también a esta computadora** marcado, la
+  opción de borrar dice lo que hace: **borrar del servidor los estudios que el lote descargó del PACS, después de que
+  lleguen completos a esta computadora**. El cliente solo avisa al servidor cuando el estudio llegó completo (reintenta
+  lo que faltó, hasta 3 veces); lo que ya estaba en el servidor antes del lote nunca se borra.
+
 ## 0.100.106 — Mamografía en Ipê Web: densidad, calcificaciones y quitar la silicona a mano
 - En la pestaña **IA** del Ipê Web (y clic derecho ▸ IA en la base), la mamografía muestra **Densidad mamaria
   (BI-RADS)**, **Calcificaciones vasculares de la mama** e **Implante de silicona: quitar la silicona**. Se ejecutan en

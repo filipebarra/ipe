@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.107 — Lote no Ipê cliente: trazer para este computador e apagar do servidor
+- No passo **O que fazer** do lote (Ipê cliente), com **Trazer os exames também para este computador** marcado, a
+  opção de apagar passa a dizer o que faz: **apagar do servidor os exames que o lote baixou do PACS, depois que
+  chegarem inteiros a este computador**. O cliente só avisa o servidor quando o exame chegou completo (tenta de novo o
+  que faltou, até 3 vezes); o que já estava no servidor antes do lote nunca é apagado.
+
 ## 0.100.106 — Mamografia no Ipê Web: densidade, calcificações e tirar o silicone à mão
 - Na aba **IA** do Ipê Web (e no botão direito ▸ IA do banco), a mamografia mostra **Densidade mamária (BI-RADS)**,
   **Calcificações vasculares da mama** e **Implante de silicone: tirar o silicone**. Rodam no exame todo, na fila do

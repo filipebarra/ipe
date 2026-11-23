@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.107 — Batch on an Ipê client: bring to this computer and delete from the server
+- In the batch's **What to do** step (Ipê client), with **Also bring the studies to this computer** checked, the
+  delete option now says what it does: **delete from the server the studies the batch downloaded from the PACS, after
+  they arrive complete on this computer**. The client only tells the server once the study has fully arrived (it
+  retries what is missing, up to 3 times); what was already on the server before the batch is never deleted.
+
 ## 0.100.106 — Mammography in Ipê Web: density, calcifications and silicone removal on demand
 - In the **AI** tab of Ipê Web (and right-click ▸ AI in the database), mammograms list **Breast density (BI-RADS)**,
   **Breast arterial calcifications** and **Silicone implant: remove the silicone**. They run on the whole study, in the

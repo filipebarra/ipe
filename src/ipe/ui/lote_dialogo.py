@@ -377,7 +377,21 @@ class LoteDialog(QDialog):
                                     "computador; se o lote apaga o que baixou, o servidor só apaga depois da cópia."))
         self.k_trazer.setVisible(self.remoto)
         lay.addWidget(self.k_trazer)
+        if self.remoto:                       # 0.100.107: no cliente, o "apagar" diz de onde e quando
+            self.k_trazer.toggled.connect(self._rotulo_apagar)
+            self._rotulo_apagar(self.k_trazer.isChecked())
         return w
+
+    def _rotulo_apagar(self, trazer: bool) -> None:
+        """No Ipê cliente: com "trazer", o servidor só apaga depois que o exame chegou inteiro a este computador."""
+        if trazer:
+            self.k_apagar.setText(tr("Apagar do servidor os exames que o lote baixou do PACS, depois que chegarem "
+                                     "inteiros a este computador"))
+            self.k_apagar.setToolTip(tr("Ficam só no banco deste computador. O que já estava no servidor antes do "
+                                        "lote nunca é apagado."))
+        else:
+            self.k_apagar.setText(tr("Apagar do servidor, no fim, os exames que o lote baixou do PACS"))
+            self.k_apagar.setToolTip(tr("O que já estava no servidor antes do lote nunca é apagado."))
 
     def _pagina_rodar(self) -> QWidget:
         w = QWidget()
@@ -873,14 +887,24 @@ class LoteDialog(QDialog):
             log.exception("lote: avisar o servidor")
 
     def _copiar(self, uid: str) -> None:
-        """Traz o exame do servidor para o banco deste computador e avisa o servidor."""
-        try:
-            th, _primeiro, _parar = self.repo.baixar_em_segundo_plano(uid)
-            th.join()
-            if self.repo.is_cached(uid):
-                self.repo.client.rpc("lote_copiado", self.remoto_id, uid)
-        except Exception:  # noqa: BLE001
-            log.exception("lote: copiar %s para este computador", uid)
+        """Traz o exame do servidor para o banco deste computador e avisa o servidor — só quando chegou **inteiro**
+        (0.100.107: o servidor pode apagar o dele em seguida). Tenta de novo o que faltou, até 3 vezes."""
+        for tentativa in range(3):
+            if self.parar.is_set():
+                return
+            try:
+                th, _primeiro, _parar = self.repo.baixar_em_segundo_plano(uid)
+                th.join()
+                faltam = self.repo.missing_series(uid) if hasattr(self.repo, "missing_series") else (
+                    [] if self.repo.is_cached(uid) else ["?"])
+                if not faltam:
+                    self.repo.client.rpc("lote_copiado", self.remoto_id, uid)
+                    return
+                log.warning("lote: %s chegou incompleto (%d série(s) faltando), tentativa %d", uid, len(faltam),
+                            tentativa + 1)
+            except Exception:  # noqa: BLE001
+                log.exception("lote: copiar %s para este computador", uid)
+        log.error("lote: %s não chegou inteiro a este computador; o servidor não apaga o dele", uid)
 
     def _baixar_saidas(self, e: dict) -> None:
         import base64

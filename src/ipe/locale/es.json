@@ -10722,5 +10722,9 @@
  "Implante de silicone: tirar o silicone": "Implante de silicona: quitar la silicona",
  "ferramentas de mamografia": "herramientas de mamografía",
  "o exame não tem imagem de mamografia": "el estudio no tiene imagen de mamografía",
- "o exame não tem mamografia ou o silicone já está sendo tirado": "el estudio no tiene mamografía o la silicona ya se está quitando"
+ "o exame não tem mamografia ou o silicone já está sendo tirado": "el estudio no tiene mamografía o la silicona ya se está quitando",
+ "Apagar do servidor os exames que o lote baixou do PACS, depois que chegarem inteiros a este computador": "Borrar del servidor los estudios que el lote descargó del PACS, después de que lleguen completos a esta computadora",
+ "Apagar do servidor, no fim, os exames que o lote baixou do PACS": "Borrar del servidor, al final, los estudios que el lote descargó del PACS",
+ "Ficam só no banco deste computador. O que já estava no servidor antes do lote nunca é apagado.": "Quedan solo en la base de esta computadora. Lo que ya estaba en el servidor antes del lote nunca se borra.",
+ "O que já estava no servidor antes do lote nunca é apagado.": "Lo que ya estaba en el servidor antes del lote nunca se borra."
 }
