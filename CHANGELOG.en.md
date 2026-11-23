@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.102 — Liver MRI summary as an image
+- The liver AI (fat, iron, stiffness) saves a **summary image (OT)** in the study, like the breast density one:
+  series "Fígado na RM: resumo (Ipê)" with PDFF and grade, dual echo, R2*, estimated iron (LIC), stiffness and range,
+  each result and who reviewed it. It is redone at every review in AI findings (desktop and Web): it shows the
+  corrected numbers and goes from "not reviewed" to "reviewed". It goes to the configured destinations too.
+
 ## 0.100.101 — AI from the database, AI queue, liver table
 - **Right-click a study ▸ AI**: the study's AIs, as in the viewer's AI button, each with its options (suggested
   series, redo, another series); those the rule left out under *Other AIs*. Several studies: the AI is queued on all.

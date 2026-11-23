@@ -58,3 +58,37 @@ def test_tabela_do_figado(env, sample_dir, tmp_path):
         rows = list(csv.reader(f, delimiter=";"))
     assert rows[0] == FT.CSV_CAB and rows[1][FT.CSV_CAB.index("rigidez_kpa")] == "5.20"
     j.close()
+
+
+def test_resumo_do_figado_em_imagem(env, sample_dir):
+    """0.100.102: o resumo (OT) da RM do fígado, como o da densidade mamária; refeito a cada revisão."""
+    import pydicom
+
+    from ipe.ai import figado_resumo as FR
+    paths, db, repo = env
+    Importer(db, paths.storage).import_paths([sample_dir])
+    uid = repo.search_studies(limit=10)[0].study_uid
+    ids = repo.gravar_achados(uid, F.FERRAMENTA, _itens())
+    s1 = FR.gravar(repo, db, paths.storage, uid)
+    assert s1
+
+    def resumos():
+        return [se for se in repo.series_for_study(uid) if se.description == FR.DESC_RESUMO]
+    assert len(resumos()) == 1
+    ds = pydicom.dcmread(repo.files_for_study(uid, [s1])[0])
+    assert ds.Modality == "OT" and ds.BurnedInAnnotation == "YES" and ds.SeriesNumber == FR.SERIE_RESUMO
+    assert ds.Rows > 400 and ds.SamplesPerPixel == 3
+    lin = FR.linhas(FR._do_exame(repo, uid))
+    textos = [b for _t, _a, b in lin]
+    assert any("13" in t for t in textos) and any("5,2" in t for t in textos)
+    assert FR.situacao(FR._do_exame(repo, uid)).startswith("medida automática")
+    # revisar refaz: continua uma série só, com o número corrigido e quem conferiu
+    novo = repo.revisar_achado(ids[0], "corrigido", "dra", {"pdff_mediana": 4.0})
+    s2 = FR.depois_de_revisar(repo, db, paths.storage, novo)
+    assert s2 and s2 != s1 and len(resumos()) == 1
+    lin = FR.linhas(FR._do_exame(repo, uid))
+    assert any(a.endswith("(corrigido)") and b.startswith("4") for _t, a, b in lin)
+    assert any(a == "Conferência" and "dra" in b for _t, a, b in lin)
+    assert FR.situacao(FR._do_exame(repo, uid)) == "conferido em parte pelo médico"
+    # achado de outra ferramenta não mexe
+    assert FR.depois_de_revisar(repo, db, paths.storage, {"ferramenta": "composicao", "study_uid": uid}) is None

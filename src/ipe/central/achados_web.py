@@ -145,6 +145,11 @@ def revisar(c, s, corpo: dict) -> dict:
         if estado not in ("confirmado", "descartado", "sugerido"):
             raise ValueError(f"estado desconhecido: {estado}")
         novo = c.repo.revisar_achado(aid, estado, quem)
+    try:                                     # 0.100.102: o resumo (OT) da RM do fígado acompanha a revisão
+        from ipe.ai import figado_resumo as FR
+        FR.depois_de_revisar(c.repo, getattr(c, "db", None), getattr(c, "storage", None), novo)
+    except Exception:  # noqa: BLE001
+        log.exception("resumo do fígado")
     try:
         c.repo.audit("ia_revisar", f"{_titulo(a.get('ferramenta', ''))} {a.get('rotulo', '')}: {estado} (navegador)",
                      user=s.username, study_uid=a.get("study_uid", ""))

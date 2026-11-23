@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.102 — Resumen de la RM del hígado como imagen
+- La IA de hígado (grasa, hierro, rigidez) graba en el estudio el **resumen como imagen (OT)**, como el de la
+  densidad mamaria: serie "Fígado na RM: resumo (Ipê)" con PDFF y grado, doble eco, R2*, hierro estimado (LIC),
+  rigidez y rango, el resultado de cada uno y quién lo revisó. Se rehace en cada revisión en Hallazgos de IA
+  (escritorio y Web): muestra los números corregidos y pasa de "sin revisión" a "revisado". También va a los destinos
+  configurados.
+
 ## 0.100.101 — IA desde la base, cola de IA, tabla del hígado
 - **Clic derecho en el estudio ▸ IA**: las IA del estudio, como en el botón IA del visor, cada una con sus opciones
   (serie sugerida, rehacer, otra serie); las que la regla dejó fuera en *Otras IA*. Varios estudios: la IA entra en

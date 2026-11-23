@@ -395,6 +395,9 @@ class CentralServer:
         if method == "apagar_series_da_mama":      # 0.100.60: só as séries "(Ipê)" da densidade e das calcificações
             from ipe.ai import mama_sr as MS
             return MS._apagar_anteriores(self.repo, str(alvo or ""), self.storage)
+        if method == "refazer_resumo_do_figado":   # 0.100.102: o resumo (OT) da RM do fígado, depois de revisar
+            from ipe.ai import figado_resumo as FR
+            return FR.gravar(self.repo, self.db, self.storage, str(alvo or ""))
         if method == "apagar_series_dos_esquemas":  # 0.100.73: só as séries dos esquemas-guia que o Ipê gravou
             from ipe.reporting import esquemas_saida as ES
             return ES.apagar_anteriores(self.repo, str(alvo or ""), self.storage)

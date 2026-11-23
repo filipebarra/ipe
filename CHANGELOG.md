@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.102 — Resumo da RM do fígado em imagem
+- A IA de fígado (gordura, ferro, rigidez) grava no exame o **resumo em imagem (OT)**, como o da densidade mamária:
+  série "Fígado na RM: resumo (Ipê)" com PDFF e grau, dupla eco, R2*, ferro estimado (LIC), rigidez e faixa, o
+  resultado de cada um e quem conferiu. É refeito a cada revisão em Achados de IA (de mesa e Web): mostra os números
+  corrigidos e passa de "sem conferência" a "conferido". Vai junto para os destinos configurados.
+
 ## 0.100.101 — IA pelo banco, fila de IA, tabela do fígado
 - **Botão direito no exame ▸ IA**: as IAs do exame, como no botão IA do visualizador, cada uma com as opções (série
   sugerida, refazer, outra série); as que a regra deixou de fora em *Outras IAs*. Vários exames: a IA entra na fila

@@ -363,8 +363,21 @@ class AchadosPainel(QDialog):
         if a is None:
             return None
         novo = self.repo.revisar_achado(a["id"], estado, _usuario())
+        self._resumo_do_figado(novo)
         self.recarregar()
         return novo
+
+    def _resumo_do_figado(self, achado: dict | None) -> None:
+        """0.100.102: revisar um achado do fígado refaz o resumo (OT) no exame."""
+        if not achado or achado.get("ferramenta") != "figado_rm":
+            return
+        from ipe.ai import figado_resumo as FR
+        if FR.depois_de_revisar(self.repo, getattr(self.repo, "db", None), getattr(self.tab, "storage_root", None),
+                                achado):
+            try:
+                self.tab.recarregar_series()
+            except Exception:  # noqa: BLE001
+                pass
 
     def corrigir(self) -> dict | None:
         a = self.atual()
@@ -378,6 +391,7 @@ class AchadosPainel(QDialog):
     def aplicar_correcao(self, a: dict, valores: dict, nota: str = "") -> dict | None:
         novo = self.repo.revisar_achado(a["id"], "corrigido" if valores else "confirmado", _usuario(),
                                         corrigidos=valores, nota=nota)
+        self._resumo_do_figado(novo)
         self.recarregar()
         return novo
 

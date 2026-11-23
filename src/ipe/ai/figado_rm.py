@@ -868,6 +868,13 @@ def gravar(t, res: Resultado, versao: str, db, storage_root, repo=None, settings
             except Exception:  # noqa: BLE001
                 log.exception("gravar a conferência da elastografia")
     out["achados"] = repo.gravar_achados(t.study_uid, FERRAMENTA, itens_para_o_banco(res, t, versao))
+    try:                                   # 0.100.102: o resumo em imagem (OT), como o da mamografia
+        from ipe.ai import figado_resumo as FR
+        uid = FR.gravar(repo, db, storage_root, t.study_uid)
+        if uid:
+            out["series"].append(uid)
+    except Exception:  # noqa: BLE001
+        log.exception("gravar o resumo do fígado")
     return out
 
 
