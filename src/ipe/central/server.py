@@ -294,6 +294,20 @@ class CentralServer:
         from ipe.central import filme_web as FW
         if method in FW.RPC:
             return FW.rpc(self, s, method, args, kwargs, client_host)
+        # 0.100.100: o Ipê cliente pede a IA ao servidor (a mesma fila do Ipê Web)
+        if method in ("ia_ferramentas", "ia_pedir", "ia_tarefas", "ia_cancelar"):
+            from ipe.central import ia_web as IAW
+            d = (args[0] if args else kwargs.get("corpo")) or {}
+            if method == "ia_ferramentas":
+                return IAW.ferramentas(self, s, {"study": [str(d.get("study") or "")]})
+            if method == "ia_tarefas":
+                return IAW.tarefas(self, s, {"study": [str(d.get("study") or "")]})
+            if method == "ia_pedir":
+                r = IAW.pedir(self, s, d)
+                self.repo.audit("ia", f"{d.get('tipo', '')} pedida pelo Ipê cliente {client_host}".strip(),
+                                user=s.username, study_uid=str(d.get("study") or ""))
+                return r
+            return IAW.cancelar(self, s, d)
         # 0.100.98: lote a partir de planilha rodando no servidor, pedido pelo Ipê cliente
         from ipe.central import lote_servidor as LS
         if method in LS.RPC:

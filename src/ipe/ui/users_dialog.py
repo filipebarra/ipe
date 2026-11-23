@@ -288,7 +288,8 @@ class UsersDialog(QDialog):
         return out
 
     def save_roles(self) -> None:
-        self.repo.set_app_setting("roles", self.roles_table())
+        from ipe.auth.permissions import tabela_para_gravar
+        self.repo.set_app_setting("roles", tabela_para_gravar(self.roles_table()))
         S.audit(self.repo, "usuarios", "alterou as permissões dos perfis")
         QMessageBox.information(self, "Permissões", "Permissões salvas (valem no próximo login de cada usuário).")
 

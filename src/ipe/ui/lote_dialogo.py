@@ -66,6 +66,7 @@ class LoteDialog(QDialog):
         self.remoto_id = ""
         self.remoto_desde = 0
         self.remoto_copiando: set[str] = set()
+        self.remoto_ia_rodando: set[str] = set()
         if self.remoto:
             try:
                 self.opcoes_servidor = repo.client.rpc("lote_opcoes") or {}
@@ -759,6 +760,11 @@ class LoteDialog(QDialog):
                  "dados": [[self._json(v) for v in linha] for linha in self.dados[1:]], "config": cfg.to_dict(),
                  "simular": simular, "limite": self.s_limite.value(), "exportar": exportar,
                  "trazer": self.k_trazer.isChecked() and not simular}
+        # 0.100.100: as IAs rodam neste computador (preferência + perfil + pacote instalado) e sobem ao servidor
+        from ipe.ai import onde as OND
+        onde, aviso = OND.decidir(self.repo, self.settings)
+        corpo["ia_no_cliente"] = bool(cfg.ias) and not simular and onde == OND.LOCAL
+        self.remoto_ia_rodando = set()
         try:
             r = self.repo.client.rpc("lote_iniciar", corpo)
         except Exception as e:  # noqa: BLE001
@@ -769,6 +775,11 @@ class LoteDialog(QDialog):
         self.passos.setCurrentRow(4)
         self.diario.appendPlainText(tr("O lote roda no servidor central; esta janela acompanha (pode fechar e "
                                        "abrir de novo: mande com o mesmo nome para continuar)."))
+        if corpo["ia_no_cliente"]:
+            self.diario.appendPlainText(tr("As IAs rodam neste computador e o resultado sobe ao servidor: deixe esta "
+                                           "janela aberta enquanto o lote roda."))
+        elif cfg.ias and aviso and not simular:
+            self.diario.appendPlainText(tr("As IAs rodam no servidor: {}.").format(tr(aviso)))
         self._ocupado(True)
         self._timer_remoto.start()
 
@@ -800,6 +811,10 @@ class LoteDialog(QDialog):
         elif falta:
             txt += " · " + tr("faltam cerca de {}").format(falta)
         self.l_estado.setText(txt + "\n" + self._contagem(e.get("contagem") or {}))
+        for p in e.get("pedidos_ia") or []:
+            if p["study_uid"] not in self.remoto_ia_rodando:
+                self.remoto_ia_rodando.add(p["study_uid"])
+                threading.Thread(target=self._rodar_ia_aqui, args=(p,), name="lote-ia-aqui", daemon=True).start()
         for uid in e.get("para_copiar") or []:
             if uid not in self.remoto_copiando:
                 self.remoto_copiando.add(uid)
@@ -824,6 +839,30 @@ class LoteDialog(QDialog):
         if d.get("faixa"):
             return f"— {txt} —"
         return (tr("Linha {}").format(d["linha"]) + ": " + txt) if d.get("linha") else txt
+
+    def _rodar_ia_aqui(self, p: dict) -> None:
+        """O servidor pediu as IAs deste exame a este computador (0.100.100): traz o exame, roda, sobe o resultado e
+        avisa. O que não deu certo aqui o servidor faz ele mesmo ao recolher (a IA cai para o servidor)."""
+        uid = p["study_uid"]
+        msg = ""
+        try:
+            self.repo.download(uid)
+            from ipe.automation import lote_ias as LIA
+            ex = LIA.Executor(self.repo, self.db, self.storage_root, self.settings, self.engine,
+                              chamar=lambda fn: self.ponte.chamar(fn, espera=900))
+            res = ex.rodar(uid, list(p.get("tipos") or []), bool(p.get("refazer")), self.parar)
+            falhas = [f"{x.get('titulo')}: {x.get('motivo')}" for x in res.values() if x.get("situacao") == LIA.ERRO]
+            if falhas:
+                msg = "; ".join(falhas)
+                log.warning("lote: IAs neste computador com falha (o servidor tenta): %s", msg)
+            self.repo.upload_study(uid, wait=True)
+        except Exception as x:  # noqa: BLE001
+            log.exception("lote: IAs neste computador")
+            msg = str(x)
+        try:
+            self.repo.client.rpc("lote_ia_feita", self.remoto_id, uid, not self.parar.is_set(), msg)
+        except Exception:  # noqa: BLE001
+            log.exception("lote: avisar o servidor")
 
     def _copiar(self, uid: str) -> None:
         """Traz o exame do servidor para o banco deste computador e avisa o servidor."""

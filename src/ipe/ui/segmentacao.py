@@ -21,6 +21,7 @@ from ipe.ai import totalseg as TS
 log = logging.getLogger(__name__)
 
 _rodando: list = []            # a segmentação em curso (e a referência que a mantém viva)
+_rodando_servidor: list = []   # 0.100.100: as pedidas ao servidor central (só a referência; não ocupam este PC)
 
 
 def _valido(obj) -> bool:
@@ -253,6 +254,12 @@ class Segmentacao(QObject):
 
     # ------------------------------------------------------------ começo
     def iniciar(self) -> bool:
+        # 0.100.100: no Ipê cliente, a IA roda no servidor (padrão) ou aqui, conforme a preferência e o perfil
+        if not self.trabalho.simular and self.tipo != "medsam2":
+            from ipe.ai import onde as OND
+            onde, aviso = OND.decidir(self.repo, self.trabalho.settings)
+            if onde == OND.SERVIDOR:
+                return self._no_servidor(aviso)
         if ocupado():
             QMessageBox.information(self.janela, self.titulo,
                                     "Já há uma segmentação rodando. Espere ela terminar, ou veja e cancele em "
@@ -305,6 +312,112 @@ class Segmentacao(QObject):
         self.dlg.show()
         QApplication.processEvents()
         return self._lancar()
+
+    # ------------------------------------------------------------ no servidor central (Ipê cliente, 0.100.100)
+    def _no_servidor(self, aviso: str = "") -> bool:
+        from ipe.ai import tarefas as TA
+        uid = self.trabalho.study_uid
+        try:
+            r = self.repo.client.rpc("ia_pedir", {"study": uid, "tipo": self.tipo, "serie": self.trabalho.series_uid})
+        except Exception as e:  # noqa: BLE001
+            QMessageBox.information(self.janela, self.titulo, f"O servidor central não aceitou o pedido: {e}")
+            return False
+        self._tid_servidor = int((r or {}).get("tarefa") or 0)
+        try:
+            info = self.repo.study_info(uid) or {}
+        except Exception:  # noqa: BLE001
+            info = {}
+        repo, tid = self.repo, self._tid_servidor
+
+        def cancelar_no_servidor():
+            try:
+                repo.client.rpc("ia_cancelar", {"id": tid})
+            except Exception:  # noqa: BLE001
+                log.warning("cancelar a IA no servidor", exc_info=True)
+        self.tarefa = TA.REGISTRO.nova(self.titulo + " (no servidor)", uid,
+                                       f"{info.get('patient_name', '')} {info.get('description', '')}".strip(),
+                                       "manual · servidor", TA.FILA, cancelar=cancelar_no_servidor).id
+        texto = "Rodando no servidor central…" + (f"\n({aviso})" if aviso else "")
+        self.dlg = QProgressDialog(texto, "Cancelar", 0, 0, self.janela)
+        self.dlg.setWindowTitle(self.titulo)
+        self.dlg.setWindowModality(Qt.NonModal)
+        self.dlg.setMinimumDuration(0)
+        self.dlg.setMinimumWidth(460)
+        self.dlg.canceled.connect(cancelar_no_servidor)
+        self.dlg.show()
+        self._aviso_servidor = aviso
+        self._baixando = None
+        self._timer_servidor = QTimer(self)
+        self._timer_servidor.setInterval(2000)
+        self._timer_servidor.timeout.connect(self._acompanhar_servidor)
+        self._timer_servidor.start()
+        _rodando_servidor.append(self)
+        return True
+
+    def _acompanhar_servidor(self) -> None:
+        from ipe.ai import tarefas as TA
+        uid = self.trabalho.study_uid
+        if self._baixando is not None:                  # a IA terminou: trazendo as séries novas para o cache
+            if self._baixando[0].is_alive():
+                return
+            self._fim_servidor(True, self._msg_servidor)
+            return
+        try:
+            lista = self.repo.client.rpc("ia_tarefas", {"study": uid}).get("tarefas") or []
+        except Exception as e:  # noqa: BLE001
+            if self.dlg is not None:
+                self.dlg.setLabelText(f"Sem resposta do servidor: {e}")
+            return
+        t = next((x for x in lista if int(x.get("id") or 0) == self._tid_servidor), None)
+        if t is None:
+            return
+        if t.get("ativa"):
+            TA.REGISTRO.mudar(self.tarefa, TA.RODANDO, etapa=t.get("etapa") or t.get("rotulo") or "")
+            if self.dlg is not None:
+                self.dlg.setLabelText("No servidor central: " + (t.get("etapa") or t.get("rotulo") or "") +
+                                      (f"\n({self._aviso_servidor})" if self._aviso_servidor else ""))
+            return
+        if t.get("estado") != TA.PRONTO:
+            self._fim_servidor(False, t.get("mensagem") or t.get("rotulo") or "A IA não terminou no servidor.")
+            return
+        self._msg_servidor = t.get("mensagem") or "Pronto."
+        TA.REGISTRO.mudar(self.tarefa, TA.GRAVANDO, etapa="trazendo o resultado do servidor")
+        if self.dlg is not None:
+            self.dlg.setLabelText("Pronto no servidor: trazendo o resultado…")
+        try:
+            self._baixando = self.repo.baixar_em_segundo_plano(uid)
+        except Exception:  # noqa: BLE001
+            log.exception("trazer o resultado da IA do servidor")
+            self._fim_servidor(True, self._msg_servidor)
+
+    def _fim_servidor(self, ok: bool, msg: str) -> None:
+        from ipe.ai import tarefas as TA
+        self._timer_servidor.stop()
+        if self in _rodando_servidor:
+            _rodando_servidor.remove(self)
+        if self.dlg is not None:
+            self.dlg.blockSignals(True)
+            self.dlg.close()
+            self.dlg = None
+        TA.REGISTRO.mudar(self.tarefa, TA.PRONTO if ok else TA.ERRO, etapa="", mensagem=msg)
+        if not self.janela_viva():
+            return
+        j = self.janela
+        if ok:
+            vistos = getattr(j, "_overlay_studies", None)
+            if isinstance(vistos, set):                 # as SEG novas do exame entram nas sobreposições
+                vistos.discard(self.trabalho.study_uid)
+            for nome in ("recarregar_series", "carregar_overlays", "achados_mudaram"):
+                fn = getattr(j, nome, None)
+                if fn is not None:
+                    try:
+                        fn()
+                    except Exception:  # noqa: BLE001
+                        log.debug("atualizar a aba depois da IA no servidor: %s", nome, exc_info=True)
+        sinal = getattr(j, "status_message", None)
+        if sinal is not None:
+            sinal.emit(f"{self.titulo} (servidor): {msg.splitlines()[0] if msg else ''}")
+        QMessageBox.information(j, self.titulo, ("Feito no servidor central.\n\n" if ok else "") + (msg or ""))
 
     def _lancar(self) -> bool:
         """Monta o volume do trabalho atual e inicia o processo (a segunda sagital usa o mesmo caminho)."""
@@ -715,6 +828,13 @@ class Segmentacao(QObject):
         from ipe.ai import tarefas as TA
         estado = TA.PRONTO if saida is not None else (TA.CANCELADO if self.cancelado else TA.ERRO)
         TA.REGISTRO.mudar(getattr(self, "tarefa", None), estado, etapa="", mensagem=msg)
+        if saida is not None:
+            # 0.100.100: no Ipê cliente, o que a IA gravou aqui (séries e achados) sobe sozinho ao servidor
+            try:
+                from ipe.central.client_repo import upload_if_client
+                upload_if_client(self.repo, self.trabalho.study_uid)
+            except Exception:  # noqa: BLE001
+                log.warning("subir o resultado da IA ao servidor", exc_info=True)
         try:
             self.terminou.emit(saida, msg)
         except RuntimeError:                         # a aba que pediu já fechou: o resultado já está gravado

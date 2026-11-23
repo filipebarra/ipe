@@ -14,7 +14,8 @@ PERMISSIONS: dict[str, str] = {
     "delete": "Apagar exames",
     "case_lists": "Listas de casos e modo reunião",
     "print": "Filmes e impressão",
-    "ai": "Pedir CAD/IA à mão (pelo navegador)",
+    "ai": "Pedir CAD/IA à mão (no servidor: pelo navegador e pelo Ipê cliente)",
+    "ia_local": "Rodar as IAs neste computador (Ipê cliente; o resultado sobe ao servidor)",
     "report": "Escrever laudos (rascunho) e editar modelos",
     "sign_report": "Assinar (liberar) laudos",
     "configure": "Configurar rede, automação e preferências do computador",
@@ -37,14 +38,30 @@ DEFAULT_ROLE_PERMS: dict[str, set[str]] = {
 }
 
 
+#: permissões que chegaram depois de a tabela dos perfis poder ser ajustada: numa tabela gravada antes delas, entram
+#: nos perfis do padrão (a tabela gravada guarda em "_vistas" as permissões que o administrador já viu)
+NOVAS: dict[str, set[str]] = {"ia_local": {"medico"}}          # 0.100.100
+
+
+def tabela_para_gravar(perfis: dict) -> dict:
+    """A tabela dos perfis como vai para o banco: com a lista das permissões que existiam quando foi gravada."""
+    out = {r: list(v) for r, v in perfis.items() if not str(r).startswith("_")}
+    out["_vistas"] = list(PERMISSIONS)
+    return out
+
+
 def role_permissions(repo=None) -> dict[str, set[str]]:
     """Tabela perfil -> permissões (padrão, com os ajustes do administrador)."""
     out = {k: set(v) for k, v in DEFAULT_ROLE_PERMS.items()}
     custom = repo.get_app_setting("roles", None) if repo is not None else None
     if isinstance(custom, dict):
+        vistas = set(custom.get("_vistas") or [])
         for role, perms in custom.items():
             if role in out and isinstance(perms, list):
                 out[role] = {p for p in perms if p in PERMISSIONS}
+                for nova, papeis in NOVAS.items():
+                    if nova not in vistas and role in papeis:
+                        out[role].add(nova)
     out["admin"] = set(_ALL)            # o administrador sempre pode tudo
     return out
 

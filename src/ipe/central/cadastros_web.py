@@ -190,7 +190,8 @@ def perfis_gravar(c, s, d: dict, host: str = "") -> dict:
     if not isinstance(tabela, dict):
         raise ValueError("Faltou a tabela dos perfis.")
     limpa = {r: [p for p in PERMISSIONS if p in set(tabela.get(r) or [])] for r in ROLES if r != "admin"}
-    c.repo.set_app_setting("roles", limpa)
+    from ipe.auth.permissions import tabela_para_gravar
+    c.repo.set_app_setting("roles", tabela_para_gravar(limpa))
     _registrar(c, s, "usuarios", "alterou as permissões dos perfis", host)
     return {"ok": True, "mensagem": "Permissões dos perfis gravadas."}
 

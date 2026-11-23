@@ -643,6 +643,15 @@ Toda mamografia que chega — recebida pela rede, baixada do PACS (Q/R), importa
 - **Depois de gravar o SR, enviar para:** (0.100.78) os nós DICOM marcados (o PACS) recebem o SR, as imagens marcadas e o resumo — tanto sem conferência quanto depois de confirmar (confirmar de novo reenvia). O mesmo vale no Ipê Web, em Cadastros ▸ Automações de IA.
 - No computador ligado a um servidor central, quem mede é o servidor; a confirmação é feita em qualquer um.
 
+### Onde rodam as IAs no Ipê cliente (0.100.100)
+
+No Ipê ligado a um servidor central, **Preferências ▸ CAD/IA ▸ No Ipê cliente, rodar as IAs**:
+
+- **No servidor central (padrão)**: a IA pedida no visualizador vai para a fila de IA do servidor (a mesma do Ipê Web e das automáticas). A janela de andamento diz a etapa; ao terminar, as séries novas (máscaras, mosaicos, tabelas) vêm para o exame aberto e os achados aparecem. Precisa da permissão **Pedir CAD/IA à mão**.
+- **Neste computador**: roda com o pacote de IA deste computador e, ao terminar, **as séries geradas e os achados sobem sozinhos ao servidor** — quem abrir o exame em outro lugar vê o mesmo resultado. Precisa do pacote de IA instalado aqui e da permissão **Rodar as IAs neste computador** (de fábrica: administrador e médico; o administrador muda em Usuários ▸ Perfis). Sem um ou outro, a IA vai para o servidor, avisando.
+- No **lote a partir de planilha**, a mesma escolha: com "Neste computador", o servidor busca, baixa e faz o resto, mas pede as IAs a este computador — deixe a janela do lote aberta enquanto ele roda. O que não der certo aqui, o servidor faz ele mesmo.
+- A segmentação pela caixa (MedSAM2), que é interativa, roda sempre neste computador.
+
 ### Pesquisa: as mamografias de uma lista, em lote
 
 Para medir a densidade e as calcificações vasculares das mamografias de uma lista (estudo), use **Rede ▸ Lote a partir de planilha…** com o modelo pronto **Densidade e calcificações da mama** — veja "Lote a partir de planilha" no capítulo *Buscar e baixar*.

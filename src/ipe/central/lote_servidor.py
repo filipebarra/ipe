@@ -30,7 +30,9 @@ from ipe.automation import lote_ias as LIA
 
 log = logging.getLogger(__name__)
 
-RPC = ("lote_opcoes", "lote_iniciar", "lote_estado", "lote_parar", "lote_lista", "lote_arquivo", "lote_copiado")
+RPC = ("lote_opcoes", "lote_iniciar", "lote_estado", "lote_parar", "lote_lista", "lote_arquivo", "lote_copiado",
+       "lote_ia_feita")
+ESPERA_IA_CLIENTE_S = 3 * 60 * 60      # 0.100.100: o cliente que não roda a IA em 3 h deixa o exame com erro
 _LOTES: dict[str, "Execucao"] = {}
 _TRAVA = threading.Lock()
 
@@ -52,6 +54,9 @@ class Execucao:
         self.para_copiar: list[str] = []        # exames prontos que o cliente pode copiar
         self.copiados: set[str] = set()
         self.apagar_quando_copiar: set[str] = set()
+        self.ia_no_cliente = False               # 0.100.100: as IAs rodam no computador de quem pediu
+        self.pedidos_ia: dict[str, dict] = {}    # study_uid → {"tipos", "refazer", "estado", "mensagem"}
+        self.trava_ia = threading.Condition()
 
     @property
     def rodando(self) -> bool:
@@ -165,6 +170,27 @@ def iniciar(c, s, corpo: dict) -> dict:
     linhas = L.montar_linhas(dados, cfg.colunas)
     serv = LP.servicos(c.repo, c.db, c.net, c.settings, c.storage, getattr(c, "auto", None),
                        chamar=lambda fn: c.ponte.chamar(fn, espera=900), parar=e.parar)
+    e.ia_no_cliente = bool(corpo.get("ia_no_cliente")) and not simular and bool(cfg.ias)
+    if e.ia_no_cliente:
+        recolher = serv.ias                      # depois que o cliente roda e sobe, o servidor só recolhe
+
+        def ias_pelo_cliente(uid, tipos, refazer, parar_=None):
+            with e.trava_ia:
+                e.pedidos_ia[uid] = {"tipos": list(tipos), "refazer": bool(refazer), "estado": "pedido",
+                                     "mensagem": ""}
+                fim = time.time() + ESPERA_IA_CLIENTE_S
+                while e.pedidos_ia[uid]["estado"] == "pedido":
+                    if (parar_ is not None and parar_.is_set()) or time.time() > fim:
+                        break
+                    e.trava_ia.wait(2.0)
+                p = e.pedidos_ia.pop(uid)
+            if p["estado"] != "feito":
+                motivo = p["mensagem"] or ("lote parado" if parar_ is not None and parar_.is_set() else
+                                           "o computador do cliente não rodou as IAs (a janela foi fechada?)")
+                return {t: {"titulo": t, "situacao": LIA.ERRO, "motivo": motivo, "campos": {}, "series": []}
+                        for t in tipos}
+            return recolher(uid, tipos, False, parar_)
+        serv.ias = ias_pelo_cliente
     if e.trazer and cfg.apagar_depois:
         apagar = serv.apagar
 
@@ -219,6 +245,7 @@ def estado(c, s, ident: str, desde: int = 0) -> dict:
     novas = list(e.diario)[max(0, int(desde) - primeiro):]
     d["diario"], d["n_diario"] = novas, e.n_diario
     d["para_copiar"] = [u for u in e.para_copiar if u not in e.copiados]
+    d["pedidos_ia"] = [dict(p, study_uid=u) for u, p in list(e.pedidos_ia.items()) if p["estado"] == "pedido"]
     return d
 
 
@@ -258,6 +285,17 @@ def arquivo(c, s, ident: str, qual: str) -> dict:
     return {"nome": nome, "dados": base64.b64encode(caminho.read_bytes()).decode()}
 
 
+def ia_feita(c, s, ident: str, study_uid: str, ok: bool, mensagem: str = "") -> dict:
+    """O cliente rodou as IAs do exame e subiu o resultado (0.100.100): o lote segue."""
+    e = _meu(c, s, ident)
+    with e.trava_ia:
+        p = e.pedidos_ia.get(study_uid)
+        if p is not None:
+            p["estado"], p["mensagem"] = ("feito" if ok else "erro"), str(mensagem or "")[:300]
+            e.trava_ia.notify_all()
+    return {"ok": True}
+
+
 def copiado(c, s, ident: str, study_uid: str) -> dict:
     """O cliente copiou o exame para o banco dele: se o lote apaga o que baixou, agora pode."""
     e = _meu(c, s, ident)
@@ -288,6 +326,9 @@ def rpc(c, s, method: str, args: list, kwargs: dict, host: str = ""):
         return lista(c, s)
     if method == "lote_arquivo":
         return arquivo(c, s, arg(0, "ident", ""), arg(1, "qual", "saida"))
+    if method == "lote_ia_feita":
+        return ia_feita(c, s, arg(0, "ident", ""), arg(1, "study_uid", ""), bool(arg(2, "ok", False)),
+                        arg(3, "mensagem", ""))
     if method == "lote_copiado":
         return copiado(c, s, arg(0, "ident", ""), arg(1, "study_uid", ""))
     raise PermissionError(f"método não permitido: {method}")

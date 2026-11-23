@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.100 — Ipê cliente: IAs no servidor ou neste computador
+- **Preferências ▸ CAD/IA ▸ No Ipê cliente, rodar as IAs**: **no servidor central** (padrão) — a IA pedida no
+  visualizador vai para a fila do servidor e o resultado vem para o exame aberto — ou **neste computador**, e então
+  as séries geradas e os achados **sobem sozinhos ao servidor** (antes, as séries ficavam só no cache deste
+  computador).
+- Nova permissão de perfil **Rodar as IAs neste computador** (de fábrica: administrador e médico). Sem ela, ou sem o
+  pacote de IA instalado aqui, a IA vai para o servidor, avisando.
+- **Lote no cliente**: com "neste computador", o servidor busca e baixa, pede as IAs a este computador, recolhe o
+  resultado e segue com o envio, a impressão e a exportação.
+
 ## 0.100.99 — lote: o que buscar e em que ordem
 - **Lote a partir de planilha ▸ Achar o exame**: você escolhe **por onde buscar e em que ordem** — Study UID, nº de
   acesso, ID + data + modalidade, ID + data, ID + modalidade (qualquer data), só ID (qualquer data). O Ipê tenta a

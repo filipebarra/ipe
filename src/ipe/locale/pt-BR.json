@@ -7952,7 +7952,23 @@
   "Marque e ponha na ordem: o Ipê tenta a primeira; se não acha, a seguinte. A modalidade e a data vêm da planilha (ou dos campos abaixo).",
   "Linha só com o ID, sem data, só é feita se \"Só ID\" ou \"ID + modalidade\" estiver marcado (e então, com \"Se achar mais de um exame\", o Ipê escolhe entre os exames do paciente).",
   "Nenhuma tentativa de busca marcada: vale a ordem de fábrica.",
-  "Só o ID, sem data: marque uma tentativa sem data (\"Só ID\" ou \"ID + modalidade\") ou preencha a data."
+  "Só o ID, sem data: marque uma tentativa sem data (\"Só ID\" ou \"ID + modalidade\") ou preencha a data.",
+  " (no servidor)",
+  "A IA não terminou no servidor.",
+  "As IAs rodam neste computador e o resultado sobe ao servidor: deixe esta janela aberta enquanto o lote roda.",
+  "Neste computador — o resultado sobe sozinho ao servidor",
+  "No Ipê cliente, rodar as IAs:",
+  "No servidor central (padrão)",
+  "Pedir CAD/IA à mão (no servidor: pelo navegador e pelo Ipê cliente)",
+  "Pronto no servidor: trazendo o resultado…",
+  "Rodando no servidor central…",
+  "Rodar as IAs neste computador (Ipê cliente; o resultado sobe ao servidor)",
+  "Vale quando este Ipê é cliente de um servidor central. \"Neste computador\" precisa do pacote de IA instalado aqui e da permissão do perfil (Rodar as IAs neste computador); sem eles, a IA vai para o servidor.",
+  "o computador do cliente não rodou as IAs (a janela foi fechada?)",
+  "o pacote de IA não está instalado neste computador — vai para o servidor",
+  "o seu perfil não permite rodar as IAs neste computador — vai para o servidor",
+  "trazendo o resultado do servidor",
+  "Feito no servidor central.\n\n"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -10145,6 +10161,8 @@
   "erro ao buscar só pelo ID em {}: {}",
   "{} não tem nenhum exame com o ID {}.",
   "O ID tem {} exame(s) em {}, em outras datas ou modalidades — os mais próximos: {}.",
-  "Procurado em: {}; por: {}."
+  "Procurado em: {}; por: {}.",
+  "As IAs rodam no servidor: {}.",
+  "O servidor central não aceitou o pedido: {}"
  ]
 }

@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.100 — Ipê client: AIs on the server or on this computer
+- **Preferences ▸ CAD/AI ▸ On an Ipê client, run the AIs**: **on the central server** (default) — the AI requested
+  in the viewer goes to the server queue and the result comes to the open study — or **on this computer**, and then
+  the generated series and findings **go up to the server automatically** (before, the series stayed only in this
+  computer's cache).
+- New profile permission **Run the AIs on this computer** (by default: administrator and physician). Without it, or
+  without the AI package installed here, the AI goes to the server, with a notice.
+- **Batch on the client**: with "on this computer", the server searches and downloads, asks this computer for the
+  AIs, collects the result and goes on with sending, printing and exporting.
+
 ## 0.100.99 — batch: what to search by, and in which order
 - **Batch from spreadsheet ▸ Find the study**: you choose **what to search by and in which order** — Study UID,
   accession number, ID + date + modality, ID + date, ID + modality (any date), ID only (any date). Ipê tries the

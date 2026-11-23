@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.100 — Ipê cliente: IA en el servidor o en esta computadora
+- **Preferencias ▸ CAD/IA ▸ En el Ipê cliente, ejecutar las IA**: **en el servidor central** (predeterminado) — la
+  IA pedida en el visor va a la cola del servidor y el resultado llega al estudio abierto — o **en esta
+  computadora**, y entonces las series generadas y los hallazgos **suben solos al servidor** (antes, las series
+  quedaban solo en el caché de esta computadora).
+- Nuevo permiso de perfil **Ejecutar las IA en esta computadora** (de fábrica: administrador y médico). Sin él, o sin
+  el paquete de IA instalado aquí, la IA va al servidor, con un aviso.
+- **Lote en el cliente**: con "en esta computadora", el servidor busca y descarga, pide las IA a esta computadora,
+  recoge el resultado y sigue con el envío, la impresión y la exportación.
+
 ## 0.100.99 — lote: qué buscar y en qué orden
 - **Lote desde hoja de cálculo ▸ Encontrar el estudio**: usted elige **por qué buscar y en qué orden** — Study UID,
   n.º de acceso, ID + fecha + modalidad, ID + fecha, ID + modalidad (cualquier fecha), solo ID (cualquier fecha).

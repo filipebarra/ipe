@@ -86,6 +86,20 @@ class CadIaTab(QWidget):
                                     "antes de revelar. As outras sobreposições (SEG, IA do Ipê) não mudam.")
         self.c_ler_antes.setChecked(bool(settings.get("cad.ler_antes", False)))
         lay.addWidget(self.c_ler_antes)
+        # 0.100.100: no Ipê cliente, onde rodam as IAs pedidas à mão (e as do lote)
+        from ipe.ai import onde as OND
+        h = QHBoxLayout()
+        h.addWidget(QLabel("No Ipê cliente, rodar as IAs:"))
+        self.c_onde = QComboBox()
+        self.c_onde.addItem("No servidor central (padrão)", OND.SERVIDOR)
+        self.c_onde.addItem("Neste computador — o resultado sobe sozinho ao servidor", OND.LOCAL)
+        self.c_onde.setCurrentIndex(max(0, self.c_onde.findData(OND.escolha(settings))))
+        self.c_onde.setToolTip("Vale quando este Ipê é cliente de um servidor central. \"Neste computador\" precisa do "
+                               "pacote de IA instalado aqui e da permissão do perfil (Rodar as IAs neste computador); "
+                               "sem eles, a IA vai para o servidor.")
+        h.addWidget(self.c_onde)
+        h.addStretch(1)
+        lay.addLayout(h)
 
         esq = QWidget()
         el = QVBoxLayout(esq)
@@ -624,6 +638,8 @@ class CadIaTab(QWidget):
     def save(self) -> None:
         s = self.settings
         s.set("cad.ler_antes", self.c_ler_antes.isChecked())
+        from ipe.ai import onde as OND
+        s.set(OND.CHAVE, self.c_onde.currentData())
         self._salvar_genericos()
         s.set(TS.CHAVE_AUTO, self.c_seg_auto.isChecked())
         s.set(TS.CHAVE_EXAME_CONTEM, self.e_seg_exame.text().strip())
