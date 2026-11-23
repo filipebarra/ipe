@@ -614,6 +614,12 @@ table.lista .selo-laudo.assinado { background: #2f6f46; color: #e9ffe9; }
 .filtros-pacs input:not([type=date]) { min-width: 9em; flex: 1 1 9em; }
 .lista-pacs td.acao { white-space: nowrap; text-align: right; }
 .downloads-pacs { max-width: 640px; max-height: none; }
+/* 0.100.103: abrir por chamada externa */
+.tela-abrir { display: flex; flex-direction: column; gap: 10px; padding: 8px 4px; }
+.tela-abrir h2 { font-size: 1.1em; margin: 0; overflow-wrap: anywhere; }
+.tela-abrir progress { width: min(420px, 100%); }
+.tela-abrir .abrir-lista { overflow-x: auto; }
+.tela-abrir td.acao { white-space: nowrap; text-align: right; }
 .filtros button.pacs-busca { margin-left: auto; }
 .filtros button.pacs-busca:not([hidden]) + button.janelas { margin-left: 6px; }
 /* 0.100.50: densidade mamária */

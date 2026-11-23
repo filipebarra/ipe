@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.103 — Ipê Web: abrir por llamada externa
+- **Dirección de apertura**: `…/web/#/abrir?acesso=12345` o `…/web/#/abrir?id=98765&data=20261123&mod=MR` (también
+  `uid=`). Ipê Web busca en el servidor; si no lo encuentra, en los nodos del PACS que el servidor comparte, **lo
+  descarga y lo abre** cuando llega, con el progreso en pantalla. Más de un estudio: una lista para elegir. El login
+  sigue siendo obligatorio (sin sesión pide la contraseña y vuelve a la dirección). Fecha en AAAAMMDD, AAAA-MM-DD o
+  DD/MM/AAAA.
+
 ## 0.100.102 — Resumen de la RM del hígado como imagen
 - La IA de hígado (grasa, hierro, rigidez) graba en el estudio el **resumen como imagen (OT)**, como el de la
   densidad mamaria: serie "Fígado na RM: resumo (Ipê)" con PDFF y grado, doble eco, R2*, hierro estimado (LIC),

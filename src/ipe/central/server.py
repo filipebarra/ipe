@@ -1021,6 +1021,15 @@ class _Handler(BaseHTTPRequestHandler):
             except (TypeError, ValueError, RuntimeError) as e:
                 return self._error(400, str(e))
             return self._json(200, r, raw=True)
+        if path == "/api/web/abrir" and method == "POST":                     # 0.100.103: chamada externa
+            from ipe.central import abrir_web as AW
+            try:
+                r = AW.buscar(c, s, json.loads(self._body() or b"{}"))
+            except PermissionError as e:
+                return self._error(403, str(e))
+            except (TypeError, ValueError, RuntimeError) as e:
+                return self._error(400, str(e))
+            return self._json(200, r, raw=True)
         if path.startswith("/api/web/pacs/"):                               # 0.100.37: buscar e baixar do PACS
             from ipe.central import pacs_servidor as PS
             try:

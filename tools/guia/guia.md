@@ -652,6 +652,16 @@ No Ipê ligado a um servidor central, **Preferências ▸ CAD/IA ▸ No Ipê cli
 - No **lote a partir de planilha**, a mesma escolha: com "Neste computador", o servidor busca, baixa e faz o resto, mas pede as IAs a este computador — deixe a janela do lote aberta enquanto ele roda. O que não der certo aqui, o servidor faz ele mesmo.
 - A segmentação pela caixa (MedSAM2), que é interativa, roda sempre neste computador.
 
+### Ipê Web: abrir um exame por chamada externa (0.100.103)
+
+Outro sistema (RIS, sistema de laudos, um atalho) abre o exame no Ipê Web por um endereço:
+
+- `https://<servidor>:8053/web/#/abrir?acesso=12345` — pelo número de acesso;
+- `https://<servidor>:8053/web/#/abrir?id=98765&data=20261123&mod=MR` — pelo ID do paciente, com data e modalidade (opcionais; a data também vale como 2026-11-23 ou 23/11/2026);
+- `https://<servidor>:8053/web/#/abrir?uid=<Study Instance UID>` — só para o que já está no servidor.
+
+O Ipê Web procura primeiro no servidor. Se o exame não estiver lá, procura nos nós do PACS que o servidor compartilha (Configurações ▸ Rede ▸ nó ▸ *Compartilhar com os clientes*), **baixa e abre** quando chega, mostrando o andamento. Com mais de um exame, mostra a lista para escolher. O login continua obrigatório: sem sessão, o Ipê Web pede a senha e volta para o endereço. Buscar no PACS pede a permissão de busca; baixar, a de download.
+
 ### IA pelo banco, fila de IA e tabela do fígado (0.100.101)
 
 - **Botão direito no exame ▸ IA**: a lista das IAs que servem para o exame, como o botão IA do visualizador. Cada uma traz as opções: **rodar na série sugerida** (ou **refazer**, se já foi feita — marcada com ✔), **rodar em outra série** e abrir o exame para ver o resultado. As que a regra deixou de fora ficam em *Outras IAs*, com o motivo, e rodam mesmo assim. Com vários exames selecionados, cada IA entra na fila em todos, na série que ela escolhe em cada um. No Ipê cliente, vale a mesma escolha de onde rodar (servidor ou este computador).

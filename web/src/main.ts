@@ -1,6 +1,7 @@
 // Ipê Web (0.99.91, fase W0): login, lista de exames, tira de séries e quadros 2D.
 // Rotas pelo endereço depois do # (#/lista, #/exame/<StudyInstanceUID>): o servidor só serve o index.
 
+import { parametros as parametrosAbrir, telaAbrir } from "./abrir";
 import "./estilo.css";
 import * as API from "./api";
 import { setLang, tr } from "./i18n";
@@ -1903,6 +1904,18 @@ async function telaPacs(): Promise<void> {
   if (location.hash === "#/pacs") corpo.replaceChildren(el("div", { class: "lista-esq" }, tela));
 }
 
+async function telaDaAbertura(p: Record<string, string>): Promise<void> {
+  pararDisponiveis();
+  grade?.encerrar();
+  grade = null;
+  document.title = `${tr("Abrir exame")} — ${tr("Ipê Web")}`;
+  const voltar = el("button", { type: "button", class: "link", onclick: () => { location.hash = "#/lista"; } },
+    `← ${tr("Lista de exames")}`);
+  // abre no lugar do endereço de abertura: "voltar" no navegador não procura de novo
+  const tela = telaAbrir(p, (uid) => { location.replace(`${location.pathname}${location.search}#/exame/${uid}`); });
+  app.replaceChildren(cabecalho(voltar), el("main", { class: "telalista" }, el("div", { class: "lista-esq" }, tela)), tarja());
+}
+
 async function telaDasImpressoes(): Promise<void> {
   pararDisponiveis();
   grade?.encerrar();
@@ -1971,6 +1984,8 @@ function rota(): void {
     return;
   }
   const h = location.hash || "#/lista";
+  const pAbrir = parametrosAbrir(h);                 // 0.100.103: chamada externa (#/abrir?acesso=… ou ?id=…&data=…)
+  if (pAbrir) { void telaDaAbertura(pAbrir); return; }
   const m = h.match(/^#\/exame\/([0-9.]+)(?:\/j([1-9]))?$/);
   const m2 = h.match(/^#\/mg\/([0-9.]+)\/2$/);
   // na mamografia, a 2ª janela de visualização é a segunda tela do protocolo (como no Ipê)

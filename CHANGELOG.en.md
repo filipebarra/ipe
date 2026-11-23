@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.103 — Ipê Web: open by external call
+- **Opening address**: `…/web/#/abrir?acesso=12345` or `…/web/#/abrir?id=98765&data=20261123&mod=MR` (also `uid=`).
+  Ipê Web searches the server; if not found, the PACS nodes the server shares, **downloads and opens** it when it
+  arrives, with progress on screen. More than one study: a list to choose from. Login is still required (without a
+  session it asks for the password and returns to the address). Date as YYYYMMDD, YYYY-MM-DD or DD/MM/YYYY.
+
 ## 0.100.102 — Liver MRI summary as an image
 - The liver AI (fat, iron, stiffness) saves a **summary image (OT)** in the study, like the breast density one:
   series "Fígado na RM: resumo (Ipê)" with PDFF and grade, dual echo, R2*, estimated iron (LIC), stiffness and range,

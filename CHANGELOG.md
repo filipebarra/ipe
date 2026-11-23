@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.103 — Ipê Web: abrir por chamada externa
+- **Endereço de abertura**: `…/web/#/abrir?acesso=12345` ou `…/web/#/abrir?id=98765&data=20261123&mod=MR` (também
+  `uid=`). O Ipê Web procura no servidor; se não achar, nos nós do PACS que o servidor compartilha, **baixa e abre**
+  quando chega, com o andamento na tela. Mais de um exame: mostra a lista para escolher. O login continua obrigatório
+  (sem sessão, pede a senha e volta para o endereço). Data em AAAAMMDD, AAAA-MM-DD ou DD/MM/AAAA.
+
 ## 0.100.102 — Resumo da RM do fígado em imagem
 - A IA de fígado (gordura, ferro, rigidez) grava no exame o **resumo em imagem (OT)**, como o da densidade mamária:
   série "Fígado na RM: resumo (Ipê)" com PDFF e grau, dupla eco, R2*, ferro estimado (LIC), rigidez e faixa, o
