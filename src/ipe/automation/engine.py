@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from datetime import date, datetime
 
@@ -24,6 +25,14 @@ from ipe.automation.rules import (
 log = logging.getLogger(__name__)
 QUIET_SECONDS = 15          # exame "terminou de chegar" depois deste tempo sem imagens novas
 
+
+
+#: 0.100.106: as IAs de mamografia que se pedem à mão (Ipê Web, botão direito ▸ IA no banco)
+MAMA_TIPOS = {"mama_densidade": "Densidade mamária (BI-RADS)",
+              "mama_calc": "Calcificações vasculares da mama",
+              "mama_implante": "Implante de silicone: tirar o silicone"}
+TITULO_IMPLANTE = "Implante de silicone"
+_MAMA_MANUAL = threading.Lock()
 
 class AutomationEngine(QObject):
     notify = Signal(str, str)        # título, texto
@@ -352,23 +361,26 @@ class AutomationEngine(QObject):
         return feitos
 
     # ------------------------------------------------------------ implante corrigido na chegada
-    def corrigir_implantes(self, study_uid: str, info: dict | None = None) -> bool:
+    def corrigir_implantes(self, study_uid: str, info: dict | None = None, forcar: bool = False,
+                           quem: str = "") -> int:
         """Mamografia com prótese: grava, no banco local, a cópia com o implante corrigido (0.97).
 
         Roda em segundo plano. A original fica como chegou; a cópia não vai ao PACS. Desliga em
-        Preferências ▸ Mamografia."""
+        Preferências ▸ Mamografia. `forcar` (0.100.106): pedida à mão (Ipê Web, botão direito no banco), roda mesmo
+        com a correção na chegada desligada. Devolve o número da tarefa (0 = não começou)."""
         from ipe.automation import implante as IMP
-        if not IMP.ligado(self.settings) or study_uid in self._implante_rodando:
-            return False
+        if (not forcar and not IMP.ligado(self.settings)) or study_uid in self._implante_rodando:
+            return 0
         info = info if info is not None else self.repo.study_info(study_uid)
         if info is None or "MG" not in (info.get("modalities") or "").upper():
-            return False
+            return 0
         self._implante_rodando.add(study_uid)
         inicio = datetime.now()
         from ipe.ai import tarefas as TA
-        tid = TA.REGISTRO.nova("Implante de silicone", study_uid,
+        origem = (f"manual · {quem}" if quem else "manual") if forcar else "automática"
+        tid = TA.REGISTRO.nova(TITULO_IMPLANTE, study_uid,
                                f"{info.get('patient_name', '')} {info.get('description', '')}".strip(),
-                               "automática", TA.RODANDO).id
+                               origem, TA.RODANDO).id
         repo, db, storage = self.repo, self.db, self.paths.storage
         so_marca = bool(IMP.config(self.settings, IMP.CHAVE_SO_COM_MARCA))
 
@@ -399,7 +411,75 @@ class AutomationEngine(QObject):
             self.changed.emit()
 
         self.net.run_async(trabalho, pronto)
-        return True
+        return tid
+
+    # ------------------------------------------------------------ 0.100.106: mamografia à mão (Web, banco)
+    def _ferramentas_mama(self, study_uid: str, ativas: set) -> list[dict]:
+        """Densidade, calcificações vasculares e "tirar o silicone" na lista de IAs do exame com MG."""
+        info = self.repo.study_info(study_uid) or {}
+        if "MG" not in str(info.get("modalities") or "").upper():
+            return []
+        from ipe.ai import calc_vascular as C
+        from ipe.ai import densidade_nyu as N
+        from ipe.automation import implante as IMP
+        from ipe.imaging import densidade_revisao as R
+        from ipe.imaging import mammo as M
+        mg = [s for s in self.repo.series_for_study(study_uid)
+              if (s.modality or "").upper() == "MG" and not M.serie_sem_implante(s.description)]
+        serie = mg[0].series_uid if mg else None
+        out = []
+        for tipo, titulo in MAMA_TIPOS.items():
+            motivo, feita = "", False
+            try:
+                if tipo == "mama_densidade":
+                    ok, motivo = N.disponivel()
+                    feita = R.guardada(self.repo, study_uid) is not None
+                elif tipo == "mama_calc":
+                    ok, motivo = C.disponivel()
+                    feita = C.guardada(self.repo, study_uid) is not None
+                else:
+                    ok = True
+                    feita = bool(IMP.ja_salvas(self.repo, study_uid))
+            except Exception as e:  # noqa: BLE001
+                ok, motivo = False, str(e)
+            out.append({"tipo": tipo, "titulo": titulo, "serie": serie if ok else None,
+                        "motivo": "" if ok and serie else (motivo or "o exame não tem imagem de mamografia"),
+                        "ja_feita": feita,
+                        "andando": (TITULO_IMPLANTE if tipo == "mama_implante" else titulo) in ativas})
+        return out
+
+    def _pedir_mama(self, study_uid: str, tipo: str, quem: str) -> int:
+        from ipe.ai import tarefas as TA
+        titulo = MAMA_TIPOS[tipo]
+        if titulo in {t.ferramenta for t in TA.REGISTRO.ativas(study_uid)}:
+            raise ValueError(f"{titulo} já está na fila ou rodando neste exame")
+        if tipo == "mama_implante":
+            tid = self.corrigir_implantes(study_uid, forcar=True, quem=quem)
+            if not tid:
+                raise ValueError("o exame não tem mamografia ou o silicone já está sendo tirado")
+            return tid
+        from ipe.automation import mama_auto as MA
+        info = self.repo.study_info(study_uid) or {}
+        tid = TA.REGISTRO.nova(titulo, study_uid, f"{info.get('patient_name', '')} {info.get('description', '')}"
+                               .strip(), f"manual · {quem}" if quem else "manual", TA.RODANDO).id
+        o_que = ["densidade" if tipo == "mama_densidade" else "calc_vascular"]
+
+        def trabalho():
+            with _MAMA_MANUAL:                          # uma de cada vez (as redes usam a CPU inteira)
+                return MA.medir(self.repo, study_uid, None, o_que=o_que)
+
+        def pronto(out, err) -> None:
+            if err is not None:
+                TA.REGISTRO.mudar(tid, TA.ERRO, mensagem=str(err))
+            else:
+                TA.REGISTRO.mudar(tid, TA.ERRO if out.get("erros") else TA.PRONTO,
+                                  mensagem="; ".join(out.get("erros") or []) or MA.resumo(out))
+                if out.get("densidade") or out.get("calc_vascular"):
+                    self._mama_medida_na_linha(study_uid, out, False)
+            self.changed.emit()
+
+        self.net.run_async(trabalho, pronto)
+        return tid
 
     # ------------------------------------------------------------ dinâmica pronta na chegada
     def precalcular_dinamica(self, study_uid: str, info: dict | None = None) -> bool:
@@ -532,6 +612,10 @@ class AutomationEngine(QObject):
         from ipe.ai import tarefas as TA
         ativas = {t.ferramenta for t in TA.REGISTRO.ativas(study_uid)}
         out = []
+        try:                                              # 0.100.106: as de mamografia também
+            out.extend(self._ferramentas_mama(study_uid, ativas))
+        except Exception:  # noqa: BLE001
+            log.exception("ferramentas de mamografia")
         for tipo in self.tipos_manuais():
             try:
                 f = self._ferramenta(tipo)
@@ -558,6 +642,8 @@ class AutomationEngine(QObject):
         o número da tarefa no registro de tarefas de IA."""
         from ipe.ai import tarefas as TA
         from ipe.ai import totalseg as TS
+        if tipo in MAMA_TIPOS:                            # 0.100.106: densidade, calcificações, tirar o silicone
+            return self._pedir_mama(study_uid, tipo, quem)
         f = self._ferramenta(tipo)
         if f is None:
             raise KeyError(f"ferramenta desconhecida: {tipo}")

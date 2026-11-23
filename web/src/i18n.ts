@@ -178,6 +178,11 @@ const T: Trad = {
   "Falta no PACS": ["Missing from PACS", "Falta en el PACS"],
   "Faltam": ["Missing", "Faltan"],
   "Fila de envio": ["Send queue", "Cola de envío"],
+  // 0.100.106: IAs de mamografia no Ipê Web
+  "todas as imagens de mamografia do exame": ["all mammography images of the study", "todas las imágenes de mamografía del estudio"],
+  "Densidade mamária (BI-RADS)": ["Breast density (BI-RADS)", "Densidad mamaria (BI-RADS)"],
+  "Calcificações vasculares da mama": ["Breast arterial calcifications", "Calcificaciones vasculares de la mama"],
+  "Implante de silicone: tirar o silicone": ["Silicone implant: remove the silicone", "Implante de silicona: quitar la silicona"],
   // 0.100.105: o exame aparece enquanto chega
   "o exame vai aparecendo enquanto chega": ["the study shows up as it arrives", "el estudio va apareciendo mientras llega"],
   // 0.100.104: manter conectado

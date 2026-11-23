@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.106 — Mamografía en Ipê Web: densidad, calcificaciones y quitar la silicona a mano
+- En la pestaña **IA** del Ipê Web (y clic derecho ▸ IA en la base), la mamografía muestra **Densidad mamaria
+  (BI-RADS)**, **Calcificaciones vasculares de la mama** e **Implante de silicona: quitar la silicona**. Se ejecutan en
+  todo el estudio, en la cola del servidor, sin el paquete de segmentación. "Quitar la silicona" funciona aunque la
+  corrección a la llegada esté apagada: sirve para los estudios antiguos.
+
 ## 0.100.105 — Ipê Web: el estudio abre mientras llega; instalador con "windows" en el nombre
 - **Enlace de apertura**: el estudio que viene del PACS abre en cuanto llegan las primeras imágenes; la tira recibe
   las series nuevas y la serie que creció se recarga en el cuadro, en la misma imagen, con un aviso de cuánto llegó.

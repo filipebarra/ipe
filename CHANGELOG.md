@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.106 — Mamografia no Ipê Web: densidade, calcificações e tirar o silicone à mão
+- Na aba **IA** do Ipê Web (e no botão direito ▸ IA do banco), a mamografia mostra **Densidade mamária (BI-RADS)**,
+  **Calcificações vasculares da mama** e **Implante de silicone: tirar o silicone**. Rodam no exame todo, na fila do
+  servidor, sem precisar do pacote de segmentação. "Tirar o silicone" roda mesmo com a correção na chegada desligada:
+  serve para os exames antigos, que chegaram antes dela.
+
 ## 0.100.105 — Ipê Web: o exame abre enquanto chega; instalador com "windows" no nome
 - **Link de abertura**: o exame que vem do PACS abre assim que as primeiras imagens chegam; a tira ganha as séries
   novas e a série que cresceu é recarregada no quadro, na mesma imagem, com um aviso de quanto já chegou.

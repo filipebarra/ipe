@@ -1957,6 +1957,9 @@ class Browser(QWidget):
     def rodar_ia(self, study_uid: str, tipo: str, series_uid: str, simular: bool = False):
         """Uma IA num exame pelo banco: o mesmo caminho do visualizador — no servidor ou aqui (0.100.100) e, se já
         houver uma rodando aqui, na fila (0.100.101)."""
+        from ipe.automation.engine import MAMA_TIPOS
+        if tipo in MAMA_TIPOS:                    # 0.100.106: mamografia — a fila do motor (aqui ou no servidor)
+            return self.rodar_ia_varios([study_uid], tipo)
         return self.segmentar_orgaos(study_uid, series_uid, simular=simular, tipo=tipo)
 
     def rodar_ia_varios(self, uids: list[str], tipo: str) -> dict:

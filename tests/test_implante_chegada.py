@@ -309,3 +309,29 @@ def test_zoom_com_mouse_so_sincroniza_com_o_botao(env, tmp_path):
         assert all(v.state.zoom >= 2 for v in (a, b, c, d))
     finally:
         w.close()
+
+
+def test_tirar_o_silicone_pedido_a_mao(env, tmp_path):
+    """0.100.106: no Ipê Web (e no botão direito do banco) as IAs de mamografia aparecem na lista; "tirar o silicone"
+    roda à mão mesmo com a correção na chegada desligada."""
+    from PySide6.QtWidgets import QApplication
+
+    from ipe.ai import tarefas as TA
+    from ipe.automation.engine import MAMA_TIPOS, AutomationEngine
+    from ipe.core.config import Settings
+    QApplication.instance() or QApplication([])
+    paths, db, repo = env
+    uid = _exame(env, tmp_path, [("R", "MLO", "YES", True)])
+    settings = Settings(paths.settings_file)
+    settings.set(IMP.CHAVE, False)                                   # na chegada: desligado
+    eng = AutomationEngine(repo, db, _RedeSincrona(), settings, paths)
+    lista = {f["tipo"]: f for f in eng.ferramentas_do_exame(uid)}
+    assert set(MAMA_TIPOS) <= set(lista)
+    im = lista["mama_implante"]
+    assert im["serie"] and not im["ja_feita"] and not im["andando"]
+    tid = eng.pedir(uid, "mama_implante", None, "dra")
+    assert tid
+    t = next(x for x in TA.REGISTRO.tarefas() if x.id == tid)
+    assert t.origem == "manual · dra" and t.estado == TA.PRONTO
+    assert any(i.sem_implante for i in M.read_images(repo, uid))
+    assert {f["tipo"]: f for f in eng.ferramentas_do_exame(uid)}["mama_implante"]["ja_feita"]

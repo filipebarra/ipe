@@ -12,6 +12,7 @@ export interface Ferramenta {
   motivo: string;
   ja_feita: boolean;
   andando: boolean;
+  sem_pacote?: boolean;   // 0.100.106: mamografia (densidade, calcificações, tirar o silicone): roda o exame todo
 }
 
 export interface TarefaIA {
@@ -190,11 +191,12 @@ export class AbaIA {
   private linha(f: Ferramenta, atual: { uid: string; rotulo: string } | null, antes: string | undefined,
     instalado: boolean): HTMLElement {
     const sSerie = el("select", { "aria-label": `${tr("Série")}: ${tr(f.titulo)}` });
-    if (f.serie) sSerie.append(el("option", { value: f.serie }, `${tr("sugerida")}: ${f.serie_rotulo}`));
-    if (atual && atual.uid !== f.serie) sSerie.append(el("option", { value: atual.uid }, `${tr("do quadro")}: ${atual.rotulo}`));
+    if (f.sem_pacote && f.serie) sSerie.append(el("option", { value: f.serie }, tr("todas as imagens de mamografia do exame")));
+    else if (f.serie) sSerie.append(el("option", { value: f.serie }, `${tr("sugerida")}: ${f.serie_rotulo}`));
+    if (!f.sem_pacote && atual && atual.uid !== f.serie) sSerie.append(el("option", { value: atual.uid }, `${tr("do quadro")}: ${atual.rotulo}`));
     if (antes && [...sSerie.options].some((o) => o.value === antes)) sSerie.value = antes;
     const b = el("button", { type: "button", class: "primario" }, f.ja_feita ? tr("Refazer") : tr("Rodar"));
-    b.disabled = !instalado || f.andando || !sSerie.options.length;
+    b.disabled = (!instalado && !f.sem_pacote) || f.andando || !sSerie.options.length;
     b.onclick = async () => {
       b.disabled = true;
       this.nota.textContent = tr("Pondo na fila…");

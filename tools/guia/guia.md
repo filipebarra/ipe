@@ -652,6 +652,10 @@ No Ipê ligado a um servidor central, **Preferências ▸ CAD/IA ▸ No Ipê cli
 - No **lote a partir de planilha**, a mesma escolha: com "Neste computador", o servidor busca, baixa e faz o resto, mas pede as IAs a este computador — deixe a janela do lote aberta enquanto ele roda. O que não der certo aqui, o servidor faz ele mesmo.
 - A segmentação pela caixa (MedSAM2), que é interativa, roda sempre neste computador.
 
+### Mamografia: densidade, calcificações e tirar o silicone à mão (0.100.106)
+
+Na aba **IA** do Ipê Web — e no botão direito ▸ **IA** do banco, no Ipê de mesa — a mamografia mostra três ferramentas: **Densidade mamária (BI-RADS)**, **Calcificações vasculares da mama** e **Implante de silicone: tirar o silicone**. Elas rodam no exame inteiro, na fila de IA do servidor, e não precisam do pacote de segmentação. *Tirar o silicone* grava a cópia " · sem implante" mesmo com a correção na chegada desligada — é o caminho para os exames antigos, que chegaram antes dela. A densidade e as calcificações medidas assim aparecem para conferir, como as da chegada.
+
 ### Ipê Web: abrir um exame por chamada externa (0.100.103)
 
 Outro sistema (RIS, sistema de laudos, um atalho) abre o exame no Ipê Web por um endereço:

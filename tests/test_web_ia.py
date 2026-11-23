@@ -201,3 +201,26 @@ def test_pelo_navegador(servidor):
             pg.close()
         b.close()
     assert not erros, erros
+
+
+def test_mamografia_na_lista_do_navegador(servidor, tmp_path):
+    """0.100.106: no Ipê Web, a mamografia mostra densidade, calcificações e "tirar o silicone"; tirar o silicone roda
+    mesmo sem o pacote de segmentação e com a correção na chegada desligada."""
+    from tests.test_implante_chegada import _exame
+    from ipe.automation import implante as IMP
+    from ipe.imaging import mammo as M
+    srv = servidor
+    srv.auto._seg_simular = False
+    uid = _exame((srv.auto.paths, srv.db, srv.repo_), tmp_path, [("L", "CC", "YES", True)])
+    srv.settings.set(IMP.CHAVE, False)
+    lista = {f["tipo"]: f for f in _api(srv, f"/api/web/ia?study={uid}")["ferramentas"]}
+    assert {"mama_densidade", "mama_calc", "mama_implante"} <= set(lista)
+    assert lista["mama_implante"]["sem_pacote"] and lista["mama_implante"]["serie"]
+    assert not lista.get("abdome", {}).get("sem_pacote")
+    r = _api(srv, "/api/web/ia/pedir", {"study": uid, "tipo": "mama_implante", "serie": None})
+    assert r["tarefa"]
+    deadline = time.time() + 30
+    while time.time() < deadline and not any(i.sem_implante for i in M.read_images(srv.repo_, uid)):
+        srv.app.processEvents()
+        time.sleep(0.05)
+    assert any(i.sem_implante for i in M.read_images(srv.repo_, uid))

@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.106 — Mammography in Ipê Web: density, calcifications and silicone removal on demand
+- In the **AI** tab of Ipê Web (and right-click ▸ AI in the database), mammograms list **Breast density (BI-RADS)**,
+  **Breast arterial calcifications** and **Silicone implant: remove the silicone**. They run on the whole study, in the
+  server queue, without the segmentation package. "Remove the silicone" runs even with the on-arrival correction off:
+  useful for older studies that arrived before it.
+
 ## 0.100.105 — Ipê Web: the study opens while it arrives; installer with "windows" in its name
 - **Opening link**: a study coming from the PACS opens as soon as the first images arrive; new series join the strip
   and a series that grew is reloaded in its viewport, on the same image, with a notice of how much has arrived.

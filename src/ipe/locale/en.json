@@ -10717,5 +10717,10 @@
  "As regras de Preferências ▸ CAD/IA e de Configurações ▸ Rede ▸ Automação que valem para o exame que chega. O exame baixado pelo lote já passa por elas ao terminar o download.": "The rules in Preferences ▸ CAD/AI and Settings ▸ Network ▸ Automation that apply to an arriving study. A study downloaded by the batch already goes through them when the download finishes.",
  "Exame que já está no Ipê: aplicar as regras da chegada (IA, envio, impressão), como num exame baixado": "Study already in Ipê: apply the arrival rules (AI, sending, printing), as for a downloaded study",
  "regras da chegada também no que já estava no Ipê": "arrival rules also for what was already in Ipê",
- "regras da chegada: {}": "arrival rules: {}"
+ "regras da chegada: {}": "arrival rules: {}",
+ "Densidade mamária (BI-RADS)": "Breast density (BI-RADS)",
+ "Implante de silicone: tirar o silicone": "Silicone implant: remove the silicone",
+ "ferramentas de mamografia": "mammography tools",
+ "o exame não tem imagem de mamografia": "the study has no mammography image",
+ "o exame não tem mamografia ou o silicone já está sendo tirado": "the study has no mammography or the silicone is already being removed"
 }

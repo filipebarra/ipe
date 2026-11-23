@@ -40,8 +40,10 @@ def ferramentas(c, s, q: dict) -> dict:
     lista = eng.ferramentas_do_exame(study)
     descr = {x.series_uid: f"{x.series_number or '–'} · {x.modality} · {x.description or ''}"
              for x in c.repo.series_for_study(study)}
+    from ipe.automation.engine import MAMA_TIPOS
     for f in lista:
         f["serie_rotulo"] = descr.get(f["serie"] or "", "")
+        f["sem_pacote"] = f["tipo"] in MAMA_TIPOS          # 0.100.106: mamografia não usa o pacote de segmentação
     instalado = bool(getattr(eng, "_seg_simular", False) or TS.instalado(eng.settings))
     return {"ferramentas": lista, "instalado": instalado}
 
