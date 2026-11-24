@@ -661,7 +661,7 @@ Botão direito no exame, no banco ▸ **Criar link do exame (Ipê Web)…**. O l
 - **Vale por**: 1, 3, 7 ou 30 dias.
 - **Criar link** gera o endereço e já copia; a lista embaixo mostra os links do exame, quantas vezes foram usados e quando vencem. **Revogar o link selecionado** corta o acesso na hora, até de quem está com ele aberto.
 
-No **Ipê Web** (0.100.109), o mesmo está no botão **Link do exame (sem senha)** da barra do visualizador (ícone de corrente): *Criar e copiar*, e a lista dos links do exame com *Revogar*. O link funciona pelo Ipê Web do servidor central (no Ipê cliente, quem cria é o servidor). Criar link pede a permissão de **exportar**. Cada criação, uso, tentativa negada e revogação fica no registro de acesso. Quem tiver o link vê o exame até ele vencer: mande só a quem deve ver.
+No **Ipê Web** (0.100.109), o mesmo está no botão de **enviar** da barra do visualizador (desde a 0.100.112, um menu: *Enviar a um destino DICOM…* e *Link do exame (sem senha)…*): *Criar e copiar*, e a lista dos links do exame com *Revogar*. O link funciona pelo Ipê Web do servidor central (no Ipê cliente, quem cria é o servidor). Criar link pede a permissão de **exportar**. Cada criação, uso, tentativa negada e revogação fica no registro de acesso. Quem tiver o link vê o exame até ele vencer: mande só a quem deve ver.
 
 ### Mamografia: densidade, calcificações e tirar o silicone à mão (0.100.106)
 
@@ -1338,7 +1338,7 @@ Nesta primeira fase:
 - **Janela do PET no mouse (0.100.2)**: com a janela/nível num botão, arraste no PET, no MIP ou na fusão — **para cima e para baixo muda o topo**, **para os lados o piso** —; a janela vale para todos os quadros do mesmo PET e aparece no canto (*SUV 1–9*). Na fusão, **Shift + arrasto** ajusta a TC de baixo.
 - **Arranjo do PET/CT (0.100.2)**: na aba **PET**, escolha a grade (1×1 a 2×3) e o que cada quadro mostra — **TC + PET**, **TC**, **PET** ou o **MIP do PET (3D)** — e o plano (axial, coronal, sagital). O arranjo fica lembrado para o próximo PET/CT; **Arranjo padrão** volta à fusão, PET e MIP.
 - **SUV máximo perto do cursor**: escolha o ícone (com o botão do mouse que vai usar) e clique perto da lesão num quadro de volume do PET (a fusão, A, C ou S): o programa acha o voxel mais quente numa esfera de 3 cm e leva os cortes até ele; o valor aparece no canto.
-- **Segmentação (SEG)**: as segmentações gravadas no exame (a carga tumoral, os órgãos e as lesões da IA do Ipê) aparecem como máscaras coloridas nos quadros de volume, com as cores do Ipê.
+- **Segmentação (SEG)**: as segmentações gravadas no exame (a carga tumoral, os órgãos e as lesões da IA do Ipê) aparecem como máscaras coloridas nos quadros de volume, com as cores do Ipê. Desde a 0.100.112, a mais recente da IA já aparece ao abrir o exame (como no Ipê de mesa); as outras ficam no botão de segmentação. As **linhas das medidas** da cefalometria do cavum e dos índices do crânio também aparecem, em qualquer plano que contenha a linha.
 
 **Mamografia com uma e duas telas (0.99.98).**
 

@@ -210,7 +210,8 @@ def test_fusao_suv_maximo_e_seg(servidor):
         props = lambda: pg.evaluate(f"""() => {{ const vp = window.__ipeGrade.viewport(0);
             const p = vp.getProperties('{pt_id}'); return {{ n: vp.getActors().length, cor: p.colormap && p.colormap.name,
             voi: p.voiRange }}; }}""")
-        assert _esperar(lambda: props()["n"] == 2 and props()["cor"] == "ipe-hot"), props()
+        # 2 volumes (TC e PET) e, desde a 0.100.112, a SEG da IA ligada ao abrir (como no Ipê de mesa)
+        assert _esperar(lambda: props()["n"] in (2, 3) and props()["cor"] == "ipe-hot"), props()
         assert props()["voi"]["lower"] == pytest.approx(0) and props()["voi"]["upper"] == pytest.approx(6)
         assert "SUV 0–6" in pg.locator(".canto.id").first.inner_text()
         # o PET chega em SUV: o voxel do centro da lesão vale PICO × fator

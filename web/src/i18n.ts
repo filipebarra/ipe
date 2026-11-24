@@ -180,6 +180,9 @@ const T: Trad = {
   "Fila de envio": ["Send queue", "Cola de envío"],
   // 0.100.109: link do exame pelo navegador
   "Link do exame (sem senha)": ["Study link (no password)", "Enlace del estudio (sin contraseña)"],
+  "Link do exame (sem senha)…": ["Study link (no password)…", "Enlace del estudio (sin contraseña)…"],
+  "Enviar ou criar link do exame": ["Send or create a study link", "Enviar o crear enlace del estudio"],
+  "Enviar a um destino DICOM…": ["Send to a DICOM destination…", "Enviar a un destino DICOM…"],
   "Link do exame": ["Study link", "Enlace del estudio"],
   "Abre só este exame no Ipê Web, sem senha: sem a lista, sem o banco, sem laudo. Quem tiver o link vê o exame até ele vencer — mande só a quem deve ver.": ["Opens only this study in Ipê Web, without a password: no list, no database, no report. Whoever has the link sees the study until it expires — send it only to whoever should see it.", "Abre solo este estudio en Ipê Web, sin contraseña: sin la lista, sin la base, sin informe. Quien tenga el enlace ve el estudio hasta que venza — envíelo solo a quien deba verlo."],
   "Para quem (ex.: Dr. Fulano, cirurgião)": ["For whom (e.g. Dr. Smith, surgeon)", "Para quién (ej.: Dr. Pérez, cirujano)"],

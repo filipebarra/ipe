@@ -717,6 +717,41 @@ def _objeto_niveis(r, cam: str, coluna: bool, study: str) -> dict | None:
             "serie": r.series_uid, "descricao": r.description or ""}
 
 
+def _linhas_web(repo, study: str, assinatura: list) -> list:
+    """0.100.112: as imagens de conferência que guardam as linhas das medidas (cefalometria do cavum, índices do
+    crânio) — no Ipê de mesa elas viram um overlay em qualquer plano (onco.load_overlay_objects); aqui também."""
+    from ipe.ai import cefalometria as CF
+    from ipe.ai import neuro as NE
+    out = []
+    for r in repo.series_for_study(study, ocultas=True):
+        modulo = {CF.DESC_IMAGEM: CF, NE.DESC_IMAGEM: NE}.get(r.description or "")
+        if modulo is None:
+            continue
+        for inst in repo.instances_for_series(r.series_uid)[-1:]:
+            try:
+                st = Path(str(inst.get("path") or "")).stat()
+            except OSError:
+                continue
+            assinatura.append((str(inst["path"]), st.st_mtime_ns, st.st_size))
+            out = [x for x in out if x[1] is not modulo] + [(r, modulo)]      # uma por IA: a mais recente
+    return out
+
+
+def _objeto_linhas(repo, r, modulo, study: str) -> dict | None:
+    try:
+        res = modulo.ler_do_exame(repo, study)              # a conferência mais recente do exame
+    except Exception:  # noqa: BLE001
+        log.exception("linhas da IA para o navegador: %s", r.series_uid)
+        return None
+    if res is None or not any(m.linhas for m in res.medidas.values()):
+        return None
+    d = _objeto_web(modulo.objeto_de_linhas(res, study))
+    if not d["planos"]:
+        return None
+    d.update(ia=True, serie=r.series_uid, descricao=r.description or "")
+    return d
+
+
 def overlays(repo, s, q: dict, pode_ver, settings) -> dict:
     """Os objetos de overlay do exame (CAD/IA em SR, anotações GSPS de outro sistema, contornos RTSTRUCT),
     lidos com o mesmo leitor do Ipê (imaging/overlays.py), em coordenadas de pixel
@@ -746,6 +781,7 @@ def overlays(repo, s, q: dict, pode_ver, settings) -> dict:
             escolhidos.append((r, sop, cam))
             assinatura.append((cam, st.st_mtime_ns, st.st_size))
     niveis = _niveis_web(repo, study, assinatura)                   # 0.100.14: coluna e linfonodos
+    linhas = _linhas_web(repo, study, assinatura)                   # 0.100.112: cefalometria e índices do crânio
     chave = (study, tuple(assinatura))
     hit = _OVERLAYS.get(study)
     if hit is not None and hit[0] == chave:
@@ -763,6 +799,10 @@ def overlays(repo, s, q: dict, pode_ver, settings) -> dict:
                 objetos.append(d)
         for r, cam, coluna in niveis:
             d = _objeto_niveis(r, cam, coluna, study)
+            if d is not None:
+                objetos.append(d)
+        for r, modulo in linhas:
+            d = _objeto_linhas(repo, r, modulo, study)
             if d is not None:
                 objetos.append(d)
         _OVERLAYS[study] = (chave, objetos)

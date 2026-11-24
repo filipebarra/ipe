@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.112 — Ipê Web: las marcas de las IAs como en el Ipê de escritorio
+- Las **líneas de las medidas** de la cefalometría del cavum y de los índices del cráneo (área mínima, paladar,
+  espacio aéreo, hioides, lengua; Evans y los demás) aparecen en Ipê Web, en cualquier plano que contenga la línea —
+  como en el Ipê de escritorio. Antes solo aparecía la imagen de conferencia.
+- La **segmentación de la IA** (SEG) aparece al abrir el estudio en Ipê Web (la más reciente), como en el Ipê de
+  escritorio; antes solo aparecía cuando la IA corría en la misma sesión. No aparece si el CAD/IA o las SEG están
+  ocultos; las demás están en el botón de segmentación.
+- El **Enlace del estudio** de Ipê Web pasó al botón de enviar (un menú con *Enviar a un destino DICOM…* y *Enlace
+  del estudio (sin contraseña)…*): el botón extra empujaba otros al » ya en pantallas de 1920 px.
+
 ## 0.100.111 — Lote en el cliente: el estudio viene en cuanto llega al servidor
 - Lote desde planilla en el Ipê cliente, con **Traer los estudios también a esta computadora**: cada estudio empieza
   a venir a la base de esta computadora **en cuanto llega del PACS al servidor**, sin esperar las IAs, envíos e

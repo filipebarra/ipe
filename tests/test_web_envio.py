@@ -12,7 +12,7 @@ import pytest
 from pydicom.uid import generate_uid
 
 sys.path.insert(0, str(Path(__file__).parent))
-from _web_ui import icone  # noqa: E402
+from _web_ui import icone, menu  # noqa: E402,F401
 from test_ko_gsps import _medida, _vol  # noqa: E402
 from test_network import Node  # noqa: E402
 
@@ -131,12 +131,16 @@ def test_pelo_navegador(servidor):
             pg.wait_for_selector("table.lista tbody tr")
             pg.locator("table.lista tbody tr").first.dblclick()
             pg.wait_for_selector(".quadro canvas")
-            botao = pg.locator("nav.barra button[aria-label='Enviar a um destino DICOM']")
+            # 0.100.112: com a permissão de exportar, o mesmo botão também cria o link do exame (menu)
+            botao = pg.locator("nav.barra button[aria-label='Enviar a um destino DICOM'], "
+                               "nav.barra button[aria-label='Enviar ou criar link do exame']")
             assert botao.is_visible() == pode
             if not pode:
                 pg.close()
                 continue
-            icone(pg, "Enviar a um destino DICOM")
+            botao.click()
+            if botao.get_attribute("aria-label") == "Enviar ou criar link do exame":
+                menu(pg, "Enviar a um destino DICOM…")
             pg.wait_for_selector(".painel-envio")
             assert pg.locator(".painel-envio select[aria-label='Destino'] option").all_inner_texts()[0].startswith("PACS")
             # a série do quadro já vem marcada; mandar só a imagem do quadro

@@ -3,6 +3,16 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.112 — Ipê Web: as marcações das IAs como no Ipê de mesa
+- As **linhas das medidas** da cefalometria do cavum e dos índices do crânio (área mínima, palato, espaço aéreo,
+  hioide, língua; Evans e os outros) aparecem no Ipê Web, em qualquer plano que contenha a linha — como no Ipê de
+  mesa. Antes só a imagem de conferência aparecia.
+- A **segmentação da IA** (SEG) já aparece ao abrir o exame no Ipê Web (a mais recente), como no Ipê de mesa; antes
+  só aparecia quando a IA rodava na mesma sessão. Não aparece se o CAD/IA ou as SEG estiverem ocultos; as outras
+  ficam no botão de segmentação.
+- O **Link do exame** do Ipê Web foi para o botão de enviar (um menu com *Enviar a um destino DICOM…* e *Link do
+  exame (sem senha)…*): o botão a mais empurrava outros para o » já em telas de 1920 px.
+
 ## 0.100.111 — Lote no cliente: o exame vem assim que chega ao servidor
 - Lote a partir de planilha no Ipê cliente, com **Trazer os exames também para este computador**: cada exame começa a
   vir para o banco deste computador **assim que chega do PACS ao servidor**, sem esperar as IAs, envios e impressão

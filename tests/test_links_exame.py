@@ -174,7 +174,9 @@ def test_criar_pelo_ipe_web(dois_exames):
         pg.fill("#senha", "admin123")
         pg.click("button[type=submit]")
         pg.wait_for_selector(".quadro canvas")
-        pg.evaluate("document.querySelector(\"button[title='Link do exame (sem senha)']\").click()")   # (pode estar no »)
+        # 0.100.112: o link está no botão do envio (menu com as duas opções); o botão pode estar no »
+        pg.evaluate("document.querySelector(\"button[title='Enviar ou criar link do exame']\").click()")
+        pg.locator("[role=menuitem]:has-text('Link do exame (sem senha)')").first.click()
         pg.wait_for_selector(".painel-link-exame")
         pg.fill(".painel-link-exame input[type=text]", "Cirurgião")
         pg.check(".painel-link-exame input[value=anexar]")
@@ -191,6 +193,7 @@ def test_criar_pelo_ipe_web(dois_exames):
         pg2.wait_for_selector(".quadro canvas")
         assert pg2.evaluate("location.hash") == f"#/exame/{uid}"
         assert not pg2.locator("button[title='Link do exame (sem senha)']").is_visible()
+        assert not pg2.locator("button[title='Enviar ou criar link do exame']").count()
         # revogar pelo painel
         pg.on("dialog", lambda d: d.accept())
         pg.click(".painel-link-exame .link-item.ativo button:has-text('Revogar')")

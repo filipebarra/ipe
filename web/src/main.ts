@@ -885,9 +885,16 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   const bEnviar = botaoIcone("Enviar a um destino DICOM", IC.enviar);
   if (!podeEnviar) bEnviar.style.display = "none";      // (o estilo do botão de ícone venceria o hidden)
   // 0.100.109: link do exame (sem senha) — quem pode exportar; nunca dentro de uma sessão aberta por link
-  const bLink = botaoIcone("Link do exame (sem senha)", IC.link);
-  if (!config?.usuario.perms?.includes("export") || API.linkExame() || caso) bLink.style.display = "none";
-  bLink.onclick = async () => abrirPainel(await painelLinkExame(study), bLink, tr("Link do exame"));
+  // 0.100.112: o "Link do exame" (0.100.109) vai no mesmo botão do envio — um botão a mais na barra empurrava outros
+  // para o "»" já em 1920 px. Com as duas permissões, o botão abre um menu; com uma só, vai direto.
+  const podeLink = !!config?.usuario.perms?.includes("export") && !API.linkExame() && !caso;
+  if (podeLink) {
+    bEnviar.style.display = "";
+    const t = podeEnviar ? tr("Enviar ou criar link do exame") : tr("Link do exame (sem senha)");
+    bEnviar.title = t;
+    bEnviar.setAttribute("aria-label", t);
+  }
+  const abrirLink = async () => abrirPainel(await painelLinkExame(study), bEnviar, tr("Link do exame"));
   const listaEnvios = new ListaEnvios();
   // 0.100.10: CAD/IA pelo navegador (só com a permissão de pedir CAD/IA)
   const podeIA = !!config?.usuario.perms?.includes("ai");
@@ -925,7 +932,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     el("div", { class: "grupo" }, bLayout, bMpr, bEspessura, bObliquo, bGirar),
     el("div", { class: "grupo" }, bPet, bDin, bDens, bVasos, bSeg, bCine, bCineMenu),
     el("div", { class: "grupo" }, bInverter, bRestaurar, bOverlay, bOverlayMenu),
-    el("div", { class: "grupo" }, bLaudo, bEsquema, bPirads, bEnviar, bLink, bIA),
+    el("div", { class: "grupo" }, bLaudo, bEsquema, bPirads, bEnviar, bIA),
     el("div", { class: "grupo" }, bLigar, bLeitura, bAparencia));
   barraComTransbordo(nav);   // 0.100.53: o que não cabe vai para o "»"
 
@@ -1123,7 +1130,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   (window as unknown as Record<string, unknown>).__ipeOverlay = ov;
   bOverlay.onclick = () => ov.alternar();
   bOverlayMenu.onclick = () => ov.menu(bOverlayMenu);
-  void ov.carregar();
+  const ovPronto = ov.carregar();
   const d = new Disponiveis();
   disp = d;
   const cron = new Cronometro();
@@ -1424,7 +1431,7 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
   };
   if (podeEnviar) void listaEnvios.atualizar();
   bEnvios.onclick = () => { void listaEnvios.atualizar(); abrirPainel(listaEnvios.raiz, bEnvios, tr("Envios")); };
-  bEnviar.onclick = async () => {
+  const abrirEnvio = async () => {
     const q = g.quadros[g.ativo];
     const real = q?.serie && !q.serie.series.startsWith("ipe") ? q.serie.series : null;
     const id = (g.viewport() as unknown as { getCurrentImageId?: () => string } | null)?.getCurrentImageId?.() || "";
@@ -1437,6 +1444,14 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     const painel = await painelEnvio(study, lista, real, real && m ? decodeURIComponent(m[1]) : null, listaEnvios,
       () => fecharMenus());
     abrirPainel(painel, bEnviar, tr("Enviar a um destino DICOM"));
+  };
+  bEnviar.onclick = () => {
+    if (!podeLink) { void abrirEnvio(); return; }
+    if (!podeEnviar) { void abrirLink(); return; }
+    abrirMenu([
+      { rotulo: tr("Enviar a um destino DICOM…"), acao: () => void abrirEnvio() },
+      { rotulo: tr("Link do exame (sem senha)…"), acao: () => void abrirLink() },
+    ], 0, 0, tr("Enviar ou criar link do exame"), bEnviar);
   };
   bCarga.onclick = () => {
     painelCarga.hidden = !painelCarga.hidden;
@@ -1621,6 +1636,13 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     ...segs.map((x) => ({ rotulo: nomeSeg(x), marcado: segEscolhida === API.texto(x, "0020000E"),
       acao: () => void escolherSeg(API.texto(x, "0020000E")) })),
   ], 0, 0, tr("Segmentação (SEG)"), bSeg);
+  // 0.100.112: como no Ipê de mesa, a segmentação da IA já aparece ao abrir o exame (a mais recente; os níveis da
+  // coluna e dos linfonodos são nomes, vêm pelo overlay). Não aparece se o médico ocultou o CAD/IA ou as SEG.
+  void ovPronto.then(() => {
+    if (segEscolhida || !ov.iaOn || ov.ocultos.has("SEG")) return;
+    const auto = [...segs].reverse().find((x) => !/Níveis /.test(API.texto(x, "0008103E")));
+    if (auto) void escolherSeg(API.texto(auto, "0020000E"));
+  });
 
   // ---------------------------------------------------------------- abas da direita
   let abaAtual: Aba = lerPreferencia<Aba>("aba", "Medidas");

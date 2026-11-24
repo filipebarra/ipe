@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.112 — Ipê Web: AI markings as in desktop Ipê
+- The **measurement lines** of the nasopharynx cephalometry and the skull indices (minimum area, soft palate, airway
+  space, hyoid, tongue; Evans and the others) show in Ipê Web, in any plane that contains the line — as in desktop
+  Ipê. Before, only the review image showed.
+- The **AI segmentation** (SEG) shows as soon as the study opens in Ipê Web (the most recent one), as in desktop Ipê;
+  before it only showed when the AI ran in the same session. It does not show if CAD/AI or SEGs are hidden; the
+  others are in the segmentation button.
+- Ipê Web's **Study link** moved into the send button (a menu with *Send to a DICOM destination…* and *Study link
+  (no password)…*): the extra button pushed others into » even on 1920 px screens.
+
 ## 0.100.111 — Batch on the client: the study comes as soon as it reaches the server
 - Spreadsheet batch on the Ipê client, with **Also bring the studies to this computer**: each study starts coming to
   this computer's database **as soon as it reaches the server from the PACS**, without waiting for the line's AIs,
