@@ -598,8 +598,17 @@ class Browser(QWidget):
         self.model.set_rows(rows)
         widths = self._settings_get("browser.column_widths", {}) or {}
         self._applying_columns = True
+        if self.current_list is not None:
+            # 0.100.114: na lista, as colunas são as do banco; na frente só o Nº, estreito, e o "Caso (lista)" só
+            # quando a lista tem nome de caso (antes as duas, largas, empurravam Séries, Imagens… para fora da tela)
+            self.table.setColumnHidden(KEY_INDEX["case_name"], not any(names.values()))
         for col, (key, _l, _k) in enumerate(COLUMNS):
             if self.table.isColumnHidden(col):
+                continue
+            if key in LIST_ONLY:
+                self.table.resizeColumnToContents(col)
+                self.table.setColumnWidth(col, max(36, min(self.table.columnWidth(col), 220 if key == "case_name"
+                                                           else 56)))
                 continue
             if key in widths:
                 self.table.setColumnWidth(col, int(widths[key]))
@@ -610,6 +619,7 @@ class Browser(QWidget):
         # colunas pularem (0.99.7)
         self._colunas_ajustadas = bool(self.model.rows)
         self._applying_columns = False
+        self.filter_header.adjust_positions()
         self._update_count()
 
     def _update_count(self) -> None:

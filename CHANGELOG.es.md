@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.114 — Listas de casos con las columnas de la base
+- Con una lista de casos abierta, la tabla queda como la de la base: las mismas columnas, en el mismo orden y ancho.
+  Delante solo el **Nº**, estrecho; **Caso (lista)** solo aparece cuando la lista tiene nombre de caso. Antes las
+  dos, anchas, empujaban Series, Imágenes y las demás fuera de la pantalla.
+- *La historia de Ipê* ganó la línea del tiempo: la primera línea de código se escribió el 18/09/2026.
+
 ## 0.100.113 — Olvidé el usuario o la contraseña
 - Ventana de inicio: **Olvidé el usuario o la contraseña…**. En el Ipê de **uso único** ("Solo yo uso esta
   computadora"), muestra la lista de usuarios y guarda una contraseña nueva (reactiva al usuario si estaba

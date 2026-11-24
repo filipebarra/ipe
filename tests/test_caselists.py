@@ -127,9 +127,23 @@ def test_browser_lists_ui(env, sample_dir):
     rows = [r for r in b.model.rows if r.accession in ("ACC3001", "ACC2001")]
     b._add_to_list(lid, "normal", rows)                      # como soltar exames arrastados na lista
     b.tree.rebuild(select=lid)
+    larguras = {k: b.table.columnWidth(i) for k, i in KEY_INDEX.items() if not b.table.isColumnHidden(i)}
+    hh = b.table.horizontalHeader()
+    ordem = sorted((hh.visualIndex(i), k) for k, i in KEY_INDEX.items() if not b.table.isColumnHidden(i))
     b._list_selected(lid)
-    assert b.model.rowCount() == 2 and not b.table.isColumnHidden(KEY_INDEX["case_name"])
+    assert b.model.rowCount() == 2
     assert {r.case_n for r in b.model.rows} == {1, 2}
+    # 0.100.114: na lista, as mesmas colunas do banco, na mesma ordem e largura; na frente só o Nº, estreito; o
+    # "Caso (lista)" só aparece quando a lista tem nome de caso
+    na_lista = sorted((hh.visualIndex(i), k) for k, i in KEY_INDEX.items() if not b.table.isColumnHidden(i))
+    tem_nome = any(r.case_name for r in b.model.rows)
+    assert [k for _v, k in na_lista] == ["case_n"] + (["case_name"] if tem_nome else []) + [k for _v, k in ordem]
+    assert all(b.table.columnWidth(KEY_INDEX[k]) == w_ for k, w_ in larguras.items())
+    assert b.table.columnWidth(KEY_INDEX["case_n"]) <= 56
+    it = repo.list_items(lid)[0]
+    repo.update_list_item(lid, it["study_uid"], friendly_name="Caso 1")
+    b.refresh()
+    assert not b.table.isColumnHidden(KEY_INDEX["case_name"])
     # pasta mostra os casos de todas as listas dentro dela
     b._list_selected(folder)
     assert b.model.rowCount() == 2

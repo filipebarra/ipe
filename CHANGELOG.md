@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.114 — Listas de casos com as colunas do banco
+- Com uma lista de casos aberta, a tabela fica como a do banco: as mesmas colunas, na mesma ordem e largura. Na
+  frente só o **Nº**, estreito; o **Caso (lista)** só aparece quando a lista tem nome de caso. Antes as duas, largas,
+  empurravam Séries, Imagens e as outras para fora da tela.
+- *A história do Ipê* ganhou a linha do tempo: a primeira linha de código foi escrita em 18/09/2026.
+
 ## 0.100.113 — Esqueci o usuário ou a senha
 - Janela de login: **Esqueci o usuário ou a senha…**. No Ipê de **uso único** ("Só eu uso este computador"), mostra
   a lista de usuários e grava uma senha nova (reativa o usuário, se estava desativado); fica na auditoria, com a

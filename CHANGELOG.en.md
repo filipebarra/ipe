@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.114 — Case lists with the database columns
+- With a case list open, the table looks like the database one: the same columns, in the same order and width. In
+  front only the narrow **No.**; **Case (list)** only shows when the list has case names. Before, both were wide and
+  pushed Series, Images and the others off the screen.
+- *The story of Ipê* got a timeline: the first line of code was written on 2026-09-18.
+
 ## 0.100.113 — Forgot username or password
 - Login window: **I forgot the username or password…**. In **single-user** Ipê ("Only I use this computer"), it
   shows the list of users and saves a new password (reactivating the user if deactivated); it is audited with the
