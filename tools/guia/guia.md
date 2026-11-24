@@ -2361,6 +2361,14 @@ Botão **Usuários**. Quatro perfis de fábrica — Administrador, Médico, Resi
 | Configurar rede, automação e preferências | as janelas de configuração |
 | Gerenciar usuários e ver o registro de acesso | administração |
 
+**Esqueci o usuário ou a senha (0.100.113).** Na janela de login, clique em *Esqueci o usuário ou a senha…*:
+
+- No Ipê de **uso único** ("Só eu uso este computador"), aparece a lista dos usuários: escolha o seu e grave uma senha nova. Quem abriu o Ipê já está na conta do Windows dona do banco, então a senha não protege nada além disso. A troca fica no registro de acesso.
+- Com **várias pessoas** ou no **servidor**, um administrador redefine em **Usuários**. Se ninguém lembra a senha de administrador, abra uma janela de comando na pasta do Ipê e rode `ipe-cli redefinir-senha` (lista os usuários) e `ipe-cli redefinir-senha <usuário>` (pede a senha nova duas vezes).
+- No **cliente**, a senha é do servidor central: o administrador dele redefine.
+
+Para começar do zero num computador sem exames, feche o Ipê e apague a pasta `%LOCALAPPDATA%\DicomViewer` (configurações, banco e exames). Na próxima abertura o Ipê pergunta de novo o modo de uso.
+
 ## Exportar
 
 **Arquivo ▸ Exportar…** (ou o botão **Exportar**) exporta o exame aberto ou os selecionados no banco:

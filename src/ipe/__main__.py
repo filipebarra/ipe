@@ -72,6 +72,8 @@ def _parser() -> argparse.ArgumentParser:
     dd = sub.add_parser("set-data-dir", help="pasta do banco deste computador (usado pelo instalador, 0.99.67)")
     dd.add_argument("folder")
     sub.add_parser("info", help="mostrar caminhos")
+    rs = sub.add_parser("redefinir-senha", help="redefinir a senha de um usuário deste computador (0.100.113)")
+    rs.add_argument("usuario", nargs="?", default="", help="sem usuário: mostra a lista")
     # 0.100.34: o banco principal no PostgreSQL (servidor sem janela, montado por roteiro)
     bc = sub.add_parser("banco", help="banco principal: o PostgreSQL do Ipê ou um servidor PostgreSQL próprio")
     bsub = bc.add_subparsers(dest="banco_cmd", required=True)
@@ -187,6 +189,47 @@ def _e_link(texto: str) -> bool:
     return e_link(texto)
 
 
+def _cmd_redefinir_senha(args) -> int:
+    """`ipe-cli redefinir-senha [usuário]` (0.100.113): no banco **deste computador** — quem roda o comando tem acesso
+    à pasta do banco. Não vale no modo cliente (a senha é do servidor central)."""
+    import getpass
+
+    from ipe.auth import modo as MODO
+    from ipe.auth import redefinir as RD
+    from ipe.core.config import Settings, get_paths
+    from ipe.db.repository import Repository
+    from ipe.db.session import Database
+    paths = get_paths()
+    st = Settings(paths.settings_file)
+    if MODO.modo_atual(st) == "cliente":
+        print("Este Ipê é cliente de um servidor central: a senha é do servidor. Rode o comando no servidor.",
+              file=sys.stderr)
+        return 2
+    repo = Repository(Database(paths.database))
+    lista = RD.usuarios(repo)
+    if not args.usuario:
+        if not lista:
+            print("Nenhum usuário cadastrado neste computador: o Ipê entra sem senha (ou pede para criar o "
+                  "administrador).")
+            return 0
+        print("Usuários deste computador:")
+        for u in lista:
+            print(f"  {u['username']:<20} {u['full_name']:<30} {u['role']:<12}{'' if u['active'] else ' (desativado)'}")
+        print("\nPara redefinir: ipe-cli redefinir-senha <usuário>")
+        return 0
+    nova = getpass.getpass("Senha nova: ")
+    if nova != getpass.getpass("Repita a senha: "):
+        print("As duas senhas não são iguais.", file=sys.stderr)
+        return 1
+    try:
+        r = RD.redefinir(repo, args.usuario, nova, MODO.conta_do_sistema(), origem="linha de comando")
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    print(f"Senha de {r['username']} redefinida." + (" O usuário voltou a ficar ativo." if r["reativado"] else ""))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     minimized = "--minimized" in argv
@@ -216,6 +259,9 @@ def main(argv: list[str] | None = None) -> int:
         s.save()
         print(f"Modo de acesso: {args.mode}")
         return 0
+
+    if args.cmd == "redefinir-senha":
+        return _cmd_redefinir_senha(args)
 
     if args.cmd == "set-language":
         from ipe.core import i18n

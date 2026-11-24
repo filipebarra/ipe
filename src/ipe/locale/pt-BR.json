@@ -8079,7 +8079,28 @@
   "passagem para o cliente; apaga depois",
   "passagem para o cliente; já estava aqui, fica",
   "Cada exame vem para este computador assim que chega ao servidor: deixe esta janela aberta enquanto o lote roda.",
-  "O lote continua no servidor, mas os exames só vêm para este computador com esta janela aberta. Fechar?\nAo abrir de novo com o mesmo nome, o que faltou vem."
+  "O lote continua no servidor, mas os exames só vêm para este computador com esta janela aberta. Fechar?\nAo abrir de novo com o mesmo nome, o que faltou vem.",
+  " O usuário voltou a ficar ativo.",
+  "(desativado: volta a ficar ativo)",
+  "A senha é do servidor central: peça ao administrador do Ipê do servidor para redefinir (Usuários).",
+  "As duas senhas não são iguais.",
+  "Esqueci o usuário ou a senha",
+  "Esqueci o usuário ou a senha…",
+  "Este Ipê é cliente de um servidor central: a senha é do servidor. Rode o comando no servidor.",
+  "Gravar a senha nova",
+  "Nenhum usuário cadastrado neste computador: o Ipê entra sem senha (ou pede para criar o administrador).",
+  "Neste computador várias pessoas usam o Ipê: um administrador redefine a senha em Usuários.\n\nSe ninguém lembra a senha de administrador, quem tem acesso a este computador roda, numa janela de comando na pasta do Ipê:\n\n    ipe-cli redefinir-senha <usuário>",
+  "Redefinir a senha",
+  "Repita a senha: ",
+  "Senha nova:",
+  "Senha nova: ",
+  "Senha redefinida. Entre com a senha nova.",
+  "Usuário não encontrado.",
+  "Usuários deste computador:",
+  "linha de comando",
+  "redefinir a senha de um usuário deste computador (0.100.113)",
+  "sem usuário: mostra a lista",
+  "text-align:left; text-decoration:underline"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -10300,6 +10321,9 @@
   "{} imagens neste computador — apagado do servidor",
   "{} imagens neste computador — não consegui avisar o servidor ({}); ficou lá também",
   "Exame {} neste computador.",
-  "Exame {}: não chegou inteiro a este computador; ficou no servidor."
+  "Exame {}: não chegou inteiro a este computador; ficou no servidor.",
+  "Este Ipê é de uso único neste computador (conta do Windows: {}). Escolha o usuário e crie uma senha nova.",
+  "Senha de {} redefinida.",
+  "pela {}; conta do sistema: {}"
  ]
 }

@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.113 — Forgot username or password
+- Login window: **I forgot the username or password…**. In **single-user** Ipê ("Only I use this computer"), it
+  shows the list of users and saves a new password (reactivating the user if deactivated); it is audited with the
+  Windows account. With several people or on the server, it explains the way (an administrator in Users); on a
+  client, the password belongs to the central server.
+- Command line: `ipe-cli redefinir-senha` lists the users on this computer and `ipe-cli redefinir-senha <user>` saves
+  a new password — for when nobody remembers the administrator password (any mode except client).
+
 ## 0.100.112 — Ipê Web: AI markings as in desktop Ipê
 - The **measurement lines** of the nasopharynx cephalometry and the skull indices (minimum area, soft palate, airway
   space, hyoid, tongue; Evans and the others) show in Ipê Web, in any plane that contains the line — as in desktop

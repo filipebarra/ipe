@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.113 — Olvidé el usuario o la contraseña
+- Ventana de inicio: **Olvidé el usuario o la contraseña…**. En el Ipê de **uso único** ("Solo yo uso esta
+  computadora"), muestra la lista de usuarios y guarda una contraseña nueva (reactiva al usuario si estaba
+  desactivado); queda en la auditoría, con la cuenta de Windows. Con varias personas o en el servidor, explica el
+  camino (un administrador en Usuarios); en el cliente, la contraseña es del servidor central.
+- Línea de comandos: `ipe-cli redefinir-senha` lista los usuarios de esta computadora e `ipe-cli redefinir-senha
+  <usuario>` guarda una contraseña nueva — para cuando nadie recuerda la contraseña de administrador (cualquier modo,
+  menos cliente).
+
 ## 0.100.112 — Ipê Web: las marcas de las IAs como en el Ipê de escritorio
 - Las **líneas de las medidas** de la cefalometría del cavum y de los índices del cráneo (área mínima, paladar,
   espacio aéreo, hioides, lengua; Evans y los demás) aparecen en Ipê Web, en cualquier plano que contenga la línea —

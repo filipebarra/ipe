@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.113 — Esqueci o usuário ou a senha
+- Janela de login: **Esqueci o usuário ou a senha…**. No Ipê de **uso único** ("Só eu uso este computador"), mostra
+  a lista de usuários e grava uma senha nova (reativa o usuário, se estava desativado); fica na auditoria, com a
+  conta do Windows. Com várias pessoas ou no servidor, explica o caminho (um administrador em Usuários); no cliente,
+  a senha é do servidor central.
+- Linha de comando: `ipe-cli redefinir-senha` lista os usuários deste computador e `ipe-cli redefinir-senha
+  <usuário>` grava uma senha nova — para quando ninguém lembra a senha de administrador (qualquer modo, menos cliente).
+
 ## 0.100.112 — Ipê Web: as marcações das IAs como no Ipê de mesa
 - As **linhas das medidas** da cefalometria do cavum e dos índices do crânio (área mínima, palato, espaço aéreo,
   hioide, língua; Evans e os outros) aparecem no Ipê Web, em qualquer plano que contenha a linha — como no Ipê de

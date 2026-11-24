@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QCheckBox, QDialog, QDialogButtonBox, QFormLayout, QLabel, QLineEdit, QMessageBox, QVBoxLayout,
+    QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QLabel, QLineEdit, QMessageBox, QPushButton,
+    QVBoxLayout,
 )
 
 from ipe import APP_NAME, NOT_FOR_DIAGNOSIS, __version__
 from ipe.auth.backend import AuthError
 from ipe.auth.passwords import password_problem
+from ipe.core.i18n import tr
 
 
 class FirstAdminDialog(QDialog):
@@ -83,7 +85,33 @@ class LoginDialog(QDialog):
             b = bb.addButton("Usar sem o servidor (modo local)", QDialogButtonBox.ResetRole)
             b.clicked.connect(self._local)
         lay.addWidget(bb)
+        # 0.100.113: esqueceu os dados de acesso
+        self.b_esqueci = QPushButton(tr("Esqueci o usuário ou a senha…"))
+        self.b_esqueci.setFlat(True)
+        self.b_esqueci.setStyleSheet("text-align:left; text-decoration:underline")
+        self.b_esqueci.clicked.connect(self._esqueci)
+        lay.addWidget(self.b_esqueci)
         (self.pw if last else self.user).setFocus()
+
+    def _esqueci(self) -> None:
+        from ipe.auth import redefinir as RD
+        onde = RD.onde_redefinir(self.auth, self.settings)
+        if onde == "servidor":
+            QMessageBox.information(self, tr("Esqueci o usuário ou a senha"), tr(
+                "A senha é do servidor central: peça ao administrador do Ipê do servidor para redefinir (Usuários)."))
+            return
+        if onde == "admin":
+            QMessageBox.information(self, tr("Esqueci o usuário ou a senha"), tr(
+                "Neste computador várias pessoas usam o Ipê: um administrador redefine a senha em Usuários.\n\n"
+                "Se ninguém lembra a senha de administrador, quem tem acesso a este computador roda, numa janela de "
+                "comando na pasta do Ipê:\n\n    ipe-cli redefinir-senha <usuário>"))
+            return
+        dlg = RedefinirSenhaDialog(self.auth.repo, self)
+        if dlg.exec() == QDialog.Accepted:
+            self.user.setText(dlg.usuario)
+            self.pw.setText("")
+            self.pw.setFocus()
+            self.msg.setText(tr("Senha redefinida. Entre com a senha nova."))
 
     def _local(self) -> None:
         if QMessageBox.question(self, "Modo local", "Trabalhar só com o banco deste computador (sem o servidor "
@@ -110,6 +138,58 @@ class LoginDialog(QDialog):
         if self.settings is not None:
             self.settings.set("auth.last_user", s.username)
             self.settings.save()
+        self.accept()
+
+
+class RedefinirSenhaDialog(QDialog):
+    """0.100.113: Ipê de uso único — escolher o usuário e gravar uma senha nova."""
+
+    def __init__(self, repo, parent=None):
+        super().__init__(parent)
+        from ipe.auth import modo as MODO
+        from ipe.auth import redefinir as RD
+        self.repo, self.usuario = repo, ""
+        self.setWindowTitle(tr("Redefinir a senha"))
+        lay = QVBoxLayout(self)
+        info = QLabel(tr("Este Ipê é de uso único neste computador (conta do Windows: {}). Escolha o usuário e "
+                         "crie uma senha nova.").format(MODO.conta_do_sistema() or "?"))
+        info.setWordWrap(True)
+        lay.addWidget(info)
+        f = QFormLayout()
+        self.c_user = QComboBox()
+        for u in RD.usuarios(repo):
+            rotulo = u["username"] + (f" — {u['full_name']}" if u["full_name"] else "")
+            if not u["active"]:
+                rotulo += " " + tr("(desativado: volta a ficar ativo)")
+            self.c_user.addItem(rotulo, u["username"])
+        self.pw1 = QLineEdit(echoMode=QLineEdit.Password)
+        self.pw2 = QLineEdit(echoMode=QLineEdit.Password)
+        f.addRow(tr("Usuário:"), self.c_user)
+        f.addRow(tr("Senha nova:"), self.pw1)
+        f.addRow(tr("Repita a senha:"), self.pw2)
+        lay.addLayout(f)
+        self.msg = QLabel("")
+        self.msg.setStyleSheet("color:#ff8080")
+        lay.addWidget(self.msg)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.button(QDialogButtonBox.Ok).setText(tr("Gravar a senha nova"))
+        bb.accepted.connect(self._ok)
+        bb.rejected.connect(self.reject)
+        lay.addWidget(bb)
+        self.pw1.setFocus()
+
+    def _ok(self) -> None:
+        from ipe.auth import modo as MODO
+        from ipe.auth import redefinir as RD
+        if self.pw1.text() != self.pw2.text():
+            self.msg.setText(tr("As duas senhas não são iguais."))
+            return
+        try:
+            r = RD.redefinir(self.repo, self.c_user.currentData(), self.pw1.text(), MODO.conta_do_sistema())
+        except ValueError as e:
+            self.msg.setText(tr(str(e)))
+            return
+        self.usuario = r["username"]
         self.accept()
 
 
