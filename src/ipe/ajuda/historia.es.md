@@ -12,6 +12,12 @@ Soy radiólogo, dedicado a la imagen mamaria, y entusiasta de la tecnología. Co
 
 Durante mucho tiempo ese deseo se quedó en ideas: sabía lo que quería en la pantalla, pero no podía convertirlo en programa por mi cuenta. La inteligencia artificial cambió eso. Hoy describo una necesidad de la práctica — "en la RM de mama, quiero el mapa cinético"; "en un cuadro vacío, déjame elegir la serie" — y **Claude**, de Anthropic, trabaja como un programador sénior: escribe el código, lo prueba y explica lo que hizo. Las decisiones clínicas, qué entra y cómo debe funcionar siguen siendo mías, al igual que la verificación en estudios reales.
 
+## Línea del tiempo
+
+- **18 de septiembre de 2026** — la primera línea de código, todavía con el nombre DicomViewer: un visor para Windows, con base de estudios y red DICOM.
+- **30 de octubre de 2026** — el programa se convierte en **Ipê** y el código va a GitHub, abierto, en la versión 0.99.11.
+- **Noviembre de 2026** — la base pasa a ser solo PostgreSQL, y las IAs pasan a correr en el servidor central, también para quien usa Ipê Web.
+
 ## A hombros de gigantes
 
 Ipê solo existe porque mucha gente compartió su trabajo en código abierto: bibliotecas de interfaz (Qt/PySide6), de DICOM (pydicom, pynetdicom, GDCM, pylibjpeg), de cálculo (NumPy) y de inteligencia artificial, como **TotalSegmentator**, además de muchas otras listadas en *Créditos y licencias*. Por eso Ipê también es abierto (GPL-3.0): para que otros puedan usarlo, estudiarlo, mejorarlo y devolver.

@@ -12,6 +12,12 @@ I am a radiologist dedicated to breast imaging and a technology enthusiast. Like
 
 For a long time that wish stayed an idea: I knew what I wanted on the screen, but I could not turn it into a program by myself. Artificial intelligence changed that. Today I describe a need from practice — "in breast MRI, I want the kinetic map"; "in an empty viewport, let me choose the series" — and **Claude**, from Anthropic, works like a senior programmer: it writes the code, tests it and explains what it did. The clinical decisions, what goes in and how it should work remain mine, as does the checking on real studies.
 
+## Timeline
+
+- **September 18, 2026** — the first line of code, still named DicomViewer: a viewer for Windows, with a study database and DICOM networking.
+- **October 30, 2026** — the program becomes **Ipê** and the code goes to GitHub, open source, at version 0.99.11.
+- **November 2026** — the database becomes PostgreSQL only, and the AIs run on the central server, also for Ipê Web users.
+
 ## On the shoulders of giants
 
 Ipê only exists because many people shared their work as open source: libraries for the interface (Qt/PySide6), for DICOM (pydicom, pynetdicom, GDCM, pylibjpeg), for computation (NumPy) and for artificial intelligence, such as **TotalSegmentator**, plus many others listed in *Credits and licenses*. That is why Ipê is open too (GPL-3.0): so that others can use, study, improve and give back.
