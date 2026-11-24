@@ -359,3 +359,43 @@ def test_exame_que_ja_estava_passa_pelas_regras_da_chegada(tmp_path):
     lote2.s.chegada = chegadas.append
     lote2.rodar()
     assert chegadas == []
+
+
+def test_baixado_avisa_antes_das_ias(tmp_path):
+    """0.100.111: `baixado(uid)` é chamado assim que o exame chega do PACS, antes das IAs (o cliente começa a
+    trazer o exame para o banco dele sem esperar a linha terminar)."""
+    cfg = L.Config(tolerancia_dias=1, nos=["pacs"], ias=["densidade"])
+    lote, d = _lote(tmp_path, cfg, [DADOS[1]])
+    ordem = []
+    ias = lote.s.ias
+    lote.s.baixado = lambda uid: ordem.append(("baixado", uid))
+    lote.s.ias = lambda uid, *a: ordem.append(("ias", uid)) or ias(uid, *a)
+    lote.rodar()
+    assert ordem == [("baixado", "U2"), ("ias", "U2")]
+
+
+def test_servidor_so_apaga_depois_da_copia_do_fim_da_linha():
+    """0.100.111: a cópia de logo depois do download não autoriza apagar; a do fim da linha, com as imagens todas,
+    sim; com menos imagens que o servidor, o servidor pede a cópia de novo."""
+    from types import SimpleNamespace
+
+    from ipe.central import lote_servidor as LS
+    apagados = []
+    contagem = {"U1": 12}
+    c = SimpleNamespace(repo=SimpleNamespace(instance_counts=lambda uids: {u: contagem.get(u, 0) for u in uids},
+                                             delete_study=lambda uid, st: apagados.append(uid)), storage=None)
+    s = SimpleNamespace(username="eu")
+    e = LS.Execucao("X1", "eu", "x", None)
+    LS._LOTES["X1"] = e
+    try:
+        e.para_copiar.append("U1")                                      # chegou ao servidor
+        assert LS.copiado(c, s, "X1", "U1", 10) == {"ok": True, "de_novo": True}   # faltam 2: de novo
+        assert "U1" not in e.copiados and "U1" in e.para_copiar
+        LS.copiado(c, s, "X1", "U1", 12)                                # a cópia antecipada, inteira
+        assert "U1" in e.copiados and not apagados
+        e.copiados.discard("U1")                                        # o fim da linha (so_depois_da_copia)
+        e.apagar_quando_copiar.add("U1")
+        LS.copiado(c, s, "X1", "U1", 12)
+        assert apagados == ["U1"]
+    finally:
+        LS._LOTES.pop("X1", None)

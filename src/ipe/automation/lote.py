@@ -335,6 +335,8 @@ class Servicos:
     #: 0.100.101: `chegada(study_uid)` — as regras da chegada (IA automática, roteamento, impressão) num exame que
     #: já estava no Ipê, como se tivesse acabado de ser baixado; None = não há
     chegada: callable = None
+    #: 0.100.111: `baixado(study_uid)` — o exame acabou de chegar do PACS (antes das IAs e envios); None = nada
+    baixado: callable = None
 
 
 @dataclass
@@ -598,6 +600,11 @@ class Lote:
                 if not ok:
                     return dict(e, situacao=SEM_DOWNLOAD, observacao=msg)
                 baixou = True
+                if self.s.baixado is not None:
+                    try:
+                        self.s.baixado(uid)
+                    except Exception:  # noqa: BLE001
+                        log.exception("lote: avisar que %s chegou", uid)
             if not baixou and self.cfg.regras_chegada and self.s.chegada is not None:
                 # 0.100.101, pedido dele: o exame que já estava no banco passa pelas regras de IA, envio e impressão
                 # da chegada, como se tivesse sido baixado (o baixado passa por elas ao terminar o download)

@@ -10790,5 +10790,9 @@
  "o cliente tem {} de {} imagens: fica no servidor": "the client has {} of {} images: it stays on the server",
  "{} imagens neste computador": "{} images on this computer",
  "{} imagens neste computador — apagado do servidor": "{} images on this computer — deleted from the server",
- "{} imagens neste computador — não consegui avisar o servidor ({}); ficou lá também": "{} images on this computer — could not notify the server ({}); it stayed there too"
+ "{} imagens neste computador — não consegui avisar o servidor ({}); ficou lá também": "{} images on this computer — could not notify the server ({}); it stayed there too",
+ "Cada exame vem para este computador assim que chega ao servidor: deixe esta janela aberta enquanto o lote roda.": "Each study comes to this computer as soon as it reaches the server: keep this window open while the batch runs.",
+ "O lote continua no servidor, mas os exames só vêm para este computador com esta janela aberta. Fechar?\nAo abrir de novo com o mesmo nome, o que faltou vem.": "The batch keeps running on the server, but studies only come to this computer while this window is open. Close?\nWhen you open it again with the same name, whatever is missing comes.",
+ "Exame {} neste computador.": "Study {} on this computer.",
+ "Exame {}: não chegou inteiro a este computador; ficou no servidor.": "Study {}: did not arrive whole on this computer; it stayed on the server."
 }

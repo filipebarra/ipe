@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.111 — Batch on the client: the study comes as soon as it reaches the server
+- Spreadsheet batch on the Ipê client, with **Also bring the studies to this computer**: each study starts coming to
+  this computer's database **as soon as it reaches the server from the PACS**, without waiting for the line's AIs,
+  sends and printing (before, it only came at the end of each line). At the end of the line, only what is missing
+  comes again (the AI series).
+- Deleting from the server only counts after that final copy, and the server checks the client's image count: if any
+  is missing, it asks for the copy again instead of deleting.
+- The batch log shows each study that reached this computer (or did not arrive whole). Closing the window while the
+  batch is bringing studies asks for confirmation: studies only come while the window is open.
+
 ## 0.100.110 — PACS: download straight to the client
 - Ipê client, **PACS** window: button and right-click **Download straight to the client**. The node sends to the central
   server, the server passes the study to this computer's database and **deletes its own copy once the whole study has

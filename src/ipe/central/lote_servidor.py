@@ -191,14 +191,18 @@ def iniciar(c, s, corpo: dict) -> dict:
                         for t in tipos}
             return recolher(uid, tipos, False, parar_)
         serv.ias = ias_pelo_cliente
+    if e.trazer:
+        # 0.100.111: o cliente começa a trazer o exame assim que ele chega do PACS ao servidor, sem esperar as IAs,
+        # os envios e a impressão da linha; no fim da linha traz de novo o que faltar (as séries das IAs)
+        def baixado(uid: str) -> None:
+            if uid not in e.para_copiar:
+                e.para_copiar.append(uid)
+        serv.baixado = baixado
     if e.trazer and cfg.apagar_depois:
-        apagar = serv.apagar
-
-        def so_depois_da_copia(uid: str) -> None:            # apaga quando o cliente disser que copiou
-            if uid in e.copiados:
-                apagar(uid)
-            else:
-                e.apagar_quando_copiar.add(uid)
+        def so_depois_da_copia(uid: str) -> None:
+            # só apaga depois da cópia feita **no fim da linha** (com os resultados das IAs): a cópia de antes não vale
+            e.copiados.discard(uid)
+            e.apagar_quando_copiar.add(uid)
         serv.apagar = so_depois_da_copia
     e.lote = L.Lote(cabecalho, dados, linhas, cfg, serv, pasta / "saida.xlsx", simular=simular,
                     limite=int(corpo.get("limite") or 0))
@@ -220,7 +224,9 @@ def iniciar(c, s, corpo: dict) -> dict:
             if x.get("observacao"):
                 partes.append(x["observacao"])
             if e.trazer and x.get("study_uid") and x.get("situacao") in (L.FEITO, L.FEITO_COM_FALHAS):
-                e.para_copiar.append(x["study_uid"])
+                e.copiados.discard(x["study_uid"])          # traz de novo o que mudou (IAs): o cliente só baixa o que falta
+                if x["study_uid"] not in e.para_copiar:
+                    e.para_copiar.append(x["study_uid"])
         e.anotar({"linha": linha.n + 2, "partes": [p for p in partes if p]})
 
     def rodar():
@@ -296,9 +302,21 @@ def ia_feita(c, s, ident: str, study_uid: str, ok: bool, mensagem: str = "") -> 
     return {"ok": True}
 
 
-def copiado(c, s, ident: str, study_uid: str) -> dict:
-    """O cliente copiou o exame para o banco dele: se o lote apaga o que baixou, agora pode."""
+def copiado(c, s, ident: str, study_uid: str, imagens: int = -1) -> dict:
+    """O cliente copiou o exame para o banco dele: se o lote apaga o que baixou, agora pode. 0.100.111: com o
+    número de imagens que o cliente tem, confere — se o servidor tem mais (as IAs gravaram séries depois da cópia),
+    pede a cópia de novo em vez de apagar."""
     e = _meu(c, s, ident)
+    if int(imagens) >= 0:
+        try:
+            aqui = int(c.repo.instance_counts([study_uid]).get(study_uid, 0) or 0)
+        except Exception:  # noqa: BLE001
+            aqui = 0
+        if int(imagens) < aqui:
+            e.copiados.discard(study_uid)
+            if study_uid not in e.para_copiar:
+                e.para_copiar.append(study_uid)
+            return {"ok": True, "de_novo": True}
     e.copiados.add(study_uid)
     if study_uid in e.apagar_quando_copiar:
         e.apagar_quando_copiar.discard(study_uid)
@@ -330,5 +348,5 @@ def rpc(c, s, method: str, args: list, kwargs: dict, host: str = ""):
         return ia_feita(c, s, arg(0, "ident", ""), arg(1, "study_uid", ""), bool(arg(2, "ok", False)),
                         arg(3, "mensagem", ""))
     if method == "lote_copiado":
-        return copiado(c, s, arg(0, "ident", ""), arg(1, "study_uid", ""))
+        return copiado(c, s, arg(0, "ident", ""), arg(1, "study_uid", ""), int(arg(2, "imagens", -1)))
     raise PermissionError(f"método não permitido: {method}")

@@ -37,6 +37,7 @@ PREVIA = 8              # linhas na prévia da planilha
 class _Sinais(QObject):
     linha = Signal(object, object, object)      # andamento, linha (ou None: esperando a janela), resultado
     fim = Signal(object, str)                   # andamento, erro
+    aviso = Signal(str)                         # 0.100.111: uma linha no diário vinda de outra linha de execução
 
 
 def duracao(s: float | None) -> str:
@@ -66,6 +67,7 @@ class LoteDialog(QDialog):
         self.remoto_id = ""
         self.remoto_desde = 0
         self.remoto_copiando: set[str] = set()
+        self.remoto_falhas: dict[str, int] = {}
         self.remoto_ia_rodando: set[str] = set()
         if self.remoto:
             try:
@@ -82,6 +84,7 @@ class LoteDialog(QDialog):
         self.sinais = _Sinais(self)
         self.sinais.linha.connect(self._andou)
         self.sinais.fim.connect(self._acabou)
+        self.sinais.aviso.connect(self.diario_anotar)
         self._combos_coluna: list[QComboBox] = []
 
         lay = QVBoxLayout(self)
@@ -794,9 +797,13 @@ class LoteDialog(QDialog):
             return
         self.remoto_id, self.remoto_desde, self.remoto_simular = r["id"], 0, simular
         self.remoto_copiando = set()
+        self.remoto_falhas = {}
         self.passos.setCurrentRow(4)
         self.diario.appendPlainText(tr("O lote roda no servidor central; esta janela acompanha (pode fechar e "
                                        "abrir de novo: mande com o mesmo nome para continuar)."))
+        if corpo.get("trazer"):
+            self.diario.appendPlainText(tr("Cada exame vem para este computador assim que chega ao servidor: deixe esta "
+                                           "janela aberta enquanto o lote roda."))
         if corpo["ia_no_cliente"]:
             self.diario.appendPlainText(tr("As IAs rodam neste computador e o resultado sobe ao servidor: deixe esta "
                                            "janela aberta enquanto o lote roda."))
@@ -838,6 +845,8 @@ class LoteDialog(QDialog):
                 self.remoto_ia_rodando.add(p["study_uid"])
                 threading.Thread(target=self._rodar_ia_aqui, args=(p,), name="lote-ia-aqui", daemon=True).start()
         for uid in e.get("para_copiar") or []:
+            if self.remoto_falhas.get(uid, 0) >= 2:      # 0.100.111: já tentou 2 rodadas; fica no servidor
+                continue
             if uid not in self.remoto_copiando:
                 self.remoto_copiando.add(uid)
                 threading.Thread(target=self._copiar, args=(uid,), name="lote-copiar", daemon=True).start()
@@ -886,25 +895,50 @@ class LoteDialog(QDialog):
         except Exception:  # noqa: BLE001
             log.exception("lote: avisar o servidor")
 
+    def diario_anotar(self, texto: str) -> None:
+        self.diario.appendPlainText(texto)
+
+    def _avisar(self, texto: str) -> None:
+        sinais = getattr(self, "sinais", None)
+        if sinais is not None:
+            sinais.aviso.emit(texto)
+
     def _copiar(self, uid: str) -> None:
         """Traz o exame do servidor para o banco deste computador e avisa o servidor — só quando chegou **inteiro**
-        (0.100.107: o servidor pode apagar o dele em seguida). Tenta de novo o que faltou, até 3 vezes."""
-        for tentativa in range(3):
-            if self.parar.is_set():
-                return
-            try:
-                th, _primeiro, _parar = self.repo.baixar_em_segundo_plano(uid)
-                th.join()
-                faltam = self.repo.missing_series(uid) if hasattr(self.repo, "missing_series") else (
-                    [] if self.repo.is_cached(uid) else ["?"])
-                if not faltam:
-                    self.repo.client.rpc("lote_copiado", self.remoto_id, uid)
+        (0.100.107: o servidor pode apagar o dele em seguida). Tenta de novo o que faltou, até 3 vezes.
+        0.100.111: começa assim que o exame chega ao servidor; no fim da linha o servidor pede de novo (só o que
+        faltar, como as séries das IAs); o andamento aparece no diário."""
+        ref = "…" + uid[-8:]
+        try:
+            for tentativa in range(3):
+                if self.parar.is_set():
                     return
-                log.warning("lote: %s chegou incompleto (%d série(s) faltando), tentativa %d", uid, len(faltam),
-                            tentativa + 1)
-            except Exception:  # noqa: BLE001
-                log.exception("lote: copiar %s para este computador", uid)
-        log.error("lote: %s não chegou inteiro a este computador; o servidor não apaga o dele", uid)
+                try:
+                    th, _primeiro, _parar = self.repo.baixar_em_segundo_plano(uid)
+                    th.join()
+                    faltam = self.repo.missing_series(uid) if hasattr(self.repo, "missing_series") else (
+                        [] if self.repo.is_cached(uid) else ["?"])
+                    if not faltam:
+                        try:
+                            n = int(self.repo.local.imagens_por_exame([uid]).get(uid, 0))
+                        except Exception:  # noqa: BLE001
+                            n = -1                         # não sei contar: o servidor confere pelas séries
+                        self.repo.client.rpc("lote_copiado", self.remoto_id, uid, n)
+                        self._avisar(tr("Exame {} neste computador.").format(ref))
+                        return
+                    log.warning("lote: %s chegou incompleto (%d série(s) faltando), tentativa %d", uid, len(faltam),
+                                tentativa + 1)
+                except Exception:  # noqa: BLE001
+                    log.exception("lote: copiar %s para este computador", uid)
+            log.error("lote: %s não chegou inteiro a este computador; o servidor não apaga o dele", uid)
+            falhas = getattr(self, "remoto_falhas", None)
+            if falhas is not None:
+                falhas[uid] = falhas.get(uid, 0) + 1
+            self._avisar(tr("Exame {}: não chegou inteiro a este computador; ficou no servidor.").format(ref))
+        finally:
+            copiando = getattr(self, "remoto_copiando", None)
+            if copiando is not None:
+                copiando.discard(uid)            # o servidor pode pedir de novo (fim da linha)
 
     def _baixar_saidas(self, e: dict) -> None:
         import base64
@@ -995,6 +1029,14 @@ class LoteDialog(QDialog):
                               + self._contagem(a.contagem if a else {}))
 
     def closeEvent(self, e) -> None:
+        trazendo = getattr(self, "remoto_id", None) and self._timer_remoto.isActive() and self.k_trazer.isChecked()
+        if trazendo:
+            r = QMessageBox.question(self, self.windowTitle(), tr("O lote continua no servidor, mas os exames só vêm para "
+                                                                  "este computador com esta janela aberta. Fechar?\n"
+                                                                  "Ao abrir de novo com o mesmo nome, o que faltou vem."))
+            if r != QMessageBox.Yes:
+                e.ignore()
+                return
         if self.linha_de_fundo is not None and self.linha_de_fundo.is_alive():
             r = QMessageBox.question(self, self.windowTitle(), tr("O lote está rodando. Parar e fechar?\nO que já foi "
                                                                   "feito fica gravado; dá para continuar depois."))

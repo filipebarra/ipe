@@ -10790,5 +10790,9 @@
  "o cliente tem {} de {} imagens: fica no servidor": "el cliente tiene {} de {} imágenes: queda en el servidor",
  "{} imagens neste computador": "{} imágenes en esta computadora",
  "{} imagens neste computador — apagado do servidor": "{} imágenes en esta computadora — borrado del servidor",
- "{} imagens neste computador — não consegui avisar o servidor ({}); ficou lá também": "{} imágenes en esta computadora — no pude avisar al servidor ({}); quedó allí también"
+ "{} imagens neste computador — não consegui avisar o servidor ({}); ficou lá também": "{} imágenes en esta computadora — no pude avisar al servidor ({}); quedó allí también",
+ "Cada exame vem para este computador assim que chega ao servidor: deixe esta janela aberta enquanto o lote roda.": "Cada estudio viene a esta computadora en cuanto llega al servidor: deje esta ventana abierta mientras el lote se ejecuta.",
+ "O lote continua no servidor, mas os exames só vêm para este computador com esta janela aberta. Fechar?\nAo abrir de novo com o mesmo nome, o que faltou vem.": "El lote sigue en el servidor, pero los estudios solo vienen a esta computadora con esta ventana abierta. ¿Cerrar?\nAl abrirla de nuevo con el mismo nombre, lo que faltó viene.",
+ "Exame {} neste computador.": "Estudio {} en esta computadora.",
+ "Exame {}: não chegou inteiro a este computador; ficou no servidor.": "Estudio {}: no llegó entero a esta computadora; quedó en el servidor."
 }

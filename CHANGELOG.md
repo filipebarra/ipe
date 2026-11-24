@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.111 — Lote no cliente: o exame vem assim que chega ao servidor
+- Lote a partir de planilha no Ipê cliente, com **Trazer os exames também para este computador**: cada exame começa a
+  vir para o banco deste computador **assim que chega do PACS ao servidor**, sem esperar as IAs, envios e impressão
+  da linha (antes só vinha no fim de cada linha). No fim da linha vem de novo só o que faltar (as séries das IAs).
+- O apagar do servidor só vale depois dessa cópia final, e o servidor confere o número de imagens do cliente: se
+  faltar alguma, pede a cópia de novo em vez de apagar.
+- O diário do lote mostra cada exame que chegou a este computador (ou que não chegou inteiro). Fechar a janela com o
+  lote trazendo exames pede confirmação: os exames só vêm com a janela aberta.
+
 ## 0.100.110 — PACS: baixar direto para o cliente
 - Ipê cliente, janela **PACS**: botão e botão direito **Baixar direto para o cliente**. O nó manda ao servidor central,
   o servidor passa o exame para o banco deste computador e **apaga a cópia dele quando o exame chega inteiro aqui**

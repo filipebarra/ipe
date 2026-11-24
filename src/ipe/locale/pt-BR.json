@@ -8077,7 +8077,9 @@
   "o exame não chegou inteiro a este computador; ficou no servidor",
   "trazendo do servidor para este computador…",
   "passagem para o cliente; apaga depois",
-  "passagem para o cliente; já estava aqui, fica"
+  "passagem para o cliente; já estava aqui, fica",
+  "Cada exame vem para este computador assim que chega ao servidor: deixe esta janela aberta enquanto o lote roda.",
+  "O lote continua no servidor, mas os exames só vêm para este computador com esta janela aberta. Fechar?\nAo abrir de novo com o mesmo nome, o que faltou vem."
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -10296,6 +10298,8 @@
   "o cliente tem {} de {} imagens: fica no servidor",
   "{} imagens neste computador",
   "{} imagens neste computador — apagado do servidor",
-  "{} imagens neste computador — não consegui avisar o servidor ({}); ficou lá também"
+  "{} imagens neste computador — não consegui avisar o servidor ({}); ficou lá também",
+  "Exame {} neste computador.",
+  "Exame {}: não chegou inteiro a este computador; ficou no servidor."
  ]
 }

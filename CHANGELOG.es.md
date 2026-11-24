@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.111 — Lote en el cliente: el estudio viene en cuanto llega al servidor
+- Lote desde planilla en el Ipê cliente, con **Traer los estudios también a esta computadora**: cada estudio empieza
+  a venir a la base de esta computadora **en cuanto llega del PACS al servidor**, sin esperar las IAs, envíos e
+  impresión de la línea (antes solo venía al final de cada línea). Al final de la línea viene de nuevo solo lo que
+  falte (las series de las IAs).
+- El borrado del servidor solo vale después de esa copia final, y el servidor confiere el número de imágenes del
+  cliente: si falta alguna, pide la copia de nuevo en vez de borrar.
+- El diario del lote muestra cada estudio que llegó a esta computadora (o que no llegó entero). Cerrar la ventana
+  con el lote trayendo estudios pide confirmación: los estudios solo vienen con la ventana abierta.
+
 ## 0.100.110 — PACS: descargar directo al cliente
 - Ipê cliente, ventana **PACS**: botón y clic derecho **Descargar directo al cliente**. El nodo envía al servidor
   central, el servidor pasa el estudio a la base de esta computadora y **borra su copia cuando el estudio llega entero

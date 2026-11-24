@@ -173,9 +173,9 @@ def test_cliente_so_avisa_a_copia_quando_chega_inteiro():
 
         def is_cached(self, uid):
             return True
-    eu = SimpleNamespace(repo=Repo(), parar=threading.Event(), remoto_id="L1")
+    eu = SimpleNamespace(repo=Repo(), parar=threading.Event(), remoto_id="L1", _avisar=lambda t: None)
     LoteDialog._copiar(eu, "1.2.3")
-    assert avisos == [("lote_copiado", "L1", "1.2.3")] and not faltas      # na 3ª tentativa
+    assert avisos == [("lote_copiado", "L1", "1.2.3", -1)] and not faltas      # na 3ª tentativa
     avisos.clear()
     faltas.extend([["s1"]] * 3)
     LoteDialog._copiar(eu, "1.2.3")
