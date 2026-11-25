@@ -3,6 +3,25 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.119 — Breast dynamic: align the phases (motion correction)
+- New AI **Breast dynamic: align the phases**: aligns the phases of the dynamic breast MR to each other **in 3D**
+  (elastix groupwise deformable registration, the method of the old *dce-align* project, now with all slices
+  together instead of one by one) and **saves in the study itself** the aligned phases ("Aligned dynamic 1…N · Ipê")
+  and the post − pre **subtractions**. The original is untouched and the new images say in their header that they are
+  AI-aligned, not an acquisition.
+- **It only saves when worthwhile**: the registration measures how much of the |post − pre| residual it removed
+  (contrast enhancement stays; only misalignment goes). Below the limit (default 12%) the study is left as is. When
+  requested by hand it always saves.
+- Runs **on the server when the study arrives** (turn it on in Preferences ▸ CAD/AI ▸ *Breast dynamic: align the
+  phases*; off by default) and **by hand** from the AI menu of the database and of Ipê Web. One at a time; redoing
+  replaces the previous one.
+- Preferences: motion limit, save subtractions or not, deformation grid (32 mm) and destination nodes.
+- **Separate install**: Settings ▸ CAD/AI ▸ *Install the breast dynamic alignment (elastix, ~1.5 GB)…*. elastix lives
+  in its own environment; nothing else changes.
+- Limits of this version: tested on synthetic studies (motion was simulated), **not yet on real studies** — always
+  compare with the original; MR in multiframe (Enhanced) files is not supported yet; uses 1–2 GB of memory during
+  registration; the aligned series are kept apart (the Dynamic window does not use them by itself yet).
+
 ## 0.100.118 — English (and Spanish) review of every screen
 - **Every window, menu, message and AI notice** was checked with the program in English: about 270 texts that still
   came out in Portuguese were translated (AI completion and error messages, PI-RADS sentences, batch from

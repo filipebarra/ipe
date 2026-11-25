@@ -97,6 +97,7 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         # página dela) — pedido dele: "coloque no menu as ias que temos para acessar mais rápido as configurações"
         ("Instalar a segmentação de órgãos (TotalSegmentator)…", "f:instalar_segmentacao", "configure"),
         ("Instalar os modelos extras (MedSAM2, autoPET, BraTS, FLAMeS, medula)…", "f:instalar_modelos_extras", "configure"),
+        ("Instalar o alinhamento da dinâmica da mama (elastix, ~1,5 GB)…", "f:instalar_dce", "configure"),
         ("Modelos de pesquisa — próstata: zonas e PI-CAI (licença não comercial)…", "f:instalar_modelos_pesquisa",
          "configure"),
     ])),

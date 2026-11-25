@@ -152,7 +152,7 @@ def abrir_instalador(janela, perguntar: bool = True) -> bool:
     return True
 
 
-def abrir_instalador_extras(janela, modelos=(), settings=None, perguntar: bool = True) -> bool:
+def abrir_instalador_extras(janela, modelos=(), settings=None, perguntar: bool = True, texto: str = "") -> bool:
     """0.99.83: MedSAM2, autoPET e BraTS — numa janela de console própria, com o Python da segmentação."""
     from ipe.ai import extras as EX
     cmd = EX.comando_do_instalador(modelos, settings)
@@ -163,7 +163,7 @@ def abrir_instalador_extras(janela, modelos=(), settings=None, perguntar: bool =
             abrir_instalador(janela, perguntar=False)
         return False
     if perguntar:
-        texto = ("Instala no ambiente da segmentação (uma vez, com internet):\n\n"
+        texto = texto or ("Instala no ambiente da segmentação (uma vez, com internet):\n\n"
                  "• MedSAM2 — segmentar qualquer lesão por uma caixa (156 MB);\n"
                  "• autoPET — lesões no PET-FDG, para o volume metabólico (MTV) e a TLG (o modelo do Zenodo);\n"
                  "• BraTS — glioma na RM: captante, necrose e edema (19 MB);\n"

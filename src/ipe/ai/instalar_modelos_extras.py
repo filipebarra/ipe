@@ -56,6 +56,8 @@ PICAI_TREINADORES = {
     "nnUNetTrainerV2_Loss_FL_and_CE.py": "training/network_training",
 }
 PESQUISA = ("prostata_zonas", "picai")
+#: 0.100.119: só quando pedidos pelo nome (o ambiente do elastix tem ~1,5 GB)
+OPCIONAIS = ("dce",)
 #: 0.100.82: o PyTorch de CPU (Linux e Windows); no macOS o do PyPI já é o certo
 INDICE_CPU = "https://download.pytorch.org/whl/cpu"
 #: 0.100.82: o par torch + torchvision abre e roda um operador de verdade (o nms é o que quebra quando não combinam)
@@ -288,6 +290,26 @@ def prostata_zonas() -> None:
         raise RuntimeError("o arquivo baixado não é um checkpoint de pesos válido (apagado)")
 
 
+def dce() -> None:
+    """0.100.119: o ambiente do alinhamento da dinâmica da mama — itk-elastix (Apache-2.0) num venv só dele."""
+    print("\n[DCE] alinhamento da dinâmica da mama (registro conjunto, elastix) — ambiente de ~1,5 GB", flush=True)
+    base = pasta_pesos().parent / "venv_dce"
+    py = base / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    if not py.is_file():
+        print("  criando o ambiente em", base, flush=True)
+        r = subprocess.run([sys.executable, "-m", "venv", str(base)])
+        if r.returncode != 0 or not py.is_file():
+            raise RuntimeError("não consegui criar o ambiente (venv)")
+    for args in (["--upgrade", "pip"], ["itk-elastix", "numpy"]):
+        print("  pip install", " ".join(args), flush=True)
+        if subprocess.run([str(py), "-m", "pip", "install", *args]).returncode != 0:
+            raise RuntimeError("o pip falhou (veja as mensagens acima)")
+    teste = ("import itk, numpy as np; p = itk.ParameterObject.New(); "
+             "p.GetDefaultParameterMap('groupwise'); print('  itk-elastix ok, ITK', itk.Version.GetITKVersion())")
+    if subprocess.run([str(py), "-c", teste]).returncode != 0:
+        raise RuntimeError("o itk-elastix não abriu no ambiente novo")
+
+
 def picai() -> None:
     """0.100.79: PI-CAI baseline (nnU-Net 1.7) num ambiente só dele; os pesos de um fold, conferidos pelo SHA-256."""
     print("\n[PI-CAI] lesões da próstata — MODELO DE PESQUISA (pesos CC BY-NC-SA 4.0: não clínico, não comercial)",
@@ -344,12 +366,12 @@ def picai() -> None:
 
 
 PASSOS = {"medsam2": medsam2, "autopet": autopet, "brats": brats, "flames": flames, "medula": medula,
-          "prostata_zonas": prostata_zonas, "picai": picai}
+          "prostata_zonas": prostata_zonas, "picai": picai, "dce": dce}
 
 
 def main(argv: list[str]) -> int:
     # "todos" são só os comuns: os de pesquisa precisam ser pedidos pelo nome E com o aceite da licença
-    pedidos = [a for a in argv if a in PASSOS] or [p for p in PASSOS if p not in PESQUISA]
+    pedidos = [a for a in argv if a in PASSOS] or [p for p in PASSOS if p not in PESQUISA and p not in OPCIONAIS]
     if any(p in PESQUISA for p in pedidos) and ACEITE not in argv:
         print("[ERRO] os modelos de pesquisa (" + ", ".join(p for p in pedidos if p in PESQUISA) + ") só instalam "
               "depois de aceita a licença no Ipê (uso em pesquisa e ensino, não clínico, não comercial).", flush=True)

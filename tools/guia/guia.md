@@ -731,6 +731,18 @@ Botão **Dinâmica** na barra. A janela de parâmetros mostra as séries que ele
 
 Os valores ficam guardados: o próximo exame abre com os últimos que você usou.
 
+### Alinhar as fases (correção de movimento)
+
+Quando a paciente se mexe ou respira entre as fases, a subtração mostra um "fantasma" nas bordas. A IA **Dinâmica da mama: alinhar as fases** corrige isso **em 3D**: alinha todas as fases entre si (registro conjunto e deformável do elastix) e grava **no próprio exame** as fases alinhadas (*Dinâmica alinhada 1…N · Ipê*) e as subtrações pós − pré (*Subtração alinhada…*). A série original não é tocada, e as imagens novas dizem no cabeçalho que foram alinhadas por IA.
+
+- **Instalar (uma vez)**: Configurações ▸ CAD/IA ▸ *Instalar o alinhamento da dinâmica da mama (elastix, ~1,5 GB)…*. Precisa da internet e de espaço em disco; fica num ambiente só dele.
+- **Fazer à mão**: no banco, menu **IA** do exame (ou o menu IA do Ipê Web) ▸ *Dinâmica da mama: alinhar as fases*. A tarefa aparece na fila de IA; leva alguns minutos e usa de 1 a 2 GB de memória.
+- **Fazer sozinho na chegada**: Preferências ▸ CAD/IA ▸ *Dinâmica da mama: alinhar as fases* ▸ *Alinhar automaticamente quando a RM de mama dinâmica chegar* (vem desligado). Roda no servidor, um exame de cada vez.
+- **Só quando vale a pena**: o programa mede quanto do resíduo |pós − pré| o registro tirou — o realce pelo contraste fica, só o desalinhamento sai. Se tirou menos que o limite (padrão 12%), nada é gravado e o exame fica como estava. Pedida à mão, ela grava sempre.
+- Outras opções: gravar ou não as subtrações, a malha da deformação (32 mm corrige respiração e movimento do corpo; menor corrige mais fino e demora mais) e os nós para onde enviar o resultado.
+- **Refazer** troca a dinâmica alinhada anterior. Para ver, abra as séries *Dinâmica alinhada* e *Subtração alinhada* do exame; a janela Dinâmica ainda não as usa sozinha.
+- **Cuidado**: confira sempre com a original. Esta versão foi testada em exames sintéticos; RM em arquivo multiframe (Enhanced) ainda não é suportada.
+
 ### Os mapas
 
 | Mapa | O que mostra |

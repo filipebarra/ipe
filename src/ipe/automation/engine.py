@@ -30,7 +30,8 @@ QUIET_SECONDS = 15          # exame "terminou de chegar" depois deste tempo sem 
 #: 0.100.106: as IAs de mamografia que se pedem à mão (Ipê Web, botão direito ▸ IA no banco)
 MAMA_TIPOS = {"mama_densidade": "Densidade mamária (BI-RADS)",
               "mama_calc": "Calcificações vasculares da mama",
-              "mama_implante": "Implante de silicone: tirar o silicone"}
+              "mama_implante": "Implante de silicone: tirar o silicone",
+              "mama_dce": "Dinâmica da mama: alinhar as fases"}               # 0.100.119: RM, não mamografia
 TITULO_IMPLANTE = "Implante de silicone"
 _MAMA_MANUAL = threading.Lock()
 
@@ -64,6 +65,7 @@ class AutomationEngine(QObject):
         self._recent_prefetch: dict[str, float] = {}  # estudo -> quando buscou anteriores
         self._job_tags: dict[int, dict] = {}          # tarefa de download -> o que fazer ao terminar
         self._implante_rodando: set[str] = set()      # exames com a correção do implante em curso
+        self._dce_rodando: set[str] = set()           # 0.100.119: exames com o alinhamento da dinâmica em curso
         self._seg_fila: list[tuple] = []               # (exame, "abdome"|"coluna") esperando o TotalSegmentator
         self._seg_tarefas: dict[tuple, int] = {}       # (exame, tipo) -> id em ai/tarefas.REGISTRO (0.99.32)
         self._seg_simular = False                      # testes: o trabalhador devolve rótulos conhecidos
@@ -332,6 +334,7 @@ class AutomationEngine(QObject):
                 self.repo.add_job_run("route", r["name"], "error", 0, str(e), r["id"])
         self.prefetch(study_uid, "receive")
         self.precalcular_dinamica(study_uid, info)
+        self.alinhar_dinamica(study_uid, info)
         self.corrigir_implantes(study_uid, info)
         self.mama_ia(study_uid, info)
         self.conferir_protocolo(study_uid, info)
@@ -432,8 +435,10 @@ class AutomationEngine(QObject):
     def _ferramentas_mama(self, study_uid: str, ativas: set) -> list[dict]:
         """Densidade, calcificações vasculares e "tirar o silicone" na lista de IAs do exame com MG."""
         info = self.repo.study_info(study_uid) or {}
-        if "MG" not in str(info.get("modalities") or "").upper():
-            return []
+        mods = str(info.get("modalities") or "").upper()
+        out = self._ferramenta_dce(study_uid, ativas) if "MR" in mods else []
+        if "MG" not in mods:
+            return out
         from ipe.ai import calc_vascular as C
         from ipe.ai import densidade_nyu as N
         from ipe.automation import implante as IMP
@@ -442,8 +447,9 @@ class AutomationEngine(QObject):
         mg = [s for s in self.repo.series_for_study(study_uid)
               if (s.modality or "").upper() == "MG" and not M.serie_sem_implante(s.description)]
         serie = mg[0].series_uid if mg else None
-        out = []
         for tipo, titulo in MAMA_TIPOS.items():
+            if tipo == "mama_dce":
+                continue
             motivo, feita = "", False
             try:
                 if tipo == "mama_densidade":
@@ -463,11 +469,23 @@ class AutomationEngine(QObject):
                         "andando": (TITULO_IMPLANTE if tipo == "mama_implante" else titulo) in ativas})
         return out
 
+    def _ferramenta_dce(self, study_uid: str, ativas: set) -> list[dict]:
+        """0.100.119: "Dinâmica da mama: alinhar as fases" na lista de IAs dos exames de RM."""
+        from ipe.ai import dce_alinhar as DCE
+        serie, motivo = DCE.escolher_serie(self.repo, study_uid, self.settings)
+        return [{"tipo": "mama_dce", "titulo": DCE.TITULO, "serie": serie, "motivo": "" if serie else motivo,
+                 "ja_feita": bool(serie) and DCE.ja_feita(self.repo, study_uid), "andando": DCE.TITULO in ativas}]
+
     def _pedir_mama(self, study_uid: str, tipo: str, quem: str) -> int:
         from ipe.ai import tarefas as TA
         titulo = MAMA_TIPOS[tipo]
         if titulo in {t.ferramenta for t in TA.REGISTRO.ativas(study_uid)}:
             raise ValueError(f"{titulo} já está na fila ou rodando neste exame")
+        if tipo == "mama_dce":
+            tid = self.alinhar_dinamica(study_uid, forcar=True, quem=quem)
+            if not tid:
+                raise ValueError("o exame não tem uma dinâmica de RM ou o alinhamento já está rodando")
+            return tid
         if tipo == "mama_implante":
             tid = self.corrigir_implantes(study_uid, forcar=True, quem=quem)
             if not tid:
@@ -491,6 +509,68 @@ class AutomationEngine(QObject):
                                   mensagem="; ".join(out.get("erros") or []) or MA.resumo(out))
                 if out.get("densidade") or out.get("calc_vascular"):
                     self._mama_medida_na_linha(study_uid, out, False)
+            self.changed.emit()
+
+        self.net.run_async(trabalho, pronto)
+        return tid
+
+    # ------------------------------------------------------------ 0.100.119: dinâmica da mama alinhada
+    def alinhar_dinamica(self, study_uid: str, info: dict | None = None, forcar: bool = False,
+                         quem: str = "") -> int:
+        """RM de mama dinâmica: alinha as fases (elastix, em 3D) e grava as fases alinhadas e as subtrações no exame.
+
+        Na chegada só roda com a opção ligada (Configurações ▸ CAD/IA), o ambiente instalado e movimento que valha
+        corrigir; `forcar` (pedida à mão) roda sempre e refaz. Uma por vez. Devolve o número da tarefa (0 = não)."""
+        from ipe.ai import dce_alinhar as DCE
+        from ipe.ai import tarefas as TA
+        if (not forcar and not DCE.ligado(self.settings)) or study_uid in self._dce_rodando:
+            return 0
+        info = info if info is not None else self.repo.study_info(study_uid)
+        if info is None or not DCE.exame_serve(info, self.settings):
+            return 0
+        ok, motivo = DCE.disponivel(self.settings)
+        if not ok:
+            if forcar:
+                raise ValueError(motivo)
+            return 0
+        if not forcar and DCE.ja_feita(self.repo, study_uid):
+            return 0
+        if not forcar and len(DCE.fases_do_exame(self.repo, study_uid)) < DCE.MIN_FASES:
+            return 0
+        self._dce_rodando.add(study_uid)
+        inicio = datetime.now()
+        nome = f"{info.get('patient_name', '')} {info.get('description', '')}".strip()
+        origem = (f"manual · {quem}" if quem else "manual") if forcar else "automática"
+        parar = threading.Event()
+        tid = TA.REGISTRO.nova(DCE.TITULO, study_uid, nome, origem, TA.FILA, cancelar=parar.set).id
+        repo, db, storage, settings = self.repo, self.db, self.paths.storage, self.settings
+
+        def trabalho():
+            with DCE.TRAVA:                       # uma de cada vez: o registro usa a CPU e vários GB de memória
+                if parar.is_set():
+                    raise DCE.Cancelado()
+                TA.REGISTRO.mudar(tid, TA.RODANDO, etapa="começando")
+                return DCE.processar(repo, db, storage, study_uid, settings, forcar=forcar, cancelar=parar,
+                                     progresso=lambda e: TA.REGISTRO.mudar(tid, etapa=e), travar=False)
+
+        def pronto(out, err) -> None:
+            self._dce_rodando.discard(study_uid)
+            if isinstance(err, DCE.Cancelado):
+                TA.REGISTRO.mudar(tid, TA.CANCELADO, mensagem="cancelada")
+            elif err is not None:
+                TA.REGISTRO.mudar(tid, TA.ERRO, mensagem=str(err))
+                self.repo.add_job_run("dce_alinhar", "Dinâmica alinhada na chegada", "error", 0, f"{nome}: {err}",
+                                      None, inicio)
+            else:
+                TA.REGISTRO.mudar(tid, TA.PRONTO if out.get("geradas") else TA.VAZIO, mensagem=DCE.resumo(out))
+                if out.get("geradas") or out.get("sem_movimento"):
+                    self.repo.add_job_run("dce_alinhar", "Dinâmica alinhada na chegada",
+                                          "ok" if out.get("geradas") else "vazio", out.get("geradas", 0),
+                                          f"{nome}: {DCE.resumo(out)}", None, inicio)
+                if out.get("geradas"):
+                    from ipe.automation import destinos as DEST
+                    DEST.enviar(self.net, self.repo, study_uid, out.get("series"),
+                                DCE.config(settings, DCE.CHAVE_DESTINOS), f"Dinâmica alinhada: {nome}")
             self.changed.emit()
 
         self.net.run_async(trabalho, pronto)

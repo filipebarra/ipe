@@ -283,7 +283,7 @@ def test_layout_lista_a_esquerda_configuracoes_a_direita(env):
     pai.repo = repo
     d = PreferencesDialog(_settings(paths), pai)
     c = d.cad_ia
-    assert c.l_ferramentas.count() == 23 and c.painel.count() == 23       # 0.100.79: + próstata e PI-CAI; + densidade e calcificações (0.100.57), medula, FLAMeS, T1 sintético, aorta, cálcio, carga PET, coluna, cefalometria, crânio, linfonodos, nódulos, composição, fígado na RM, enfisema, Genant, lesões hepáticas, autoPET, BraTS
+    assert c.l_ferramentas.count() == 24 and c.painel.count() == 24       # 0.100.119: + dinâmica da mama alinhada; 0.100.79: + próstata e PI-CAI; + densidade e calcificações (0.100.57), medula, FLAMeS, T1 sintético, aorta, cálcio, carga PET, coluna, cefalometria, crânio, linfonodos, nódulos, composição, fígado na RM, enfisema, Genant, lesões hepáticas, autoPET, BraTS
     assert c.l_ferramentas.item(0).text().startswith("Segmentação abdominal")
     assert "só à mão" in c.l_ferramentas.item(0).text() and "automático" in c.l_ferramentas.item(2).text()
     c.c_seg_auto.setChecked(True)

@@ -3,6 +3,24 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.119 — Dinâmica da mama: alinhar as fases (correção de movimento)
+- Nova IA **Dinâmica da mama: alinhar as fases**: alinha entre si, **em 3D**, as fases da RM de mama dinâmica
+  (registro conjunto e deformável do elastix, o método do projeto antigo *dce-align*, agora com os cortes em
+  conjunto, não um a um) e **grava no próprio exame** as fases alinhadas ("Dinâmica alinhada 1…N · Ipê") e as
+  **subtrações** pós − pré ("Subtração alinhada…"). A original não é tocada e as imagens novas dizem, no cabeçalho,
+  que são alinhadas por IA e não aquisição.
+- **Só grava quando vale a pena**: o registro mede quanto do resíduo |pós − pré| ele conseguiu tirar (o realce pelo
+  contraste fica; só o desalinhamento sai). Abaixo do limite (padrão 12%) o exame é deixado como está. Pedida à mão,
+  ela grava sempre.
+- Roda **no servidor, quando o exame chega** (liga em Preferências ▸ CAD/IA ▸ *Dinâmica da mama: alinhar as fases*;
+  vem desligada) e **à mão** pelo menu IA do banco e do Ipê Web. Uma de cada vez; refazer troca a anterior.
+- Preferências: limite de movimento, gravar ou não as subtrações, malha da deformação (32 mm) e nós de destino.
+- **Instalação à parte**: Configurações ▸ CAD/IA ▸ *Instalar o alinhamento da dinâmica da mama (elastix, ~1,5 GB)…*.
+  O elastix fica num ambiente só dele; o resto do programa não muda.
+- Limites desta versão: testada em exames sintéticos (o movimento foi simulado), ainda **não em exames reais** —
+  confira sempre com a original; RM em arquivo multiframe (Enhanced) ainda não é suportada; usa de 1 a 2 GB de
+  memória durante o registro; as séries alinhadas ficam à parte (a janela Dinâmica ainda não as usa sozinha).
+
 ## 0.100.118 — Revisão do inglês (e do espanhol) em todas as telas
 - Conferência de **todas as janelas, menus, mensagens e avisos das IAs** com o programa em inglês: cerca de 270
   textos que ainda saíam em português foram traduzidos (mensagens de conclusão e de erro das IAs, frases do PI-RADS,

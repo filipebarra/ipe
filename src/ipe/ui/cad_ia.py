@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from ipe.ai import cefalometria as CF
 from ipe.ai import coluna as COL
+from ipe.ai import dce_alinhar as DCE
 from ipe.ai import linfonodos as LN
 from ipe.ai import neuro as NE
 from ipe.ai import totalseg as TS
@@ -62,6 +63,7 @@ class CadIaTab(QWidget):
                    ("Níveis da coluna", "_grupo_coluna", COL.CHAVE_AUTO),
                    ("Implante de silicone", "_grupo_implante", IMP.CHAVE),
                    ("Densidade e calcificações (mama)", "_grupo_mama", MA.CHAVE),
+                   ("Dinâmica da mama: alinhar as fases", "_grupo_dce", DCE.CHAVE_AUTO),
                    ("Cefalometria do cavum", "_grupo_cefalometria", CF.CHAVE_AUTO),
                    ("Índices do crânio", "_grupo_neuro", NE.CHAVE_AUTO),
                    ("Níveis linfonodais", "_grupo_linfonodos", LN.CHAVE_AUTO))
@@ -634,6 +636,53 @@ class CadIaTab(QWidget):
         f.addRow("Depois de fazer, enviar para:", self.l_imp_dest)
         return g
 
+    # ------------------------------------------------------------ dinâmica da mama alinhada (0.100.119)
+    def _grupo_dce(self) -> QGroupBox:
+        from ipe.ai import extras as EX
+        g = QGroupBox("Dinâmica da mama: alinhar as fases (correção de movimento, RM)")
+        f = QFormLayout(g)
+        cfg = lambda k: DCE.config(self.settings, k)      # noqa: E731
+        nota = QLabel("Alinha as fases da RM dinâmica entre si, em 3D (registro conjunto e deformável do elastix) e "
+                      "grava no exame as fases alinhadas e as subtrações. A original não é tocada. Só grava quando "
+                      "há movimento que valha corrigir.")
+        nota.setWordWrap(True)
+        nota.setStyleSheet("color: gray")
+        f.addRow(nota)
+        self.c_dce_auto = QCheckBox("Alinhar automaticamente quando a RM de mama dinâmica chegar")
+        self.c_dce_auto.setChecked(bool(cfg(DCE.CHAVE_AUTO)))
+        f.addRow(self.c_dce_auto)
+        self.s_dce_min = QDoubleSpinBox()
+        self.s_dce_min.setRange(0.0, 90.0)
+        self.s_dce_min.setDecimals(1)
+        self.s_dce_min.setSuffix(" %")
+        self.s_dce_min.setValue(float(cfg(DCE.CHAVE_MIN_PCT)))
+        self.s_dce_min.setToolTip("Quanto do resíduo |pós − pré| o registro precisa tirar para o exame valer a "
+                                  "correção (o realce pelo contraste fica; só o desalinhamento sai). Abaixo disso "
+                                  "nada é gravado. Pedida à mão, a IA grava sempre.")
+        f.addRow("Só gravar se o movimento tirar pelo menos:", self.s_dce_min)
+        self.c_dce_sub = QCheckBox("Gravar também as subtrações (pós − pré) alinhadas")
+        self.c_dce_sub.setChecked(bool(cfg(DCE.CHAVE_SUBTRACOES)))
+        f.addRow(self.c_dce_sub)
+        self.s_dce_grade = QDoubleSpinBox()
+        self.s_dce_grade.setRange(8.0, 80.0)
+        self.s_dce_grade.setDecimals(0)
+        self.s_dce_grade.setSuffix(" mm")
+        self.s_dce_grade.setValue(float(cfg(DCE.CHAVE_GRADE)))
+        self.s_dce_grade.setToolTip("Malha da deformação. 32 mm corrige respiração e movimento do corpo; menor corrige "
+                                    "mais fino, mas demora mais e pede mais memória.")
+        f.addRow("Malha da deformação:", self.s_dce_grade)
+        self.l_dce_dest = _lista_de_nos(self.repo, cfg(DCE.CHAVE_DESTINOS))
+        self.l_dce_dest.setToolTip("As séries alinhadas vão para os nós marcados depois de gravadas.")
+        f.addRow("Depois de fazer, enviar para:", self.l_dce_dest)
+        pr = EX.prontidao("dce", self.settings)
+        estado = QLabel("Ambiente do elastix: " + ("instalado." if pr.pronto else
+                                                    f"{pr.falta}. Instale em Configurações ▸ CAD/IA ▸ Instalar o "
+                                                    f"alinhamento da dinâmica da mama…"))
+        estado.setWordWrap(True)
+        estado.setStyleSheet("color: gray" if pr.pronto else "color: #c08000")
+        f.addRow(estado)
+        return g
+
     # ------------------------------------------------------------ gravar
     def save(self) -> None:
         s = self.settings
@@ -685,6 +734,11 @@ class CadIaTab(QWidget):
         s.set(LN.CHAVE_MIN_CORTES, self.s_lin_min.value())
         s.set(LN.CHAVE_DESTINOS, _marcados(self.l_lin_dest))
         s.set(IMP.CHAVE, self.c_imp_auto.isChecked())
+        s.set(DCE.CHAVE_AUTO, self.c_dce_auto.isChecked())
+        s.set(DCE.CHAVE_MIN_PCT, round(self.s_dce_min.value(), 1))
+        s.set(DCE.CHAVE_SUBTRACOES, self.c_dce_sub.isChecked())
+        s.set(DCE.CHAVE_GRADE, round(self.s_dce_grade.value(), 0))
+        s.set(DCE.CHAVE_DESTINOS, _marcados(self.l_dce_dest))
         s.set(MA.CHAVE, self.c_mama_auto.isChecked())
         s.set(MA.CHAVE_ABRIR, self.c_mama_abrir.isChecked())
         s.set(MA.CHAVE_SEM_CONFERIR, self.c_mama_sem.isChecked())

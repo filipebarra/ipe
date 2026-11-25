@@ -26,18 +26,23 @@ MODELOS = ("medsam2", "autopet", "brats", "flames", "medula")
 #: 0.100.79: modelos de PESQUISA (licença não comercial / só pesquisa): nunca entram no "instalar todos", só
 #: instalam com a licença aceita (`--aceito-uso-em-pesquisa`) e as saídas saem marcadas "não usar para diagnóstico"
 PESQUISA = ("prostata_zonas", "picai")
-TODOS = MODELOS + PESQUISA
+#: 0.100.119: instalam só quando pedidos pelo nome (pesados, para um uso só): nunca no "instalar todos"
+OPCIONAIS = ("dce",)
+TODOS = MODELOS + PESQUISA + OPCIONAIS
 NOMES = {"medsam2": "MedSAM2 (segmentar pela caixa)", "autopet": "autoPET (lesões no PET-FDG)",
          "brats": "BraTS (glioma na RM)", "flames": "FLAMeS (lesões no FLAIR)",
          "medula": "TotalSpineSeg (medula e canal)",
          "prostata_zonas": "Zonas da próstata — MONAI/Prostate158 (PESQUISA)",
-         "picai": "Lesões da próstata — PI-CAI (PESQUISA)"}
+         "picai": "Lesões da próstata — PI-CAI (PESQUISA)",
+         "dce": "Alinhamento da dinâmica da mama (elastix)"}
 CREDITOS = {
     "medsam2": "MedSAM2 — Ma J. et al., arXiv 2504.03600 (2025); código Apache-2.0, pesos CC BY-SA 4.0",
     "autopet": "nnU-Net autoPET II — Isensee F. et al., arXiv 2309.13747 (2023); nnU-Net Apache-2.0",
     "brats": "MONAI brats_mri_segmentation (SegResNet, Myronenko 2018); Apache-2.0",
     "medula": "TotalSpineSeg — Warszawer Y., Molinier N. et al., arXiv 2411.09344 (2024); LGPL-3.0",
     "flames": "FLAMeS — Dereskewicz E., La Rosa F. et al., J Neuroimaging 2025;35(5):e70085; pesos CC BY 4.0",
+    "dce": "elastix — Klein S. et al., IEEE Trans Med Imaging 2010;29(1):196-205; SimpleElastix/itk-elastix (Apache-2.0); "
+           "registro conjunto com a métrica de PCA — Huizinga W. et al., Med Image Anal 2016;29:65-78",
     "prostata_zonas": "MONAI prostate_mri_anatomy (Bressem K.; Adams L.C. et al., Comput Biol Med 2022;148:105817 — "
                       "Prostate158); código Apache-2.0; treinado no Prostate158 (uso em pesquisa)",
     "picai": "PI-CAI baseline nnU-Net semi-supervisionado (Saha A., Bosma J.S. et al., Lancet Oncol 2024;25(7):879-887; "
@@ -143,7 +148,7 @@ class Prontidao:
 def prontidao(modelo: str, settings=None) -> Prontidao:
     """O que falta para o modelo rodar neste computador (vazio = pronto)."""
     from ipe.ai import totalseg as TS
-    if not TS.instalado(settings):
+    if modelo != "dce" and not TS.instalado(settings):     # o alinhamento da dinâmica tem o ambiente só dele
         return Prontidao(modelo, False, "a segmentação (TotalSegmentator) ainda não está instalada")
     p = pasta_pesos()
     if modelo == "medsam2":
@@ -182,6 +187,14 @@ def prontidao(modelo: str, settings=None) -> Prontidao:
         pesos = p / "picai"
         if not (pesos.is_dir() and any(pesos.rglob("fold_0/model_best.model"))):
             return Prontidao(modelo, False, "faltam os pesos do PI-CAI (modelo de pesquisa)")
+    elif modelo == "dce":
+        from ipe.ai import dce_alinhar as DCE
+        base = DCE.pasta_ambiente()
+        if not ((base / "Scripts" / "python.exe").is_file() or (base / "bin" / "python").is_file()):
+            return Prontidao(modelo, False, "falta o ambiente do alinhamento da dinâmica (elastix, ~1,5 GB)")
+        sps = [base / "Lib" / "site-packages", *sorted((base / "lib").glob("python3*/site-packages"))]
+        if not any((sp / "itk").is_dir() for sp in sps) or not any(list(sp.glob("itk_elastix*")) for sp in sps):
+            return Prontidao(modelo, False, "falta o pacote itk-elastix")
     elif modelo == "medula":
         base = TS.pasta_base() / "venv_medula"
         if not ((base / "Scripts" / "python.exe").is_file() or (base / "bin" / "python").is_file()):
@@ -250,6 +263,7 @@ def comando_do_instalador(modelos=(), settings=None) -> list[str] | None:
     py = TS.python_do_ambiente(settings)
     if py is None:
         return None
-    pedidos = [m for m in modelos if m in MODELOS or (m in PESQUISA and licenca_aceita(settings, m))]
+    pedidos = [m for m in modelos if m in MODELOS or m in OPCIONAIS
+               or (m in PESQUISA and licenca_aceita(settings, m))]
     extra = ["--aceito-uso-em-pesquisa"] if any(m in PESQUISA for m in pedidos) else []
     return [str(py), str(caminho_do_instalador()), *pedidos, *extra]

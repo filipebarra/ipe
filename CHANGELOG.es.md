@@ -3,6 +3,27 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.119 — Dinámica de mama: alinear las fases (corrección de movimiento)
+- Nueva IA **Dinámica de mama: alinear las fases**: alinea entre sí las fases de la RM de mama dinámica **en 3D**
+  (registro conjunto y deformable de elastix, el método del antiguo proyecto *dce-align*, ahora con todos los cortes
+  juntos y no uno a uno) y **guarda en el propio estudio** las fases alineadas ("Dinámica alineada 1…N · Ipê") y las
+  **sustracciones** post − pre. El original no se toca y las imágenes nuevas dicen en el encabezado que son
+  alineadas por IA, no adquisición.
+- **Solo guarda cuando vale la pena**: el registro mide cuánto del residuo |post − pre| logró quitar (el realce por
+  contraste se queda; solo sale el desalineamiento). Por debajo del límite (12 % por defecto) el estudio se deja
+  como está. Pedida a mano, guarda siempre.
+- Se ejecuta **en el servidor cuando llega el estudio** (se activa en Preferencias ▸ CAD/IA ▸ *Dinámica de mama:
+  alinear las fases*; viene desactivada) y **a mano** desde el menú IA de la base y de Ipê Web. De una en una;
+  rehacer reemplaza la anterior.
+- Preferencias: límite de movimiento, guardar o no las sustracciones, malla de la deformación (32 mm) y nodos de
+  destino.
+- **Instalación aparte**: Configuración ▸ CAD/IA ▸ *Instalar la alineación de la dinámica de mama (elastix,
+  ~1,5 GB)…*. elastix vive en un entorno propio; el resto no cambia.
+- Límites de esta versión: probada en estudios sintéticos (el movimiento fue simulado), **aún no en estudios
+  reales** — compare siempre con el original; la RM en archivos multiframe (Enhanced) aún no está soportada; usa de
+  1 a 2 GB de memoria durante el registro; las series alineadas quedan aparte (la ventana Dinámica aún no las usa
+  sola).
+
 ## 0.100.118 — Revisión del inglés (y del español) en todas las pantallas
 - Revisión de **todas las ventanas, menús, mensajes y avisos de las IA** con el programa en inglés: unos 270 textos
   que todavía salían en portugués fueron traducidos (mensajes de finalización y de error de las IA, frases de

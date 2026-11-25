@@ -2095,6 +2095,17 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         from ipe.ui.segmentacao import abrir_instalador_extras
         abrir_instalador_extras(self, settings=self.settings)
 
+    def instalar_dce(self) -> None:
+        """0.100.119: Configurações ▸ CAD/IA ▸ Instalar o alinhamento da dinâmica da mama (elastix, ~1,5 GB)."""
+        from ipe.ai import extras as EX
+        from ipe.ui.segmentacao import abrir_instalador_extras
+        abrir_instalador_extras(self, ["dce"], settings=self.settings, texto=(
+            "Instala, uma vez e com internet, o ambiente do alinhamento da dinâmica da mama: o elastix (registro "
+            "conjunto e deformável em 3D) num ambiente só dele, de cerca de 1,5 GB em disco.\n\n"
+            "Depois, a IA “Dinâmica da mama: alinhar as fases” fica disponível no menu IA do banco e, se você ligar "
+            "em CAD/IA, roda sozinha quando a RM de mama chega.\n\nAgora:\n"
+            + EX.texto_prontidao(self.settings, ("dce",)) + "\n\nAbrir o instalador?"))
+
     def instalar_modelos_pesquisa(self) -> None:
         """0.100.79: Configurações ▸ CAD/IA ▸ Modelos de pesquisa (próstata): a licença e o instalador à parte."""
         from ipe.ui.licenca_pesquisa import escolher_e_instalar
