@@ -85,6 +85,9 @@ def test_do_pacs_ate_a_planilha_pela_janela(cena, monkeypatch):
                                           ["000000", "NINGUEM", "", "09/03/2024", 0],
                                           [c["pid"], "FANTOMA", "", "", 5]])])
     d = LoteDialog(c["repo"], c["db"], c["net"], c["st"], c["storage"], None)
+    from PySide6.QtCore import Qt
+    # 0.100.117: janela normal (minimiza no Ubuntu), não diálogo preso à janela principal
+    assert d.windowType() == Qt.Window and d.windowFlags() & Qt.WindowMinimizeButtonHint
     d.iniciar()
     assert "Escolha a planilha" in avisos[-1]
     assert d.abrir_arquivo(str(lista))

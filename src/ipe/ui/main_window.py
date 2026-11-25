@@ -1087,6 +1087,23 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         from ipe.ui.banco_dialog import BancoDialog
         return bool(BancoDialog(self, self.paths, getattr(self, "db", None)).exec())
 
+    def abrir_reconstruir_banco(self) -> None:
+        """Configurações ▸ Banco de dados ▸ Conferir e reconstruir o banco… (0.100.117)."""
+        from ipe.core.i18n import tr
+        from ipe.db.repository import Repository
+        if not isinstance(self.repo, Repository):
+            QMessageBox.information(self, tr("Conferir e reconstruir o banco"), tr(
+                "Este Ipê é cliente de um servidor central: quem guarda o banco e os arquivos é o servidor. Confira "
+                "e reconstrua no Ipê do servidor."))
+            return
+        d = getattr(self, "janela_reconstruir", None)
+        if d is None:
+            from ipe.ui.reconstruir_dialogo import ReconstruirDialog
+            d = self.janela_reconstruir = ReconstruirDialog(self.repo, self.db, self.paths, self.settings, self)
+        d.show()
+        d.raise_()
+        d.activateWindow()
+
     def abrir_modo_de_uso(self) -> bool:
         """Configurações ▸ Usuários ▸ Modo de uso (0.99.25)."""
         from ipe.auth import session as S

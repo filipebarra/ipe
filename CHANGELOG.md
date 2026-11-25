@@ -3,6 +3,20 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.117 — Conferir e reconstruir o banco
+- **Configurações ▸ Banco de dados ▸ Conferir e reconstruir o banco…** (administrador), como o *Rebuild Database*
+  do OsiriX/Horos — sem perder o que só existe no Ipê (comentários, listas, medidas, imagens-chave, laudos, IA):
+  - **Conferir** (não muda nada): imagens cujo arquivo sumiu (do Storage e referenciadas), arquivos do Storage fora
+    do banco, séries e exames vazios, pacientes sem exame, séries sem miniatura, pastas vazias; o relatório pode ser
+    salvo.
+  - **Reconstrução parcial**: indexa o que está fora, tira do banco o que sumiu do Storage (os referenciados só se
+    marcar — disco externo desligado volta), limpa os vazios, refaz miniaturas.
+  - **Reconstrução completa**: relê o cabeçalho de todos os arquivos e atualiza o índice; grava antes uma cópia do
+    índice (Backups/indice-….json.gz); pode parar e continuar depois.
+- Linha de comando (servidor): `ipe-cli banco conferir | parcial [--referenciados] | completa | continuar |
+  restaurar-indice <cópia>`.
+- A janela do **lote a partir de planilha** é uma janela normal: minimiza no Ubuntu.
+
 ## 0.100.116 — Pacientes sem exame no banco
 - Uma série nova de um exame que já existe (resultado de IA, SR, captura) com o nome do paciente escrito diferente
   ou sem o nascimento criava um **paciente sem exame** — o rodapé chegava a mostrar "168 pacientes, 14 estudos".

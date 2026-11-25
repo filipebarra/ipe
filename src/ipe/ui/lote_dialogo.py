@@ -56,6 +56,10 @@ class LoteDialog(QDialog):
 
     def __init__(self, repo, db, net, settings, storage_root, engine=None, parent=None):
         super().__init__(parent)
+        # 0.100.117: janela "de verdade", não diálogo — no Ubuntu (GNOME) o diálogo preso à janela principal não tem
+        # minimizar, e o lote roda por horas (relato dele: "não consigo minimizar a janela de baixar em lote")
+        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint
+                            | Qt.WindowCloseButtonHint)
         from ipe.central.ponte import Ponte
         self.repo, self.db, self.net, self.settings = repo, db, net, settings
         self.storage_root, self.engine = storage_root, engine

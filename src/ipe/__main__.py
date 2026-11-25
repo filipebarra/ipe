@@ -87,6 +87,20 @@ def _parser() -> argparse.ArgumentParser:
     bp.add_argument("--copiar", action="store_true", help="copiar o banco em uso neste computador para ele")
     be = bsub.add_parser("embutido", help="usar o PostgreSQL que vem com o Ipê, neste computador (o padrão)")
     be.add_argument("--copiar", action="store_true", help="copiar o banco em uso (o servidor próprio) para ele")
+    # 0.100.117: conferir e reconstruir (o "Rebuild Database" do OsiriX)
+    for nome, ajuda in (("conferir", "relatório: arquivos que sumiram, fora do banco, vazios (não muda nada)"),
+                        ("parcial", "conferir e consertar o que achou"),
+                        ("completa", "reler todos os arquivos e atualizar o índice (com cópia do índice antes)"),
+                        ("continuar", "continuar a reconstrução completa que parou"),
+                        ("restaurar-indice", "voltar o índice de uma cópia (Backups/indice-….json.gz)")):
+        br = bsub.add_parser(nome, help=ajuda)
+        if nome == "restaurar-indice":
+            br.add_argument("arquivo")
+        if nome in ("conferir", "parcial"):
+            br.add_argument("--relatorio", default="", help="gravar o relatório neste arquivo")
+        if nome == "parcial":
+            br.add_argument("--referenciados", action="store_true",
+                            help="também tirar as imagens referenciadas que não estão no lugar")
     bt = bsub.add_parser("testar-embutido", help="liga o PostgreSQL embutido numa pasta descartável e desliga")
     bt.add_argument("pasta", nargs="?", default="")
     return p
@@ -94,6 +108,8 @@ def _parser() -> argparse.ArgumentParser:
 
 def _cmd_banco(args) -> int:
     """`ipe-cli banco status | postgres … [--copiar] | embutido [--copiar] | testar-embutido` (0.100.34)."""
+    if args.banco_cmd in ("conferir", "parcial", "completa", "continuar", "restaurar-indice"):
+        return _cmd_reconstruir(args)
     import getpass
     import os
 
@@ -187,6 +203,53 @@ def _e_link(texto: str) -> bool:
         return False
     from ipe.network.external import e_link
     return e_link(texto)
+
+
+def _cmd_reconstruir(args) -> int:
+    """`ipe-cli banco conferir|parcial|completa|continuar|restaurar-indice` (0.100.117) — no banco deste computador."""
+    from ipe.auth import modo as MODO
+    from ipe.core.config import Settings, get_paths
+    from ipe.db import reconstruir as R
+    from ipe.db.repository import Repository
+    from ipe.db.session import Database
+    paths = get_paths()
+    st = Settings(paths.settings_file)
+    if MODO.modo_atual(st) == "cliente":
+        print("Este Ipê é cliente de um servidor central: rode o comando no servidor.", file=sys.stderr)
+        return 2
+    db = Database(paths.database)
+    repo = Repository(db)
+    ultimo = [0.0]
+
+    def progresso(feito, total, msg):
+        import time
+        if time.monotonic() - ultimo[0] > 2:
+            ultimo[0] = time.monotonic()
+            print(f"  {msg} {feito}/{total}" if total else f"  {msg}", flush=True)
+    acao = args.banco_cmd
+    if acao == "restaurar-indice":
+        if not args.arquivo:
+            print("diga o arquivo da cópia (Backups/indice-….json.gz)", file=sys.stderr)
+            return 1
+        print(R.restaurar_indice(db, args.arquivo))
+        return 0
+    if acao in ("completa", "continuar"):
+        try:
+            r = R.completa(repo, db, paths.storage, paths.data / "Backups", progresso, settings=st,
+                           recomecar=acao == "completa")
+        except KeyboardInterrupt:
+            print("Parado. Para continuar: ipe-cli banco continuar")
+            return 1
+        print(r)
+        return 0
+    rel = R.conferir(db, paths.storage, progresso)
+    for t, n in rel.linhas():
+        print(f"{n:>9}  {t}")
+    if getattr(args, "relatorio", ""):
+        Path(args.relatorio).write_text(rel.texto(), encoding="utf-8")
+    if acao == "parcial":
+        print(R.parcial(repo, db, paths.storage, rel, args.referenciados, progresso))
+    return 0
 
 
 def _cmd_redefinir_senha(args) -> int:

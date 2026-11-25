@@ -3,6 +3,20 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.117 — Check and rebuild the database
+- **Settings ▸ Database ▸ Check and rebuild the database…** (administrator), like OsiriX/Horos *Rebuild Database* —
+  without losing what only exists in Ipê (comments, lists, measurements, key images, reports, AI):
+  - **Check** (changes nothing): images whose file is gone (Storage and referenced), Storage files outside the
+    database, empty series and studies, patients without studies, series without thumbnail, empty folders; the
+    report can be saved.
+  - **Partial rebuild**: indexes what is outside, removes from the database what is gone from Storage (referenced
+    ones only if checked — an unplugged external disk comes back), cleans the empties, redoes thumbnails.
+  - **Full rebuild**: rereads the header of every file and updates the index; first saves a copy of the index
+    (Backups/indice-….json.gz); can stop and continue later.
+- Command line (server): `ipe-cli banco conferir | parcial [--referenciados] | completa | continuar |
+  restaurar-indice <copy>`.
+- The **spreadsheet batch** window is a normal window: it minimizes on Ubuntu.
+
 ## 0.100.116 — Patients without studies in the database
 - A new series of an existing study (AI result, SR, capture) with the patient name written differently or without
   the birth date created a **patient without studies** — the footer could show "168 patients, 14 studies". Now a

@@ -3,6 +3,21 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.117 — Conferir y reconstruir la base
+- **Configuración ▸ Base de datos ▸ Conferir y reconstruir la base…** (administrador), como el *Rebuild Database*
+  de OsiriX/Horos — sin perder lo que solo existe en Ipê (comentarios, listas, medidas, imágenes clave, informes,
+  IA):
+  - **Conferir** (no cambia nada): imágenes cuyo archivo desapareció (del Storage y referenciadas), archivos del
+    Storage fuera de la base, series y estudios vacíos, pacientes sin estudio, series sin miniatura, carpetas
+    vacías; el informe se puede guardar.
+  - **Reconstrucción parcial**: indexa lo que está fuera, quita de la base lo que desapareció del Storage (los
+    referenciados solo si se marca — un disco externo desconectado vuelve), limpia los vacíos, rehace miniaturas.
+  - **Reconstrucción completa**: relee la cabecera de todos los archivos y actualiza el índice; antes guarda una
+    copia del índice (Backups/indice-….json.gz); se puede parar y continuar después.
+- Línea de comandos (servidor): `ipe-cli banco conferir | parcial [--referenciados] | completa | continuar |
+  restaurar-indice <copia>`.
+- La ventana del **lote desde planilla** es una ventana normal: se minimiza en Ubuntu.
+
 ## 0.100.116 — Pacientes sin estudios en la base
 - Una serie nueva de un estudio existente (resultado de IA, SR, captura) con el nombre del paciente escrito distinto
   o sin la fecha de nacimiento creaba un **paciente sin estudios** — el pie llegaba a mostrar "168 pacientes, 14

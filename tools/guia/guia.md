@@ -90,6 +90,17 @@ O comando se chama `ipe-viewer` porque `ipe` já é o nome de outro programa (um
 
 Pelo código: na pasta do Ipê, `./instalar.sh` e depois `./executar.sh`. Precisa de um Linux com **glibc 2.34 ou mais nova** (Ubuntu 22.04, Debian 12, Fedora 35 ou depois), porque o Qt do Ipê não tem pacote para sistemas mais antigos — o script avisa e para. Ele procura sozinho um **Python 3.10 ou mais novo do sistema** (não o do Anaconda, que costuma vir antes no caminho e ser mais velho), refaz o ambiente `.venv` se ele foi criado com um Python antigo e instala as bibliotecas da janela que o Ubuntu não traz (`libxcb-cursor0` e companhia, com `sudo`). A versão portátil de Linux dispensa o Python, mas também precisa dessas bibliotecas.
 
+
+### Conferir e reconstruir o banco (0.100.117)
+
+**Configurações ▸ Banco de dados ▸ Conferir e reconstruir o banco…** (administrador) faz o que o *Rebuild Database* do OsiriX/Horos faz, sem perder o que só existe no Ipê: comentários, listas, medidas, imagens-chave, laudos e resultados de IA se ligam ao exame pelo UID e nunca são apagados.
+
+- **Conferir** (comece por aqui; não muda nada) mostra quantas imagens do banco perderam o arquivo (no Storage e referenciadas), quantos arquivos estão no Storage sem estar no banco, as séries e exames vazios, os pacientes sem exame, as séries sem miniatura e as pastas vazias. **Salvar o relatório…** grava a lista com os caminhos.
+- **Reconstrução parcial** conserta o que a conferência achou: indexa os arquivos soltos do Storage, tira do banco as imagens do Storage cujo arquivo sumiu, limpa os vazios, refaz as miniaturas e apaga as pastas vazias. As imagens **referenciadas** que não estão no lugar só saem se você marcar a opção — um disco externo ou pendrive desligado volta a funcionar quando for ligado.
+- **Reconstrução completa** relê o cabeçalho de todos os arquivos e atualiza o índice (paciente, exame, séries, imagens). Antes, grava uma cópia do índice na pasta de dados, em `Backups`. Num banco grande demora: dá para **Parar** e depois **Continuar de onde parou**.
+
+No servidor, pela linha de comando: `ipe-cli banco conferir`, `ipe-cli banco parcial` (com `--referenciados` para tirar também os referenciados), `ipe-cli banco completa`, `ipe-cli banco continuar` e `ipe-cli banco restaurar-indice <cópia>` (volta o índice a como estava antes da reconstrução completa). No Ipê cliente não há reconstrução: quem guarda o banco é o servidor.
+
 ## Ajuda
 
 **F1** (fora de um exame), o botão **Ajuda** da tela inicial ou **Ajuda ▸ Guia do usuário (PDF)** abrem este guia no leitor de PDF do computador. **Ajuda ▸ Sobre o Ipê…** mostra a versão. Dentro de um exame o F1 é do filme (capítulo 12).
