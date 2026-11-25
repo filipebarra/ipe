@@ -3,6 +3,19 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.120 — Clear the Ipê cache
+- New: **Settings ▸ Database ▸ Clear the Ipê cache…**. The window shows how much each item takes and clears only what
+  you check:
+  - **Viewer image memory** (images already read; they come back when the study is opened);
+  - **Studies downloaded from the server** (client mode only; unchecked by default): the server keeps everything and
+    the study downloads again when opened. **Open** studies, **protected (padlock)** studies and those the server
+    **does not have in full** stay — before removing each one, the program checks with the server;
+  - **Leftover temporary folders** (leftovers of AIs and reports from when the program closed midway, untouched for
+    over 6 hours);
+  - **Updates already downloaded** (installers of old versions).
+- Never touched: the database, this computer's studies, the trash, the settings and the AI models.
+- Fixed: when emptying the image memory, the used-memory count did not go back to zero.
+
 ## 0.100.119 — Breast dynamic: align the phases (motion correction)
 - New AI **Breast dynamic: align the phases**: aligns the phases of the dynamic breast MR to each other **in 3D**
   (elastix groupwise deformable registration, the method of the old *dce-align* project, now with all slices

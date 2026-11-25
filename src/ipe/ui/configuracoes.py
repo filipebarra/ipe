@@ -131,6 +131,7 @@ CATALOGO: list[tuple[str, list[tuple[str, object, str]]]] = [
         ("Mudar a pasta do banco deste computador…", "f:move_default_database", "configure"),
         ("Servidor de banco de dados (PostgreSQL)…", "f:abrir_banco_postgres", "configure"),
         ("Conferir e reconstruir o banco…", "f:abrir_reconstruir_banco", "configure"),      # 0.100.117
+        ("Limpar o cache do Ipê…", "f:abrir_limpar_cache", ""),                            # 0.100.120
         ("Abrir a pasta de dados", "f:_open_data_folder", ""),
     ]),
     ("Usuários", [

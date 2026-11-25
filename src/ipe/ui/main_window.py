@@ -1106,6 +1106,11 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         d.raise_()
         d.activateWindow()
 
+    def abrir_limpar_cache(self) -> None:
+        """Configurações ▸ Banco de dados ▸ Limpar o cache do Ipê… (0.100.120)."""
+        from ipe.ui.limpar_cache_dialogo import LimparCacheDialog
+        LimparCacheDialog(self).exec()
+
     def abrir_modo_de_uso(self) -> bool:
         """Configurações ▸ Usuários ▸ Modo de uso (0.99.25)."""
         from ipe.auth import session as S

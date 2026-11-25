@@ -101,6 +101,17 @@ Pelo código: na pasta do Ipê, `./instalar.sh` e depois `./executar.sh`. Precis
 
 No servidor, pela linha de comando: `ipe-cli banco conferir`, `ipe-cli banco parcial` (com `--referenciados` para tirar também os referenciados), `ipe-cli banco completa`, `ipe-cli banco continuar` e `ipe-cli banco restaurar-indice <cópia>` (volta o índice a como estava antes da reconstrução completa). No Ipê cliente não há reconstrução: quem guarda o banco é o servidor.
 
+### Limpar o cache do Ipê (0.100.120)
+
+**Configurações ▸ Banco de dados ▸ Limpar o cache do Ipê…** apaga o que o programa guarda só de passagem e refaz sozinho. A janela mostra o tamanho de cada item e limpa só o que estiver marcado:
+
+- **Memória de imagens do visualizador**: as imagens já lidas; voltam ao abrir o exame.
+- **Exames baixados do servidor** (só no modo cliente; vem desmarcado): o servidor continua com tudo e o exame baixa de novo ao abrir. Ficam no computador os exames **abertos**, os **protegidos (cadeado)** e os que o servidor **não tem por inteiro** (o programa confere cada um com o servidor antes de tirar).
+- **Pastas temporárias esquecidas**: sobras das IAs e dos laudos de quando o programa fechou no meio, paradas há mais de 6 horas.
+- **Atualizações já baixadas**: os instaladores das versões antigas.
+
+Nunca são tocados o banco, os exames deste computador, a lixeira, as configurações e os modelos de IA. O limite do cache do servidor (Configurações ▸ Modo de uso ▸ *Cache local*) continua valendo: esta janela é para liberar espaço na hora.
+
 ## Ajuda
 
 **F1** (fora de um exame), o botão **Ajuda** da tela inicial ou **Ajuda ▸ Guia do usuário (PDF)** abrem este guia no leitor de PDF do computador. **Ajuda ▸ Sobre o Ipê…** mostra a versão. Dentro de um exame o F1 é do filme (capítulo 12).

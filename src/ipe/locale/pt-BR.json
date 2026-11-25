@@ -8302,7 +8302,23 @@
   "o exame não tem uma dinâmica de RM ou o alinhamento já está rodando",
   "o exame não tem uma dinâmica de mama (pré + pelo menos 2 fases pós)",
   "o itk-elastix não abriu no ambiente novo",
-  "trocar a dinâmica alinhada anterior"
+  "trocar a dinâmica alinhada anterior",
+  "Apaga o que o Ipê guarda só de passagem e que ele refaz sozinho. O banco, os exames deste computador, a lixeira e as configurações <b>nunca</b> são tocados.",
+  "Atualizações já baixadas",
+  "Exames abertos agora não entram na limpeza.",
+  "Exames baixados do servidor",
+  "Imagens já lidas, guardadas na memória para rolar rápido. Elas voltam ao abrir o exame.",
+  "Limpando…",
+  "Limpar o cache do Ipê",
+  "Limpar o cache do Ipê…",
+  "Limpar o que está marcado",
+  "Memória de imagens do visualizador",
+  "Memória de imagens esvaziada.",
+  "Nada marcado.",
+  "Os instaladores das versões que o Ipê já baixou. Baixa de novo se precisar.",
+  "Pastas temporárias esquecidas",
+  "Sobras das IAs e dos laudos de quando o programa fechou no meio (paradas há mais de 6 horas).",
+  "Tira do computador os exames que vieram do servidor; ele continua com eles e baixa de novo na próxima abertura. Os que estão abertos, os protegidos (cadeado) e os que o servidor não tem por inteiro ficam."
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",
@@ -10600,6 +10616,12 @@
   "sem movimento que valha corrigir ({}% do resíduo)",
   "sem movimento que valha corrigir ({}%)",
   "{} fases alinhadas ({}% do resíduo tirado), {} série(s) gravada(s)",
-  "{}. Instale em Configurações ▸ CAD/IA ▸ Instalar o alinhamento da dinâmica da mama…"
+  "{}. Instale em Configurações ▸ CAD/IA ▸ Instalar o alinhamento da dinâmica da mama…",
+  "Atualizações apagadas: {}.",
+  "Espaço liberado: {}",
+  "Exames tirados do computador: {}.",
+  "Ficaram {} (protegidos, só existem aqui ou o servidor não respondeu).",
+  "Pastas temporárias apagadas: {}.",
+  "Tirar {} exame(s) baixados deste computador? O servidor continua com eles."
  ]
 }

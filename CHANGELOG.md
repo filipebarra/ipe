@@ -3,6 +3,19 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.120 — Limpar o cache do Ipê
+- Novo: **Configurações ▸ Banco de dados ▸ Limpar o cache do Ipê…**. A janela mostra quanto cada coisa ocupa e
+  limpa só o que você marcar:
+  - **Memória de imagens do visualizador** (as imagens já lidas; voltam ao abrir o exame);
+  - **Exames baixados do servidor** (só no modo cliente; vem desmarcado): o servidor continua com tudo e o exame
+    baixa de novo ao abrir. Ficam no computador os exames **abertos**, os **protegidos (cadeado)** e os que o
+    servidor **não tem por inteiro** — antes de tirar cada um, o programa confere com o servidor;
+  - **Pastas temporárias esquecidas** (sobras das IAs e dos laudos de quando o programa fechou no meio, paradas há
+    mais de 6 horas);
+  - **Atualizações já baixadas** (os instaladores das versões antigas).
+- Nunca são tocados: o banco, os exames deste computador, a lixeira, as configurações e os modelos de IA.
+- Corrigido: ao esvaziar a memória de imagens, a contagem de memória usada não zerava.
+
 ## 0.100.119 — Dinâmica da mama: alinhar as fases (correção de movimento)
 - Nova IA **Dinâmica da mama: alinhar as fases**: alinha entre si, **em 3D**, as fases da RM de mama dinâmica
   (registro conjunto e deformável do elastix, o método do projeto antigo *dce-align*, agora com os cortes em

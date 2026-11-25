@@ -618,6 +618,11 @@ class FrameCache:
         """Esvazia o cache (usado ao trocar de local)."""
         with self._lock:
             self._data.clear()
+            self._bytes = 0                       # 0.100.120: a conta zera junto (antes ficava a do que já saíra)
+
+    def usado_bytes(self) -> int:
+        with self._lock:
+            return int(self._bytes)
             self._bytes = 0
 
     def set_limit(self, max_mb: int) -> None:
