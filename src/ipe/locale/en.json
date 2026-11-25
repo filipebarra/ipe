@@ -10818,5 +10818,9 @@
  "text-align:left; text-decoration:underline": "text-align:left; text-decoration:underline",
  "Este Ipê é de uso único neste computador (conta do Windows: {}). Escolha o usuário e crie uma senha nova.": "This Ipê is for a single user on this computer (Windows account: {}). Choose the user and create a new password.",
  "Senha de {} redefinida.": "Password of {} reset.",
- "pela {}; conta do sistema: {}": "via {}; system account: {}"
+ "pela {}; conta do sistema: {}": "via {}; system account: {}",
+ "Desmarcado, o exame que o lote baixa só entra no banco: nenhuma IA roda nele, nem a automática da chegada. Para só baixar, use o modelo pronto “Só baixar”.": "Unchecked, the study the batch downloads just enters the database: no AI runs on it, not even the automatic arrival AI. To download only, use the ready-made template “Download only”.",
+ "Exame baixado: aplicar as regras da chegada (IA automática, envio, impressão)": "Downloaded study: apply the arrival rules (automatic AI, sending, printing)",
+ "Só baixar": "Download only",
+ "sem as regras da chegada no que foi baixado": "without the arrival rules on what was downloaded"
 }

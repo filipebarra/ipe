@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.115 — Ipê Web: a tira de séries acompanha o exame
+- O que é gravado no exame aparece na tira de séries **sem fechar e abrir o exame**: o esquema gravado no exame entra
+  na hora (e gravar de novo troca a miniatura); o resto (anexos, IA, laudo, o que chegar do PACS ou do Ipê de mesa)
+  entra em até 20 s, ou na hora ao voltar para a aba. O que foi apagado do exame sai da tira.
+- Lote a partir de planilha: **só baixar**. Modelo pronto *Só baixar* e a opção *Exame baixado: aplicar as regras
+  da chegada* (desmarcada, o exame baixado só entra no banco — nenhuma IA roda nele, nem a automática da chegada).
+
 ## 0.100.114 — Listas de casos com as colunas do banco
 - Com uma lista de casos aberta, a tabela fica como a do banco: as mesmas colunas, na mesma ordem e largura. Na
   frente só o **Nº**, estreito; o **Caso (lista)** só aparece quando a lista tem nome de caso. Antes as duas, largas,

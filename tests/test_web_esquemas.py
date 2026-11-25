@@ -235,6 +235,12 @@ def test_esquemas_no_navegador(servidor):
             assert _esperar(lambda: pg.inner_text(f"{jan} .esq-msg").strip().endswith("2"), 30), pg.inner_text(f"{jan} .esq-msg")
             assert _esperar(lambda: not pg.locator(f"{jan} button:has-text('Gravar no exame')").is_disabled())
             assert len(repo.series_for_study(study, ocultas=True)) == series_no_comeco + 2 and not repo.reports(study)
+            # 0.100.115: a série das figuras entra na tira na hora (sem fechar e abrir); gravar de novo troca a série
+            # na tira também (uma só, a nova)
+            figs = next(x for x in repo.series_for_study(study, ocultas=True)
+                        if x.modality != "SR" and "squema" in (x.description or ""))
+            assert _esperar(lambda: pg.evaluate("""(d) => [...document.querySelectorAll('aside.tira button.serie')]
+                .filter((b) => (b.title || '') === d).length""", figs.description) == 1, 15)
         if foto:
             pg.screenshot(path=foto + "_exame.png")
         # reabrir para corrigir e cancelar: nada muda

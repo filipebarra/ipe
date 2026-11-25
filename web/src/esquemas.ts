@@ -679,7 +679,8 @@ export class EsquemasDoExame {
   private pode = false;
   private bGravar: HTMLButtonElement | null = null;
 
-  constructor(private study: string, private imagemAberta: ImagemAberta) {}
+  /** 0.100.115: `aoGravar` — chamado depois de gravar no exame (o visualizador põe a série nova na tira na hora). */
+  constructor(private study: string, private imagemAberta: ImagemAberta, private aoGravar?: () => void) {}
 
   async abrir(): Promise<void> {
     try {
@@ -694,7 +695,7 @@ export class EsquemasDoExame {
       bGravar.disabled = true;
       this.msg.textContent = tr("Gravando no exame…");
       json<{ imagens: number }>("no_exame", { study: this.study })
-        .then((r) => { this.msg.textContent = `${tr("Gravado no exame (figuras e SR):")} ${r.imagens}`; },
+        .then((r) => { this.msg.textContent = `${tr("Gravado no exame (figuras e SR):")} ${r.imagens}`; this.aoGravar?.(); },
           (e: Error) => { this.msg.textContent = e.message; })
         .finally(() => { bGravar.disabled = false; });
     });
@@ -761,9 +762,9 @@ export class EsquemasDoExame {
 }
 
 /** A janela do botão Esquema do visualizador. */
-export function abrirEsquemasDoExame(study: string, imagemAberta: ImagemAberta): Promise<void> {
+export function abrirEsquemasDoExame(study: string, imagemAberta: ImagemAberta, aoGravar?: () => void): Promise<void> {
   return new Promise((resolver) => {
-    const painel = new EsquemasDoExame(study, imagemAberta);
+    const painel = new EsquemasDoExame(study, imagemAberta, aoGravar);
     const d = el("dialog", { class: "imp-janela larga esq-do-exame", "aria-label": tr("Esquemas do exame") });
     d.append(el("h3", {}, tr("Esquemas do exame")), el("div", { class: "imp-janela-corpo" }, painel.raiz),
       el("div", { class: "imp-janela-botoes" }, botao("Fechar", () => d.close())));

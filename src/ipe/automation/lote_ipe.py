@@ -110,7 +110,8 @@ def servicos(repo, db, net, settings, storage_root, engine=None, chamar=None, id
         if n is None:
             return False, f"nó {no_id} não existe mais"
         uid = exame["study_uid"]
-        job = net.retrieve(n, identidade, uid, f"Lote: {exame.get('accession') or uid[-12:]}")
+        job = net.retrieve(n, identidade, uid, f"Lote: {exame.get('accession') or uid[-12:]}",
+                           sem_regras=bool(serv.sem_regras_no_baixado))
         ok, msg = _esperar(job, parar_, ESPERA_DOWNLOAD_S, net)
         if ok and not [f for f in repo.files_for_study(uid) if f]:
             return False, "o nó não mandou nenhuma imagem"
@@ -261,6 +262,7 @@ def servicos(repo, db, net, settings, storage_root, engine=None, chamar=None, id
         """0.100.101: as regras da chegada (as mesmas de um exame baixado: IA automática, roteamento, impressão)."""
         chamar(lambda: engine.study_arrived(uid, "retrieved"))
 
-    return L.Servicos(local=local, no=no, tem=tem, baixar=baixar, ias=ias, protocolo=protocolo, enviar=enviar,
+    serv = L.Servicos(local=local, no=no, tem=tem, baixar=baixar, ias=ias, protocolo=protocolo, enviar=enviar,
                       imprimir=imprimir, exportar=exportar, apagar=apagar, nome_no=nome_no,
                       chegada=chegada if engine is not None and hasattr(engine, "study_arrived") else None)
+    return serv

@@ -287,6 +287,8 @@ class AutomationEngine(QObject):
         tag = self._job_tags.pop(job.id, {})
         if getattr(job, "transito", False):     # 0.100.110: passagem para o cliente: as regras são as do cliente
             return
+        if getattr(job, "sem_regras", False):   # 0.100.115: lote "só baixar"
+            return
         if tag.get("prefetch"):
             if tag.get("was_new"):
                 self.repo.set_study_origin(uid, "prefetch")

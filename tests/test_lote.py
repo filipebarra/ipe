@@ -399,3 +399,27 @@ def test_servidor_so_apaga_depois_da_copia_do_fim_da_linha():
         assert apagados == ["U1"]
     finally:
         LS._LOTES.pop("X1", None)
+
+
+def test_so_baixar_nao_roda_as_regras_da_chegada():
+    """0.100.115: o modelo pronto "Só baixar" e o download sem as regras da chegada (nenhuma IA roda)."""
+    from types import SimpleNamespace
+
+    from ipe.automation.engine import AutomationEngine
+    from ipe.network.service import Job
+    so = L.MODELOS_PRONTOS["Só baixar"]
+    assert so.ias == [] and not so.apagar_depois and not so.regras_chegada and not so.regras_no_baixado
+    assert "sem as regras da chegada no que foi baixado" in so.acoes()
+    serv = L.Servicos(local=None, no=None, tem=None, baixar=None, ias=None, protocolo=None, enviar=None,
+                      imprimir=None, exportar=None, apagar=None, nome_no=None)
+    L.Lote(["ID"], [], [], so, serv, "/tmp/x.xlsx")
+    assert serv.sem_regras_no_baixado
+    L.Lote(["ID"], [], [], L.Config(), serv, "/tmp/x.xlsx")
+    assert not serv.sem_regras_no_baixado
+    # o motor não roda nada num download marcado
+    chamou = []
+    eu = SimpleNamespace(_job_tags={}, study_arrived=lambda *a, **k: chamou.append(a), repo=None, settings=None)
+    job = Job("retrieve", "Lote", {}, None, ["1.2.3"])
+    job.status, job.sem_regras = "done", True
+    AutomationEngine.on_job_finished(eu, job)
+    assert not chamou

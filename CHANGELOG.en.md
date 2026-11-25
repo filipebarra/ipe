@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.115 — Ipê Web: the series strip follows the study
+- Whatever is saved to the study shows in the series strip **without closing and reopening it**: a schema saved to the
+  study shows at once (and saving again replaces the thumbnail); the rest (attachments, AI, report, whatever arrives
+  from the PACS or desktop Ipê) shows within 20 s, or at once when you return to the tab. What was deleted from the
+  study leaves the strip.
+- Spreadsheet batch: **download only**. Ready-made template *Só baixar* (download only) and the option *Downloaded
+  study: apply the arrival rules* (unchecked, the downloaded study just enters the database — no AI runs on it, not
+  even the automatic arrival AI).
+
 ## 0.100.114 — Case lists with the database columns
 - With a case list open, the table looks like the database one: the same columns, in the same order and width. In
   front only the narrow **No.**; **Case (list)** only shows when the list has case names. Before, both were wide and

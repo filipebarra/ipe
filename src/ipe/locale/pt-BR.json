@@ -8100,7 +8100,11 @@
   "linha de comando",
   "redefinir a senha de um usuário deste computador (0.100.113)",
   "sem usuário: mostra a lista",
-  "text-align:left; text-decoration:underline"
+  "text-align:left; text-decoration:underline",
+  "Desmarcado, o exame que o lote baixa só entra no banco: nenhuma IA roda nele, nem a automática da chegada. Para só baixar, use o modelo pronto “Só baixar”.",
+  "Exame baixado: aplicar as regras da chegada (IA automática, envio, impressão)",
+  "Só baixar",
+  "sem as regras da chegada no que foi baixado"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

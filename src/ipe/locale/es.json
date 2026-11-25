@@ -10818,5 +10818,9 @@
  "text-align:left; text-decoration:underline": "text-align:left; text-decoration:underline",
  "Este Ipê é de uso único neste computador (conta do Windows: {}). Escolha o usuário e crie uma senha nova.": "Este Ipê es de uso único en esta computadora (cuenta de Windows: {}). Elija el usuario y cree una contraseña nueva.",
  "Senha de {} redefinida.": "Contraseña de {} restablecida.",
- "pela {}; conta do sistema: {}": "por {}; cuenta del sistema: {}"
+ "pela {}; conta do sistema: {}": "por {}; cuenta del sistema: {}",
+ "Desmarcado, o exame que o lote baixa só entra no banco: nenhuma IA roda nele, nem a automática da chegada. Para só baixar, use o modelo pronto “Só baixar”.": "Desmarcado, el estudio que el lote descarga solo entra en la base: ninguna IA corre en él, ni la automática de la llegada. Para solo descargar, use el modelo listo “Solo descargar”.",
+ "Exame baixado: aplicar as regras da chegada (IA automática, envio, impressão)": "Estudio descargado: aplicar las reglas de llegada (IA automática, envío, impresión)",
+ "Só baixar": "Solo descargar",
+ "sem as regras da chegada no que foi baixado": "sin las reglas de llegada en lo descargado"
 }

@@ -60,6 +60,7 @@ class Job:
     transito: bool = False              # 0.100.110: no servidor: download de passagem (sem regras de chegada)
     apagar_apos_copia: bool = False     # 0.100.110: no servidor: apagar quando o cliente avisar que copiou
     servidor_id: int = 0                # 0.100.110: no cliente: o número do download lá no servidor
+    sem_regras: bool = False            # 0.100.115: lote "só baixar": as regras da chegada não rodam neste download
 
     @property
     def active(self) -> bool:
@@ -398,7 +399,8 @@ class NetworkService(QObject):
     # ------------------------------------------------------------ transferências
     def retrieve(self, node: dict, identity: dict | None, study_uid: str, label: str,
                  series_uids: list[str] | None = None, open_after: bool = False,
-                 stream: bool = False, banco: tuple[str, str] | None = None, para_cliente: bool = False) -> Job:
+                 stream: bool = False, banco: tuple[str, str] | None = None, para_cliente: bool = False,
+                 sem_regras: bool = False) -> Job:
         """`banco`: (dono, visível para) do exame novo. None = a escolha de quem está logado ("Exames
         que eu importo ou baixo vão para"); a automação passa o banco da regra ou o do exame de origem
         (0.99.36)."""
@@ -410,6 +412,7 @@ class NetworkService(QObject):
                 return j
         job = Job("retrieve", label, node, identity, [study_uid], series_uids, open_after, stream)
         job.para_cliente = bool(para_cliente) and self.pelo_servidor(node)
+        job.sem_regras = bool(sem_regras)
         try:
             from ipe.db import banco as B
             if self.repo.study_info(study_uid) is None:

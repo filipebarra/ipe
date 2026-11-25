@@ -127,6 +127,9 @@ class Config:
     #: 0.100.101: o exame que já estava no Ipê passa pelas regras da chegada (IA automática, roteamento, impressão),
     #: como o que foi baixado
     regras_chegada: bool = True
+    #: 0.100.115: o exame **baixado** pelo lote passa pelas regras da chegada (IA automática, roteamento, impressão).
+    #: Desligado = "só baixar": o exame entra no banco e nada roda nele.
+    regras_no_baixado: bool = True
     # saída e execução
     anonimizar: bool = False
     janela_de: str = ""                                    # "HH:MM" — vazio = a qualquer hora
@@ -164,6 +167,8 @@ class Config:
             out.append(tr("apagar o que veio de fora"))
         if self.regras_chegada:
             out.append(tr("regras da chegada também no que já estava no Ipê"))
+        if not self.regras_no_baixado:
+            out.append(tr("sem as regras da chegada no que foi baixado"))
         return out
 
 
@@ -172,6 +177,8 @@ MODELOS_PRONTOS = {
     "Densidade e calcificações da mama": Config(modalidades=["MG"], varios="mais_imagens",
                                                 tentativas=["uid", "acesso", "id_data_mod"],
                                                 ias=["densidade", "calc_vascular"], apagar_depois=True),
+    # 0.100.115: só trazer os exames da lista para o banco — sem IA (nem a automática da chegada), sem apagar
+    "Só baixar": Config(ias=[], apagar_depois=False, regras_chegada=False, regras_no_baixado=False),
 }
 CHAVE_MODELOS = "lote.modelos"
 
@@ -337,6 +344,8 @@ class Servicos:
     chegada: callable = None
     #: 0.100.111: `baixado(study_uid)` — o exame acabou de chegar do PACS (antes das IAs e envios); None = nada
     baixado: callable = None
+    #: 0.100.115: o download do lote não passa pelas regras da chegada (o Lote liga, conforme `regras_no_baixado`)
+    sem_regras_no_baixado: bool = False
 
 
 @dataclass
@@ -437,6 +446,7 @@ class Lote:
         self.linhas = linhas
         self.cfg = cfg
         self.s = servicos
+        self.s.sem_regras_no_baixado = not getattr(cfg, "regras_no_baixado", True)
         self.saida = Path(saida)
         self.simular = simular
         self.limite = limite

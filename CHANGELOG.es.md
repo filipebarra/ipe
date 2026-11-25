@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.115 — Ipê Web: la tira de series acompaña el estudio
+- Lo que se graba en el estudio aparece en la tira de series **sin cerrar y abrir el estudio**: el esquema grabado en
+  el estudio entra en el acto (y grabar de nuevo cambia la miniatura); lo demás (anexos, IA, informe, lo que llegue
+  del PACS o del Ipê de escritorio) entra en hasta 20 s, o en el acto al volver a la pestaña. Lo que se borró del
+  estudio sale de la tira.
+- Lote desde planilla: **solo descargar**. Modelo listo *Só baixar* y la opción *Estudio descargado: aplicar las
+  reglas de llegada* (desmarcada, el estudio descargado solo entra en la base — ninguna IA corre en él, ni la
+  automática de la llegada).
+
 ## 0.100.114 — Listas de casos con las columnas de la base
 - Con una lista de casos abierta, la tabla queda como la de la base: las mismas columnas, en el mismo orden y ancho.
   Delante solo el **Nº**, estrecho; **Caso (lista)** solo aparece cuando la lista tiene nombre de caso. Antes las

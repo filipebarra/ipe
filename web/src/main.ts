@@ -1267,6 +1267,33 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     }
   };
   void acompanharChegada();
+  // 0.100.115: a tira acompanha o exame sempre — o que for gravado nele (esquema, anexo, IA, laudo, o que chegar do
+  // PACS ou do Ipê de mesa) aparece sem fechar e abrir; o que foi apagado ou trocado (gravar o esquema de novo troca a
+  // série) sai. Na hora, depois do que o próprio navegador grava; e de 20 em 20 s / ao voltar para a aba, para o resto.
+  const sincronizarSeries = async (): Promise<void> => {
+    if (caso || grade !== g) return;
+    const agora = await API.qido(`/studies/${study}/series`).catch(() => null);
+    if (!agora || grade !== g) return;
+    const existem = new Set(agora.map((x) => API.texto(x, "0020000E")));
+    const sumiram = todas.filter((x) => !existem.has(API.texto(x, "0020000E"))).map((x) => API.texto(x, "0020000E"));
+    for (const uid of sumiram) {
+      for (const lista of [todas, series, segs]) {
+        const i = lista.findIndex((x) => API.texto(x, "0020000E") === uid);
+        if (i >= 0) lista.splice(i, 1);
+      }
+      barras.get(uid)?.item.remove();
+      barras.delete(uid);
+      carregadas.delete(uid);
+    }
+    if (sumiram.length && !segs.length) bSeg.disabled = true;
+    await novasSeries();
+  };
+  const atualizarTira = () => { void sincronizarSeries(); };
+  const relogioTira = window.setInterval(() => {
+    if (grade !== g) { window.clearInterval(relogioTira); return; }
+    if (!document.hidden) atualizarTira();
+  }, 20000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && grade === g) atualizarTira(); });
   // 0.100.56: no pacote de casos, o que precisa do servidor some; "Mostrar o resultado" traz as séries, os documentos e
   // as marcações do resultado (esconder de novo reabre o caso)
   if (caso) {
@@ -1535,7 +1562,8 @@ async function telaExame(study: string, tela: 1 | 2 = 1, janela = 0, anteriorDe 
     return serie && m ? { series_uid: serie, sop_uid: decodeURIComponent(m[1]), frame: Math.max(0, Number(m[2]) - 1) } : null;
   };
   bEsquema.onclick = () => {
-    void abrirEsquemasDoExame(study, imagemAberta).then(() => painelLaudo?.atualizarEsquemas());
+    void abrirEsquemasDoExame(study, imagemAberta, atualizarTira)
+      .then(() => { painelLaudo?.atualizarEsquemas(); atualizarTira(); });
   };
   bPirads.onclick = () => {
     void abrirPirads(study, imagemAberta, async (texto) => (await abrirLaudo()).inserirTexto(texto));
