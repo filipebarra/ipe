@@ -635,6 +635,8 @@ class Repository:
                                  .where(Study.patient_fk == patient.id))
             if not remaining:
                 s.delete(patient)
+            s.flush()
+            self._apagar_pacientes_sem_exame(s)                  # 0.100.116: e os que já tinham ficado órfãos
         root = storage_root.resolve()
         for f in files:
             try:
@@ -647,6 +649,22 @@ class Repository:
         if study_dir.exists():
             shutil.rmtree(study_dir, ignore_errors=True)
         return removed
+
+    @staticmethod
+    def _apagar_pacientes_sem_exame(s) -> int:
+        from sqlalchemy import delete, exists
+        r = s.execute(delete(Patient).where(~exists().where(Study.patient_fk == Patient.id))
+                      .execution_options(synchronize_session=False))
+        return int(r.rowcount or 0)
+
+    def limpar_pacientes_sem_exame(self) -> int:
+        """0.100.116: apaga do banco os pacientes que ficaram sem nenhum exame (a contagem do rodapé mostrava
+        "168 pacientes, 14 estudos"). O paciente só existe pelos exames dele: nada se perde."""
+        with self.db.session() as s:
+            n = self._apagar_pacientes_sem_exame(s)
+        if n:
+            log.info("banco: %d paciente(s) sem exame apagado(s)", n)
+        return n
 
     def set_locked(self, study_uid: str, locked: bool) -> None:
         with self.db.session() as s:

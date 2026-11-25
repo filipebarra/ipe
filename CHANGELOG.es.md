@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.116 — Pacientes sin estudios en la base
+- Una serie nueva de un estudio existente (resultado de IA, SR, captura) con el nombre del paciente escrito distinto
+  o sin la fecha de nacimiento creaba un **paciente sin estudios** — el pie llegaba a mostrar "168 pacientes, 14
+  estudios". Ahora el paciente solo se crea con un estudio nuevo.
+- Al abrir Ipê (y en cada estudio borrado), los pacientes que quedaron sin ningún estudio salen de la base. No se
+  pierde nada: el paciente solo existe por sus estudios.
+- Recordatorio: borrar un estudio nunca borra los archivos solo **referenciados** (importados sin copiar al Storage).
+
 ## 0.100.115 — Ipê Web: la tira de series acompaña el estudio
 - Lo que se graba en el estudio aparece en la tira de series **sin cerrar y abrir el estudio**: el esquema grabado en
   el estudio entra en el acto (y grabar de nuevo cambia la miniatura); lo demás (anexos, IA, informe, lo que llegue

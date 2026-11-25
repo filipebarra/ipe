@@ -49,6 +49,17 @@ class AutomationEngine(QObject):
         self.open_uids = open_uids
         self.cache = cache               # cache de quadros do visualizador (pré-cálculo da dinâmica)
         self.trash_root = paths.data / "Lixeira"
+        # 0.100.116: pacientes que ficaram sem exame (o rodapé contava "168 pacientes, 14 estudos") — uma vez, ao abrir
+        from ipe.db.repository import Repository
+        if isinstance(repo, Repository):
+            import threading
+
+            def _limpar():
+                try:
+                    repo.limpar_pacientes_sem_exame()
+                except Exception:  # noqa: BLE001
+                    log.exception("limpar pacientes sem exame")
+            threading.Thread(target=_limpar, name="pacientes-sem-exame", daemon=True).start()
         self._arriving: dict[str, float] = {}         # estudo -> última imagem recebida
         self._recent_prefetch: dict[str, float] = {}  # estudo -> quando buscou anteriores
         self._job_tags: dict[int, dict] = {}          # tarefa de download -> o que fazer ao terminar

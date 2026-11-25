@@ -313,8 +313,9 @@ class Importer:
 
         series = cache.series_map.get(series_uid)
         if series is None:                       # a 1ª imagem da série neste lote: paciente, exame e série
-            patient = cache.patient(ds)
-            study = cache.study(ds, patient, r)
+            # 0.100.116: o paciente só é criado se o exame for novo — uma série nova de um exame que já existe
+            # (resultado de IA, SR, captura) com nome/nascimento escritos diferente criava um paciente sem exame
+            study = cache.study(ds, lambda: cache.patient(ds), r)
             series = cache.series(ds, study, r)
         else:
             r.new_studies.add(study_uid)
@@ -408,12 +409,15 @@ class _Cache:
             self.patients[key] = p
         return p
 
-    def study(self, ds, patient: Patient, r: ImportResult) -> Study:
+    def study(self, ds, patient, r: ImportResult) -> Study:
+        """`patient`: o Patient, ou uma função que o dá (só chamada se o exame for novo)."""
         uid = _s(ds, "StudyInstanceUID")
         st = self.studies.get(uid)
         if st is None:
             st = self.s.scalar(select(Study).where(Study.study_uid == uid))
             if st is None:
+                if callable(patient):
+                    patient = patient()
                 st = Study(study_uid=uid, patient=patient,
                            study_date=_s(ds, "StudyDate"), study_time=_s(ds, "StudyTime"),
                            accession=_s(ds, "AccessionNumber"),

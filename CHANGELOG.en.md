@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.116 — Patients without studies in the database
+- A new series of an existing study (AI result, SR, capture) with the patient name written differently or without
+  the birth date created a **patient without studies** — the footer could show "168 patients, 14 studies". Now a
+  patient is only created with a new study.
+- When Ipê opens (and on every deleted study), patients left without any study are removed from the database.
+  Nothing is lost: a patient only exists through its studies.
+- Reminder: deleting a study never deletes files that were only **referenced** (imported without copying to Storage).
+
 ## 0.100.115 — Ipê Web: the series strip follows the study
 - Whatever is saved to the study shows in the series strip **without closing and reopening it**: a schema saved to the
   study shows at once (and saving again replaces the thumbnail); the rest (attachments, AI, report, whatever arrives

@@ -10822,5 +10822,6 @@
  "Desmarcado, o exame que o lote baixa só entra no banco: nenhuma IA roda nele, nem a automática da chegada. Para só baixar, use o modelo pronto “Só baixar”.": "Desmarcado, el estudio que el lote descarga solo entra en la base: ninguna IA corre en él, ni la automática de la llegada. Para solo descargar, use el modelo listo “Solo descargar”.",
  "Exame baixado: aplicar as regras da chegada (IA automática, envio, impressão)": "Estudio descargado: aplicar las reglas de llegada (IA automática, envío, impresión)",
  "Só baixar": "Solo descargar",
- "sem as regras da chegada no que foi baixado": "sin las reglas de llegada en lo descargado"
+ "sem as regras da chegada no que foi baixado": "sin las reglas de llegada en lo descargado",
+ "limpar pacientes sem exame": "limpiar pacientes sin estudios"
 }

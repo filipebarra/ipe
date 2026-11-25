@@ -8104,7 +8104,8 @@
   "Desmarcado, o exame que o lote baixa só entra no banco: nenhuma IA roda nele, nem a automática da chegada. Para só baixar, use o modelo pronto “Só baixar”.",
   "Exame baixado: aplicar as regras da chegada (IA automática, envio, impressão)",
   "Só baixar",
-  "sem as regras da chegada no que foi baixado"
+  "sem as regras da chegada no que foi baixado",
+  "limpar pacientes sem exame"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

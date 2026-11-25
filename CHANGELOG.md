@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.116 — Pacientes sem exame no banco
+- Uma série nova de um exame que já existe (resultado de IA, SR, captura) com o nome do paciente escrito diferente
+  ou sem o nascimento criava um **paciente sem exame** — o rodapé chegava a mostrar "168 pacientes, 14 estudos".
+  Agora o paciente só é criado com um exame novo.
+- Ao abrir o Ipê (e a cada exame apagado), os pacientes que ficaram sem nenhum exame saem do banco. Nada se perde:
+  o paciente só existe pelos exames dele.
+- Lembrete: apagar um exame nunca apaga os arquivos só **referenciados** (importados sem copiar para o Storage).
+
 ## 0.100.115 — Ipê Web: a tira de séries acompanha o exame
 - O que é gravado no exame aparece na tira de séries **sem fechar e abrir o exame**: o esquema gravado no exame entra
   na hora (e gravar de novo troca a miniatura); o resto (anexos, IA, laudo, o que chegar do PACS ou do Ipê de mesa)
