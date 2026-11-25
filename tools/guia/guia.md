@@ -48,7 +48,7 @@ O programa não roda como administrador, e nunca precisa: tudo o que ele escreve
 
 ### Versão nova pelo GitHub
 
-Ao abrir (uma vez por dia), o Ipê procura no GitHub se saiu versão nova; **Ajuda ▸ Procurar versão nova (GitHub)…** procura na hora, e **Ajuda ▸ Avisar quando sair versão nova** liga e desliga o aviso. Havendo versão nova, a janela mostra o número (e as novidades, em *Mostrar detalhes*) e oferece:
+Ao abrir (uma vez por dia), o Ipê procura no GitHub se saiu versão nova; **Ajuda ▸ Procurar versão nova (GitHub)…** procura na hora, e **Ajuda ▸ Avisar quando sair versão nova** liga e desliga o aviso (a mesma coisa que a caixa **Não me notificar mais**, que está no próprio aviso). Havendo versão nova, a janela mostra o número (e as novidades, em *Mostrar detalhes*) e oferece:
 
 - **Baixar e instalar** (Windows, instalado pelo instalador): baixa o instalador, confere o SHA-256 que o GitHub publica, fecha o programa, instala sem perguntas e abre a versão nova. A pasta do programa, a do banco, o idioma e o modo de uso continuam como estavam.
 - **Baixar** (versão portátil do Windows e Linux): baixa o pacote e abre a pasta; trocar a pasta do programa é à mão (o banco e as configurações ficam fora dela).
@@ -100,6 +100,10 @@ Pelo código: na pasta do Ipê, `./instalar.sh` e depois `./executar.sh`. Precis
 - **Reconstrução completa** relê o cabeçalho de todos os arquivos e atualiza o índice (paciente, exame, séries, imagens). Antes, grava uma cópia do índice na pasta de dados, em `Backups`. Num banco grande demora: dá para **Parar** e depois **Continuar de onde parou**.
 
 No servidor, pela linha de comando: `ipe-cli banco conferir`, `ipe-cli banco parcial` (com `--referenciados` para tirar também os referenciados), `ipe-cli banco completa`, `ipe-cli banco continuar` e `ipe-cli banco restaurar-indice <cópia>` (volta o índice a como estava antes da reconstrução completa). No Ipê cliente não há reconstrução: quem guarda o banco é o servidor.
+
+### Aviso de IAs não instaladas (0.100.121)
+
+Ao abrir, se o computador não tem as IAs instaladas — a **segmentação de órgãos** (TotalSegmentator) ou os **modelos extras** (MedSAM2, autoPET, BraTS, FLAMeS, medula) —, o Ipê avisa o que falta e oferece **Instalar a segmentação** ou **Instalar os modelos extras**, ou **Depois**. O aviso volta toda vez que o programa abre, até estar tudo instalado. Marque **Não me notificar mais** para ele parar; para ligar de novo, **Ajuda ▸ Avisar quando faltar instalar as IAs**. Os modelos de pesquisa (próstata) e o alinhamento da dinâmica da mama são opcionais e não entram no aviso.
 
 ### Limpar o cache do Ipê (0.100.120)
 

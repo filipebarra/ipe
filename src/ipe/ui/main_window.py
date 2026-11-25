@@ -443,8 +443,16 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         h.addAction(a)
         a = QAction("Avisar quando sair versão nova", j)
         a.setCheckable(True)
-        a.setChecked(bool(self.settings.get("atualizacao.github", True)))
-        a.toggled.connect(lambda v: (self.settings.set("atualizacao.github", bool(v)), self.settings.save()))
+        a.setChecked(bool(self.settings.get("central.atualizar_ao_entrar", True) if self._central is not None
+                          else self.settings.get("atualizacao.github", True)))
+        # 0.100.121: no modo cliente o aviso é o do servidor central; fora dele, o do GitHub (o "Não me notificar mais" liga aqui)
+        a.toggled.connect(lambda v: (self.settings.set("atualizacao.github", bool(v)),
+                                     self.settings.set("central.atualizar_ao_entrar", bool(v)), self.settings.save()))
+        h.addAction(a)
+        a = QAction("Avisar quando faltar instalar as IAs", j)                # 0.100.121
+        a.setCheckable(True)
+        a.setChecked(bool(self.settings.get("ia.avisar_nao_instaladas", True)))
+        a.toggled.connect(lambda v: (self.settings.set("ia.avisar_nao_instaladas", bool(v)), self.settings.save()))
         h.addAction(a)
         a = QAction("Procurar atualização no servidor central…", j)        # 0.99.56 (onda B1)
         a.triggered.connect(lambda: self.procurar_atualizacao(silencioso=False))
@@ -1171,6 +1179,7 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         elif self._central is None:
             QTimer.singleShot(8000, lambda: self.procurar_versao_github(silencioso=True))  # 0.99.70
         QTimer.singleShot(600, self.oferecer_retomar)                          # 0.100.8
+        QTimer.singleShot(12000, self.avisar_ias_nao_instaladas)               # 0.100.121
 
     # ------------------------------------------------------------------ perfis e atualizações (0.99.56)
     _perfil: dict = {}
@@ -1226,6 +1235,14 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         d.exec()
         return d
 
+    def avisar_ias_nao_instaladas(self) -> None:
+        """0.100.121: ao abrir, se faltam as IAs neste computador, avisa (com "Não me notificar mais")."""
+        try:
+            from ipe.ui import aviso_ias
+            aviso_ias.avisar(self)
+        except Exception:  # noqa: BLE001
+            log.warning("aviso das IAs", exc_info=True)
+
     def procurar_versao_github(self, silencioso: bool = False) -> None:
         """0.99.70: o último release do GitHub; no Windows instalado, baixa e instala com um clique."""
         from ipe.ui import atualizar_github_ui as G
@@ -1268,7 +1285,17 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         txt = (f"Há uma versão nova no servidor: {info['versao']} (você está na {__version__})."
                + (f"\n\n{info['notas']}" if info.get("notas") else "")
                + "\n\nBaixar e instalar agora? O programa fecha durante a instalação.")
-        if QMessageBox.question(self, "Atualização", txt) != QMessageBox.Yes:
+        from PySide6.QtWidgets import QCheckBox
+        from ipe.core.i18n import tr
+        caixa = QMessageBox(QMessageBox.Question, tr("Atualização"), tr(txt), QMessageBox.Yes | QMessageBox.No, self)
+        nunca = QCheckBox(tr("Não me notificar mais"))                     # 0.100.121
+        caixa.setCheckBox(nunca)
+        caixa.exec()
+        clicado = caixa.clickedButton()
+        if nunca.isChecked():
+            self.settings.set("central.atualizar_ao_entrar", False)
+            self.settings.save()
+        if clicado is None or caixa.standardButton(clicado) != QMessageBox.Yes:
             self.settings.set("central.atualizacao_adiada", info["versao"])
             self.settings.save()
             return "adiada"

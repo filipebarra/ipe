@@ -8,7 +8,7 @@ import time
 
 from PySide6.QtCore import QObject, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QApplication, QMessageBox, QProgressDialog
+from PySide6.QtWidgets import QApplication, QCheckBox, QMessageBox, QProgressDialog
 
 from ipe.core import atualizar_github as GH
 
@@ -100,8 +100,14 @@ def responder(win, info, erro, silencioso: bool) -> str:
         b_agora = caixa.addButton("Baixar", QMessageBox.AcceptRole)
     b_pular = caixa.addButton("Pular esta versão", QMessageBox.RejectRole)
     caixa.addButton("Depois", QMessageBox.RejectRole)
+    from ipe.core.i18n import tr
+    nunca = QCheckBox(tr("Não me notificar mais"))                        # 0.100.121
+    caixa.setCheckBox(nunca)
     caixa.exec()
     clicado = caixa.clickedButton()
+    if nunca.isChecked():
+        win.settings.set(CHAVE_LIGADO, False)             # o mesmo de Ajuda ▸ Avisar quando sair versão nova
+        win.settings.save()
     if clicado is b_pagina:
         QDesktopServices.openUrl(QUrl(info.get("pagina") or GH.PAGINA))
         return "pagina"

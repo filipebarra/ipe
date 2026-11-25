@@ -11116,5 +11116,13 @@
  "Pastas temporárias esquecidas": "Leftover temporary folders",
  "Sobras das IAs e dos laudos de quando o programa fechou no meio (paradas há mais de 6 horas).": "Leftovers of AIs and reports from when the program closed midway (untouched for over 6 hours).",
  "Tira do computador os exames que vieram do servidor; ele continua com eles e baixa de novo na próxima abertura. Os que estão abertos, os protegidos (cadeado) e os que o servidor não tem por inteiro ficam.": "Removes from this computer the studies that came from the server; the server keeps them and downloads them again on the next opening. Open ones, protected ones (padlock) and those the server does not have in full stay.",
- "Tirar {} exame(s) baixados deste computador? O servidor continua com eles.": "Remove {} downloaded study(ies) from this computer? The server keeps them."
+ "Tirar {} exame(s) baixados deste computador? O servidor continua com eles.": "Remove {} downloaded study(ies) from this computer? The server keeps them.",
+ "Ainda não estão instalados:": "Not installed yet:",
+ "Avisar quando faltar instalar as IAs": "Warn when the AIs are not installed",
+ "Este computador ainda não tem as IAs instaladas.": "This computer does not have the AIs installed yet.",
+ "Falta a segmentação de órgãos (TotalSegmentator), a base da maioria das IAs do Ipê. A instalação é feita uma vez, com internet, e leva alguns minutos. Sem ela, só as IAs que não dependem dela funcionam.": "The organ segmentation (TotalSegmentator) is missing; it is the basis of most Ipê AIs. Installation is done once, with internet, and takes a few minutes. Without it, only the AIs that do not depend on it work.",
+ "Faltam modelos de IA neste computador.": "AI models are missing on this computer.",
+ "IAs não instaladas": "AIs not installed",
+ "Instalar os modelos extras": "Install the extra models",
+ "Não me notificar mais": "Do not notify me again"
 }

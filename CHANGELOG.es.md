@@ -3,6 +3,16 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.121 — Avisos al abrir: IA no instaladas y "No volver a notificarme"
+- **Nuevo aviso al abrir Ipê**: si este equipo **no tiene las IA instaladas** (la segmentación de órganos o los modelos
+  extra: MedSAM2, autoPET, BraTS, FLAMeS, médula), una ventana dice qué falta y ofrece **Instalar la segmentación** /
+  **Instalar los modelos extras** o **Después**. Aparece cada vez que se abre el programa, hasta que las IA estén
+  instaladas.
+- Ese aviso y los de **versión nueva** (de GitHub y del servidor central) ahora tienen la casilla **No volver a
+  notificarme**. Marcada, el aviso no vuelve. Para activarlo de nuevo: **Ayuda ▸ Avisar cuando salga una versión
+  nueva** y **Ayuda ▸ Avisar cuando falte instalar las IA**.
+- Los modelos de investigación (próstata) y la alineación de la dinámica de mama no entran en el aviso: son opcionales.
+
 ## 0.100.120 — Limpiar la caché de Ipê
 - Nuevo: **Configuración ▸ Base de datos ▸ Limpiar la caché de Ipê…**. La ventana muestra cuánto ocupa cada cosa y
   limpia solo lo que usted marque:

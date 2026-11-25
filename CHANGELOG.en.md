@@ -3,6 +3,16 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.121 — Startup notices: AIs not installed and "Do not notify me again"
+- **New notice when Ipê opens**: if this computer **does not have the AIs installed** (organ segmentation, or the
+  extra models: MedSAM2, autoPET, BraTS, FLAMeS, spinal cord), a window says what is missing and offers **Install the
+  segmentation** / **Install the extra models** or **Later**. It appears every time the program opens, until the AIs
+  are installed.
+- That notice and the **new version** notices (from GitHub and from the central server) now have a **Do not notify me
+  again** box. Checked, the notice does not come back. To turn it on again: **Help ▸ Notify when a new version is
+  out** and **Help ▸ Warn when the AIs are not installed**.
+- The research models (prostate) and the breast dynamic alignment are not part of the notice: they are optional.
+
 ## 0.100.120 — Clear the Ipê cache
 - New: **Settings ▸ Database ▸ Clear the Ipê cache…**. The window shows how much each item takes and clears only what
   you check:

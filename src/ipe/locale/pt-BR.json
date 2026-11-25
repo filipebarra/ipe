@@ -8318,7 +8318,15 @@
   "Os instaladores das versões que o Ipê já baixou. Baixa de novo se precisar.",
   "Pastas temporárias esquecidas",
   "Sobras das IAs e dos laudos de quando o programa fechou no meio (paradas há mais de 6 horas).",
-  "Tira do computador os exames que vieram do servidor; ele continua com eles e baixa de novo na próxima abertura. Os que estão abertos, os protegidos (cadeado) e os que o servidor não tem por inteiro ficam."
+  "Tira do computador os exames que vieram do servidor; ele continua com eles e baixa de novo na próxima abertura. Os que estão abertos, os protegidos (cadeado) e os que o servidor não tem por inteiro ficam.",
+  "Ainda não estão instalados:",
+  "Avisar quando faltar instalar as IAs",
+  "Este computador ainda não tem as IAs instaladas.",
+  "Falta a segmentação de órgãos (TotalSegmentator), a base da maioria das IAs do Ipê. A instalação é feita uma vez, com internet, e leva alguns minutos. Sem ela, só as IAs que não dependem dela funcionam.",
+  "Faltam modelos de IA neste computador.",
+  "IAs não instaladas",
+  "Instalar os modelos extras",
+  "Não me notificar mais"
  ],
  "patterns": [
   "   Ir para ({} imagem(ns))",

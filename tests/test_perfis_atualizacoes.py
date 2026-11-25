@@ -169,10 +169,10 @@ def test_janela_procura_atualizacao(env, monkeypatch, tmp_path):
                 return Path(dest)
         w._central = (None, type("R", (), {"client": Cli()})(), None)
         w._perfil = {"canal": "teste"}
-        monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.No)
+        monkeypatch.setattr(QMessageBox, "exec", lambda self: self.button(QMessageBox.No).click() or 0)
         assert w.procurar_atualizacao(silencioso=True) == "adiada"
         assert w.procurar_atualizacao(silencioso=True) == "adiada"         # não pergunta de novo a mesma
-        monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.Yes)
+        monkeypatch.setattr(QMessageBox, "exec", lambda self: self.button(QMessageBox.Yes).click() or 0)
         rodou = []
         monkeypatch.setattr(AT, "rodar_instalador", lambda arq, popen=None: rodou.append(arq) or True)
         monkeypatch.setattr(w, "quit_app", lambda: None)

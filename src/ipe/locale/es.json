@@ -11116,5 +11116,13 @@
  "Pastas temporárias esquecidas": "Carpetas temporales olvidadas",
  "Sobras das IAs e dos laudos de quando o programa fechou no meio (paradas há mais de 6 horas).": "Restos de las IA y de los informes de cuando el programa se cerró a medias (sin tocar hace más de 6 horas).",
  "Tira do computador os exames que vieram do servidor; ele continua com eles e baixa de novo na próxima abertura. Os que estão abertos, os protegidos (cadeado) e os que o servidor não tem por inteiro ficam.": "Quita del equipo los estudios que vinieron del servidor; el servidor los conserva y los vuelve a descargar en la próxima apertura. Los abiertos, los protegidos (candado) y los que el servidor no tiene completos se quedan.",
- "Tirar {} exame(s) baixados deste computador? O servidor continua com eles.": "¿Quitar {} estudio(s) descargados de este equipo? El servidor los conserva."
+ "Tirar {} exame(s) baixados deste computador? O servidor continua com eles.": "¿Quitar {} estudio(s) descargados de este equipo? El servidor los conserva.",
+ "Ainda não estão instalados:": "Aún no están instalados:",
+ "Avisar quando faltar instalar as IAs": "Avisar cuando falte instalar las IA",
+ "Este computador ainda não tem as IAs instaladas.": "Este equipo aún no tiene las IA instaladas.",
+ "Falta a segmentação de órgãos (TotalSegmentator), a base da maioria das IAs do Ipê. A instalação é feita uma vez, com internet, e leva alguns minutos. Sem ela, só as IAs que não dependem dela funcionam.": "Falta la segmentación de órganos (TotalSegmentator), la base de la mayoría de las IA de Ipê. La instalación se hace una vez, con internet, y tarda unos minutos. Sin ella, solo funcionan las IA que no dependen de ella.",
+ "Faltam modelos de IA neste computador.": "Faltan modelos de IA en este equipo.",
+ "IAs não instaladas": "IA no instaladas",
+ "Instalar os modelos extras": "Instalar los modelos extras",
+ "Não me notificar mais": "No volver a notificarme"
 }
