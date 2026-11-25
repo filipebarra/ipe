@@ -305,7 +305,7 @@ class RoteiroPainel(QDialog):
         linhas.append("</table>")
         if not a.pronto():
             faltam = [p.nome for p in a.roteiro.passos if not p.opcional and not a.completo(p)]
-            linhas.append(f"<p style='color:#9a9a9a'>Faltam: {', '.join(faltam)}.</p>")
+            linhas.append("<p style='color:#9a9a9a'>" + __import__('ipe.core.i18n', fromlist=['tr']).tr("Faltam: {}.").format(', '.join(__import__('ipe.core.i18n', fromlist=['tr']).tr(x) for x in faltam)) + "</p>")
         self.resultado.setHtml("".join(linhas))
 
     def texto(self) -> str:

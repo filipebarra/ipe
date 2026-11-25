@@ -82,7 +82,8 @@ class _LinhaCurta(QLabel):
         self.setText(texto)
 
     def setText(self, texto: str) -> None:  # noqa: N802
-        self._inteiro = str(texto or "")
+        from ipe.core.i18n import tr as _tr
+        self._inteiro = _tr(str(texto or ""))
         self.setToolTip(self._inteiro if len(self._inteiro) > 60 else "")
         self._cortar()
 

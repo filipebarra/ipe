@@ -4,6 +4,20 @@
 type Trad = Record<string, [string, string]>;
 
 const T: Trad = {
+  // 0.100.118: o que a conferência das traduções achou sem inglês
+  "Classificação sugerida": ["Suggested classification", "Clasificación sugerida"],
+  "pelos números — confira": ["from the numbers — please check", "por los números — confirme"],
+  "Tipo do BI-RADS": ["BI-RADS type", "Tipo de BI-RADS"],
+  "Simetria do realce": ["Enhancement symmetry", "Simetría del realce"],
+  "Lado do achado": ["Finding side", "Lado del hallazgo"],
+  "Tipo do achado": ["Finding type", "Tipo de hallazgo"],
+  "% impressos": ["% printed", "% impresos"],
+  "Reimpressões": ["Reprints", "Reimpresiones"],
+  "o exame não é de mamografia": ["the study is not a mammogram", "el estudio no es de mamografía"],
+  "dinâmica fechada": ["dynamic study closed", "dinámica cerrada"],
+  "SUVmáx": ["SUVmax", "SUVmáx"],
+  "SUVméd": ["SUVmean", "SUVmedio"],
+  "Por mama: vasos (até 6) + extensão no vaso mais acometido (0–3) + densidade da pior área (0–3); vale a pior mama. 0 negativa, 1–3 leve, 4–12 moderada a acentuada. Margolies et al., JACC Cardiovasc Imaging 2016.": ["Per breast: vessels (up to 6) + extent in the most affected vessel (0–3) + density of the worst area (0–3); the worst breast counts. 0 negative, 1–3 mild, 4–12 moderate to severe. Margolies et al., JACC Cardiovasc Imaging 2016.", "Por mama: vasos (hasta 6) + extensión en el vaso más afectado (0–3) + densidad de la peor área (0–3); vale la peor mama. 0 negativa, 1–3 leve, 4–12 moderada a acentuada. Margolies et al., JACC Cardiovasc Imaging 2016."],
   // 0.100.37: buscar no PACS pelo servidor
   "A busca não deu certo": ["The search failed", "La búsqueda no funcionó"],
   "Abrir": ["Open", "Abrir"],

@@ -6,6 +6,8 @@ ser a daquele local. Um local é uma pasta que carrega o banco inteiro (ver core
 
 from __future__ import annotations
 
+from ipe.core.i18n import tr
+
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
@@ -113,8 +115,7 @@ class LocationsPanel(QWidget):
             it = QTreeWidgetItem(self.tree, [loc.name])
             it.setIcon(0, self.style().standardIcon(ICON.get(loc.kind, QStyle.SP_DirIcon)))
             it.setData(0, Qt.UserRole, ("loc", loc.id))
-            it.setToolTip(0, f"{loc.kind_label()} — {loc.path}" if not loc.is_default
-                          else f"{loc.kind_label()} — {loc.path}")
+            it.setToolTip(0, f"{tr(loc.kind_label())} — {loc.path}")
             if not on:
                 it.setText(0, f"{loc.name}   (fora do ar)")
                 it.setForeground(0, Qt.gray)

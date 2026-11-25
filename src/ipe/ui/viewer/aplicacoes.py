@@ -344,6 +344,7 @@ def mostrar(settings, app_id: str, ctx: Contexto) -> tuple[bool, str]:
 
 
 def descrever_regra(app: Aplicacao, settings=None) -> str:
+    from ipe.core.i18n import tr
     partes = []
     if app.modalidades:
         partes.append("/".join(sorted(app.modalidades)))
@@ -351,10 +352,10 @@ def descrever_regra(app: Aplicacao, settings=None) -> str:
     for regs, tipos in app.quando:
         p = []
         if regs:
-            p.append(" ou ".join(nome_da_regiao(settings, r) for r in sorted(regs)))
+            p.append(tr(" ou ").join(tr(nome_da_regiao(settings, r)) for r in sorted(regs)))
         if tipos:
-            p.append(" / ".join(TIPOS[t][0].split(" (")[0].lower() for t in sorted(tipos)))
+            p.append(" / ".join(tr(TIPOS[t][0].split(" (")[0].lower()) for t in sorted(tipos)))
         alts.append(" + ".join(p))
     if alts:
         partes.append("· " + " / ".join(alts))
-    return " ".join(partes) or "qualquer exame"
+    return " ".join(partes) or tr("qualquer exame")

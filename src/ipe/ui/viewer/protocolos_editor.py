@@ -35,6 +35,11 @@ VISTA_TXT = {"": "Como vier", "anterior": "Anterior", "posterior": "Posterior", 
              "esquerda": "Esquerda", "superior": "Superior", "inferior": "Inferior"}
 
 
+def _tri(t):
+    from ipe.core.i18n import tr
+    return tr(t)
+
+
 class ProtocolosEditor(QWidget):
     def __init__(self, settings, parent=None):
         super().__init__(parent)
@@ -188,7 +193,7 @@ class ProtocolosEditor(QWidget):
         self.q_janela.setToolTip("Um preset (Preferências ▸ Presets de janela) ou largura/nível, ex.: 1500/-600")
         self.q_janela.addItem("Do arquivo", "")
         for k, (nome, w, lv) in sorted((settings.get("viewer.wl_presets", {}) or {}).items()):
-            self.q_janela.addItem(f"{nome} (W {w} / L {lv})", str(k))
+            self.q_janela.addItem(f"{_tri(nome)} (W {w} / L {lv})", str(k))
         self.q_cor = QComboBox()
         self.q_cor.addItem("Cinza", "")
         from ipe.imaging import colormaps as CM
@@ -469,7 +474,7 @@ class ProtocolosEditor(QWidget):
             txt = txt.replace(f"janela {jan}", f"janela {presets[jan][0].lower()}")
         extra = []
         if q.get("sync"):
-            extra.append(f"sinc. {q['sync']}")
+            extra.append(_tri("sinc. {}").format(q['sync']))
         if q.get("monitor"):
             extra.append(f"monitor {q['monitor']}")
         return f"{k + 1}. " + txt.replace(" · ", "\n", 1) + (f"\n({', '.join(extra)})" if extra else "")

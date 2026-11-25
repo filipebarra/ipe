@@ -84,6 +84,11 @@ SECOES_DA_GERAL = ("Ao abrir o programa", "Texto e marcas sobre a imagem",
                    "Importação", "Idioma")
 
 
+def _tr_i18n(t):
+    from ipe.core.i18n import tr
+    return tr(t)
+
+
 class PreferencesDialog(QDialog):
     def __init__(self, settings, parent=None, pagina: str = "", paginas=None):
         super().__init__(parent)
@@ -672,7 +677,7 @@ class PreferencesDialog(QDialog):
         grade_sync = QGridLayout()
         self.c_sync_mod = {}
         for k, mod in enumerate(("MR", "CT", "PT", "NM", "MG", "US", "CR", "DX", "XA")):
-            nome = SY.MODALIDADE_TXT.get(mod, mod)
+            nome = _tr_i18n(SY.MODALIDADE_TXT.get(mod, mod))
             cb = QCheckBox(nome if f"({mod})" in nome else f"{nome} ({mod})")
             cb.setChecked(hub.auto_da_modalidade(mod))
             self.c_sync_mod[mod] = cb

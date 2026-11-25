@@ -225,7 +225,7 @@ def _cmd_reconstruir(args) -> int:
         import time
         if time.monotonic() - ultimo[0] > 2:
             ultimo[0] = time.monotonic()
-            print(f"  {msg} {feito}/{total}" if total else f"  {msg}", flush=True)
+            print("  " + msg + (" %d/%d" % (feito, total) if total else ""), flush=True)
     acao = args.banco_cmd
     if acao == "restaurar-indice":
         if not args.arquivo:

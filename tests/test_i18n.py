@@ -291,3 +291,58 @@ def test_frase_montada_nao_sai_metade_em_portugues():
         assert "candidato" not in t and "Achados" not in t
     finally:
         i18n.load("pt")
+
+
+def test_0100118_auditoria_do_ingles():
+    """0.100.118, pedido dele: "confira TODAS as janelas, menus, mensagens… tem muita coisa que não está em inglês"."""
+    from ipe.auth.session import UserSession
+    from ipe.core import i18n
+    from ipe.printing.rules import Rule
+    i18n.load("en")
+    try:
+        tr = i18n.tr
+        # o padrão genérico ("Não {}") não pega mais só o começo da frase de várias linhas
+        assert tr("Não foi possível salvar:\ndisco cheio") == "Could not save:\ndisco cheio"
+        # etapas e casos numerados; espaços nas pontas; prazo
+        assert tr("1. Sem contraste") == "1. Non-contrast" and tr("12. Mediastino") == "12. Mediastinum"
+        assert tr("1. Caso do dia") == "1. Caso do dia"            # nome dado pela pessoa: fica
+        assert tr(" opacidade:") == " opacity:"
+        assert tr("faltam 47 h") == "47 h left" and tr("faltam 2 d") == "2 d left"
+        # frases montadas por pedaços
+        assert Rule(name="R").label_text() == "R: any job → (no destination)"
+        assert UserSession().label == "System (Administrator)"
+        assert UserSession(full_name="Maria", role="admin").label == "Maria (Administrator)"
+        dica = tr("Clique direito / do meio no ícone: usar no botão direito / do meio do mouse")
+        assert dica.startswith("Right / middle click")
+        # nomes de séries DICOM criadas pelas IAs ficam como estão (o programa as reconhece pelo nome)
+        assert tr("Encéfalo 2") == "Encéfalo 2"
+    finally:
+        i18n.load("pt")
+    assert Rule(name="R").label_text() == "R: qualquer trabalho → (sem destino)"
+
+
+_ARVORE = '''
+import os, sys
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+sys.path.insert(0, sys.argv[1])
+from PySide6.QtWidgets import QApplication
+from ipe.core import i18n
+from ipe.ui.qt_i18n import install
+app = QApplication([])
+install()
+from PySide6 import QtWidgets
+i18n.load("en")
+t = QtWidgets.QTreeWidget()
+it = QtWidgets.QTreeWidgetItem(t, ["Banco deste computador"])
+assert it.text(0) == "This computer's database", it.text(0)
+print("ok")
+'''
+
+
+def test_0100118_arvore_de_locais_traduz_a_lista(tmp_path):
+    """QTreeWidgetItem(pai, ["texto"]) — a lista vem depois do pai e ficava em português. Em outro processo: o
+    install() troca as classes do Qt e atrapalharia os outros testes."""
+    script = tmp_path / "arvore.py"
+    script.write_text(_ARVORE, encoding="utf-8")
+    r = subprocess.run([sys.executable, str(script), str(SRC)], capture_output=True, text=True, timeout=120)
+    assert r.returncode == 0 and "ok" in r.stdout, r.stdout[-2000:] + r.stderr[-2000:]

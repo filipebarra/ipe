@@ -129,7 +129,7 @@ class NoduloDialog(QDialog):
         self.lobo = lobo_no_ponto(self.tab, self.centro)
         prov = {"numeros": self.numeros, "posicao": self.centro, "study_uid": self.study_uid,
                 "local": self.lobo, "ferramenta": "nodulos", "id": -1}
-        self.l_nums.setText(AC.texto_dos_numeros(prov) + (f"\nLobo: {self.lobo}" if self.lobo else ""))
+        self.l_nums.setText(AC.texto_dos_numeros(prov) + ("\n" + __import__('ipe.core.i18n', fromlist=['tr']).tr("Lobo: {}").format(__import__('ipe.core.i18n', fromlist=['tr']).tr(self.lobo)) if self.lobo else ""))
         self.l_ant.setText(self._texto_anterior(prov))
 
     def _texto_anterior(self, prov: dict) -> str:

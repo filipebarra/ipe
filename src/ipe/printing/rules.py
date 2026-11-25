@@ -66,29 +66,30 @@ class Rule:
         return out
 
     def label_text(self, origin_name: str = "") -> str:
+        from ipe.core.i18n import tr
         quando = []
         if self.aes():
-            quando.append("de " + ", ".join(self.aes()))
+            quando.append(tr("de ") + ", ".join(self.aes()))
         if self.servidores():
-            quando.append("recebido em " + ", ".join(self.servidores()))
+            quando.append(tr("recebido em ") + ", ".join(self.servidores()))
         if self.origin:
-            quando.append(f"da origem {origin_name or self.origin}")
+            quando.append(tr("da origem {}").format(origin_name or self.origin))
         if self.calling_ae:
-            quando.append(f"do AE {self.calling_ae}")
+            quando.append(tr("do AE {}").format(self.calling_ae))
         if self.modalidades():
-            quando.append("modalidade " + "|".join(self.modalidades()))
+            quando.append(tr("modalidade ") + "|".join(self.modalidades()))
         if self.label:
-            quando.append(f"rótulo com {self.label}")
+            quando.append(tr("rótulo com {}").format(self.label))
         if self.film_size:
-            quando.append(f"filme de {self.film_size}")
+            quando.append(tr("filme de {}").format(self.film_size))
         if self.min_sheets:
-            quando.append(f"{self.min_sheets}+ folhas")
+            quando.append(tr("{}+ folhas").format(self.min_sheets))
         if self.max_sheets:
-            quando.append(f"até {self.max_sheets} folhas")
+            quando.append(tr("até {} folhas").format(self.max_sheets))
         if self.hour_from != self.hour_to:
-            quando.append(f"das {self.hour_from}h às {self.hour_to}h")
-        cond = ", ".join(quando) or "qualquer trabalho"
-        return f"{self.name}: {cond} → {self.destination or '(sem destino)'}"
+            quando.append(tr("das {}h às {}h").format(self.hour_from, self.hour_to))
+        cond = ", ".join(quando) or tr("qualquer trabalho")
+        return f"{self.name}: {cond} → {self.destination or tr('(sem destino)')}"
 
 
 def _combina(padrao: str, valor: str) -> bool:

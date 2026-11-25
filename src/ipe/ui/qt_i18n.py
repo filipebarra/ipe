@@ -131,8 +131,12 @@ def _make_subclass(cls, idx, as_list: bool):
         def __init__(self, *args, **kwargs):
             if args:
                 args = list(args)
-                if as_list and isinstance(args[0], (list, tuple)):
-                    args[0] = [tr(x) if isinstance(x, str) else x for x in args[0]]
+                if as_list:
+                    # 0.100.118: QTreeWidgetItem(pai, ["texto"]) — a lista vem depois do pai (antes só a 1ª posição
+                    # era traduzida: "Banco deste computador", "Exames guardados"… ficavam em português)
+                    for i, a in enumerate(args[:2]):
+                        if isinstance(a, (list, tuple)) and all(isinstance(x, str) for x in a):
+                            args[i] = [tr(x) for x in a]
                 for i in idx:
                     if i < len(args) and isinstance(args[i], str):
                         args[i] = tr(args[i])

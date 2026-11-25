@@ -3,6 +3,23 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.118 — English (and Spanish) review of every screen
+- **Every window, menu, message and AI notice** was checked with the program in English: about 270 texts that still
+  came out in Portuguese were translated (AI completion and error messages, PI-RADS sentences, batch from
+  spreadsheet, server errors, printing, SLA, hanging protocols, licenses of the research models).
+- **Half-translated sentences**: a multi-line text ("Could not save:" + the reason) or one built from pieces came out
+  with the beginning translated and the rest in Portuguese. The translator now only accepts the whole sentence.
+- Database: the locations panel ("This computer's database", "My database", "Shared"…), the Origin, Database, AI,
+  Priority, Status, Subspecialty and Deadline columns, "Hidden patient", "No comments", the window title and the user
+  name follow the screen language.
+- Viewer: tool button tooltips, hanging protocol step names ("1. Non-contrast"), window presets, toolbar rules, 3D
+  and fusion labels.
+- Ipê Web: suggested PI-RADS/BI-RADS classification, SUV and other labels.
+- Kept in Portuguese on purpose: the **names of the DICOM series created by the AIs** ("Encéfalo", "Lesões
+  hepáticas"… — the program recognizes them by name), the batch spreadsheet column headers, keyword lists and report
+  templates.
+- Fixed: **Profiles ▸ Capture from this computer…** raised an error when clicked.
+
 ## 0.100.117 — Check and rebuild the database
 - **Settings ▸ Database ▸ Check and rebuild the database…** (administrator), like OsiriX/Horos *Rebuild Database* —
   without losing what only exists in Ipê (comments, lists, measurements, key images, reports, AI):

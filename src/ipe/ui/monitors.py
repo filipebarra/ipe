@@ -33,7 +33,8 @@ def screen_key(screen: QScreen) -> str:
 def screen_label(screen: QScreen, i: int) -> str:
     g = screen.geometry()
     extra = f" {screen.model()}" if screen.model() else ""
-    orient = "retrato" if g.height() > g.width() else "paisagem"
+    from ipe.core.i18n import tr
+    orient = tr("retrato") if g.height() > g.width() else tr("paisagem")
     return f"Monitor {i}: {screen.name()}{extra} — {g.width()}×{g.height()} ({orient})"
 
 

@@ -95,12 +95,18 @@ def _ia_rodando(study_uid: str) -> list:
         return []
 
 
+def _tr(t: str) -> str:
+    from ipe.core.i18n import tr
+    return tr(t)
+
+
 def _texto_ia(r) -> str:
     """Coluna IA: o que já foi feito e o que está rodando."""
     feitas = getattr(r, "ia", "") or ""
     rod = _ia_rodando(getattr(r, "study_uid", ""))
     partes = ([f"{MARK_IA} {feitas}"] if feitas else []) + \
-        [f"{MARK_IA_RODANDO} {t.ferramenta.lower()} ({'na fila' if t.estado == 'fila' else 'rodando'})" for t in rod]
+        [f"{MARK_IA_RODANDO} {_tr(t.ferramenta).lower()} ({_tr('na fila') if t.estado == 'fila' else _tr('rodando')})"
+         for t in rod]
     return "  ".join(partes)
 
 
@@ -162,7 +168,26 @@ class StudyTableModel(QAbstractTableModel):
         from ipe.core import mascara as MK
         return MK.perfil_de(self.settings) if not self.case_names else "oculto"
 
+    #: 0.100.118: colunas cujo texto é do programa (não do exame): saem no idioma da tela
+    TRADUZIDAS = {"origin", "banco", "ia", "busca", "prioridade", "subesp", "sla", "estado", "report", "densidade"}
+
     def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            v = self._data(index, role)
+            key = COLUMNS[index.column()][0]
+            if isinstance(v, str) and v and (key in self.TRADUZIDAS or v == "Paciente oculto"):
+                from ipe.core.i18n import tr
+                return tr(v)
+            return v
+        if role == Qt.ToolTipRole:
+            v = self._data(index, role)
+            if isinstance(v, str) and v:
+                from ipe.core.i18n import tr
+                return tr(v)
+            return v
+        return self._data(index, role)
+
+    def _data(self, index, role=Qt.DisplayRole):
         r = self.rows[index.row()]
         key, _label, kind = COLUMNS[index.column()]
         if role in (Qt.DisplayRole, Qt.UserRole):
@@ -1341,14 +1366,14 @@ class Browser(QWidget):
             if it is not None:
                 html.append(f"<p><b>Caso {it['n']}: {_esc(it['friendly_name'] or '(sem nome)')}</b>"
                             + (f"<br><i>{_esc(', '.join(it['tags']))}</i>" if it["tags"] else "")
-                            + (f"<br><b>História:</b> {_esc(it['clinical_summary'])}" if it["clinical_summary"] else "")
-                            + (f"<br><b>Resposta:</b> {_esc(it['hidden_diagnosis'])}" if it["hidden_diagnosis"] else "")
-                            + (f"<br><b>Notas:</b> {_esc(it['note'])}" if it["note"] else "")
-                            + "<br><span style='color:gray'>Botão direito → Editar caso</span></p><hr>")
+                            + (f"<br><b>{_tr('História:')}</b> {_esc(it['clinical_summary'])}" if it["clinical_summary"] else "")
+                            + (f"<br><b>{_tr('Resposta:')}</b> {_esc(it['hidden_diagnosis'])}" if it["hidden_diagnosis"] else "")
+                            + (f"<br><b>{_tr('Notas:')}</b> {_esc(it['note'])}" if it["note"] else "")
+                            + f"<br><span style='color:gray'>{_tr('Botão direito → Editar caso')}</span></p><hr>")
         for c in self.repo.comments(r.study_uid):
             html.append(f"<p><span style='color:gray'>{c.created_at:%d/%m/%Y %H:%M}</span><br>"
                         f"{_esc(c.text)}</p>")
-        self.comments.setHtml("".join(html) or "<i>Sem comentários</i>")
+        self.comments.setHtml("".join(html) or f"<i>{_tr('Sem comentários')}</i>")
 
     # ------------------------------------------------------------ séries
     def _fill_series(self, study_uid: str) -> None:

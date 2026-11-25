@@ -32,7 +32,7 @@ class BancosMixin:
     def _update_title(self) -> None:
         loc = getattr(self, "location", None)
         extra = "" if loc is None or loc.is_default else f" — {loc.name}"
-        self.setWindowTitle(f"{APP_NAME} {__version__}{extra} — {NOT_FOR_DIAGNOSIS}")
+        self.setWindowTitle(f"{APP_NAME} {__version__}{extra} — {__import__('ipe.core.i18n', fromlist=['tr']).tr(NOT_FOR_DIAGNOSIS)}")
 
     def switch_location(self, loc_id: str) -> bool:
         """Troca o local ativo: a lista passa a ser a daquela pasta (banco, listas, laudos e medidas)."""

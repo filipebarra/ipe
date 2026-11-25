@@ -265,7 +265,7 @@ export function linhas(kind: string, pts: P2[], imageId: string, texto = "", met
     const u = mod === "CT" ? " HU" : "";
     const out: string[] = [];
     if (st.media !== null && suv) {
-      out.push(`SUVmáx ${(st.max! * suv).toFixed(2)}  SUVméd ${(st.media * suv).toFixed(2)}`);
+      out.push(`${tr("SUVmáx")} ${(st.max! * suv).toFixed(2)}  ${tr("SUVméd")} ${(st.media * suv).toFixed(2)}`);
     }
     if (st.media !== null) {
       out.push(`${tr("Média")} ${num(st.media)} ± ${num(st.dp!)}${u}`);

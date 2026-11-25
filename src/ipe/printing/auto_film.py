@@ -97,18 +97,19 @@ class AutoRule:
                         max_images=self.max_images, destination=self.destination, template=self.template)
 
     def label_text(self) -> str:
+        from ipe.core.i18n import tr
         quando = []
         if self.calling_aes:
-            quando.append("de " + ", ".join(self.calling_aes))
+            quando.append(tr("de ") + ", ".join(self.calling_aes))
         if self.my_aes:
-            quando.append("chamando " + ", ".join(self.my_aes))
+            quando.append(tr("chamando ") + ", ".join(self.my_aes))
         if self.modalities:
-            quando.append("modalidade " + "|".join(self.modalities))
+            quando.append(tr("modalidade ") + "|".join(self.modalities))
         if self.description:
-            quando.append(f"descrição com {self.description}")
-        cond = ", ".join(quando) or "qualquer exame"
-        imgs = f"até {self.max_images} imagens" if self.max_images else "todas as imagens"
-        depois = self.destination or "fica na lista"
+            quando.append(tr("descrição com {}").format(self.description))
+        cond = ", ".join(quando) or tr("qualquer exame")
+        imgs = tr("até {} imagens").format(self.max_images) if self.max_images else tr("todas as imagens")
+        depois = self.destination or tr("fica na lista")
         return f"{self.name}: {cond} → {self.rows}×{self.cols} {self.paper}, {imgs} → {depois}"
 
 

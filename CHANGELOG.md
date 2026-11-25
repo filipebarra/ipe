@@ -3,6 +3,25 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.118 — Revisão do inglês (e do espanhol) em todas as telas
+- Conferência de **todas as janelas, menus, mensagens e avisos das IAs** com o programa em inglês: cerca de 270
+  textos que ainda saíam em português foram traduzidos (mensagens de conclusão e de erro das IAs, frases do PI-RADS,
+  lote a partir de planilha, erros do servidor, impressão, SLA, protocolos de exibição, licenças dos modelos de
+  pesquisa).
+- **Frases pela metade**: um texto de várias linhas ("Não foi possível salvar:" + o motivo) ou montado por pedaços
+  saía com o começo traduzido e o resto em português ("No foi possível…"). O tradutor agora só aceita a frase
+  inteira.
+- No banco de dados: o painel de locais ("Banco deste computador", "Meu banco", "Compartilhado"…), as colunas
+  Origem, Banco, IA, Prioridade, Estado, Subespecialidade e Prazo, "Paciente oculto", "Sem comentários", o título da
+  janela e o nome do usuário saem no idioma da tela.
+- No visualizador: dicas dos botões de ferramenta, nomes das etapas dos protocolos ("1. Sem contraste"), presets de
+  janela, regras da barra de ferramentas, rótulos do 3D e da fusão.
+- Ipê Web: classificação sugerida do PI-RADS/BI-RADS, SUV e outros rótulos.
+- Ficam em português de propósito: os **nomes das séries DICOM criadas pelas IAs** ("Encéfalo", "Lesões hepáticas"…
+  — o programa as reconhece pelo nome), os cabeçalhos da planilha do lote, as listas de palavras-chave e os modelos
+  de laudo.
+- Corrigido: **Perfis ▸ Capturar deste computador…** dava erro ao clicar.
+
 ## 0.100.117 — Conferir e reconstruir o banco
 - **Configurações ▸ Banco de dados ▸ Conferir e reconstruir o banco…** (administrador), como o *Rebuild Database*
   do OsiriX/Horos — sem perder o que só existe no Ipê (comentários, listas, medidas, imagens-chave, laudos, IA):

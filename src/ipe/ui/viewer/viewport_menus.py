@@ -115,14 +115,14 @@ class VpMenusMixin:
             tit.setEnabled(False)
             menu.addAction(tit)
             for i, (nome, w, l) in enumerate(js):
-                act = QAction(f"   {nome}  (W {w:g} / L {l:g})", menu)
+                act = QAction(f"   {__import__('ipe.core.i18n', fromlist=['tr']).tr(nome)}  (W {w:g} / L {l:g})", menu)
                 act.triggered.connect(lambda _=False, k=i: self.usar_janela_do_arquivo(k))
                 menu.addAction(act)
             menu.addSeparator()
         for key, (name, w, l) in sorted(self.presets_da_janela().items()):
             if not name:
                 continue
-            act = QAction(f"{key}  {name}  (W {w} / L {l})", menu)
+            act = QAction(f"{key}  {__import__('ipe.core.i18n', fromlist=['tr']).tr(name)}  (W {w} / L {l})", menu)
             act.triggered.connect(lambda _=False, kk=key: self.apply_preset(kk))
             menu.addAction(act)
         auto = QAction("0  Automático / do arquivo", menu)

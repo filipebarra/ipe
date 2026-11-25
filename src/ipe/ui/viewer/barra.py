@@ -73,7 +73,8 @@ class BarraMixin:
             base = a.text().split("  (")[0]
             tip = f"{base}  ({key})" if key else base
             if aid.startswith("tool.") or aid == "film.add":
-                tip += "\nClique direito / do meio no ícone: usar no botão direito / do meio do mouse"
+                from ipe.core.i18n import tr as _tr
+                tip += "\n" + _tr("Clique direito / do meio no ícone: usar no botão direito / do meio do mouse")
             a.setToolTip(tip)
 
     TOOLBAR_STYLE = (
@@ -1416,14 +1417,14 @@ class BarraMixin:
         if js:
             menu.addAction("Do arquivo (Switch WL)").setEnabled(False)
             for i, (nome, w, l) in enumerate(js):
-                a = menu.addAction(f"   {nome}  (W {w:g} / L {l:g})")
+                a = menu.addAction(f"   {__import__('ipe.core.i18n', fromlist=['tr']).tr(nome)}  (W {w:g} / L {l:g})")
                 a.triggered.connect(lambda _=False, k=i: self._on_active(lambda v: v.usar_janela_do_arquivo(k)))
             menu.addSeparator()
         presets = vp.presets_da_janela() if vp is not None else self.settings.get("viewer.wl_presets", {})
         for key, (name, w, l) in sorted(presets.items()):
             if not name:
                 continue
-            a = menu.addAction(f"{name}   (W {w:g} / L {l:g})")
+            a = menu.addAction(f"{__import__('ipe.core.i18n', fromlist=['tr']).tr(name)}   (W {w:g} / L {l:g})")
             a.setShortcut(QKeySequence(key))
             a.triggered.connect(lambda _=False, kk=key: self._on_active(lambda v: v.apply_preset(kk)))
         menu.addSeparator()

@@ -67,13 +67,18 @@ def instalar_pesquisa(janela, modelo: str, settings) -> bool:
     return abrir_instalador_extras(janela, (modelo,), settings, perguntar=False)
 
 
+def _tr(t):
+    from ipe.core.i18n import tr
+    return tr(t)
+
+
 def escolher_e_instalar(janela, settings) -> bool:
     """Configurações ▸ CAD/IA ▸ Modelos de pesquisa: qual instalar (com o estado de cada um)."""
     from PySide6.QtWidgets import QInputDialog
     itens = []
     for m in EX.PESQUISA:
         pr = EX.prontidao(m, settings)
-        itens.append(f"{EX.NOMES[m]} — " + ("pronto" if pr.pronto else pr.falta))
+        itens.append(f"{_tr(EX.NOMES[m])} — " + _tr("pronto" if pr.pronto else pr.falta))
     escolha, ok = QInputDialog.getItem(janela, "Modelos de pesquisa (próstata)",
                                        "Modelos de PESQUISA e ensino (não clínico, não comercial), instalados à parte. "
                                        "Antes de baixar, você lê e aceita a licença.\n\nQual instalar?", itens, 0, False)

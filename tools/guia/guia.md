@@ -1110,7 +1110,7 @@ O pacote traz dois executáveis: `Ipe.exe` (o de janela) e `ipe-cli.exe` (o de c
 
 Desde a 0.99.33 o padrão é o **inglês**. O instalador do Windows pergunta o idioma na primeira tela (inglês, português ou espanhol, com o inglês marcado) e grava a escolha para o programa; os scripts `instalar.bat` e `instalar.sh` perguntam o mesmo. A versão portátil pergunta na primeira vez que abre. Depois, **Configurações ▸ Sistema ▸ Idioma** muda, e pela linha de comando: `ipe-cli set-language pt-BR` (ou `en`, `es`). Quem já usava o programa continua no idioma que tinha escolhido.
 
-A tradução cobre as telas, menus, mensagens e as IAs. Ficam como estão os nomes que vêm do exame (descrição da série, instituição, paciente) e as siglas. Achou um texto em português na tela em inglês ou espanhol? **Configurações ▸ Sistema ▸ Idioma ▸ Editar traduções** corrige na hora, e vale a pena avisar para entrar na próxima versão.
+A tradução cobre as telas, menus, mensagens e as IAs. Ficam como estão os nomes que vêm do exame (descrição da série, instituição, paciente) e as siglas. Também ficam em português os nomes das séries DICOM que as IAs criam ("Encéfalo", "Lesões hepáticas"… — o programa as reconhece pelo nome), os cabeçalhos da planilha do lote, as listas de palavras-chave e os modelos de laudo. Na 0.100.118 todas as janelas, menus e mensagens foram conferidos em inglês. Achou um texto em português na tela em inglês ou espanhol? **Configurações ▸ Sistema ▸ Idioma ▸ Editar traduções** corrige na hora, e vale a pena avisar para entrar na próxima versão.
 
 # Rede DICOM, PACS e automação
 

@@ -107,7 +107,8 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         self._t_estados.timeout.connect(self.guardar_estados)
         self._t_estados.start()
 
-        self.setWindowTitle(f"{APP_NAME} {__version__} — {NOT_FOR_DIAGNOSIS}")
+        from ipe.core.i18n import tr as _tr
+        self.setWindowTitle(f"{APP_NAME} {__version__} — {_tr(NOT_FOR_DIAGNOSIS)}")
         self.resize(1400, 860)
         self.setAcceptDrops(True)
         # arrastar arquivos/pastas/ZIP para qualquer janela do programa importa
@@ -851,6 +852,7 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         m = menu or self.user_menu
         m.clear()
         cur = S.get()
+        from ipe.core.i18n import tr as _tr
         a = QAction(cur.label, m)
         a.setEnabled(False)
         m.addAction(a)
@@ -1364,7 +1366,8 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
     def apply_permissions(self) -> None:
         from ipe.auth import session as S
         cur = S.get()
-        self.user_label.setText(f"Usuário: {cur.full_name or cur.username} · {cur.role_name}")
+        from ipe.core.i18n import tr as _tr
+        self.user_label.setText(f"{_tr('Usuário:')} {cur.nome_na_tela} · {_tr(cur.role_name)}")
         self.browser.apply_permissions()
         for a in [x for w in [self, *self.detached] for x in w.menuBar().actions()]:
             menu = a.menu()

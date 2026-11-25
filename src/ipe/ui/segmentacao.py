@@ -644,8 +644,8 @@ class Segmentacao(QObject):
                 saida = {"medsam2": lab, "vol": self.trabalho.vol, "versao": versao, "series_uid":
                          self.trabalho.series_uid}
                 n = int((lab > 0).sum()) if lab is not None else 0
-                self._fim(saida, f"MedSAM2 pronto em {segundos:.0f} s: " +
-                          ("máscara com %d voxels." % n if n else "nada achado dentro da caixa."))
+                self._fim(saida, __import__('ipe.core.i18n', fromlist=['tr']).tr("MedSAM2 pronto em {:.0f} s: ").format(segundos) +
+                          (__import__('ipe.core.i18n', fromlist=['tr']).tr("máscara com {} voxels.").format(n) if n else __import__('ipe.core.i18n', fromlist=['tr']).tr("nada achado dentro da caixa.")))
                 return
             if self._generica is not None:
                 self._fim_generica()

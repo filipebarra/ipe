@@ -146,7 +146,7 @@ class ReconstruirDialog(QDialog):
         if total > 0:
             self.barra.setRange(0, total)
             self.barra.setValue(min(feito, total))
-            self.estado.setText(f"{tr(msg)} {feito}/{total}")
+            self.estado.setText(tr(msg) + " %d/%d" % (feito, total))
         else:
             self.barra.setRange(0, 0)
             self.estado.setText(tr(msg))

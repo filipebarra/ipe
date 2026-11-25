@@ -3,6 +3,23 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.118 — Revisión del inglés (y del español) en todas las pantallas
+- Revisión de **todas las ventanas, menús, mensajes y avisos de las IA** con el programa en inglés: unos 270 textos
+  que todavía salían en portugués fueron traducidos (mensajes de finalización y de error de las IA, frases de
+  PI-RADS, lote desde planilla, errores del servidor, impresión, SLA, protocolos de visualización, licencias de los
+  modelos de investigación).
+- **Frases a medias**: un texto de varias líneas o armado por partes salía con el comienzo traducido y el resto en
+  portugués. El traductor ahora solo acepta la frase entera.
+- Base de datos: el panel de ubicaciones, las columnas Origen, Base, IA, Prioridad, Estado, Subespecialidad y Plazo,
+  "Paciente oculto", "Sin comentarios", el título de la ventana y el nombre del usuario siguen el idioma de la
+  pantalla.
+- Visor: ayudas de los botones de herramienta, nombres de las etapas de los protocolos, presets de ventana, reglas
+  de la barra de herramientas, rótulos del 3D y de la fusión.
+- Ipê Web: clasificación sugerida de PI-RADS/BI-RADS, SUV y otros rótulos.
+- Quedan en portugués a propósito: los **nombres de las series DICOM creadas por las IA** (el programa las reconoce
+  por el nombre), los encabezados de la planilla del lote, las listas de palabras clave y los modelos de informe.
+- Corregido: **Perfiles ▸ Capturar de este equipo…** daba error al hacer clic.
+
 ## 0.100.117 — Conferir y reconstruir la base
 - **Configuración ▸ Base de datos ▸ Conferir y reconstruir la base…** (administrador), como el *Rebuild Database*
   de OsiriX/Horos — sin perder lo que solo existe en Ipê (comentarios, listas, medidas, imágenes clave, informes,

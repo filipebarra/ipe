@@ -656,7 +656,7 @@ class ExportDialog(QDialog):
         if res.warnings:
             msg += "\n\nAvisos:\n" + "\n".join(res.warnings[:5])
         if res.errors:
-            msg += f"\n\n{len(res.errors)} arquivo(s) com erro:\n" + "\n".join(res.errors[:5])
+            msg += "\n\n" + __import__('ipe.core.i18n', fromlist=['tr']).tr("{} arquivo(s) com erro:").format(len(res.errors)) + "\n" + "\n".join(res.errors[:5])
         box = QMessageBox(QMessageBox.Information, "Exportar", msg, parent=self)
         open_btn = box.addButton("Abrir pasta", QMessageBox.ActionRole)
         box.addButton("OK", QMessageBox.AcceptRole)
@@ -679,7 +679,7 @@ class ExportDialog(QDialog):
         if res.avisos:
             msg += "\n\nAvisos:\n" + "\n".join(res.avisos[:5])
         if res.erros:
-            msg += f"\n\n{len(res.erros)} arquivo(s) com erro:\n" + "\n".join(res.erros[:5])
+            msg += "\n\n" + __import__('ipe.core.i18n', fromlist=['tr']).tr("{} arquivo(s) com erro:").format(len(res.erros)) + "\n" + "\n".join(res.erros[:5])
         return msg
 
     def _terminou_banco(self, res, items) -> None:

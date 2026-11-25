@@ -154,6 +154,7 @@ def load(lang: str) -> None:
         _state["patterns"] = []
         _state["reverso"] = None
         _state["valores"] = None
+        _state["so_original"] = None
         if not lang or lang == BASE_LANG:
             return
         data: dict = {}
@@ -165,6 +166,8 @@ def load(lang: str) -> None:
             if not isinstance(dst, str) or not dst:
                 continue
             if "{}" in src:
+                if dst == src and not any(c.isalpha() for c in src.replace("{}", "")):
+                    continue                             # "{} {}/{}": casaria com qualquer texto
                 patterns.append((src, _pattern_regex(src), dst))
             else:
                 strings[src] = dst
@@ -186,12 +189,14 @@ def _estado_de(lang: str) -> dict:
                 if not isinstance(dst, str) or not dst:
                     continue
                 if "{}" in src:
+                    if dst == src and not any(c.isalpha() for c in src.replace("{}", "")):
+                        continue                             # "{} {}/{}": casaria com qualquer texto
                     patterns.append((src, _pattern_regex(src), dst))
                 else:
                     strings[src] = dst
             patterns.sort(key=_especifico)
             st = _OUTROS[lang] = {"lang": lang, "strings": strings, "patterns": patterns, "cache": {},
-                                  "missing": set(), "reverso": None, "valores": None}
+                                  "missing": set(), "reverso": None, "valores": None, "so_original": None}
         return st
 
 
@@ -263,6 +268,11 @@ def _tr_idioma(text):
         t = _state["strings"].get(base)
         if t is not None:
             out = t + "…"
+    if out is None and ("\n" in text or "<br" in text):
+        # 0.100.118: o padrão de várias linhas que casa com o texto inteiro ("Não foi possível salvar:\n{}") vale
+        # mais que traduzir linha a linha — a 1ª linha sozinha caía num padrão genérico ("Não {}") e saía "No foi
+        # possível salvar:"
+        out = _match_pattern(text, so_multilinha=True)
     if out is None and "\n\n" in text:
         out = _match_paragrafos(text)
     if out is None and ("\n" in text or "<br" in text):
@@ -280,6 +290,12 @@ def _tr_idioma(text):
             if inner:
                 out = text.replace(stripped, inner)
     if out is None:
+        m = _NUMERADO.match(text)               # "1. Sem contraste" (etapas, casos): o número fica, o nome traduz
+        if m:
+            t = _tr_idioma(m.group(2))
+            if t != m.group(2):
+                out = m.group(1) + t
+    if out is None:
         out = _match_tag(text) or _match_parts(text)
     if out is None:
         _state["missing"].add(text)
@@ -290,14 +306,58 @@ def _tr_idioma(text):
     return out
 
 
-def _match_pattern(text: str) -> str | None:
-    for _src, rx, dst in _state["patterns"]:
+_PALAVRA = re.compile(r"[A-Za-zÀ-ÿ]{3,}")
+_NUMERADO = re.compile(r"^(\d{1,3}\. )(\S.*)$", re.S)
+
+
+def _so_do_original() -> set:
+    """As palavras que só existem nos textos originais (português), nunca nas traduções deste idioma — para saber se
+    um pedaço que sobrou dentro de uma frase "traduzida" por um padrão genérico ainda é português."""
+    v = _state.get("so_original")
+    if v is None:
+        orig, dest = set(), set()
+        pares = list(_state["strings"].items()) + [(k, d) for k, _rx, d in _state["patterns"]]
+        for k, d in pares:
+            orig.update(_PALAVRA.findall(k.lower()))
+            if d != k:                                   # entrada ainda sem tradução não conta como "do idioma"
+                dest.update(_PALAVRA.findall(d.lower()))
+        v = _state["so_original"] = orig - dest
+    return v
+
+
+def _ficou_em_portugues(g: str) -> bool:
+    """O pedaço (não traduzido) tem pelo menos duas palavras só do português, ou uma, se é tudo o que ele tem?"""
+    ws = _PALAVRA.findall(g.lower())
+    if not ws or not any(c.islower() for c in g):
+        return False
+    so = _so_do_original()
+    n = sum(1 for w in ws if w in so)
+    return n >= 2 or (n == 1 and len(ws) <= 2)
+
+
+def _match_pattern(text: str, so_multilinha: bool = False) -> str | None:
+    for src, rx, dst in _state["patterns"]:
+        if so_multilinha and not ("\n" in src or "<br" in src):
+            continue
+        fixo = len(src.replace("{}", "").strip())
+        if so_multilinha and fixo < 10:
+            continue
         m = rx.match(text)
         if m is None:
             continue
         out, groups = dst, list(m.groups())
+        meio = False
         for g in groups:
-            out = out.replace("{}", _parte(g), 1)
+            t = _parte(g)
+            # 0.100.118: padrão genérico ("Não {}", "{} de {}", "IA {}") que deixa português dentro da frase não
+            # vale — saía "No foi possível…", "A regra é of fulano". Melhor a frase inteira no original (e na lista
+            # do que falta traduzir) do que metade em cada língua.
+            if fixo < 10 and t == g and _ficou_em_portugues(g):
+                meio = True
+                break
+            out = out.replace("{}", t, 1)
+        if meio:
+            continue
         return out
     return None
 

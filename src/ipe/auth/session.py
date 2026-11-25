@@ -27,7 +27,15 @@ class UserSession:
 
     @property
     def label(self) -> str:
-        return f"{self.full_name or self.username} ({self.role_name})"
+        """Para a tela: o perfil sai no idioma (e o "Sistema" de quando não há login)."""
+        from ipe.core.i18n import tr
+        return f"{self.nome_na_tela} ({tr(self.role_name)})"
+
+    @property
+    def nome_na_tela(self) -> str:
+        from ipe.core.i18n import tr
+        nome = self.full_name or self.username
+        return tr(nome) if nome == "Sistema" else nome
 
 
 current = UserSession()

@@ -75,7 +75,7 @@ class PerfisDialog(QDialog):
         self.valores.setHorizontalHeaderLabels(["Chave", "Valor (JSON)", "Forçar"])
         colunas_ajustaveis(self.valores)
         bv = QHBoxLayout()
-        for texto, fn in (("Capturar deste computador…", self._capturar), ("+ Chave", lambda: self._linha("", "", False)),
+        for texto, fn in (("Capturar deste computador…", lambda: self._capturar()), ("+ Chave", lambda: self._linha("", "", False)),
                           ("Tirar a chave", self._tirar_chave)):
             b = QPushButton(texto)
             b.clicked.connect(fn)

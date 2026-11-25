@@ -377,7 +377,7 @@ class RuleEditor(QDialog):
         itens_srv = [(f"{s.ae_title} (porta {s.port}) — {s.name}", s.name) for s in C.all_servers(settings)]
         self.l_servers = _Marcas(itens_srv, r.servidores())
         for nome in r.servidores():
-            self.l_servers.acrescentar(f"{nome} (servidor apagado)", nome, True)
+            self.l_servers.acrescentar(tr("{} (servidor apagado)").format(nome), nome, True)
 
         # ---- modalidade
         mods = list(MODALIDADES_COMUNS)
@@ -518,7 +518,7 @@ class RuleEditor(QDialog):
             self.nova_mod.clear()
 
     def _atualizar_resumo(self, *_a) -> None:
-        self.resumo.setText("Resumo: " + self.rule().label_text())
+        self.resumo.setText(tr("Resumo: ") + self.rule().label_text())
 
     @staticmethod
     def _wrap(layout) -> QWidget:
@@ -748,7 +748,7 @@ class AutoRuleEditor(QDialog):
             campo.clear()
 
     def _atualizar_resumo(self, *_a) -> None:
-        self.resumo.setText("Resumo: " + self.regra().label_text())
+        self.resumo.setText(tr("Resumo: ") + self.regra().label_text())
 
     def regra(self):
         import dataclasses

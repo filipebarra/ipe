@@ -101,6 +101,11 @@ def _ok_cancel(dlg, form) -> None:
 
 
 # ---------------------------------------------------------------------------
+def _tra(t):
+    from ipe.core.i18n import tr
+    return tr(t)
+
+
 class QueryRuleDialog(QDialog):
     def __init__(self, repo, rule: dict | None, parent=None):
         super().__init__(parent)
@@ -419,7 +424,7 @@ class AutomationDialog(QDialog):
                              c.get("count", 1), c.get("years", ""), ", ".join(c.get("keywords", [])),
                              "sim" if c.get("on_receive", True) else "", "sim" if c.get("on_open", True) else "", on])
             elif kind == "dinamica":
-                rows.append([r["name"], ", ".join(c.get("modalities", [])) or "todas",
+                rows.append([r["name"], ", ".join(c.get("modalities", [])) or _tra("todas"),
                              c.get("description_contains", ""), on])
             else:
                 rows.append([r["name"], ", ".join(c.get("modalities", [])) or "todas",
