@@ -147,7 +147,7 @@ def test_escolhe_a_serie_do_abdome_nao_a_da_pelve(env, tmp_path):
     assert len(ff) == len(ef) == NZ and "TE 2.08" in desc
 
 
-def _rodar(env, tmp_path, **kw):
+def _rodar(env, tmp_path, settings=None, **kw):
     from ipe.ai import ferramentas as FE
     from ipe.ai import totalseg as TS
     from ipe.imaging.series import FrameCache
@@ -157,7 +157,7 @@ def _rodar(env, tmp_path, **kw):
     FE.preparar_trabalho(t, F)
     t.preparar()
     t.rodar_aqui()
-    res, versao = FE.rodar_conta(t, F, None)
+    res, versao = FE.rodar_conta(t, F, settings)
     return t, res, versao, repo, paths, db
 
 
@@ -170,7 +170,10 @@ def test_gordura_ferro_e_dupla_eco(env, tmp_path):
         assert "S7 18,0" in g["pdff_segmentos"]["v"] and "S2 6,0" in g["pdff_segmentos"]["v"]
         f = res.ferro
         assert f["r2_mediana"]["v"] == 80 and f["t2_ms"]["v"] == 12.5 and f["baco_r2"]["v"] == 40
-        assert f["lic"]["v"] == pytest.approx(0.0254 * 80 + 0.202, abs=0.01)
+        assert f["lic"]["v"] == pytest.approx(0.0254 * 80 + 0.202, abs=0.01)           # 1,5 T: Wood
+        assert f["lic_wood"]["v"] == f["lic"]["v"] and f["lic_formula"]["v"] == "Wood"
+        assert f["lic_hankins"]["v"] == pytest.approx(0.02802 * 80 - 0.45485, abs=0.01)
+        assert f["campo_t"]["v"] == "1,5 T"
         assert f["lic_grau"]["v"].startswith("acima do normal (1,8–3,2)") and "r2_15" not in f
         assert any("Wood" in a for a in res.avisos_ferro) and any("Tang" in a for a in res.avisos_gordura)
         d = res.dixon
@@ -221,10 +224,37 @@ def test_3t_converte_por_alam(env, tmp_path, monkeypatch):
     try:
         f = res.ferro
         assert f["r2_15"]["v"] == pytest.approx(80 / 2.05, abs=0.06)
-        assert f["lic"]["v"] == pytest.approx(0.0254 * 80 / 2.05 + 0.202, abs=0.01)
+        assert f["lic_wood"]["v"] == pytest.approx(0.0254 * 80 / 2.05 + 0.202, abs=0.01)
+        # 3 T: pelo campo (padrão) vale Hankins, no R2* do aparelho (sem a conversão de Alam)
+        assert f["lic_hankins"]["v"] == pytest.approx(0.02802 * 80 - 0.45485, abs=0.01)
+        assert f["lic"]["v"] == f["lic_hankins"]["v"] and f["lic_formula"]["v"] == "Hankins"
+        assert f["campo_t"]["v"] == "3 T"
         assert any("Alam" in a for a in res.avisos_ferro)
         txt = F.frase({"tipo": F.TIPO_FERRO, "numeros": f, "estado": "confirmado"})
         assert "equivalente a 39 s⁻¹ a 1,5 T" in txt
+    finally:
+        t.limpar()
+
+
+@pytest.mark.parametrize("campo,escolha,esperada", [(1.5, 0, "wood"), (3.0, 0, "hankins"), (1.5, 2, "hankins"),
+                                                      (3.0, 1, "wood"), (None, 0, "wood")])
+def test_formula_do_ferro_pelo_campo_ou_pela_escolha(campo, escolha, esperada):
+    assert F.formula_do_ferro(campo, escolha) == esperada
+
+
+def test_hankins_e_wood_na_conta():
+    assert F.lic_hankins(100.0, 1.5) == pytest.approx(2.35, abs=0.01)
+    assert F.lic_hankins(5.0, 1.5) == 0.0                       # intercepto negativo: nunca abaixo de zero
+    assert F.lic_hankins(100.0, 0.35) is None and F.lic_wood(100.0, 0.35) is None
+    assert F.lic_wood(100.0, 3.0) == pytest.approx(0.0254 * 100 / 2.05 + 0.202, abs=0.01)
+
+
+def test_escolha_nas_configuracoes_vale_para_o_lic_principal(env, tmp_path, monkeypatch):
+    _campo(monkeypatch, 3.0)
+    t, res, _v, *_r = _rodar(env, tmp_path, settings={F.CHAVE_FERRO_FORMULA: 1})
+    try:
+        assert res.ferro["lic_formula"]["v"] == "Wood" and res.ferro["lic"]["v"] == res.ferro["lic_wood"]["v"]
+        assert res.ferro["lic_hankins"]["v"] > res.ferro["lic_wood"]["v"]       # as duas aparecem
     finally:
         t.limpar()
 

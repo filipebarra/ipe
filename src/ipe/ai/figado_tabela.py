@@ -17,6 +17,13 @@ SITUACOES = (("todas", "Todas"), ("revisadas", "Revisadas (confirmadas ou corrig
              ("ferro", "Com sobrecarga de ferro (LIC ≥ 3,2)"), ("rigidez", "Com rigidez acima do normal"))
 
 
+def _t(a: dict | None, k: str) -> str:
+    if not a:
+        return ""
+    v = (AC.numeros_validos(a).get(k) or {}).get("v")
+    return "" if v is None else str(v)
+
+
 def _v(a: dict | None, k: str):
     if not a:
         return None
@@ -42,7 +49,8 @@ def linha(base: dict, achados: list[dict]) -> dict:
     return {**base,
             "pdff": pdff, "grau": F.grau_da_gordura(pdff) if pdff is not None else None,
             "gordura": F.resultado_do_achado(g) if g else "", "ff_sinal": _v(dx, "ff_sinal"),
-            "r2": r2, "r2_15": r15, "lic": lic, "ferro": F.resultado_do_achado(fe) if fe else "",
+            "r2": r2, "r2_15": r15, "lic": lic, "lic_wood": _v(fe, "lic_wood"), "lic_hankins": _v(fe, "lic_hankins"),
+            "lic_formula": _t(fe, "lic_formula"), "campo_t": _t(fe, "campo_t"), "ferro": F.resultado_do_achado(fe) if fe else "",
             "kpa": kpa, "faixa": EL.faixa(kpa) if kpa is not None else "",
             "rigidez": F.resultado_do_achado(rg) if rg else "",
             "estados": est, "revisor": (ultimo or {}).get("revisor", "") if ultimo else "",
@@ -85,7 +93,7 @@ def resumo(linhas: list[dict]) -> dict:
 
 
 CSV_CAB = ["study_uid", "data", "paciente", "id", "descricao", "aparelho", "pdff_pct", "grau_tang", "gordura",
-           "ff_sinal_dupla_eco_pct", "r2_s-1", "r2_15T_s-1", "lic_mgFe_g", "ferro", "rigidez_kpa", "faixa",
+           "ff_sinal_dupla_eco_pct", "r2_s-1", "r2_15T_s-1", "lic_mgFe_g", "lic_formula", "lic_wood_mgFe_g", "lic_hankins_mgFe_g", "campo_T", "ferro", "rigidez_kpa", "faixa",
            "rigidez", "estado_gordura", "estado_ferro", "estado_rigidez", "revisor", "revisado_em", "medido_em"]
 
 
@@ -98,6 +106,7 @@ def linha_csv(r: dict) -> list:
     return [r.get("study_uid", ""), r.get("study_date", ""), r.get("patient_name", ""), r.get("patient_id", ""),
             r.get("description", ""), r.get("aparelho", ""), _n(r.get("pdff")),
             "" if r.get("grau") is None else r["grau"], r.get("gordura", ""), _n(r.get("ff_sinal")),
-            _n(r.get("r2"), 0), _n(r.get("r2_15"), 0), _n(r.get("lic"), 2), r.get("ferro", ""), _n(r.get("kpa"), 2),
+            _n(r.get("r2"), 0), _n(r.get("r2_15"), 0), _n(r.get("lic"), 2), r.get("lic_formula", ""),
+            _n(r.get("lic_wood"), 2), _n(r.get("lic_hankins"), 2), r.get("campo_t", ""), r.get("ferro", ""), _n(r.get("kpa"), 2),
             r.get("faixa", ""), r.get("rigidez", ""), e.get("gordura", ""), e.get("ferro", ""), e.get("rigidez", ""),
             r.get("revisor", ""), r.get("revisado_em", ""), r.get("medido_em", "")]

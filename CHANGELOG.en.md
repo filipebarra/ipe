@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.126 — Liver iron: Wood and Hankins formulas, chosen by the MR field strength
+- **New**: the iron (LIC) of liver MR is calculated with **both calibrations**, and both are shown in the findings panel, the image summary (OT), the measured-livers table and the CSV/Excel: **Wood 2005** (`0.0254 · R2* + 0.202`, at 1.5 T; at 3 T R2* is divided by 2.05 first, as before) and **Hankins 2009** (`0.02802 · R2* − 0.45485`, on the scanner's R2*, never below zero).
+- **The field strength is read from DICOM** (`MagneticFieldStrength`) and shown next to the iron. The main LIC and the suggested classification use, by default, **Wood at 1.5 T and Hankins at 3 T**; a field that is neither 1.5 nor 3 T still gets no estimate.
+- Settings ▸ CAD/AI ▸ *Liver fat, iron and stiffness (MR)* ▸ **Iron (LIC) formula**: 0 = by field strength (default), 1 = always Wood, 2 = always Hankins. The choice only changes which of the two is the main one; both are still calculated.
+- Measured-livers CSV/Excel: new columns `lic_formula`, `lic_wood_mgFe_g`, `lic_hankins_mgFe_g` and `campo_T`.
+- **Note**: 3 T exams that used to come out by Wood with the Alam conversion now come out by Hankins on the raw R2*. Over 70 exams compared with the service's reports, this cut the 3 T bias from −0.56 to −0.07 mg Fe/g. The field conversion is a convention; the service's reports behave like Hankins without conversion.
+- New tests: formula by field and by choice, both values in the result, and the floor at zero.
+
 ## 0.100.125 — The guide (F1) in Portuguese, English and Spanish, with everything the program does today
 - **New**: the user guide now exists in **three languages** — `Ipe-guia-do-usuario.pdf` (Portuguese), `Ipe-user-guide.pdf` (English) and `Ipe-guia-del-usuario.pdf` (Spanish) —, each with its own source text (`tools/guia/guia.md`, `guia.en.md`, `guia.es.md`), its own fixed wording (cover, footer, notices) and the same figures. All three ship inside the program and in `docs/`.
 - **F1 and Help ▸ User guide open the guide in the program's language**; if the chosen language has no guide, Portuguese opens. The site footer link also points to the PDF in the page's language.

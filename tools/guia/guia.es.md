@@ -2089,6 +2089,8 @@ Para quien ya había instalado la segmentación: ejecute de nuevo *instalar_segm
 | Grasa hepática (doble eco) | el doble eco en fase / fuera de fase (los dos ecos en la misma serie, o el par InPhase/OutPhase) | fracción de **señal** de grasa = (EF − FF) / (2 · EF), y la razón EF/FF |
 
 - **Hierro estimado**: LIC = 0,0254 · R2* + 0,202 mg Fe/g de peso seco (Wood et al., Blood 2005), calibración de 1,5 T. **A 3 T** (0.99.50) el R2* del hígado se divide por 2,05 para el equivalente a 1,5 T (Alam et al., JCMR 2016: el R2* hepático a 3 T fue 105 % mayor) y entonces entra en la fórmula de Wood; el hallazgo muestra también ese R2* equivalente. A 3 T el T2* muy corto se mide peor: en sobrecarga grave, prefiera 1,5 T. En otro campo (o sin el campo en el archivo) no estima.
+
+- **Hierro por las dos fórmulas** (0.100.126): además de Wood, Ipê calcula el LIC por **Hankins et al. (Blood 2009)**, LIC = 0,02802 · R2* − 0,45485 mg Fe/g, sobre el R2* del equipo (nunca por debajo de cero). El **campo de la RM se lee del DICOM** y aparece junto al hierro. El LIC principal y la clasificación usan, por defecto, **Wood a 1,5 T y Hankins a 3 T**; en Configuración ▸ CAD/IA ▸ *Fórmula del hierro (LIC)* se puede fijar Wood o Hankins. Las dos quedan en el panel, en el resumen en imagen y en el Excel.
 - **Rango del LIC** (texto de referencia, no veredicto): 3,2–7 leve, 7–15 moderada, > 15 mg Fe/g grave.
 - **Referencia de la grasa**, como texto: PDFF ≥ 6,4 % grado ≥ 1, ≥ 17,4 % grado ≥ 2, ≥ 22,1 % grado 3: umbrales de alta especificidad en la enfermedad hepática grasa (Tang et al., Radiology 2015).
 - La fracción de señal del doble eco **no es PDFF**: no corrige T1 ni T2*. En fase con señal menor que fuera de fase sugiere hierro, y entonces la grasa sale subestimada.

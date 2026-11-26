@@ -3,6 +3,14 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.126 — Ferro hepático: fórmulas de Wood e de Hankins, escolhidas pelo campo da RM
+- **Novo**: o ferro (LIC) da RM de fígado é calculado pelas **duas calibrações** e as duas aparecem no painel de achados, no resumo em imagem (OT), na tabela dos fígados medidos e no CSV/Excel: **Wood 2005** (`0,0254 · R2* + 0,202`, a 1,5 T; a 3 T o R2* é dividido por 2,05 antes, como já era) e **Hankins 2009** (`0,02802 · R2* − 0,45485`, no R2* do aparelho, nunca abaixo de zero).
+- **O campo é lido do DICOM** (`MagneticFieldStrength`) e mostrado ao lado do ferro. O LIC principal e a classificação sugerida usam, por padrão, **Wood a 1,5 T e Hankins a 3 T**; campo que não é 1,5 nem 3 T continua sem estimativa.
+- Configurações ▸ CAD/IA ▸ *Gordura, ferro e rigidez hepáticos (RM)* ▸ **Fórmula do ferro (LIC)**: 0 = pelo campo (padrão), 1 = sempre Wood, 2 = sempre Hankins. A escolha só muda qual das duas é a principal; as duas continuam sendo calculadas.
+- CSV/Excel dos fígados medidos: colunas novas `lic_formula`, `lic_wood_mgFe_g`, `lic_hankins_mgFe_g` e `campo_T`.
+- **Atenção**: exames a 3 T que antes saíam pelo Wood com a conversão de Alam passam a sair pelo Hankins no R2* bruto. Em 70 exames comparados com os laudos do serviço, isso reduziu o viés a 3 T de −0,56 para −0,07 mg Fe/g. A conversão de campo é uma convenção; os laudos do serviço se comportam como Hankins sem conversão.
+- Testes novos: fórmula pelo campo e pela escolha, os dois valores no resultado e o piso em zero.
+
 ## 0.100.125 — O guia (F1) em português, inglês e espanhol, com tudo o que o programa faz hoje
 - **Novo**: o guia do usuário existe agora nos **três idiomas** — `Ipe-guia-do-usuario.pdf` (português), `Ipe-user-guide.pdf` (inglês) e `Ipe-guia-del-usuario.pdf` (espanhol) —, cada um com o seu texto-fonte (`tools/guia/guia.md`, `guia.en.md`, `guia.es.md`), as suas palavras fixas (capa, rodapé, avisos) e as mesmas figuras. Os três vão dentro do programa e em `docs/`.
 - **F1 e Ajuda ▸ Guia do usuário abrem o guia no idioma do programa**; se o idioma escolhido não tiver guia, abre o português. O link do rodapé do site também aponta para o PDF do idioma da página.

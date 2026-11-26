@@ -2090,6 +2090,8 @@ For those who had already installed the segmentation: run *instalar_segmentacao*
 | Liver fat (dual echo) | the in-phase / out-of-phase dual echo (both echoes in the same series, or the InPhase/OutPhase pair) | fat **signal** fraction = (IP − OP) / (2 · IP), and the IP/OP ratio |
 
 - **Estimated iron**: LIC = 0.0254 · R2* + 0.202 mg Fe/g dry weight (Wood et al., Blood 2005), a 1.5 T calibration. **At 3 T** (0.99.50) the liver R2* is divided by 2.05 for the 1.5 T equivalent (Alam et al., JCMR 2016: liver R2* at 3 T was 105% higher) and then enters Wood's formula; the finding also shows that equivalent R2*. At 3 T a very short T2* is measured worse: in severe overload, prefer 1.5 T. At another field strength (or without the field in the file) it does not estimate.
+
+- **Iron by both formulas** (0.100.126): besides Wood, Ipê calculates the LIC by **Hankins et al. (Blood 2009)**, LIC = 0.02802 · R2* − 0.45485 mg Fe/g, on the scanner's R2* (never below zero). The **MR field strength is read from DICOM** and shown next to the iron. The main LIC and the classification use, by default, **Wood at 1.5 T and Hankins at 3 T**; in Settings ▸ CAD/AI ▸ *Iron (LIC) formula* you can fix Wood or Hankins. Both appear in the panel, the image summary and the Excel file.
 - **LIC range** (reference text, not a verdict): 3.2–7 mild, 7–15 moderate, > 15 mg Fe/g severe.
 - **Fat reference**, as text: PDFF ≥ 6.4% grade ≥ 1, ≥ 17.4% grade ≥ 2, ≥ 22.1% grade 3 — high-specificity thresholds in fatty liver disease (Tang et al., Radiology 2015).
 - The dual-echo signal fraction **is not PDFF**: it does not correct for T1 or T2*. In-phase with a signal lower than out-of-phase suggests iron — and then the fat comes out underestimated.

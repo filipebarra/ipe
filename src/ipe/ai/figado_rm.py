@@ -61,6 +61,9 @@ WOOD_A, WOOD_B = 0.0254, 0.202
 #: Alam et al., J Cardiovasc Magn Reson 2016;18:40 — no fígado o R2* a 3 T foi 105% maior que a 1,5 T (ajuste
 #: linear, R² 0,993); os autores sugerem dividir o R2* de 3 T por ~2 para chegar ao equivalente a 1,5 T.
 ALAM_FATOR = 2.05
+#: Hankins et al., Blood 2009;113:4853 — regressão R2*-MRI × biópsia a 1,5 T (inclinação 28,02, intercepto −454,85, com
+#: a concentração em µg Fe/g); em mg Fe/g de peso seco: LIC = 0,02802 · R2* − 0,45485 (R2* em s⁻¹)
+HANKINS_A, HANKINS_B = 0.02802, -0.45485
 #: faixas de sobrecarga pelo LIC (mg Fe/g de peso seco) — Abdom Radiol 2022 (doi 10.1007/s00261-022-03762-4)
 LIC_GRAUS = ((15.0, "sobrecarga grave (> 15)"), (7.0, "sobrecarga moderada (7–15)"),
              (3.2, "sobrecarga leve (3,2–7)"))
@@ -88,6 +91,9 @@ CHAVE_ESPESSURA = "figado_rm.espessura_max"
 CHAVE_MIN_CORTES = "figado_rm.min_cortes"
 CHAVE_DESTINOS = "figado_rm.destinos"
 CHAVE_SEGMENTOS = "figado_rm.segmentos"
+#: 0.100.126: fórmula do ferro (LIC) que vale nos números e na classificação: 0 = pelo campo do aparelho
+#: (1,5 T: Wood; 3 T: Hankins), 1 = sempre Wood, 2 = sempre Hankins. As duas são sempre calculadas e mostradas.
+CHAVE_FERRO_FORMULA = "figado_rm.ferro_formula"
 PADROES = {
     CHAVE_AUTO: False,
     CHAVE_EXAME_CONTEM: "ABD|ABDOME|ABDOMEN|ABDOMINAL|FIGADO|HEPAT|FERRO|LIVER|COLANGIO",
@@ -112,9 +118,13 @@ EXPLICACAO_CADIA = ("Na RM de abdome: acha o fígado e o baço (e os segmentos d
                     "borda, dentro da confiança do aparelho e sem os vasos grandes —, com a imagem de conferência. Os "
                     "números aparecem em Aplicações ▸ Achados de IA, para conferir antes do laudo.")
 OPCOES = ((CHAVE_SEGMENTOS, "Por segmento de Couinaud (1 = sim, 0 = não):", 0.0, 1.0, "",
-           "Roda também a tarefa liver_segments_mr e dá a gordura de cada segmento (uns minutos a mais)."),)
+           "Roda também a tarefa liver_segments_mr e dá a gordura de cada segmento (uns minutos a mais)."),
+          (CHAVE_FERRO_FORMULA, "Fórmula do ferro (LIC):", 0.0, 2.0, "",
+           "0 = pelo campo do aparelho (1,5 T Wood, 3 T Hankins); 1 = sempre Wood; 2 = sempre Hankins. As duas "
+           "aparecem nos resultados; esta escolha vale para o LIC principal e a classificação."),)
 CHAVES_GORDURA = ("pdff_mediana", "pdff_media", "pdff_p25", "pdff_p75", "pdff_segmentos", "voxels", "classificacao")
-CHAVES_FERRO = ("r2_mediana", "t2_ms", "r2_15", "lic", "lic_grau", "baco_r2", "r2_p25", "r2_p75", "classificacao")
+CHAVES_FERRO = ("r2_mediana", "t2_ms", "r2_15", "lic", "lic_formula", "lic_wood", "lic_hankins", "lic_grau", "campo_t",
+                "baco_r2", "r2_p25", "r2_p75", "classificacao")
 CHAVES_DIXON = ("ff_sinal", "ef", "ff", "razao_ef_ff")
 CHAVES_RIGIDEZ = ("kpa_media", "kpa_mediana", "kpa_p25", "kpa_p75", "area_cm2", "cortes", "fracao_confiavel",
                   "heterogeneidade", "faixa", "outra_aquisicao", "classificacao")
@@ -377,9 +387,11 @@ DICAS = {
     "tang": "Grau histológico estimado pelo PDFF, com os limiares de alta especificidade de Tang et al. (Radiology "
             "2015): < 6,4% grau 0; 6,4–17,4% grau 1; 17,4–22,1% grau 2; ≥ 22,1% grau 3. Estimativa, não "
             "substitui a biópsia.",
-    "lic": "Concentração de ferro estimada pelo R2* a 1,5 T (Wood et al., Blood 2005: LIC = 0,0254 · R2* + 0,202 "
-           "mg Fe/g de peso seco; a 3 T, R2* ÷ 2,05 antes — Alam et al., JCMR 2016). Faixas: < 1,8 normal; 3,2–7 "
-           "leve; 7–15 moderada; > 15 grave.",
+    "lic": "Concentração de ferro estimada pelo R2*. Wood et al. (Blood 2005): LIC = 0,0254 · R2* + 0,202 mg Fe/g de "
+           "peso seco, a 1,5 T (a 3 T, R2* ÷ 2,05 antes — Alam et al., JCMR 2016). Hankins et al. (Blood 2009): "
+           "LIC = 0,02802 · R2* − 0,45485, no R2* do aparelho. As duas aparecem; a que vale na classificação vem "
+           "do campo do exame (1,5 T Wood, 3 T Hankins) ou da escolha nas Configurações. Faixas: < 1,8 normal; "
+           "3,2–7 leve; 7–15 moderada; > 15 grave.",
     "rigidez": "Faixas da elastografia por RM 2D a 60 Hz (Venkatesh, Yin & Ehman, JMRI 2013): < 2,5 kPa normal; "
                "2,5–2,9 normal ou inflamação; 2,9–3,5 fibrose estágio 1–2; 3,5–4,0 estágio 2–3; 4,0–5,0 estágio 3–4; "
                "> 5,0 estágio 4 ou cirrose. Inflamação, congestão, colestase e jejum curto também aumentam a "
@@ -427,8 +439,15 @@ def escalas_do_achado(a: dict) -> list[tuple[str, str, str]]:
     elif a.get("tipo") == TIPO_FERRO:
         lic, r2, r15, baco = (_valor(a, k) for k in ("lic", "r2_mediana", "r2_15", "baco_r2"))
         if isinstance(lic, (int, float)):
+            qual = _valor(a, "lic_formula")
             out.append(("Ferro estimado (LIC)", f"{float(lic):.2f}".replace(".", ",") + " mg Fe/g — "
-                        + grau_do_ferro(float(lic)), DICAS["lic"]))
+                        + grau_do_ferro(float(lic)) + (f" ({qual})" if qual else ""), DICAS["lic"]))
+            lw, lh, campo = (_valor(a, k) for k in ("lic_wood", "lic_hankins", "campo_t"))
+            partes = [f"{nome} {float(v):.2f}".replace(".", ",") for nome, v in (("Wood", lw), ("Hankins", lh))
+                      if isinstance(v, (int, float))]
+            if len(partes) == 2:
+                out.append(("LIC pelas duas fórmulas", " · ".join(partes) + " mg Fe/g"
+                            + (f" ({campo})" if campo else ""), DICAS["lic"]))
         if isinstance(r2, (int, float)):
             txt = f"fígado {float(r2):.0f} s⁻¹"
             if isinstance(r15, (int, float)):
@@ -443,6 +462,30 @@ def escalas_do_achado(a: dict) -> list[tuple[str, str, str]]:
             out.append(("Rigidez (2D, 60 Hz)", f"{float(v):.2f}".replace(".", ",") + " kPa — " + EL.faixa(float(v)),
                         DICAS["rigidez"]))
     return out
+
+
+def lic_wood(r2: float, campo: float | None) -> float | None:
+    """LIC (mg Fe/g) pela calibração de Wood: R2* a 1,5 T (a 3 T, ÷ ALAM_FATOR antes). None se o campo não serve."""
+    r15, _como = r2_para_15t(r2, campo)
+    return None if r15 is None else round(WOOD_A * r15 + WOOD_B, 2)
+
+
+def lic_hankins(r2: float, campo: float | None) -> float | None:
+    """LIC (mg Fe/g) pela calibração de Hankins, no R2* do aparelho (1,5 T ou 3 T); None se o campo não é 1,5 nem 3 T.
+    Não vai abaixo de zero (o intercepto é negativo: R2* baixo daria LIC negativo)."""
+    if campo is None or not (abs(campo - 1.5) < 0.2 or abs(campo - 3.0) < 0.3):
+        return None
+    return round(max(HANKINS_A * r2 + HANKINS_B, 0.0), 2)
+
+
+def formula_do_ferro(campo: float | None, escolha: float | int | None = 0) -> str:
+    """"wood" ou "hankins": 0 = pelo campo (1,5 T Wood, 3 T Hankins); 1 = Wood; 2 = Hankins."""
+    e = int(escolha or 0)
+    if e == 1:
+        return "wood"
+    if e == 2:
+        return "hankins"
+    return "hankins" if campo is not None and abs(campo - 3.0) < 0.3 else "wood"
 
 
 def r2_para_15t(r2: float, campo: float | None) -> tuple[float | None, str]:
@@ -611,23 +654,38 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
                     "r2_p75": AC.numero(round(st["p75"], 1), "s⁻¹", "R2* p75"),
                 }
                 r15, como = r2_para_15t(r2, res.campo)
-                if r15 is not None:
-                    lic = round(WOOD_A * r15 + WOOD_B, 2)
+                lw, lh = lic_wood(r2, res.campo), lic_hankins(r2, res.campo)
+                qual = formula_do_ferro(res.campo, config(settings, CHAVE_FERRO_FORMULA))
+                lic = lh if qual == "hankins" else lw
+                if lic is None:           # a fórmula pedida não serve a este campo: usa a outra
+                    lic, qual = (lw, "wood") if lw is not None else (lh, "hankins")
+                if res.campo is not None:
+                    res.ferro["campo_t"] = AC.numero(f"{res.campo:g} T".replace(".", ","), "",
+                                                     "Campo do aparelho (DICOM)")
+                if lic is not None:
                     if como == "3 T":
                         res.ferro["r2_15"] = AC.numero(round(r15, 1), "s⁻¹", "R2* equivalente a 1,5 T")
-                        fator = f"{ALAM_FATOR:.2f}".replace(".", ",")
-                        res.avisos_ferro.append(f"exame a 3 T: R2* ÷ {fator} para o equivalente a 1,5 T (Alam et "
-                                                "al., JCMR 2016) antes da calibração de Wood — a 3 T o T2* curto "
-                                                "mede pior")
+                    if lw is not None:
+                        res.ferro["lic_wood"] = AC.numero(lw, "mg Fe/g", "LIC — Wood (2005)")
+                    if lh is not None:
+                        res.ferro["lic_hankins"] = AC.numero(lh, "mg Fe/g", "LIC — Hankins (2009)")
+                    res.ferro["lic_formula"] = AC.numero("Hankins" if qual == "hankins" else "Wood", "",
+                                                         "Fórmula do LIC principal")
                     res.ferro["lic"] = AC.numero(lic, "mg Fe/g", "Ferro estimado (LIC)")
                     res.ferro["lic_grau"] = AC.numero(grau_do_ferro(lic), "", "Faixa do LIC")
                     res.ferro["classificacao"] = AC.numero(classificar_ferro(lic), "", "Classificação sugerida")
-                    res.avisos_ferro.append("ferro estimado pela calibração de Wood et al. (Blood 2005): "
-                                            "LIC = 0,0254 · R2* (1,5 T) + 0,202 mg Fe/g de peso seco — estimativa, "
-                                            f"não diagnóstico; referência: {LIC_REF}")
+                    if como == "3 T":
+                        res.avisos_ferro.append("exame a 3 T: Wood com o R2* ÷ 2,05 (equivalente a 1,5 T, Alam et al., "
+                                                "JCMR 2016); Hankins no R2* do aparelho")
+                    if qual == "hankins":
+                        res.avisos_ferro.append("ferro (LIC) pela calibração de Hankins et al. (Blood 2009): "
+                                                "LIC = 0,02802 · R2* − 0,45485 mg Fe/g de peso seco, no R2* do aparelho")
+                    else:
+                        res.avisos_ferro.append("ferro (LIC) pela calibração de Wood et al. (Blood 2005): "
+                                                "LIC = 0,0254 · R2* (1,5 T) + 0,202 mg Fe/g de peso seco")
+                    res.avisos_ferro.append("estimativa, não diagnóstico; referência: " + LIC_REF)
                 else:
-                    res.avisos_ferro.append(f"sem ferro estimado (LIC): {como} — a calibração vale a 1,5 T, e a "
-                                            "3 T com a conversão de Alam")
+                    res.avisos_ferro.append(f"sem ferro estimado (LIC): {como} — as calibrações valem a 1,5 T e a 3 T")
                 if r15 is not None and r15 >= R2_ALTO and res.gordura:
                     res.avisos_gordura.append(f"R2* alto ({r2:.0f} s⁻¹): com muito ferro o sinal cai antes das ecos do "
                                               "Dixon e o PDFF fica menos confiável (ruído e troca água-gordura)")

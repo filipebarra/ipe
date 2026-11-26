@@ -11155,5 +11155,19 @@
  "Como em todas as IAs": "Como en todas las IA",
  "Os de todas as IAs e os desta ferramenta": "Los de todas las IA y los de esta herramienta",
  "Só os desta ferramenta": "Solo los de esta herramienta",
- "Os destinos desta ferramenta são os da lista dela, acima. \"Só os desta ferramenta\" ignora os destinos escolhidos para todas as IAs (sem nenhum marcado, esta IA não envia a lugar nenhum).": "Los destinos de esta herramienta son los de su lista, arriba. \"Solo los de esta herramienta\" ignora los destinos elegidos para todas las IA (sin ninguno marcado, esta IA no envía a ningún lugar)."
+ "Os destinos desta ferramenta são os da lista dela, acima. \"Só os desta ferramenta\" ignora os destinos escolhidos para todas as IAs (sem nenhum marcado, esta IA não envia a lugar nenhum).": "Los destinos de esta herramienta son los de su lista, arriba. \"Solo los de esta herramienta\" ignora los destinos elegidos para todas las IA (sin ninguno marcado, esta IA no envía a ningún lugar).",
+ "LIC — Wood (2005)": "LIC — Wood (2005)",
+ "LIC — Hankins (2009)": "LIC — Hankins (2009)",
+ "Campo do aparelho (DICOM)": "Intensidad de campo del equipo (DICOM)",
+ "Fórmula do LIC principal": "Fórmula del LIC principal",
+ "LIC pelas duas fórmulas": "LIC por las dos fórmulas",
+ "Fórmula do ferro (LIC):": "Fórmula del hierro (LIC):",
+ "0 = pelo campo do aparelho (1,5 T Wood, 3 T Hankins); 1 = sempre Wood; 2 = sempre Hankins. As duas aparecem nos resultados; esta escolha vale para o LIC principal e a classificação.": "0 = según el campo del equipo (1,5 T Wood, 3 T Hankins); 1 = siempre Wood; 2 = siempre Hankins. Las dos aparecen en los resultados; esta elección fija el LIC principal y la clasificación.",
+ "exame a 3 T: Wood com o R2* ÷ 2,05 (equivalente a 1,5 T, Alam et al., JCMR 2016); Hankins no R2* do aparelho": "estudio a 3 T: Wood con el R2* ÷ 2,05 (equivalente a 1,5 T, Alam et al., JCMR 2016); Hankins sobre el R2* del equipo",
+ "ferro (LIC) pela calibração de Hankins et al. (Blood 2009): LIC = 0,02802 · R2* − 0,45485 mg Fe/g de peso seco, no R2* do aparelho": "hierro (LIC) por la calibración de Hankins et al. (Blood 2009): LIC = 0,02802 · R2* − 0,45485 mg Fe/g de peso seco, sobre el R2* del equipo",
+ "ferro (LIC) pela calibração de Wood et al. (Blood 2005): LIC = 0,0254 · R2* (1,5 T) + 0,202 mg Fe/g de peso seco": "hierro (LIC) por la calibración de Wood et al. (Blood 2005): LIC = 0,0254 · R2* (1,5 T) + 0,202 mg Fe/g de peso seco",
+ "estimativa, não diagnóstico; referência: {}": "estimación, no diagnóstico; referencia: {}",
+ "sem ferro estimado (LIC): {} — as calibrações valem a 1,5 T e a 3 T": "sin hierro estimado (LIC): {} — las calibraciones valen a 1,5 T y a 3 T",
+ "Concentração de ferro estimada pelo R2*. Wood et al. (Blood 2005): LIC = 0,0254 · R2* + 0,202 mg Fe/g de peso seco, a 1,5 T (a 3 T, R2* ÷ 2,05 antes — Alam et al., JCMR 2016). Hankins et al. (Blood 2009): LIC = 0,02802 · R2* − 0,45485, no R2* do aparelho. As duas aparecem; a que vale na classificação vem do campo do exame (1,5 T Wood, 3 T Hankins) ou da escolha nas Configurações. Faixas: < 1,8 normal; 3,2–7 leve; 7–15 moderada; > 15 grave.": "Concentración de hierro estimada por el R2*. Wood et al. (Blood 2005): LIC = 0,0254 · R2* + 0,202 mg Fe/g de peso seco, a 1,5 T (a 3 T, antes R2* ÷ 2,05 — Alam et al., JCMR 2016). Hankins et al. (Blood 2009): LIC = 0,02802 · R2* − 0,45485, sobre el R2* del equipo. Aparecen las dos; la que vale en la clasificación viene del campo del estudio (1,5 T Wood, 3 T Hankins) o de la elección en Configuración. Rangos: < 1,8 normal; 3,2–7 leve; 7–15 moderada; > 15 grave.",
+ "Ferro: R2* → LIC (Wood 2005 e Hankins 2009; 3 T → 1,5 T para Wood, Alam 2016). Rigidez: faixas de Venkatesh, Yin & Ehman (JMRI 2013).": "Hierro: R2* → LIC (Wood 2005 y Hankins 2009; 3 T → 1,5 T para Wood, Alam 2016). Rigidez: rangos de Venkatesh, Yin & Ehman (JMRI 2013)."
 }

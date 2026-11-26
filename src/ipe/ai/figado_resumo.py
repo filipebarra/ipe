@@ -34,7 +34,8 @@ SECOES = (
      ("pdff_mediana", "pdff_media", "pdff_p25", "pdff_p75", "pdff_segmentos")),
     (F.TIPO_DIXON, "GORDURA PELA DUPLA ECO (EM FASE / FORA DE FASE)", ("ff_sinal", "razao_ef_ff")),
     (F.TIPO_FERRO, "FERRO HEPÁTICO (R2*)",
-     ("r2_mediana", "r2_p25", "r2_p75", "t2_ms", "r2_15", "lic", "lic_grau", "baco_r2")),
+     ("r2_mediana", "r2_p25", "r2_p75", "t2_ms", "r2_15", "lic", "lic_formula", "lic_wood", "lic_hankins", "campo_t",
+      "lic_grau", "baco_r2")),
     (F.TIPO_RIGIDEZ, "RIGIDEZ HEPÁTICA (ELASTOGRAFIA POR RM)",
      ("kpa_media", "kpa_mediana", "kpa_p25", "kpa_p75", "area_cm2", "cortes", "fracao_confiavel",
       "heterogeneidade", "faixa", "outra_aquisicao")),
@@ -43,7 +44,7 @@ ESTADOS = {"sugerido": "não conferido pelo médico", "confirmado": "confirmado"
            "descartado": "descartado pelo médico"}
 REFERENCIAS = ("Fígado e baço: TotalSegmentator (total_mr); valores dos mapas do aparelho. PDFF: graus de Tang et al. "
                "(Radiology 2015).",
-               "Ferro: R2* → LIC (Wood 2005), 3 T → 1,5 T (Alam 2016). Rigidez: faixas de Venkatesh, Yin & Ehman "
+               "Ferro: R2* → LIC (Wood 2005 e Hankins 2009; 3 T → 1,5 T para Wood, Alam 2016). Rigidez: faixas de Venkatesh, Yin & Ehman "
                "(JMRI 2013).")
 
 

@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.126 — Hierro hepático: fórmulas de Wood y de Hankins, elegidas por el campo de la RM
+- **Nuevo**: el hierro (LIC) de la RM de hígado se calcula con **las dos calibraciones**, y las dos aparecen en el panel de hallazgos, en el resumen en imagen (OT), en la tabla de hígados medidos y en el CSV/Excel: **Wood 2005** (`0,0254 · R2* + 0,202`, a 1,5 T; a 3 T el R2* se divide antes por 2,05, como ya era) y **Hankins 2009** (`0,02802 · R2* − 0,45485`, sobre el R2* del equipo, nunca por debajo de cero).
+- **El campo se lee del DICOM** (`MagneticFieldStrength`) y se muestra junto al hierro. El LIC principal y la clasificación sugerida usan, por defecto, **Wood a 1,5 T y Hankins a 3 T**; un campo que no es 1,5 ni 3 T sigue sin estimación.
+- Configuración ▸ CAD/IA ▸ *Grasa, hierro y rigidez hepáticos (RM)* ▸ **Fórmula del hierro (LIC)**: 0 = según el campo (por defecto), 1 = siempre Wood, 2 = siempre Hankins. La elección solo cambia cuál de las dos es la principal; las dos se siguen calculando.
+- CSV/Excel de hígados medidos: columnas nuevas `lic_formula`, `lic_wood_mgFe_g`, `lic_hankins_mgFe_g` y `campo_T`.
+- **Atención**: los estudios a 3 T que antes salían por Wood con la conversión de Alam pasan a salir por Hankins sobre el R2* bruto. En 70 estudios comparados con los informes del servicio, esto redujo el sesgo a 3 T de −0,56 a −0,07 mg Fe/g. La conversión de campo es una convención; los informes del servicio se comportan como Hankins sin conversión.
+- Pruebas nuevas: fórmula por campo y por elección, los dos valores en el resultado y el piso en cero.
+
 ## 0.100.125 — La guía (F1) en portugués, inglés y español, con todo lo que el programa hace hoy
 - **Nuevo**: la guía del usuario existe ahora en **tres idiomas** — `Ipe-guia-do-usuario.pdf` (portugués), `Ipe-user-guide.pdf` (inglés) e `Ipe-guia-del-usuario.pdf` (español) —, cada una con su texto fuente (`tools/guia/guia.md`, `guia.en.md`, `guia.es.md`), sus palabras fijas (portada, pie, avisos) y las mismas figuras. Las tres van dentro del programa y en `docs/`.
 - **F1 y Ayuda ▸ Guía del usuario abren la guía en el idioma del programa**; si el idioma elegido no tiene guía, se abre la de portugués. El enlace del pie del sitio también apunta al PDF del idioma de la página.
