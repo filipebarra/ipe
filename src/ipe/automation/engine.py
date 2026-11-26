@@ -63,6 +63,8 @@ class AutomationEngine(QObject):
                 except Exception:  # noqa: BLE001
                     log.exception("limpar pacientes sem exame")
             threading.Thread(target=_limpar, name="pacientes-sem-exame", daemon=True).start()
+        from ipe.ai import saidas_ia as SI
+        SI.registrar(self.settings, self.db, self.storage)      # 0.100.124: série colorida e destinos de todas as IAs
         self._arriving: dict[str, float] = {}         # estudo -> última imagem recebida
         self._recent_prefetch: dict[str, float] = {}  # estudo -> quando buscou anteriores
         self._job_tags: dict[int, dict] = {}          # tarefa de download -> o que fazer ao terminar
@@ -97,6 +99,8 @@ class AutomationEngine(QObject):
         self.repo, self.db = repo, db
         if storage is not None:
             self.storage = Path(storage)
+        from ipe.ai import saidas_ia as SI
+        SI.registrar(self.settings, self.db, self.storage)
         self.mama.parar()
         from ipe.automation import mama_auto as MA
         self.mama = MA.Fila(repo, settings=self.settings, depois_de_medir=self._mama_medida_na_linha)
@@ -432,7 +436,7 @@ class AutomationEngine(QObject):
                 self.implante_corrigido.emit(study_uid)
                 from ipe.automation import destinos as DEST
                 DEST.enviar(self.net, self.repo, study_uid, out.get("series"),
-                            IMP.config(self.settings, IMP.CHAVE_DESTINOS), f"Sem implante: {nome}")
+                            IMP.config(self.settings, IMP.CHAVE_DESTINOS), f"Sem implante: {nome}", "implante")
             self.changed.emit()
 
         self.net.run_async(trabalho, pronto)
@@ -577,7 +581,7 @@ class AutomationEngine(QObject):
                 if out.get("geradas"):
                     from ipe.automation import destinos as DEST
                     DEST.enviar(self.net, self.repo, study_uid, out.get("series"),
-                                DCE.config(settings, DCE.CHAVE_DESTINOS), f"Dinâmica alinhada: {nome}")
+                                DCE.config(settings, DCE.CHAVE_DESTINOS), f"Dinâmica alinhada: {nome}", "dce")
             self.changed.emit()
 
         self.net.run_async(trabalho, pronto)
@@ -983,7 +987,7 @@ class AutomationEngine(QObject):
                 self.repo.add_job_run("segmentacao", titulo, "ok", n_itens, f"{nome}: {resumo}", None, inicio)
                 TA.REGISTRO.mudar(tid, TA.PRONTO, etapa="", mensagem=resumo)
                 from ipe.automation import destinos as DEST
-                DEST.enviar(self.net, self.repo, study_uid, saida.get("series"), destinos, f"{titulo}: {nome}")
+                DEST.enviar(self.net, self.repo, study_uid, saida.get("series"), destinos, f"{titulo}: {nome}", tipo)
                 self.segmentacao_pronta.emit(study_uid, saida)
             except Exception as e:  # noqa: BLE001
                 if t.cancelado:

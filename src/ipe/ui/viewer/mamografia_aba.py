@@ -663,7 +663,7 @@ class MamografiaMixin:
                         por_estudo.setdefault(p[0], set()).add(IMP.serie_da_copia(p[4]))
                 for est, series in por_estudo.items():
                     DEST.enviar(self.net, self.repo, est, sorted(series),
-                                IMP.config(self.settings, IMP.CHAVE_DESTINOS), "Sem implante")
+                                IMP.config(self.settings, IMP.CHAVE_DESTINOS), "Sem implante", "implante")
             if novas:
                 self.status_message.emit(f"Imagem sem o silicone salva no banco ({novas}"
                                          + (f"; {ja} já estava(m) salva(s)" if ja else "") + ").")

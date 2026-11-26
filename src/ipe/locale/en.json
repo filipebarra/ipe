@@ -11139,5 +11139,21 @@
  "São os resultados que as IAs já tinham gravado nos exames; nada foi rodado agora.": "These are the results the AIs had already saved in the studies; nothing was run now.",
  "anonimizada (Caso 001…)": "anonymized (Case 001…)",
  "com nome e ID": "with name and ID",
- "{} exame(s), {} com resultado de IA — gravado em {}": "{} study(ies), {} with AI results — saved to {}"
+ "{} exame(s), {} com resultado de IA — gravado em {}": "{} study(ies), {} with AI results — saved to {}",
+ "O que as IAs gravam e enviam (todas as IAs)": "What the AIs save and send (all AIs)",
+ "Séries SEG (as máscaras)": "SEG series (the masks)",
+ "Fica sempre no exame do Ipê (o botão CAD/overlay usa). Desmarcada, a SEG não é enviada aos destinos — para PACS que não mostram SEG.": "Always stays in the Ipê study (the CAD/overlay button uses it). Unchecked, the SEG is not sent to the destinations — for PACS that do not show SEG.",
+ "Tabelas e imagens de conferência (volumes, medidas)": "Tables and check images (volumes, measurements)",
+ "Imagens com os números que a IA mediu. Qualquer PACS mostra.": "Images with the numbers the AI measured. Any PACS displays them.",
+ "Série com overlay colorido (o exame com as máscaras pintadas, um corte por imagem)": "Color overlay series (the study with the masks painted on, one slice per image)",
+ "Qualquer PACS mostra e rola. É gerada a partir da SEG, para toda IA que grave SEG; ocupa espaço (uma imagem colorida por corte).": "Any PACS shows and scrolls it. It is generated from the SEG, for every AI that saves a SEG; it takes space (one color image per slice).",
+ "Enviar também ao(s) destino(s) — vale para todas as IAs, além dos de cada ferramenta:": "Also send to the destination(s) — applies to all AIs, besides each tool's own:",
+ "O que esta IA grava e envia (sobrepõe a escolha de todas as IAs)": "What this AI saves and sends (overrides the all-AIs choice)",
+ "Série SEG": "SEG series",
+ "Tabelas e imagens de conferência": "Tables and check images",
+ "Série com overlay colorido": "Color overlay series",
+ "Como em todas as IAs": "As in all AIs",
+ "Os de todas as IAs e os desta ferramenta": "Those of all AIs and of this tool",
+ "Só os desta ferramenta": "Only this tool's",
+ "Os destinos desta ferramenta são os da lista dela, acima. \"Só os desta ferramenta\" ignora os destinos escolhidos para todas as IAs (sem nenhum marcado, esta IA não envia a lugar nenhum).": "This tool's destinations are the ones in its list, above. \"Only this tool's\" ignores the destinations chosen for all AIs (with none checked, this AI sends nowhere)."
 }

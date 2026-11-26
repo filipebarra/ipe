@@ -11139,5 +11139,21 @@
  "São os resultados que as IAs já tinham gravado nos exames; nada foi rodado agora.": "Son los resultados que las IA ya habían guardado en los estudios; ahora no se ejecutó nada.",
  "anonimizada (Caso 001…)": "anonimizada (Caso 001…)",
  "com nome e ID": "con nombre e ID",
- "{} exame(s), {} com resultado de IA — gravado em {}": "{} estudio(s), {} con resultado de IA — guardado en {}"
+ "{} exame(s), {} com resultado de IA — gravado em {}": "{} estudio(s), {} con resultado de IA — guardado en {}",
+ "O que as IAs gravam e enviam (todas as IAs)": "Qué guardan y envían las IA (todas las IA)",
+ "Séries SEG (as máscaras)": "Series SEG (las máscaras)",
+ "Fica sempre no exame do Ipê (o botão CAD/overlay usa). Desmarcada, a SEG não é enviada aos destinos — para PACS que não mostram SEG.": "Siempre queda en el estudio de Ipê (el botón CAD/overlay la usa). Desmarcada, la SEG no se envía a los destinos — para PACS que no muestran SEG.",
+ "Tabelas e imagens de conferência (volumes, medidas)": "Tablas e imágenes de verificación (volúmenes, medidas)",
+ "Imagens com os números que a IA mediu. Qualquer PACS mostra.": "Imágenes con los números que midió la IA. Cualquier PACS las muestra.",
+ "Série com overlay colorido (o exame com as máscaras pintadas, um corte por imagem)": "Serie con overlay en color (el estudio con las máscaras pintadas, un corte por imagen)",
+ "Qualquer PACS mostra e rola. É gerada a partir da SEG, para toda IA que grave SEG; ocupa espaço (uma imagem colorida por corte).": "Cualquier PACS la muestra y la recorre. Se genera a partir de la SEG, para toda IA que guarde SEG; ocupa espacio (una imagen en color por corte).",
+ "Enviar também ao(s) destino(s) — vale para todas as IAs, além dos de cada ferramenta:": "Enviar también al/los destino(s) — vale para todas las IA, además de los de cada herramienta:",
+ "O que esta IA grava e envia (sobrepõe a escolha de todas as IAs)": "Qué guarda y envía esta IA (reemplaza la elección de todas las IA)",
+ "Série SEG": "Serie SEG",
+ "Tabelas e imagens de conferência": "Tablas e imágenes de verificación",
+ "Série com overlay colorido": "Serie con overlay en color",
+ "Como em todas as IAs": "Como en todas las IA",
+ "Os de todas as IAs e os desta ferramenta": "Los de todas las IA y los de esta herramienta",
+ "Só os desta ferramenta": "Solo los de esta herramienta",
+ "Os destinos desta ferramenta são os da lista dela, acima. \"Só os desta ferramenta\" ignora os destinos escolhidos para todas as IAs (sem nenhum marcado, esta IA não envia a lugar nenhum).": "Los destinos de esta herramienta son los de su lista, arriba. \"Solo los de esta herramienta\" ignora los destinos elegidos para todas las IA (sin ninguno marcado, esta IA no envía a ningún lugar)."
 }

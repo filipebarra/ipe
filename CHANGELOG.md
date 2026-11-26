@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.124 — O que as IAs gravam e enviam: SEG, tabelas e série com overlay colorido
+- **Novo** (pedido: o PACS não mostra SEG): em Configurações ▸ CAD/IA, o grupo **O que as IAs gravam e enviam (todas as IAs)** tem três caixas — **séries SEG**, **tabelas e imagens de conferência** e **série com overlay colorido** — e uma lista de **destinos que valem para todas as IAs** (somam-se aos de cada ferramenta). As caixas decidem o que vai aos destinos; a SEG e as tabelas continuam sempre no exame do Ipê (o CAD/overlay e as medidas dependem delas).
+- **Série com overlay colorido**: o exame com as máscaras pintadas (miolo translúcido e contorno), **uma imagem por corte, na posição do corte original**, que qualquer PACS rola. Sai da SEG gravada, então vale para **toda IA que grave SEG** (abdome, coluna, linfonodos, enfisema, aorta, nódulos, próstata…). Fica no exame (série `… · overlay colorido · Ipê`) e é enviada junto. Por padrão vem **desligada** (ocupa espaço: uma imagem colorida por corte); SEG e tabelas vêm ligadas.
+- **Por IA**: em cada ferramenta (abdome, coluna, linfonodos, fígado, mama, dinâmica…) o quadro **O que esta IA grava e envia** deixa escolher SEG, tabelas e overlay colorido como *Como em todas as IAs / Sim / Não* e se os destinos são *os de todas as IAs e os desta ferramenta* ou *só os desta ferramenta*. A escolha da IA vale por cima da global.
+
 ## 0.100.123 — Exportar em lote os resultados das IAs para Excel
 - **Novo**: botão direito nos exames ▸ **Exportar resultados das IAs (Excel)…**. Junta num .xlsx o que as IAs **já gravaram** nos exames escolhidos (nada é rodado): uma aba *Exames* (um por linha, com quais IAs têm resultado) e uma aba por IA, com os números de cada achado (os corrigidos pelo médico valem no lugar dos da IA) e o estado da revisão; a mamografia entra com densidade e calcificações vasculares. Pode anonimizar (Caso 001, 002…, sem nome, ID, accession nem descrição). Para rodar as IAs e exportar a partir de uma planilha de pacientes, continue usando o lote.
 

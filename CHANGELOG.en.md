@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.124 — What the AIs save and send: SEG, tables and color overlay series
+- **New** (your PACS does not show SEG): in Settings ▸ CAD/AI, the group **What the AIs save and send (all AIs)** has three boxes — **SEG series**, **tables and check images** and **color overlay series** — and a list of **destinations that apply to all AIs** (added to each tool's own). The boxes decide what goes to the destinations; the SEG and the tables always stay in the Ipê study (CAD/overlay and the measurements depend on them).
+- **Color overlay series**: the study with the masks painted on (translucent fill and outline), **one image per slice, at the original slice position**, which any PACS scrolls. It comes from the saved SEG, so it works for **every AI that saves a SEG** (abdomen, spine, lymph nodes, emphysema, aorta, nodules, prostate…). It stays in the study (series `… · overlay colorido · Ipê`) and is sent along. **Off** by default (it takes space: one color image per slice); SEG and tables are on.
+- **Per AI**: in each tool (abdomen, spine, lymph nodes, liver, breast, dynamic…) the **What this AI saves and sends** box lets you choose SEG, tables and color overlay as *As in all AIs / Yes / No*, and whether destinations are *those of all AIs and this tool's* or *only this tool's*. The AI's choice overrides the global one.
+
 ## 0.100.123 — Batch export of AI results to Excel
 - **New**: right-click on studies ▸ **Export AI results (Excel)…**. Puts in one .xlsx what the AIs have **already saved** in the chosen studies (nothing is run): an *Exams* sheet (one per row, showing which AIs have results) and one sheet per AI, with each finding's numbers (the physician's corrections replace the AI's) and the review state; mammography adds density and vascular calcifications. It can anonymize (Case 001, 002…, no name, ID, accession or description). To run the AIs and export from a patient spreadsheet, keep using the batch.
 

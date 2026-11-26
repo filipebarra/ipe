@@ -284,6 +284,59 @@ def save_secondary_capture(rgb: np.ndarray, source_path: str, db, storage_root: 
     return series_uid, [sop_uid]
 
 
+def save_secondary_capture_stack(itens: list, db, storage_root: Path, description: str,
+                                 series_number: int = 990, parametros: str = "") -> tuple[str, list[str]]:
+    """0.100.124: uma **série** de capturas RGB, uma por corte, com a posição do corte de origem (rola em qualquer
+    PACS). `itens`: [(rgb H×W×3 uint8, caminho do arquivo de origem)]. Devolve (SeriesInstanceUID, [SOPs])."""
+    from ipe.importer.scanner import Importer
+    series_uid = generate_uid()
+    tmp = Path(tempfile.mkdtemp(prefix="dv_scs_"))
+    sops: list[str] = []
+    now = datetime.now()
+    try:
+        for n, (rgb, caminho) in enumerate(itens, start=1):
+            src = pydicom.dcmread(caminho, stop_before_pixels=True, force=True)
+            ds = pydicom.Dataset()
+            for kw in _COPY:
+                if kw in src and kw not in ("Modality", "Units", "DecayCorrection",
+                                            "RadiopharmaceuticalInformationSequence", "CorrectedImage"):
+                    setattr(ds, kw, src.data_element(kw).value)
+            for kw in ("ImagePositionPatient", "ImageOrientationPatient", "PixelSpacing", "SliceThickness",
+                       "SliceLocation"):
+                if kw in src:
+                    setattr(ds, kw, src.data_element(kw).value)
+            meta = FileMetaDataset()
+            meta.MediaStorageSOPClassUID = SECONDARY_CAPTURE
+            sop_uid = generate_uid()
+            meta.MediaStorageSOPInstanceUID = sop_uid
+            meta.TransferSyntaxUID = ExplicitVRLittleEndian
+            ds.file_meta = meta
+            ds.SOPClassUID, ds.SOPInstanceUID = SECONDARY_CAPTURE, sop_uid
+            ds.Modality = "OT"
+            ds.ConversionType = "WSD"
+            ds.SeriesInstanceUID, ds.SeriesNumber, ds.SeriesDescription = series_uid, series_number, description[:64]
+            ds.InstanceNumber = n
+            ds.ImageType = ["DERIVED", "SECONDARY"]
+            ds.DerivationDescription = descricao_da_derivacao(description, parametros)
+            fontes, _n = sequencia_de_origem([(str(src.get("SOPInstanceUID", "") or ""), 0)],
+                                             str(src.get("SOPClassUID", "") or ""))
+            if fontes is not None:
+                ds.SourceImageSequence = fontes
+            ds.ContentDate, ds.ContentTime = now.strftime("%Y%m%d"), now.strftime("%H%M%S")
+            rgb = np.ascontiguousarray(rgb[..., :3], dtype=np.uint8)
+            ds.Rows, ds.Columns = rgb.shape[:2]
+            ds.SamplesPerPixel, ds.PhotometricInterpretation, ds.PlanarConfiguration = 3, "RGB", 0
+            ds.BitsAllocated, ds.BitsStored, ds.HighBit, ds.PixelRepresentation = 8, 8, 7, 0
+            ds.PixelData = rgb.tobytes()
+            ds.save_as(tmp / f"sc_{n:05d}.dcm", enforce_file_format=True)
+            sops.append(sop_uid)
+        r = Importer(db, Path(storage_root)).import_paths([tmp])
+        _miniaturas(db, r)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return series_uid, sops
+
+
 def _miniaturas(db, resultado) -> None:
     """A série gravada aqui aparece com miniatura no banco e na tira (antes vinha em branco)."""
     try:

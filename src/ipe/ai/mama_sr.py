@@ -107,7 +107,7 @@ def enviar(net, repo, settings, study_uid: str, out: dict | None) -> int:
     except Exception:  # noqa: BLE001
         pass
     nome = f"{info.get('patient_name', '')} {info.get('description', '')}".strip()
-    return DEST.enviar(net, repo, study_uid, out["series"], MA.destinos(settings), f"Densidade e calcificações: {nome}")
+    return DEST.enviar(net, repo, study_uid, out["series"], MA.destinos(settings), f"Densidade e calcificações: {nome}", "mama")
 
 
 def depois_de_confirmar(repo, db, storage_root, study_uid: str, quem: str = "",

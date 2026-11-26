@@ -553,7 +553,7 @@ class IAMixin:
                         from ipe.automation import destinos as DEST
                         mod = FE.modulo(saida["ferramenta"])
                         DEST.enviar(net, repo, seg.trabalho.study_uid, saida.get("series"),
-                                    mod.config(settings, mod.CHAVE_DESTINOS), mod.TITULO)
+                                    mod.config(settings, mod.CHAVE_DESTINOS), mod.TITULO, saida["ferramenta"])
                     except Exception:  # noqa: BLE001
                         log.exception("enviar os achados aos destinos (exame fechado)")
                     return
@@ -565,7 +565,7 @@ class IAMixin:
                         destinos = (COL.config(settings, COL.CHAVE_DESTINOS) if tipo == "coluna"
                                     else TS.config(settings, TS.CHAVE_DESTINOS))
                         DEST.enviar(net, repo, seg.trabalho.study_uid, saida.get("series"), destinos,
-                                    "Níveis da coluna" if tipo == "coluna" else "Órgãos abdominais")
+                                    "Níveis da coluna" if tipo == "coluna" else "Órgãos abdominais", tipo)
                     except Exception:  # noqa: BLE001
                         log.exception("enviar a segmentação aos destinos (exame fechado)")
                 return
@@ -602,7 +602,8 @@ class IAMixin:
                 from ipe.automation import destinos as DEST
                 mod = FE.modulo(saida["ferramenta"])
                 if mod is not None and DEST.enviar(self.net, self.repo, seg.trabalho.study_uid, saida.get("series"),
-                                                   mod.config(self.settings, mod.CHAVE_DESTINOS), mod.TITULO):
+                                                   mod.config(self.settings, mod.CHAVE_DESTINOS), mod.TITULO,
+                                                   saida["ferramenta"]):
                     msg += " Enviado também aos destinos escolhidos em Configurações ▸ CAD/IA."
                 self.status_message.emit(msg)
                 if saida["ferramenta"] in ("prostata", "picai"):        # 0.100.79: o resultado vai para o PI-RADS
@@ -628,7 +629,7 @@ class IAMixin:
                 destinos = (COL.config(self.settings, COL.CHAVE_DESTINOS) if tipo == "coluna"
                             else TS.config(self.settings, TS.CHAVE_DESTINOS))
                 if DEST.enviar(self.net, self.repo, seg.trabalho.study_uid, saida.get("series"), destinos,
-                               "Níveis da coluna" if tipo == "coluna" else "Órgãos abdominais"):
+                               "Níveis da coluna" if tipo == "coluna" else "Órgãos abdominais", tipo):
                     msg += " Enviada também aos destinos escolhidos em Preferências ▸ CAD/IA."
                 self.status_message.emit(msg)
                 QMessageBox.information(self, seg.titulo, msg)

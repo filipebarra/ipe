@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.124 — Qué guardan y envían las IA: SEG, tablas y serie con overlay en color
+- **Nuevo** (su PACS no muestra SEG): en Configuración ▸ CAD/IA, el grupo **Qué guardan y envían las IA (todas las IA)** tiene tres casillas — **series SEG**, **tablas e imágenes de verificación** y **serie con overlay en color** — y una lista de **destinos que valen para todas las IA** (se suman a los de cada herramienta). Las casillas deciden qué va a los destinos; la SEG y las tablas siempre quedan en el estudio de Ipê (el CAD/overlay y las medidas dependen de ellas).
+- **Serie con overlay en color**: el estudio con las máscaras pintadas (relleno translúcido y contorno), **una imagen por corte, en la posición del corte original**, que cualquier PACS recorre. Sale de la SEG guardada, así que vale para **toda IA que guarde SEG** (abdomen, columna, ganglios, enfisema, aorta, nódulos, próstata…). Queda en el estudio (serie `… · overlay colorido · Ipê`) y se envía junto. Viene **desactivada** por defecto (ocupa espacio: una imagen en color por corte); SEG y tablas vienen activadas.
+- **Por IA**: en cada herramienta (abdomen, columna, ganglios, hígado, mama, dinámica…) el cuadro **Qué guarda y envía esta IA** permite elegir SEG, tablas y overlay en color como *Como en todas las IA / Sí / No* y si los destinos son *los de todas las IA y los de esta herramienta* o *solo los de esta herramienta*. La elección de la IA reemplaza la global.
+
 ## 0.100.123 — Exportar en lote los resultados de las IA a Excel
 - **Nuevo**: clic derecho en los estudios ▸ **Exportar resultados de las IA (Excel)…**. Reúne en un .xlsx lo que las IA **ya guardaron** en los estudios elegidos (no se ejecuta nada): una hoja *Estudios* (uno por fila, con qué IA tienen resultado) y una hoja por IA, con los números de cada hallazgo (los corregidos por el médico reemplazan a los de la IA) y el estado de la revisión; mamografía añade densidad y calcificaciones vasculares. Puede anonimizar (Caso 001, 002…, sin nombre, ID, accession ni descripción). Para ejecutar las IA y exportar desde una hoja de pacientes, siga usando el lote.
 

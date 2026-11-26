@@ -103,6 +103,28 @@ class CadIaTab(QWidget):
         h.addStretch(1)
         lay.addLayout(h)
 
+        # 0.100.124: o que todas as IAs gravam e mandam (o PACS dele não mostra SEG)
+        from ipe.ai import saidas_ia as SI
+        gs = QGroupBox("O que as IAs gravam e enviam (todas as IAs)")
+        gl = QVBoxLayout(gs)
+        self.c_out_seg = QCheckBox("Séries SEG (as máscaras)")
+        self.c_out_seg.setToolTip("Fica sempre no exame do Ipê (o botão CAD/overlay usa). Desmarcada, a SEG não é "
+                                  "enviada aos destinos — para PACS que não mostram SEG.")
+        self.c_out_tab = QCheckBox("Tabelas e imagens de conferência (volumes, medidas)")
+        self.c_out_tab.setToolTip("Imagens com os números que a IA mediu. Qualquer PACS mostra.")
+        self.c_out_ovl = QCheckBox("Série com overlay colorido (o exame com as máscaras pintadas, um corte por imagem)")
+        self.c_out_ovl.setToolTip("Qualquer PACS mostra e rola. É gerada a partir da SEG, para toda IA que grave SEG; "
+                                  "ocupa espaço (uma imagem colorida por corte).")
+        self.c_out_seg.setChecked(bool(SI.config(settings, SI.CHAVE_SEG)))
+        self.c_out_tab.setChecked(bool(SI.config(settings, SI.CHAVE_TABELAS)))
+        self.c_out_ovl.setChecked(bool(SI.config(settings, SI.CHAVE_OVERLAY)))
+        for c in (self.c_out_seg, self.c_out_tab, self.c_out_ovl):
+            gl.addWidget(c)
+        gl.addWidget(QLabel("Enviar também ao(s) destino(s) — vale para todas as IAs, além dos de cada ferramenta:"))
+        self.l_out_dest = _lista_de_nos(self.repo, SI.destinos(settings))
+        gl.addWidget(self.l_out_dest)
+        lay.addWidget(gs)
+
         esq = QWidget()
         el = QVBoxLayout(esq)
         el.setContentsMargins(0, 0, 0, 0)
@@ -112,10 +134,12 @@ class CadIaTab(QWidget):
         self.painel = QStackedWidget()
         from ipe.ai import ferramentas as FE
         self._gen: dict = {}
+        self._saidas: dict = {}
         self.FERRAMENTAS = tuple(self.FERRAMENTAS) + tuple(
             (FE.modulo(t).NOME_CADIA, t, FE.modulo(t).CHAVE_AUTO) for t in FE.tipos())
         for nome, construtor, _chave in self.FERRAMENTAS:
             grupo = getattr(self, construtor)() if construtor.startswith("_") else self._grupo_generico(construtor)
+            self._acrescentar_saidas(grupo, self._ferramenta_de(construtor))
             caixa = QWidget()
             cl = QVBoxLayout(caixa)
             cl.setContentsMargins(0, 0, 0, 0)
@@ -135,6 +159,43 @@ class CadIaTab(QWidget):
         corpo.setSizes([230, 900])
         lay.addWidget(corpo, 1)
         self.l_ferramentas.setCurrentRow(0)
+
+    _CHAVE_DA_FERRAMENTA = {"_grupo_segmentacao": "abdome", "_grupo_coluna": "coluna", "_grupo_implante": "implante",
+                            "_grupo_mama": "mama", "_grupo_dce": "dce", "_grupo_cefalometria": "cefalometria",
+                            "_grupo_neuro": "neuro", "_grupo_linfonodos": "linfonodos"}
+
+    def _ferramenta_de(self, construtor: str) -> str:
+        return self._CHAVE_DA_FERRAMENTA.get(construtor, construtor)
+
+    def _acrescentar_saidas(self, grupo, ferramenta: str) -> None:
+        """0.100.124: em cada IA, escolher o que ela grava e envia — vale por cima da escolha de todas as IAs."""
+        from ipe.ai import saidas_ia as SI
+        g = QGroupBox("O que esta IA grava e envia (sobrepõe a escolha de todas as IAs)")
+        f = QFormLayout(g)
+        combos = {}
+        for campo, rotulo in (("seg", "Série SEG"), ("tabelas", "Tabelas e imagens de conferência"),
+                              ("overlay", "Série com overlay colorido")):
+            c = QComboBox()
+            c.addItem("Como em todas as IAs", SI.GLOBAL)
+            c.addItem("Sim", SI.SIM)
+            c.addItem("Não", SI.NAO)
+            c.setCurrentIndex(max(0, c.findData(SI.escolha(self.settings, ferramenta, campo))))
+            f.addRow(rotulo + ":", c)
+            combos[campo] = c
+        d = QComboBox()
+        d.addItem("Os de todas as IAs e os desta ferramenta", SI.SOMAR)
+        d.addItem("Só os desta ferramenta", SI.SO_ESTA)
+        d.setCurrentIndex(max(0, d.findData(SI.escolha(self.settings, ferramenta, "destinos"))))
+        d.setToolTip("Os destinos desta ferramenta são os da lista dela, acima. \"Só os desta ferramenta\" ignora os "
+                     "destinos escolhidos para todas as IAs (sem nenhum marcado, esta IA não envia a lugar nenhum).")
+        f.addRow("Destinos:", d)
+        combos["destinos"] = d
+        self._saidas[ferramenta] = combos
+        lay = grupo.layout()
+        if isinstance(lay, QFormLayout):
+            lay.addRow(g)
+        else:
+            lay.addWidget(g)
 
     def _rotulos(self) -> None:
         """Na lista, cada ferramenta diz se está no automático."""
@@ -690,6 +751,14 @@ class CadIaTab(QWidget):
         from ipe.ai import onde as OND
         s.set(OND.CHAVE, self.c_onde.currentData())
         self._salvar_genericos()
+        from ipe.ai import saidas_ia as SI
+        for ferr, combos in self._saidas.items():
+            for campo, c in combos.items():
+                s.set(SI.chave_ferramenta(ferr, campo), c.currentData())
+        s.set(SI.CHAVE_SEG, self.c_out_seg.isChecked())
+        s.set(SI.CHAVE_TABELAS, self.c_out_tab.isChecked())
+        s.set(SI.CHAVE_OVERLAY, self.c_out_ovl.isChecked())
+        s.set(SI.CHAVE_DESTINOS, _marcados(self.l_out_dest))
         s.set(TS.CHAVE_AUTO, self.c_seg_auto.isChecked())
         s.set(TS.CHAVE_EXAME_CONTEM, self.e_seg_exame.text().strip())
         s.set(TS.CHAVE_MODALIDADES, [m for m, c in (("CT", self.c_seg_ct), ("MR", self.c_seg_mr)) if c.isChecked()])
