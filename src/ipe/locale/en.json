@@ -11124,5 +11124,20 @@
  "Faltam modelos de IA neste computador.": "AI models are missing on this computer.",
  "IAs não instaladas": "AIs not installed",
  "Instalar os modelos extras": "Install the extra models",
- "Não me notificar mais": "Do not notify me again"
+ "Não me notificar mais": "Do not notify me again",
+ "Anonimizar a planilha (sem nome, ID, accession nem descrição; os exames viram Caso 001, 002…)?": "Anonymize the spreadsheet (no name, ID, accession or description; studies become Case 001, 002…)?",
+ "Com algum resultado de IA": "With some AI result",
+ "Exames escolhidos": "Selected studies",
+ "Exportar resultados das IAs": "Export AI results",
+ "Exportar resultados das IAs (Excel)…": "Export AI results (Excel)…",
+ "Identificação": "Identification",
+ "Leia-me": "Read me",
+ "Os valores são sugestões de IA, não confirmados, exceto onde a coluna Revisão diz o contrário; números corrigidos pelo médico aparecem no lugar dos da IA.": "Values are AI suggestions, not confirmed, except where the Review column says otherwise; numbers corrected by the physician replace the AI ones.",
+ "Planilha Excel (*.xlsx)": "Excel spreadsheet (*.xlsx)",
+ "Resultados de IA exportados do Ipê (não destinado a uso diagnóstico).": "AI results exported from Ipê (not for diagnostic use).",
+ "Salvar resultados das IAs": "Save AI results",
+ "São os resultados que as IAs já tinham gravado nos exames; nada foi rodado agora.": "These are the results the AIs had already saved in the studies; nothing was run now.",
+ "anonimizada (Caso 001…)": "anonymized (Case 001…)",
+ "com nome e ID": "with name and ID",
+ "{} exame(s), {} com resultado de IA — gravado em {}": "{} study(ies), {} with AI results — saved to {}"
 }

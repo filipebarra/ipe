@@ -11124,5 +11124,20 @@
  "Faltam modelos de IA neste computador.": "Faltan modelos de IA en este equipo.",
  "IAs não instaladas": "IA no instaladas",
  "Instalar os modelos extras": "Instalar los modelos extras",
- "Não me notificar mais": "No volver a notificarme"
+ "Não me notificar mais": "No volver a notificarme",
+ "Anonimizar a planilha (sem nome, ID, accession nem descrição; os exames viram Caso 001, 002…)?": "¿Anonimizar la hoja (sin nombre, ID, accession ni descripción; los estudios pasan a Caso 001, 002…)?",
+ "Com algum resultado de IA": "Con algún resultado de IA",
+ "Exames escolhidos": "Estudios elegidos",
+ "Exportar resultados das IAs": "Exportar resultados de las IA",
+ "Exportar resultados das IAs (Excel)…": "Exportar resultados de las IA (Excel)…",
+ "Identificação": "Identificación",
+ "Leia-me": "Léeme",
+ "Os valores são sugestões de IA, não confirmados, exceto onde a coluna Revisão diz o contrário; números corrigidos pelo médico aparecem no lugar dos da IA.": "Los valores son sugerencias de IA, no confirmados, salvo donde la columna Revisión diga lo contrario; los números corregidos por el médico reemplazan a los de la IA.",
+ "Planilha Excel (*.xlsx)": "Hoja de cálculo Excel (*.xlsx)",
+ "Resultados de IA exportados do Ipê (não destinado a uso diagnóstico).": "Resultados de IA exportados de Ipê (no destinado a uso diagnóstico).",
+ "Salvar resultados das IAs": "Guardar resultados de las IA",
+ "São os resultados que as IAs já tinham gravado nos exames; nada foi rodado agora.": "Son los resultados que las IA ya habían guardado en los estudios; ahora no se ejecutó nada.",
+ "anonimizada (Caso 001…)": "anonimizada (Caso 001…)",
+ "com nome e ID": "con nombre e ID",
+ "{} exame(s), {} com resultado de IA — gravado em {}": "{} estudio(s), {} con resultado de IA — guardado en {}"
 }

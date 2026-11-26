@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import date, timedelta
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QSize, Qt, Signal
@@ -1803,6 +1804,12 @@ class Browser(QWidget):
                                         lambda: self.film_requested.emit({"kind": "saved", "study_uid": st}))
                 a.setEnabled(bool(n_filmes))
 
+        # ---- 0.100.123: resultados das IAs (os já gravados) de todos os selecionados para Excel
+        from ipe.core.i18n import tr as _tr
+        a = menu.addAction(_tr("Exportar resultados das IAs (Excel)…"))
+        a.setEnabled(S.can("export"))
+        a.triggered.connect(lambda _=False, rr=list(rows): self.exportar_resultados_ias(rr))
+
         # ---- 0.100.108: link do exame (Ipê Web), só com um exame selecionado
         if len(rows) == 1:
             from ipe.core.i18n import tr
@@ -2137,6 +2144,38 @@ class Browser(QWidget):
         self.tree.rebuild()
         if self.current_list is not None:
             self.refresh()
+
+    def exportar_resultados_ias(self, rows) -> None:
+        """0.100.123: os resultados de IA já gravados nos exames escolhidos → um .xlsx (nada é rodado)."""
+        from PySide6.QtWidgets import QFileDialog
+
+        from ipe.automation import exportar_ias as EI
+        from ipe.core.i18n import tr
+        if not rows:
+            return
+        anon = QMessageBox.question(
+            self, tr("Exportar resultados das IAs"),
+            tr("Anonimizar a planilha (sem nome, ID, accession nem descrição; os exames viram Caso 001, 002…)?"),
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
+        caminho, _ = QFileDialog.getSaveFileName(
+            self, tr("Salvar resultados das IAs"), time.strftime("resultados_ias_%Y%m%d_%H%M.xlsx"),
+            tr("Planilha Excel (*.xlsx)"))
+        if not caminho:
+            return
+        if not caminho.lower().endswith(".xlsx"):
+            caminho += ".xlsx"
+        titulos = {}
+        try:
+            titulos = {f["tipo"]: f.get("titulo") or f["tipo"] for f in self.ferramentas_ia(rows[0].study_uid)}
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            r = EI.exportar(self.repo, [x.study_uid for x in rows], caminho, titulos, anon)
+        except Exception as e:  # noqa: BLE001
+            QMessageBox.warning(self, tr("Exportar resultados das IAs"), tr("Não foi possível gravar: {}").format(e))
+            return
+        self.status_message.emit(tr("{} exame(s), {} com resultado de IA — gravado em {}").format(
+            r["exames"], r["com_resultado"], caminho))
 
     def export_selected(self) -> None:
         rows = self.selected_rows()

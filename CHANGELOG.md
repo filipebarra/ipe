@@ -3,6 +3,9 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.123 — Exportar em lote os resultados das IAs para Excel
+- **Novo**: botão direito nos exames ▸ **Exportar resultados das IAs (Excel)…**. Junta num .xlsx o que as IAs **já gravaram** nos exames escolhidos (nada é rodado): uma aba *Exames* (um por linha, com quais IAs têm resultado) e uma aba por IA, com os números de cada achado (os corrigidos pelo médico valem no lugar dos da IA) e o estado da revisão; a mamografia entra com densidade e calcificações vasculares. Pode anonimizar (Caso 001, 002…, sem nome, ID, accession nem descrição). Para rodar as IAs e exportar a partir de uma planilha de pacientes, continue usando o lote.
+
 ## 0.100.122 — IAs gravam no local em uso (HD externo); instalador do PI-CAI no Windows
 - **Corrigido (importante com o HD externo como banco)**: as séries geradas pelas IAs (alinhamento da dinâmica,
   elastografia, implantes, segmentações, níveis da coluna, cefalometria, linfonodos…) eram gravadas na pasta de
