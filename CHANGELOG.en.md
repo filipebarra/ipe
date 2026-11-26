@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.125 — The guide (F1) in Portuguese, English and Spanish, with everything the program does today
+- **New**: the user guide now exists in **three languages** — `Ipe-guia-do-usuario.pdf` (Portuguese), `Ipe-user-guide.pdf` (English) and `Ipe-guia-del-usuario.pdf` (Spanish) —, each with its own source text (`tools/guia/guia.md`, `guia.en.md`, `guia.es.md`), its own fixed wording (cover, footer, notices) and the same figures. All three ship inside the program and in `docs/`.
+- **F1 and Help ▸ User guide open the guide in the program's language**; if the chosen language has no guide, Portuguese opens. The site footer link also points to the PDF in the page's language.
+- **Guide revised**: what was missing went in — the overview panel at the start of the guide, the section **What each AI saves in the study** (SEG, tables and check images, color overlay series, global and per-AI destinations), batch from a spreadsheet and exporting the AI results to Excel, the study link in Ipê Web, PACS straight to the client, "I forgot the password", the notice that AIs save to the location in use, among others.
+- New test: the three guide texts have the same chapters, sections, tables and figures, and F1 picks the PDF by language.
+
 ## 0.100.124 — What the AIs save and send: SEG, tables and color overlay series
 - **New** (your PACS does not show SEG): in Settings ▸ CAD/AI, the group **What the AIs save and send (all AIs)** has three boxes — **SEG series**, **tables and check images** and **color overlay series** — and a list of **destinations that apply to all AIs** (added to each tool's own). The boxes decide what goes to the destinations; the SEG and the tables always stay in the Ipê study (CAD/overlay and the measurements depend on them).
 - **Color overlay series**: the study with the masks painted on (translucent fill and outline), **one image per slice, at the original slice position**, which any PACS scrolls. It comes from the saved SEG, so it works for **every AI that saves a SEG** (abdomen, spine, lymph nodes, emphysema, aorta, nodules, prostate…). It stays in the study (series `… · overlay colorido · Ipê`) and is sent along. **Off** by default (it takes space: one color image per slice); SEG and tables are on.

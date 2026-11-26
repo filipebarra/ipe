@@ -42,11 +42,34 @@ from reportlab.platypus.tableofcontents import TableOfContents
 
 RAIZ = Path(__file__).resolve().parents[2]
 FONTE = Path(__file__).with_name("guia.md")
+
+#: 0.100.125: o guia nos três idiomas — cada um com o seu texto-fonte, o seu PDF e as suas palavras fixas
+IDIOMAS = {
+    "pt-BR": {"fonte": "guia.md", "pdf": "Ipe-guia-do-usuario.pdf", "titulo": "Guia do usuário",
+              "meta": "Ipê — guia do usuário", "assunto": "Manual de uso, versão {v}", "rodape": "Ipê {v} — guia do usuário",
+              "versao": "Versão {v} · {mes} de {ano}", "sumario": "Sumário", "capitulo": "CAPÍTULO {n}",
+              "meses": ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro",
+                        "outubro", "novembro", "dezembro"]},
+    "en": {"fonte": "guia.en.md", "pdf": "Ipe-user-guide.pdf", "titulo": "User guide",
+           "meta": "Ipê — user guide", "assunto": "User manual, version {v}", "rodape": "Ipê {v} — user guide",
+           "versao": "Version {v} · {mes} {ano}", "sumario": "Contents", "capitulo": "CHAPTER {n}",
+           "meses": ["January", "February", "March", "April", "May", "June", "July", "August", "September",
+                     "October", "November", "December"]},
+    "es": {"fonte": "guia.es.md", "pdf": "Ipe-guia-del-usuario.pdf", "titulo": "Guía del usuario",
+           "meta": "Ipê — guía del usuario", "assunto": "Manual de uso, versión {v}", "rodape": "Ipê {v} — guía del usuario",
+           "versao": "Versión {v} · {mes} de {ano}", "sumario": "Índice", "capitulo": "CAPÍTULO {n}",
+           "meses": ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre",
+                     "octubre", "noviembre", "diciembre"]},
+}
+L = IDIOMAS["pt-BR"]                       # o idioma em geração (troca em `gerar`)
+FONTE = Path(__file__).with_name("guia.md")
 SAIDAS = [RAIZ / "docs" / "Ipe-guia-do-usuario.pdf",
           RAIZ / "src" / "ipe" / "ajuda" / "Ipe-guia-do-usuario.pdf"]
 
-MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto",
-         "setembro", "outubro", "novembro", "dezembro"]
+
+def saidas_de(idioma: str) -> list[Path]:
+    nome = IDIOMAS[idioma]["pdf"]
+    return [RAIZ / "docs" / nome, RAIZ / "src" / "ipe" / "ajuda" / nome]
 
 AZUL = colors.HexColor("#1f4e79")
 CINZA = colors.HexColor("#5f6368")
@@ -154,8 +177,8 @@ class Guia(BaseDocTemplate):
     def __init__(self, caminho: str, versao: str, **kw):
         super().__init__(caminho, pagesize=A4, leftMargin=20 * mm, rightMargin=20 * mm,
                          topMargin=18 * mm, bottomMargin=18 * mm,
-                         title="Ipê — guia do usuário", author="Ipê",
-                         subject=f"Manual de uso, versão {versao}", **kw)
+                         title=L["meta"], author="Ipê",
+                         subject=L["assunto"].format(v=versao), **kw)
         self.versao = versao
         quadro = Frame(self.leftMargin, self.bottomMargin, self.width, self.height, id="q")
         self.addPageTemplates([PageTemplate("capa", [quadro], onPage=self._capa),
@@ -171,7 +194,7 @@ class Guia(BaseDocTemplate):
         c.saveState()
         c.setFont(F, 8)
         c.setFillColor(CINZA)
-        c.drawString(self.leftMargin, 10 * mm, f"Ipê {self.versao} — guia do usuário")
+        c.drawString(self.leftMargin, 10 * mm, L["rodape"].format(v=self.versao))
         c.drawRightString(A4[0] - self.rightMargin, 10 * mm, str(doc.page))
         c.setStrokeColor(LINHA)
         c.line(self.leftMargin, 13.5 * mm, A4[0] - self.rightMargin, 13.5 * mm)
@@ -252,10 +275,10 @@ def montar(texto: str, versao: str, largura: float) -> list:
              Paragraph('<font color="white" size="34">Ipê</font>',
                        ParagraphStyle("c1", fontName=FB, fontSize=34, leading=40)),
              Spacer(1, 4 * mm),
-             Paragraph('<font color="white">Guia do usuário</font>',
+             Paragraph(f'<font color="white">{L["titulo"]}</font>',
                        ParagraphStyle("c2", fontName=F, fontSize=18, leading=22)),
              Spacer(1, 3 * mm),
-             Paragraph(f'<font color="#cfe0f2">Versão {versao} · {MESES[hoje.month - 1]} de {hoje.year}</font>',
+             Paragraph(f'<font color="#cfe0f2">{L["versao"].format(v=versao, mes=L["meses"][hoje.month - 1], ano=hoje.year)}</font>',
                        ParagraphStyle("c3", fontName=F, fontSize=11.5, leading=15)),
              Spacer(1, 70 * mm)]
     capa_extra: list[str] = []
@@ -274,7 +297,7 @@ def montar(texto: str, versao: str, largura: float) -> list:
     sumario = TableOfContents()
     sumario.levelStyles = [ST["toc0"], ST["toc1"]]
     sumario.dotsMinLevel = 1
-    hist += [Paragraph("Sumário", ST["h1"]), sumario, PageBreak()]
+    hist += [Paragraph(L["sumario"], ST["h1"]), sumario, PageBreak()]
 
     n = [0]
     cap = 0
@@ -327,7 +350,7 @@ def montar(texto: str, versao: str, largura: float) -> list:
             cap += 1
             if cap > 1:
                 hist.append(PageBreak())
-            hist.append(Paragraph(f"CAPÍTULO {cap}", ST["rotulo"]))
+            hist.append(Paragraph(L["capitulo"].format(n=cap), ST["rotulo"]))
             hist.append(_titulo(f"{cap}. {_inline(s[2:], versao)}", "h1", 0, n))
         elif s.startswith("## "):
             fecha_par(); fecha_item()
@@ -391,9 +414,11 @@ def simbolos_sem_fonte(texto: str) -> list[str]:
     return sorted({c for c in texto if ord(c) > 127 and ord(c) not in tem})
 
 
-def gerar(saidas: list[Path]) -> list[Path]:
+def gerar(saidas: list[Path], idioma: str = "pt-BR") -> list[Path]:
+    global L
+    L = IDIOMAS[idioma]
     versao = versao_do_codigo()
-    texto = FONTE.read_text(encoding="utf-8")
+    texto = Path(__file__).with_name(L["fonte"]).read_text(encoding="utf-8")
     faltam = simbolos_sem_fonte(texto)
     if faltam:
         raise SystemExit(f"Símbolos que a fonte não desenha (sairiam como quadrado): {' '.join(faltam)}")
@@ -407,6 +432,18 @@ def gerar(saidas: list[Path]) -> list[Path]:
 
 
 if __name__ == "__main__":
-    alvo = [Path(sys.argv[1])] if len(sys.argv) > 1 else SAIDAS
-    for p in gerar(alvo):
-        print(f"gravado: {p}")
+    # uso: gerar_guia.py                       → os três idiomas (os que têm texto-fonte), em docs/ e em src/ipe/ajuda/
+    #      gerar_guia.py --idioma en           → só um
+    #      gerar_guia.py [--idioma en] saida.pdf → só onde mandar
+    args = sys.argv[1:]
+    so = None
+    if "--idioma" in args:
+        k = args.index("--idioma")
+        so = args[k + 1]
+        del args[k:k + 2]
+    for idi in ([so] if so else list(IDIOMAS)):
+        if not Path(__file__).with_name(IDIOMAS[idi]["fonte"]).is_file():
+            print(f"(sem texto-fonte em {idi}: pulado)")
+            continue
+        for p in gerar([Path(args[0])] if args else saidas_de(idi), idi):
+            print(f"gravado: {p}")

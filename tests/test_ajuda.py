@@ -133,3 +133,35 @@ def test_figura_em_falta_nao_derruba_o_guia(tmp_path):
     spec.loader.exec_module(g)
     partes = g._figura("nao_existe.png", "Legenda", 400, "0")
     assert len(partes) == 1 and "figura em falta" in partes[0].text
+
+
+# 0.100.125: o guia nos três idiomas, e o F1 abre o do idioma do programa
+def test_os_tres_guias_existem_e_sao_pdf():
+    for idioma, nome in ajuda.GUIAS.items():
+        p = ajuda.caminho_do_guia(idioma)
+        assert p is not None and p.name == nome, idioma
+        assert p.read_bytes()[:5] == b"%PDF-"
+        assert (RAIZ / "docs" / nome).is_file()          # a cópia que o site e o GitHub servem
+
+
+def test_o_guia_abre_no_idioma_do_programa(monkeypatch):
+    monkeypatch.setattr(ajuda, "_idioma", lambda: "en")
+    assert ajuda.caminho_do_guia().name == "Ipe-user-guide.pdf"
+    monkeypatch.setattr(ajuda, "_idioma", lambda: "es")
+    assert ajuda.caminho_do_guia().name == "Ipe-guia-del-usuario.pdf"
+    monkeypatch.setattr(ajuda, "_idioma", lambda: "pt-BR")
+    assert ajuda.caminho_do_guia().name == ajuda.GUIA
+
+
+def test_idioma_sem_guia_cai_no_portugues():
+    assert ajuda.caminho_do_guia("fr").name == ajuda.GUIA
+
+
+def test_os_tres_textos_do_guia_tem_a_mesma_estrutura():
+    fontes = {"pt": "guia.md", "en": "guia.en.md", "es": "guia.es.md"}
+    t = {k: (RAIZ / "tools" / "guia" / v).read_text(encoding="utf-8") for k, v in fontes.items()}
+    for k in ("en", "es"):
+        assert t[k].count("\n# ") == t["pt"].count("\n# "), k           # mesmos capítulos
+        assert t[k].count("\n## ") == t["pt"].count("\n## "), k         # mesmas seções
+        assert t[k].count("\n|") == t["pt"].count("\n|"), k             # mesmas tabelas
+        assert t[k].count("![") == t["pt"].count("!["), k               # mesmas figuras

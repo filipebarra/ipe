@@ -12,6 +12,26 @@ O Ipê é um visualizador DICOM para Windows e Linux, feito para estação de la
 
 Este guia descreve a versão {versao}. Onde o programa tem uma limitação, ela está escrita — é mais útil saber o que a ferramenta não faz do que descobrir na frente do exame.
 
+## Visão geral: o que o Ipê tem
+
+Um mapa do programa, por assunto, com o capítulo onde cada coisa está explicada.
+
+| Assunto | O que há | Onde |
+|---|---|---|
+| Exames | Banco local (PostgreSQL), locais (HD externo, banco de casos), importar pasta/ZIP/RAR/7z/CD, comentários, proteção, lixeira, conferir e reconstruir o banco, limpar o cache | Primeiros passos; A tela do banco de dados; Configurações |
+| Visualizador | Janela e presets, medidas e calibração, mosaico, imagens-chave, sincronizar quadros, MPR/oblíquo/curvo/3D, fusão, vários monitores, selos de integridade | O visualizador; Vários monitores |
+| Mamografia | Protocolos de exibição, alinhamento pelo mamilo, densidade (BI-RADS), calcificações vasculares e escalas, SR, busca ativa, tomossíntese, implante de silicone | Mamografia; Mama |
+| RM de mama e outras RM | Dinâmica (curvas, mapas, subtração, Tofts), alinhar as fases por IA, separar séries dinâmicas, difusão (ADC), fígado (gordura, ferro, rigidez), próstata (PI-RADS), conferência de protocolos de RM | Mama; Medicina nuclear e oncologia; Laudo |
+| IA | Órgãos abdominais, níveis da coluna e vértebra de transição, linfonodos cervicais, cefalometria, índices do crânio, nódulos, enfisema, aorta, cálcio coronariano, composição corporal, medula, lesões FDG/PSMA, glioma, FLAIR, T1 sintético, MedSAM2 — automáticas na chegada ou à mão, em fila, com achados revisáveis | Medicina nuclear e oncologia; Mama; Configurações |
+| Saída das IAs | SEG, tabelas e série com overlay colorido, por IA ou para todas, e envio aos destinos DICOM (para PACS que não mostram SEG) | O que cada IA grava no exame |
+| Lote | Lote a partir de planilha (busca no PACS, roda as IAs, envia, imprime, anonimiza), exportar os resultados das IAs para Excel | Rede DICOM, PACS e automação; Listas de casos |
+| Listas e ensino | Listas de casos e inteligentes, modo reunião, pacote de casos, perfis de ocultação/anonimização | Listas de casos |
+| Laudo | Modelos, achados de IA, impressão por IA, esquemas-guia, anexos (PDF e imagens), assinar e enviar ao PACS, lista de trabalho com prazo, produtividade | Laudo |
+| Filme e impressão | Compositor de filme, impressão DICOM, impressões recebidas, painel de filmes | Filme e impressão |
+| Rede | Nós DICOM, buscar/baixar (C-FIND, C-MOVE, C-GET), enviar, regras de automação, gestão DICOM (os exames das modalidades estão no PACS?), servidor central, Ipê cliente, Ipê Web, HTTPS | Rede DICOM, PACS e automação; Gestão DICOM |
+| Integração | Chamada externa (RIS, link ipe://, API HTTP), link do exame sem senha, abrir pelo endereço do Ipê Web | Chamada externa |
+| Administração | Usuários e permissões, perfis, três níveis de configuração, auditoria, exportar/importar configurações, atualização (GitHub e servidor) | Configurações, usuários e exportação |
+
 ## As duas telas
 
 O programa tem uma aba fixa, **Banco de dados**, e uma aba por exame aberto. Tudo começa no banco: é a lista de exames, a busca, as listas de casos e os botões que abrem as outras janelas (PACS, Gestão, impressões, laudo, configurações).
@@ -118,7 +138,7 @@ Nunca são tocados o banco, os exames deste computador, a lixeira, as configura�
 
 ## Ajuda
 
-**F1** (fora de um exame), o botão **Ajuda** da tela inicial ou **Ajuda ▸ Guia do usuário (PDF)** abrem este guia no leitor de PDF do computador. **Ajuda ▸ Sobre o Ipê…** mostra a versão. Dentro de um exame o F1 é do filme (capítulo 12).
+**F1** (fora de um exame), o botão **Ajuda** da tela inicial ou **Ajuda ▸ Guia do usuário (PDF)** abrem este guia no leitor de PDF do computador, **no idioma do programa** (português, inglês ou espanhol; sem o do idioma escolhido, abre o português). **Ajuda ▸ Sobre o Ipê…** mostra a versão. Dentro de um exame o F1 é do filme (capítulo 12).
 
 As figuras deste guia são telas do próprio programa, refeitas a cada versão, com exames reais **anonimizados** (pacientes EXEMPLO, datas deslocadas, sem instituição). Nas telas de outro sistema (Windows ou Linux) a fonte e o desenho das janelas mudam um pouco; os botões e menus são os mesmos.
 
@@ -1961,6 +1981,36 @@ São contas automáticas por limiar: confira cada foco antes de usar o número.
 As IAs ficam num botão só na barra do visualizador: **IA**. Ele abre uma lista, como a das medidas, com as IAs que valem para o exame aberto (pela mesma regra da barra inteligente: nódulos, enfisema, Genant, aorta e cálcio numa TC de tórax; BraTS e lesões no FLAIR numa RM de crânio…). Passe o mouse numa delas para ver o que ela faz — rodar na série do quadro ativo, ver o resultado — e clique. No fim da lista: **Achados de IA** (revisar, confirmar, descartar), **Tarefas de IA** (andamento e cancelar) e **Outras IAs**, com as que a regra deixou de fora, que rodam mesmo assim. O resultado abre no painel de cada IA, como antes.
 
 Para voltar a ter um botão para cada IA, marque **Mostrar cada IA com o seu botão na barra**, no fim da mesma lista. O botão **Aplicações** continua listando todas.
+
+## O que cada IA grava no exame (0.100.124)
+
+Toda IA que segmenta grava uma **série SEG** (as máscaras, que o botão **CAD/overlay** liga e desliga). Algumas gravam também **imagens à parte**: tabelas de números e imagens de conferência. A mamografia grava a própria imagem do exame com as marcas desenhadas.
+
+| IA | O que grava |
+|---|---|
+| Calcificações vasculares da mama | Imagem de mamografia com as calcificações marcadas, relatório estruturado (SR) e resumo |
+| Densidade mamária | SR e imagem de resumo |
+| Órgãos abdominais | SEG e uma imagem-tabela de volumes (HU, na TC) |
+| Níveis da coluna | SEG, tabelas de medidas dos discos e das vértebras (imagens) e uma segunda sagital de conferência com os níveis escritos |
+| Fígado na RM | SEG, imagem de resumo e imagem da região da rigidez |
+| Índices do crânio e cefalometria | SEG e uma imagem de conferência |
+| Linfonodos, enfisema, aorta, medula, composição corporal, cálcio coronariano, nódulos, próstata, lesões hepáticas, FLAIR, PET | Só a SEG (os números ficam nos achados de IA) |
+| Dinâmica da mama alinhada | Séries de imagem (fases alinhadas e subtrações) |
+
+As imagens-tabela e de conferência são imagens comuns, sem relação com o CAD/overlay: aparecem como séries próprias, com o selo de IA, e têm o nome do paciente escrito na imagem (por isso a anonimização e o modo reunião as tratam à parte).
+
+### Para o PACS que não mostra SEG
+
+Em **Configurações ▸ CAD/IA**, o grupo **O que as IAs gravam e enviam (todas as IAs)** tem três caixas e uma lista de destinos:
+
+- **Séries SEG**: desmarcada, a SEG não vai aos destinos (continua no exame do Ipê, porque o CAD/overlay e as medidas dependem dela).
+- **Tabelas e imagens de conferência**: vão como imagem comum.
+- **Série com overlay colorido**: o exame com as máscaras pintadas (miolo translúcido e contorno), **uma imagem por corte, na posição do corte original**. Qualquer PACS mostra e rola. É gerada a partir da SEG gravada, por isso vale para **toda IA que grave SEG**. Vem **desligada** por padrão, porque ocupa espaço (uma imagem colorida por corte); não é feita em exames de mais de 800 cortes nem em exames multiquadro (Enhanced). Aparece como a série `… · overlay colorido · Ipê`.
+- **Destinos**: os nós DICOM que recebem o que as IAs gravam. Valem para todas as IAs, somados aos de cada ferramenta.
+
+**Em cada IA**, nas configurações dela, o quadro **O que esta IA grava e envia** sobrepõe a escolha global: SEG, tabelas e overlay como *Como em todas as IAs / Sim / Não*, e os destinos como *os de todas as IAs e os desta ferramenta* ou *só os desta ferramenta* (sem nenhum marcado, essa IA não envia a lugar nenhum).
+
+A série colorida só é feita para IAs rodadas depois de ligar a opção; para exames que já têm SEG, refaça a IA.
 
 ## Tarefas de IA: andamento e cancelar
 

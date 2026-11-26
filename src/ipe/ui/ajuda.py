@@ -15,21 +15,34 @@ from PySide6.QtWidgets import QMessageBox, QWidget
 
 from ipe import APP_NAME, NOT_FOR_DIAGNOSIS, __version__
 
-GUIA = "Ipe-guia-do-usuario.pdf"
+GUIA = "Ipe-guia-do-usuario.pdf"                 # português: o de reserva
+#: 0.100.125: o guia no idioma do programa (o F1 abre o do idioma escolhido; sem ele, o português)
+GUIAS = {"pt-BR": "Ipe-guia-do-usuario.pdf", "en": "Ipe-user-guide.pdf", "es": "Ipe-guia-del-usuario.pdf"}
 
 
-def caminho_do_guia() -> Path | None:
-    """Onde está o guia: dentro do pacote; no executável, na pasta de dados do PyInstaller; e,
-    rodando do código-fonte, também em `docs/` na raiz do projeto."""
+def _idioma() -> str:
+    try:
+        from ipe.core import i18n
+        return i18n.current() or "pt-BR"
+    except Exception:  # noqa: BLE001
+        return "pt-BR"
+
+
+def caminho_do_guia(idioma: str = "") -> Path | None:
+    """Onde está o guia no idioma do programa: dentro do pacote; no executável, na pasta de dados do PyInstaller;
+    e, rodando do código-fonte, também em `docs/` na raiz do projeto. Sem o do idioma, o português."""
+    idioma = idioma or _idioma()
     aqui = Path(__file__).resolve().parent.parent          # .../ipe
-    lugares = [aqui / "ajuda" / GUIA]
     base = getattr(sys, "_MEIPASS", None)
-    if base:
-        lugares.append(Path(base) / "ipe" / "ajuda" / GUIA)
-    lugares.append(aqui.parent.parent / "docs" / GUIA)       # raiz do projeto, rodando do fonte
-    for p in lugares:
-        if p.is_file():
-            return p
+    nomes = [GUIAS.get(idioma) or GUIAS.get(idioma.split("-")[0]) or GUIA, GUIA]
+    for nome in dict.fromkeys(nomes):
+        lugares = [aqui / "ajuda" / nome]
+        if base:
+            lugares.append(Path(base) / "ipe" / "ajuda" / nome)
+        lugares.append(aqui.parent.parent / "docs" / nome)       # raiz do projeto, rodando do fonte
+        for p in lugares:
+            if p.is_file():
+                return p
     return None
 
 

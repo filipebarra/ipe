@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.125 — O guia (F1) em português, inglês e espanhol, com tudo o que o programa faz hoje
+- **Novo**: o guia do usuário existe agora nos **três idiomas** — `Ipe-guia-do-usuario.pdf` (português), `Ipe-user-guide.pdf` (inglês) e `Ipe-guia-del-usuario.pdf` (espanhol) —, cada um com o seu texto-fonte (`tools/guia/guia.md`, `guia.en.md`, `guia.es.md`), as suas palavras fixas (capa, rodapé, avisos) e as mesmas figuras. Os três vão dentro do programa e em `docs/`.
+- **F1 e Ajuda ▸ Guia do usuário abrem o guia no idioma do programa**; se o idioma escolhido não tiver guia, abre o português. O link do rodapé do site também aponta para o PDF do idioma da página.
+- **Guia revisto**: entrou o que faltava — o painel de visão geral do início do guia, a seção **O que cada IA grava no exame** (SEG, tabelas e imagens de conferência, série com overlay colorido, destinos globais e por IA), o lote a partir de planilha e a exportação dos resultados das IAs para Excel, o link do exame no Ipê Web, o PACS direto para o cliente, o "esqueci a senha", o aviso de que as IAs gravam no local em uso, entre outros.
+- Teste novo: os três textos do guia têm os mesmos capítulos, seções, tabelas e figuras, e o F1 escolhe o PDF pelo idioma.
+
 ## 0.100.124 — O que as IAs gravam e enviam: SEG, tabelas e série com overlay colorido
 - **Novo** (pedido: o PACS não mostra SEG): em Configurações ▸ CAD/IA, o grupo **O que as IAs gravam e enviam (todas as IAs)** tem três caixas — **séries SEG**, **tabelas e imagens de conferência** e **série com overlay colorido** — e uma lista de **destinos que valem para todas as IAs** (somam-se aos de cada ferramenta). As caixas decidem o que vai aos destinos; a SEG e as tabelas continuam sempre no exame do Ipê (o CAD/overlay e as medidas dependem delas).
 - **Série com overlay colorido**: o exame com as máscaras pintadas (miolo translúcido e contorno), **uma imagem por corte, na posição do corte original**, que qualquer PACS rola. Sai da SEG gravada, então vale para **toda IA que grave SEG** (abdome, coluna, linfonodos, enfisema, aorta, nódulos, próstata…). Fica no exame (série `… · overlay colorido · Ipê`) e é enviada junto. Por padrão vem **desligada** (ocupa espaço: uma imagem colorida por corte); SEG e tabelas vêm ligadas.

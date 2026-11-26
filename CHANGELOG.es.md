@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.125 — La guía (F1) en portugués, inglés y español, con todo lo que el programa hace hoy
+- **Nuevo**: la guía del usuario existe ahora en **tres idiomas** — `Ipe-guia-do-usuario.pdf` (portugués), `Ipe-user-guide.pdf` (inglés) e `Ipe-guia-del-usuario.pdf` (español) —, cada una con su texto fuente (`tools/guia/guia.md`, `guia.en.md`, `guia.es.md`), sus palabras fijas (portada, pie, avisos) y las mismas figuras. Las tres van dentro del programa y en `docs/`.
+- **F1 y Ayuda ▸ Guía del usuario abren la guía en el idioma del programa**; si el idioma elegido no tiene guía, se abre la de portugués. El enlace del pie del sitio también apunta al PDF del idioma de la página.
+- **Guía revisada**: entró lo que faltaba — el panel de visión general del comienzo de la guía, la sección **Qué graba cada IA en el estudio** (SEG, tablas e imágenes de verificación, serie con overlay coloreado, destinos globales y por IA), el lote desde una planilla y la exportación de los resultados de las IA a Excel, el enlace del estudio en Ipê Web, el PACS directo al cliente, "olvidé la contraseña", el aviso de que las IA graban en la ubicación en uso, entre otras.
+- Prueba nueva: los tres textos de la guía tienen los mismos capítulos, secciones, tablas y figuras, y F1 elige el PDF por el idioma.
+
 ## 0.100.124 — Qué guardan y envían las IA: SEG, tablas y serie con overlay en color
 - **Nuevo** (su PACS no muestra SEG): en Configuración ▸ CAD/IA, el grupo **Qué guardan y envían las IA (todas las IA)** tiene tres casillas — **series SEG**, **tablas e imágenes de verificación** y **serie con overlay en color** — y una lista de **destinos que valen para todas las IA** (se suman a los de cada herramienta). Las casillas deciden qué va a los destinos; la SEG y las tablas siempre quedan en el estudio de Ipê (el CAD/overlay y las medidas dependen de ellas).
 - **Serie con overlay en color**: el estudio con las máscaras pintadas (relleno translúcido y contorno), **una imagen por corte, en la posición del corte original**, que cualquier PACS recorre. Sale de la SEG guardada, así que vale para **toda IA que guarde SEG** (abdomen, columna, ganglios, enfisema, aorta, nódulos, próstata…). Queda en el estudio (serie `… · overlay colorido · Ipê`) y se envía junto. Viene **desactivada** por defecto (ocupa espacio: una imagen en color por corte); SEG y tablas vienen activadas.

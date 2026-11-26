@@ -117,7 +117,7 @@ class Pagina:
       <a href="{C.REPO}">{e(self.t(G['rodape_codigo']))}</a>
       <a href="{C.REPO}/blob/main/CREDITOS.md">{e(self.t(G['rodape_creditos']))}</a>
       <a href="{C.REPO}/blob/main/{ {'en': 'CHANGELOG.en.md', 'pt': 'CHANGELOG.md', 'es': 'CHANGELOG.es.md'}[self.l] }">{e(self.t(G['rodape_historico']))}</a>
-      <a href="{C.REPO}/raw/main/docs/Ipe-guia-do-usuario.pdf">{e(self.t(G['rodape_guia']))}</a>
+      <a href="{C.REPO}/raw/main/docs/{ {'en': 'Ipe-user-guide.pdf', 'pt': 'Ipe-guia-do-usuario.pdf', 'es': 'Ipe-guia-del-usuario.pdf'}[self.l] }">{e(self.t(G['rodape_guia']))}</a>
     </p>
     <p class="licenca">{e(self.t(G['rodape_licenca']))}</p>
   </div>
