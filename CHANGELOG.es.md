@@ -3,6 +3,21 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.122 — Las IA guardan en el local en uso (disco externo); instalador de PI-CAI en Windows
+- **Corregido (importante con disco externo como base)**: las series generadas por las IA (alineación de la
+  dinámica, elastografía, implantes, segmentaciones, niveles de la columna, cefalometría, ganglios…) se guardaban en
+  la carpeta de archivos **del equipo**, incluso con la base en el disco externo, y la base del disco guardaba la
+  ruta de esa carpeta. En otro equipo (o sin esa carpeta) aparecían la miniatura y los hallazgos, pero la imagen daba
+  *No se pudo leer esta imagen* y no se exportaba. Ahora las IA guardan en la carpeta de archivos del **local en
+  uso**, junto con la base, y acompañan el cambio de local. La retención/papelera y la ventana **Comprobar y
+  reconstruir la base** también usan el local en uso.
+  - Las series **ya guardadas** antes de la corrección siguen apuntando al equipo donde se hicieron (abren allí);
+    para abrirlas en otro equipo, vuelva a ejecutar la IA en el estudio.
+- **Corregido**: en Preferencias ▸ CAD/IA, la etiqueta "automático / solo a mano" de Cefalometría, Índices del cráneo
+  y Niveles ganglionares aparecía cambiada tras la llegada de la alineación de la dinámica (0.100.119).
+- **Instalador de modelos extra (Windows)**: usa una carpeta temporal corta (`C:\ipe_tmp`) solo durante la
+  instalación, para que PI-CAI no falle con *No such file or directory* por el límite de 260 caracteres.
+
 ## 0.100.121 — Avisos al abrir: IA no instaladas y "No volver a notificarme"
 - **Nuevo aviso al abrir Ipê**: si este equipo **no tiene las IA instaladas** (la segmentación de órganos o los modelos
   extra: MedSAM2, autoPET, BraTS, FLAMeS, médula), una ventana dice qué falta y ofrece **Instalar la segmentación** /

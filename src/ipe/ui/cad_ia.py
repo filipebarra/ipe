@@ -143,7 +143,7 @@ class CadIaTab(QWidget):
             self.l_ferramentas.item(k).setText(f"{nome}\n   {'automático na chegada' if auto else 'só à mão'}")
 
     def _caixas_auto(self) -> list:
-        return [self.c_seg_auto, self.c_col_auto, self.c_imp_auto, self.c_mama_auto, self.c_cef_auto, self.c_neu_auto,
+        return [self.c_seg_auto, self.c_col_auto, self.c_imp_auto, self.c_mama_auto, self.c_dce_auto, self.c_cef_auto, self.c_neu_auto,
                 self.c_lin_auto,
                 *[w["auto"] for w in self._gen.values()]]
 

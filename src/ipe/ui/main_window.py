@@ -165,7 +165,7 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         from ipe.automation.engine import AutomationEngine
         self.auto = AutomationEngine(self.repo, self.db, self.net, settings, paths,
                                      open_uids=lambda: {u for t in self.all_viewer_tabs() for u in t.study_order},
-                                     parent=self, cache=self.cache)
+                                     parent=self, cache=self.cache, storage=self.storage)
         self.auto.notify.connect(self.show_notification)
         self.browser.motor_ia = self.auto                  # 0.100.101: botão direito ▸ IA no banco
         self.auto.implante_corrigido.connect(self._implante_pronto)

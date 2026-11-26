@@ -369,7 +369,28 @@ PASSOS = {"medsam2": medsam2, "autopet": autopet, "brats": brats, "flames": flam
           "prostata_zonas": prostata_zonas, "picai": picai, "dce": dce}
 
 
+def pasta_temporaria_curta() -> str | None:
+    """0.100.122: no Windows, o pip monta alguns pacotes (o nnunet do PI-CAI) numa pasta temporária; com o caminho
+    comprido de `AppData\\Local\\Temp\\pip-…` somado ao dos arquivos do pacote passa dos 260 caracteres e o Windows
+    recusa criar o arquivo. Uma pasta curta na raiz do disco evita isso sem mexer no registro nem pedir administrador."""
+    if os.name != "nt":
+        return None
+    for base in (os.environ.get("SystemDrive", "C:") + "\\", os.path.expanduser("~") + "\\"):
+        try:
+            p = os.path.join(base, "ipe_tmp")
+            os.makedirs(p, exist_ok=True)
+            return p
+        except OSError:
+            continue
+    return None
+
+
 def main(argv: list[str]) -> int:
+    curta = pasta_temporaria_curta()
+    if curta:
+        for v in ("TEMP", "TMP", "TMPDIR"):
+            os.environ[v] = curta                   # os pip filhos herdam
+        print("Pasta temporária curta:", curta, flush=True)
     # "todos" são só os comuns: os de pesquisa precisam ser pedidos pelo nome E com o aceite da licença
     pedidos = [a for a in argv if a in PASSOS] or [p for p in PASSOS if p not in PESQUISA and p not in OPCIONAIS]
     if any(p in PESQUISA for p in pedidos) and ACEITE not in argv:

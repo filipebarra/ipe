@@ -3,6 +3,21 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.122 — IAs gravam no local em uso (HD externo); instalador do PI-CAI no Windows
+- **Corrigido (importante com o HD externo como banco)**: as séries geradas pelas IAs (alinhamento da dinâmica,
+  elastografia, implantes, segmentações, níveis da coluna, cefalometria, linfonodos…) eram gravadas na pasta de
+  arquivos **do computador**, mesmo com o banco no HD externo, e o banco do HD guardava o caminho dessa pasta. Em
+  outro computador (ou sem aquela pasta) a miniatura e os achados apareciam, mas a imagem dava *Não foi possível ler
+  esta imagem* e não exportava. Agora as IAs gravam na pasta de arquivos do **local em uso**, junto com o banco, e
+  acompanham a troca de local. Também a retenção/lixeira e a janela **Conferir e reconstruir o banco** passam a usar o
+  local em uso.
+  - Séries **já gravadas** antes da correção continuam apontando para o computador onde foram feitas (abrem lá);
+    para abrir em outro computador, refaça a IA no exame.
+- **Corrigido**: em Preferências ▸ CAD/IA, o "automático / só à mão" de Cefalometria, Índices do crânio e Níveis
+  linfonodais aparecia trocado depois da entrada do alinhamento da dinâmica (0.100.119).
+- **Instalador dos modelos extras (Windows)**: usa uma pasta temporária curta (`C:\ipe_tmp`) só durante a
+  instalação, para o PI-CAI não falhar com *No such file or directory* por causa do limite de 260 caracteres.
+
 ## 0.100.121 — Avisos ao abrir: IAs não instaladas e "Não me notificar mais"
 - **Novo aviso ao abrir o Ipê**: se este computador **não tem as IAs instaladas** (a segmentação de órgãos, ou os
   modelos extras: MedSAM2, autoPET, BraTS, FLAMeS, medula), uma janela diz o que falta e oferece **Instalar a

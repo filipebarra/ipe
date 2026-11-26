@@ -97,7 +97,7 @@ class BancosMixin:
         self.net.set_source(self.db, self.repo, self.storage)
         self.pacs.repo = self.repo
         self.pacs.refresh_nodes()
-        self.auto.set_source(self.repo, self.db, Path(trash_root))
+        self.auto.set_source(self.repo, self.db, Path(trash_root), self.storage)
         self.sync_hub.repo = self.repo
         self.locations.set_repo(self.repo)
         self._refresh_other_locations()

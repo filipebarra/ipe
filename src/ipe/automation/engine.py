@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 import logging
 import threading
 import time
@@ -44,9 +45,10 @@ class AutomationEngine(QObject):
     mama_medida = Signal(str)                  # 0.100.78: mamografia medida que chegou (gravar o SR sem conferência)
 
     def __init__(self, repo, db, net, settings, paths, open_uids=lambda: set(), parent=None,
-                 cache=None):
+                 cache=None, storage=None):
         super().__init__(parent)
         self.repo, self.db, self.net, self.settings, self.paths = repo, db, net, settings, paths
+        self.storage = Path(storage if storage is not None else paths.storage)         # 0.100.122: a pasta de arquivos do local em uso (troca em set_source)
         self.open_uids = open_uids
         self.cache = cache               # cache de quadros do visualizador (pré-cálculo da dinâmica)
         self.trash_root = paths.data / "Lixeira"
@@ -87,9 +89,14 @@ class AutomationEngine(QObject):
 
     # ------------------------------------------------------------ configuração
 
-    def set_source(self, repo, db, trash_root=None) -> None:
-        """Troca o banco (troca de local); a lixeira passa a ser a do local."""
+    def set_source(self, repo, db, trash_root=None, storage=None) -> None:
+        """Troca o banco (troca de local); a lixeira e a pasta de arquivos passam a ser as do local.
+
+        0.100.122: antes só o banco trocava; as séries geradas pelas IAs continuavam indo para a pasta do computador
+        e ficavam no banco do HD externo com o caminho dela (sem ela naquele computador, não abriam)."""
         self.repo, self.db = repo, db
+        if storage is not None:
+            self.storage = Path(storage)
         self.mama.parar()
         from ipe.automation import mama_auto as MA
         self.mama = MA.Fila(repo, settings=self.settings, depois_de_medir=self._mama_medida_na_linha)
@@ -165,7 +172,7 @@ class AutomationEngine(QObject):
         destinos, manda ao PACS. Quem abrir o exame ainda confirma ou corrige (o SR é refeito e reenviado)."""
         from ipe.ai import mama_sr as MS
         from ipe.ai import tarefas as TA
-        repo, db, storage, settings = self.repo, self.db, self.paths.storage, self.settings
+        repo, db, storage, settings = self.repo, self.db, self.storage, self.settings
         info = repo.study_info(study_uid) or {}
         nome = f"{info.get('patient_name', '')} {info.get('description', '')}".strip()
         tid = TA.REGISTRO.nova("SR da mamografia (sem conferência)", study_uid, nome, "automática", TA.RODANDO).id
@@ -236,7 +243,7 @@ class AutomationEngine(QObject):
                 self.run_retention()
             elif time.time() - self._last_disk_check > 3600:
                 self._last_disk_check = time.time()
-                pct, _t = retention.disk_usage(self.paths.storage)
+                pct, _t = retention.disk_usage(self.storage)
                 if pct > float(pol.get("disk_high_pct") or 101):
                     self.run_retention()
 
@@ -399,7 +406,7 @@ class AutomationEngine(QObject):
         tid = TA.REGISTRO.nova(TITULO_IMPLANTE, study_uid,
                                f"{info.get('patient_name', '')} {info.get('description', '')}".strip(),
                                origem, TA.RODANDO).id
-        repo, db, storage = self.repo, self.db, self.paths.storage
+        repo, db, storage = self.repo, self.db, self.storage
         so_marca = bool(IMP.config(self.settings, IMP.CHAVE_SO_COM_MARCA))
 
         def trabalho():
@@ -543,7 +550,7 @@ class AutomationEngine(QObject):
         origem = (f"manual · {quem}" if quem else "manual") if forcar else "automática"
         parar = threading.Event()
         tid = TA.REGISTRO.nova(DCE.TITULO, study_uid, nome, origem, TA.FILA, cancelar=parar.set).id
-        repo, db, storage, settings = self.repo, self.db, self.paths.storage, self.settings
+        repo, db, storage, settings = self.repo, self.db, self.storage, self.settings
 
         def trabalho():
             with DCE.TRAVA:                       # uma de cada vez: o registro usa a CPU e vários GB de memória
@@ -915,12 +922,12 @@ class AutomationEngine(QObject):
                 TA.REGISTRO.mudar(tid, TA.GRAVANDO, etapa="gravando as séries no exame")
                 if gen is not None:
                     gres, versao = res
-                    saida = FE.gravar(t, gen, gres, versao, self.db, self.paths.storage, self.repo, self.settings)
+                    saida = FE.gravar(t, gen, gres, versao, self.db, self.storage, self.repo, self.settings)
                     resumo, n_itens = gen.resumo(gres), gen.n_itens(gres)
                     destinos = gen.config(self.settings, gen.CHAVE_DESTINOS)
                 elif linfo:
                     (mk, vols, rotulos), versao = res
-                    saida = LN.gravar(t, mk, rotulos, versao, self.db, self.paths.storage, repo=self.repo,
+                    saida = LN.gravar(t, mk, rotulos, versao, self.db, self.storage, repo=self.repo,
                                       volumes=vols)
                     saida["linfonodos"] = mk
                     saida["mapa"] = LN.objeto(mk, study_uid, volumes=vols)
@@ -930,7 +937,7 @@ class AutomationEngine(QObject):
                 elif neuro:
                     from ipe.ai import neuro_saida as NS
                     nres, versao = res
-                    saida = NS.gravar(t, nres, versao, self.db, self.paths.storage, repo=self.repo,
+                    saida = NS.gravar(t, nres, versao, self.db, self.storage, repo=self.repo,
                                       settings=self.settings)
                     saida["neuro"] = nres
                     resumo = NE.resumo(nres)
@@ -939,7 +946,7 @@ class AutomationEngine(QObject):
                 elif cefalo:
                     from ipe.ai import cefalometria_saida as CS
                     cef, versao = res
-                    saida = CS.gravar(t, cef, versao, self.db, self.paths.storage, repo=self.repo,
+                    saida = CS.gravar(t, cef, versao, self.db, self.storage, repo=self.repo,
                                       settings=self.settings)
                     saida["cefalometria"] = cef
                     resumo = CF.resumo(cef)
@@ -950,18 +957,18 @@ class AutomationEngine(QObject):
                     if not niveis.itens:
                         raise TS.Falhou("o TotalSegmentator não achou vértebras nesta série")
                     COL.conferir_anteriores(self.repo, study_uid, niveis)
-                    saida = COL.gravar(t, niveis, versao, self.db, self.paths.storage, repo=self.repo)
+                    saida = COL.gravar(t, niveis, versao, self.db, self.storage, repo=self.repo)
                     saida["niveis"] = niveis
                     resumo = COL.resumo(niveis)
                     if conf.get("niveis") is not None and conf["niveis"].itens:
                         try:
-                            c = COL.gravar(conf["t"], conf["niveis"], conf["versao"], self.db, self.paths.storage,
+                            c = COL.gravar(conf["t"], conf["niveis"], conf["versao"], self.db, self.storage,
                                            conferencia=True, repo=self.repo)
                             saida["series"] = list(saida.get("series") or []) + list(c.get("series") or [])
                         except Exception as e:  # noqa: BLE001
                             log.warning("gravar a conferência da coluna: %s", e)
                     if COL.config(self.settings, COL.CHAVE_MEDIR) and saida.get("seg_path"):
-                        tab = COL.gravar_tabela(self.repo, self.db, self.paths.storage, study_uid, saida["seg_path"])
+                        tab = COL.gravar_tabela(self.repo, self.db, self.storage, study_uid, saida["seg_path"])
                         saida["series"] = list(saida.get("series") or []) + tab["series"]
                         saida["medidas"] = tab["medidas"]
                         if COL.resumo_tabelas(tab):
@@ -969,7 +976,7 @@ class AutomationEngine(QObject):
                     n_itens, destinos = len(niveis.itens), COL.config(self.settings, COL.CHAVE_DESTINOS)
                 else:
                     from ipe.ai import totalseg_saida as SAIDA
-                    saida = SAIDA.gravar(t, res, self.db, self.paths.storage)     # tabela: desenho na tela principal
+                    saida = SAIDA.gravar(t, res, self.db, self.storage)     # tabela: desenho na tela principal
                     saida["resultado"] = res
                     resumo, n_itens = SAIDA.resumo(res), len(res.estruturas)
                     destinos = TS.config(self.settings, TS.CHAVE_DESTINOS)
@@ -1115,7 +1122,7 @@ class AutomationEngine(QObject):
 
     # ------------------------------------------------------------ limpeza
     def preview_retention(self):
-        return retention.plan(self.repo, self.paths.storage, {**self.policy, "enabled": True}, self.open_uids())
+        return retention.plan(self.repo, self.storage, {**self.policy, "enabled": True}, self.open_uids())
 
     def run_retention(self, force: bool = False) -> int:
         self._last_retention = self._last_disk_check = time.time()
@@ -1123,11 +1130,11 @@ class AutomationEngine(QObject):
         if not pol.get("enabled") and not force:
             return 0
         started = datetime.now()
-        items = retention.plan(self.repo, self.paths.storage, {**pol, "enabled": True}, self.open_uids())
+        items = retention.plan(self.repo, self.storage, {**pol, "enabled": True}, self.open_uids())
         n = 0
         for stat, reason in items:
             try:
-                retention.trash_study(self.repo, stat, self.paths.storage, self.trash_root, reason)
+                retention.trash_study(self.repo, stat, self.storage, self.trash_root, reason)
                 n += 1
             except Exception as e:  # noqa: BLE001
                 log.warning("Limpeza: não apagou %s: %s", stat.study_uid, e)

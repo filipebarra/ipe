@@ -521,7 +521,7 @@ class AutomationDialog(QDialog):
         self.r_max = QSpinBox(minimum=0, maximum=100000, value=int(pol.get("max_storage_gb") or 0), suffix=" GB")
         self.r_max.setSpecialValueText("sem teto")
         self.r_trash = QSpinBox(minimum=0, maximum=365, value=int(pol.get("trash_days") or 7), suffix=" dias")
-        pct, _t = retention.disk_usage(self.main.paths.storage)
+        pct, _t = retention.disk_usage(self.main.storage)
         for lab, wd in (("", self.r_enabled), ("", self.r_only_net), ("Recebidos há mais de:", self.r_age),
                         ("Não abertos há mais de:", self.r_unopened), ("Anteriores da pré-busca após:", self.r_prefetch),
                         ("Por modalidade (dias):", self.r_mod), ("Disco acima de:", self.r_high),
@@ -616,7 +616,7 @@ class AutomationDialog(QDialog):
         i = _selected_id(self.t_trash)
         if i is None:
             return
-        n = retention.restore(self.repo, self.main.db, self.main.paths.storage, self._trash[i])
+        n = retention.restore(self.repo, self.main.db, self.main.storage, self._trash[i])
         self._fill_trash()
         self.main.browser.refresh()
         QMessageBox.information(self, "Lixeira", f"{n} imagem(ns) restaurada(s).")

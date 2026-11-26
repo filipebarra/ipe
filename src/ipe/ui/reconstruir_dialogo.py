@@ -107,6 +107,12 @@ class ReconstruirDialog(QDialog):
         self._botoes()
 
     # ------------------------------------------------------------------ apoio
+    def _atuais(self):
+        """(repo, banco, pasta de arquivos) do local em uso agora (0.100.122: com o HD externo, não os do computador)."""
+        j = self.parent()
+        return (getattr(j, "repo", self.repo), getattr(j, "db", self.db),
+                getattr(j, "storage", None) or self.paths.storage)
+
     def pasta_copias(self):
         return self.paths.data / "Backups"
 
@@ -189,7 +195,7 @@ class ReconstruirDialog(QDialog):
 
     # ------------------------------------------------------------------ ações
     def conferir(self) -> None:
-        self._rodar("conferir", lambda p: R.conferir(self.db, self.paths.storage, p, self.parar))
+        self._rodar("conferir", lambda p: R.conferir(self._atuais()[1], self._atuais()[2], p, self.parar))
 
     def parcial(self) -> None:
         rel = self.rel
@@ -200,14 +206,14 @@ class ReconstruirDialog(QDialog):
                 "existem não são apagados.")) != QMessageBox.Yes:
             return
         ref = self.k_ref.isChecked()
-        self._rodar("parcial", lambda p: R.parcial(self.repo, self.db, self.paths.storage, rel, ref, p, self.parar))
+        self._rodar("parcial", lambda p: R.parcial(*self._atuais(), rel, ref, p, self.parar))
 
     def completa(self, continuar: bool) -> None:
         if not continuar and QMessageBox.question(self, self.windowTitle(), tr(
                 "A reconstrução completa relê todos os arquivos e pode levar muito tempo num banco grande. Antes, "
                 "grava uma cópia do índice. Começar?")) != QMessageBox.Yes:
             return
-        self._rodar("completa", lambda p: R.completa(self.repo, self.db, self.paths.storage, self.pasta_copias(), p,
+        self._rodar("completa", lambda p: R.completa(*self._atuais(), self.pasta_copias(), p,
                                                       self.parar, settings=self.settings, recomecar=not continuar))
 
     def salvar(self) -> None:
