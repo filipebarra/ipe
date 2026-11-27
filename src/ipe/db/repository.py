@@ -2724,6 +2724,53 @@ class Repository:
                         grupos[uid][0]["aparelho"] = mod
         return [FT.linha(base, itens) for base, itens in grupos.values()]
 
+    def dmo(self, study_uid: str) -> dict:
+        """0.100.132: a DMO (T-score da coluna e do fêmur) digitada para o exame, para validar o osso da TC."""
+        v = self.get_app_setting("dmo." + study_uid, {})
+        return v if isinstance(v, dict) else {}
+
+    def guardar_dmo(self, study_uid: str, dados: dict) -> None:
+        limpo = {k: v for k, v in dict(dados or {}).items() if k in ("coluna", "femur", "data") and v not in (None, "")}
+        self.set_app_setting("dmo." + study_uid, limpo)
+
+    def composicao_medidos(self, date_from: str = "", date_to: str = "", banco: str = "visivel",
+                           limit: int = 5000) -> list[dict]:
+        """0.100.132: os exames com o resultado da IA de composição corporal (e do osso), um por linha, com a
+        situação de cada achado e a DMO digitada — para a tela "Composição corporal e densidade óssea"."""
+        from ipe.ai import composicao as C
+        from ipe.ai import composicao_tabela as CT
+        from ipe.auth import visibilidade as V
+        visao = V.visao_atual()
+        with self.db.session() as s:
+            q = (select(AchadoIA, Study, Patient).join(Study, Study.study_uid == AchadoIA.study_uid)
+                 .join(Patient, Study.patient_fk == Patient.id).where(AchadoIA.ferramenta == C.FERRAMENTA))
+            if date_from:
+                q = q.where(Study.study_date >= date_from)
+            if date_to:
+                q = q.where(Study.study_date <= date_to)
+            q = _filtro_de_banco(q, banco, visao).order_by(Study.study_date.desc(), Study.study_uid, AchadoIA.id)
+            grupos: dict[str, tuple[dict, list]] = {}
+            for a, st, pa in s.execute(q):
+                if not _no_banco(st, banco, visao):
+                    continue
+                if st.study_uid not in grupos:
+                    if len(grupos) >= limit:
+                        break
+                    grupos[st.study_uid] = ({"study_uid": st.study_uid, "patient_name": pa.name or "",
+                                             "patient_id": pa.patient_id or "", "study_date": st.study_date or "",
+                                             "description": st.description or "", "aparelho": ""}, [])
+                d = self._achado_dict(a)
+                d["revisado_em"] = a.revisado_em.strftime("%Y-%m-%d %H:%M") if a.revisado_em else ""
+                d["criado_em"] = a.criado_em.strftime("%Y-%m-%d %H:%M") if a.criado_em else ""
+                grupos[st.study_uid][1].append(d)
+            if grupos:
+                for uid, mod in s.execute(select(Study.study_uid, Series.device)
+                                          .join(Series, Series.study_fk == Study.id)
+                                          .where(Study.study_uid.in_(list(grupos)[:5000]))):
+                    if mod and not grupos[uid][0]["aparelho"]:
+                        grupos[uid][0]["aparelho"] = mod
+        return [CT.linha(base, itens, self.dmo(base["study_uid"])) for base, itens in grupos.values()]
+
     def revisoes_densidade(self, usuario: str = "", todos: bool = False) -> list[dict]:
         """As revisões do revisor (ou de todos), da mais antiga à mais nova."""
         import json

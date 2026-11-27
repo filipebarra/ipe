@@ -3,6 +3,14 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.132 — Body composition and bone table, with DXA and the ROC cutoff
+Report (11/27/2026): body composition only had the findings window; the combined table (like the one for liver MRI) was missing, to compare CT bone with DXA.
+- **Reports ▸ Body composition and bone density: measurements and confirmations…** (and in the body composition tool menu, in the viewer): one row per study with muscle (SMA, SMI), VAT, SAT, liver, **L1** and **L1–L4** HU, the bone result, review status, who reviewed and when. Filters: reviewed, not reviewed, with bone, with DXA, with bone and no DXA.
+- **DXA typed in the table itself**: "DXA spine (T)" and "DXA femur (T)" columns (double-click), kept with the study (also on the central server). The worse of the two counts; class: normal, osteopenia (T < −1.0) or osteoporosis (T ≤ −2.5).
+- **Compare with DXA…**: AUC and **best cutoff** (Youden index) of the L1 and L1–L4 HU for osteoporosis and for low density, with sensitivity and specificity at the cutoffs the service uses today.
+- Export CSV with the whole table (bone and DXA).
+- New tests: table, saved DXA, window, CSV and the ROC analysis.
+
 ## 0.100.131 — Batch search with the external drive active lists the server's nodes
 Report (11/27/2026): with a local database active, page "3. From where" of the batch search was empty and there was no way to choose which PACS to download from.
 - **The batch node list now includes the nodes the server shares** ("… (via server)") when the active location is the external drive or this computer's database. Check, order and run as before: search and download go through the server and the exam enters the active location.

@@ -564,6 +564,14 @@ class MamografiaMixin:
         from ipe.ui import figados_medidos
         return figados_medidos.abrir(main)
 
+    def composicao_medidos(self):
+        """0.100.132: a tela da composição corporal e do osso de todos os exames, com a DMO digitada."""
+        main = self._janela_principal()
+        if main is None:
+            return None
+        from ipe.ui import composicao_medidos
+        return composicao_medidos.abrir(main)
+
     def revisar_densidade(self):
         """0.100.43: a fila de revisão da densidade (abre os exames nas abas da janela principal)."""
         main = self._janela_principal()

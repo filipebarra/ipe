@@ -409,6 +409,9 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         a = QAction("Fígado na RM (esteatose, ferro, rigidez): medidas e confirmações…", j)   # 0.100.101
         a.triggered.connect(self.abrir_figados_medidos)
         lm.addAction(a)
+        a = QAction("Composição corporal e densidade óssea: medidas e confirmações…", j)   # 0.100.132
+        a.triggered.connect(self.abrir_composicao_medidos)
+        lm.addAction(a)
         if janela is None:
             self.laudos_menu = lm
 

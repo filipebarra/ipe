@@ -1153,6 +1153,9 @@ class BarraMixin:
         a_ref_composicao = QAction("Refazer no exame (série preferida das Configurações)…", self)          # 0.100.88
         a_ref_composicao.triggered.connect(lambda: self.refazer_ia("composicao"))
         menu_comp.addAction(a_ref_composicao)
+        a_tab_comp = QAction("Composição corporal e osso: todos os exames, com a DMO…", self)          # 0.100.132
+        a_tab_comp.triggered.connect(self.composicao_medidos)
+        menu_comp.addAction(a_tab_comp)
         comp = self._act("composicao.auto", "Composição corporal em L3 e esteatose (IA)", self.composicao_botao)
         comp.setIcon(icon("app_composicao"))
         comp.setIconText("Composição")

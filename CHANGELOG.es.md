@@ -3,6 +3,14 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.132 — Tabla de composición corporal y hueso, con la DMO y el corte por curva ROC
+Reporte (27/11/2026): la composición corporal solo tenía la ventana de hallazgos; faltaba la tabla combinada (como la del hígado en RM) para comparar el hueso de la TC con la DMO.
+- **Informes ▸ Composición corporal y densidad ósea: medidas y confirmaciones…** (y en el menú de la herramienta de composición, en el visor): una fila por estudio con músculo (SMA, SMI), VAT, SAT, hígado, HU de **L1** y de **L1–L4**, resultado del hueso, situación de la revisión, quién revisó y cuándo. Filtros: revisadas, no revisadas, con hueso, con DMO, con hueso y sin DMO.
+- **DMO digitada en la propia tabla**: columnas «DMO columna (T)» y «DMO fémur (T)» (doble clic), guardadas en el estudio (también en el servidor central). Vale la peor de las dos; clase: normal, osteopenia (T < −1,0) u osteoporosis (T ≤ −2,5).
+- **Comparar con la DMO…**: AUC y **mejor corte** (índice de Youden) del HU de L1 y de L1–L4 para osteoporosis y para baja densidad, con la sensibilidad y la especificidad en los cortes que el servicio usa hoy.
+- Exportar CSV con la tabla completa (hueso y DMO).
+- Pruebas nuevas: tabla, DMO guardada, ventana, CSV y el análisis ROC.
+
 ## 0.100.131 — La búsqueda por lote con el disco externo activo lista los nodos del servidor
 Reporte (27/11/2026): con una base local activa, la página «3. De dónde» de la búsqueda por lote quedaba vacía y no se podía elegir de qué PACS descargar.
 - **La lista de nodos del lote ahora incluye los que comparte el servidor** («… (por el servidor)») cuando la ubicación activa es el disco externo o la base de este equipo. Marque, ordene y ejecute como antes: la búsqueda y la descarga pasan por el servidor y el estudio entra en la ubicación activa.

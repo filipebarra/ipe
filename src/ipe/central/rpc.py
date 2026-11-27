@@ -71,6 +71,7 @@ RPC_METHODS: dict[str, str] = {
     "revisao_ia": "view", "salvar_revisao_ia": "view",
     "densidades_medidas": "view",
     "figados_medidos": "view",           # 0.100.101: Fígado na RM: medidas e confirmações
+    "composicao_medidos": "view", "dmo": "view", "guardar_dmo": "view",   # 0.100.132: composição e osso × DMO
     # 0.100.60: regravar o SR da mamografia pelo cliente — o servidor apaga só as séries que o próprio Ipê gravou
     "apagar_series_da_mama": "view",
     "refazer_resumo_do_figado": "view",   # 0.100.102: o resumo (OT) da RM do fígado

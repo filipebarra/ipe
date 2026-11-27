@@ -374,6 +374,11 @@ class ImpressoesMixin:
         from ipe.ui import figados_medidos
         return figados_medidos.abrir(self)
 
+    def abrir_composicao_medidos(self):
+        """0.100.132: composição corporal e osso (HU de L1 e L1–L4) de todos os exames, com a DMO digitada."""
+        from ipe.ui import composicao_medidos
+        return composicao_medidos.abrir(self)
+
     def abrir_revisao_densidade(self) -> None:
         """0.100.43: a fila de mamografias para o médico confirmar ou corrigir a densidade sugerida."""
         from ipe.ui import densidade_revisao
