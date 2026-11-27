@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.134 — Corte de Martin pelo paciente; kVp e contraste junto do osso e do fígado
+Sugestões (27/11/2026).
+- **Composição corporal**: a referência de Martin passa a mostrar **só o corte do paciente** (sexo + IMC: mulher < 41 cm²/m²; homem < 43 com IMC < 25 ou < 53 com IMC ≥ 25; mioesteatose < 41 HU com IMC < 25 ou < 33 HU com IMC ≥ 25), já comparado com o valor medido ("abaixo do corte" / "no corte ou acima").
+- **kVp e contraste** entram nos números do achado de **osso** e de **fígado** (aparecem na janela de achados, na tabela OT e no Excel) e na frase do laudo, ex.: "… em L1–L4 (120 kVp, sem contraste).". São os dois fatores que decidem se os cortes valem. Com kVp ≠ 120 continua só medindo, sem classificar.
+
 ## 0.100.133 — Tabela OT para todas as IAs
 Pedido (27/11/2026): "quero OT de todas as IAs geradas, para poder enviar para o PACS". A escolha global + por IA já existia (0.100.124); faltava a tabela em quase todas as IAs.
 - Toda IA que não gravava tabela própria (enfisema, nódulos, composição e osso, cálcio, aorta, próstata, PET, medula, FLAMeS, BraTS e outras) passa a gravar uma **tabela OT** (imagem) com os achados e números, a "Ipê · tabela". Indica se foi conferida pelo médico e é refeita quando a IA roda de novo.

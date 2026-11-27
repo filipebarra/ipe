@@ -180,6 +180,9 @@ def medir(t, ms, settings=None, contraste: bool = False) -> dict:
     out["numeros"]["niveis_n"] = AC.numero(len(medias), "", "Níveis medidos")
     motivo = ""
     kvp = _kvp(t)
+    out["numeros"]["contraste"] = AC.numero("com contraste" if contraste else "sem contraste", "", "Contraste")
+    if kvp is not None:
+        out["numeros"]["kvp"] = AC.numero(round(kvp), "kVp", "kVp")
     if contraste:
         motivo = "série com contraste (os cortes valem na TC sem contraste)"
         out["avisos"].append("série com contraste: o HU do osso sobe e os cortes de L1 não valem")
@@ -200,6 +203,13 @@ def medir(t, ms, settings=None, contraste: bool = False) -> dict:
     return out
 
 
+def _condicoes(n: dict) -> str:
+    kv = (n.get("kvp") or {}).get("v")
+    ct = (n.get("contraste") or {}).get("v")
+    partes = ([f"{float(kv):.0f} kVp"] if kv else []) + ([str(ct)] if ct else [])
+    return f" ({', '.join(partes)})" if partes else ""
+
+
 def frase(a: dict) -> str:
     n = AC.numeros_validos(a)
 
@@ -212,7 +222,7 @@ def frase(a: dict) -> str:
     if v("l1l4_hu"):
         k = int(float((n.get("niveis_n") or {}).get("v") or 0))
         partes.append(f"média de {v('l1l4_hu')} HU em L1–L4" if k > 1 else f"{v('l1l4_hu')} HU")
-    txt = "Densidade óssea na TC: " + ("; ".join(partes) if partes else "não medida") + "."
+    txt = "Densidade óssea na TC: " + ("; ".join(partes) if partes else "não medida") + _condicoes(n) + "."
     res = resultado_do_achado(a)
     if res:
         txt += f" {res}."

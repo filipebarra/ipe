@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.134 — Corte de Martin según el paciente; kVp y contraste junto al hueso y al hígado
+Sugerencias (27/11/2026).
+- **Composición corporal**: la referencia de Martin muestra **solo el corte del paciente** (sexo + IMC: mujer < 41 cm²/m²; hombre < 43 con IMC < 25 o < 53 con IMC ≥ 25; miosteatosis < 41 HU con IMC < 25 o < 33 HU con IMC ≥ 25), ya comparado con el valor medido («debajo del corte» / «en el corte o por encima»).
+- **kVp y contraste** entran en los números del hallazgo de **hueso** y de **hígado** (ventana de hallazgos, tabla OT y Excel) y en la frase del informe, p. ej. «… en L1–L4 (120 kVp, sin contraste).». Con kVp ≠ 120 solo mide.
+
 ## 0.100.133 — Tabla OT para todas las IA
 Pedido (27/11/2026): «quiero OT de TODAS las IA, para poder enviarlas al PACS». La elección global + por IA ya existía (0.100.124); casi ninguna IA tenía la tabla.
 - Toda IA que no grababa tabla propia (enfisema, nódulos, composición y hueso, calcio, aorta, próstata, PET, médula, FLAMeS, BraTS y otras) ahora graba una **tabla OT** (imagen) con sus hallazgos y números, llamada «Ipê · tabla». Indica si el médico la revisó y se rehace cuando la IA vuelve a correr.

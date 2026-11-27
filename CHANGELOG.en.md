@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.134 — Martin cutoff for the patient; kVp and contrast next to bone and liver
+Suggestions (11/27/2026).
+- **Body composition**: the Martin reference now shows **only the patient's cutoff** (sex + BMI: women < 41 cm²/m²; men < 43 with BMI < 25 or < 53 with BMI ≥ 25; myosteatosis < 41 HU with BMI < 25 or < 33 HU with BMI ≥ 25), already compared with the measured value ("below the cutoff" / "at or above").
+- **kVp and contrast** go into the **bone** and **liver** finding numbers (findings window, OT table and Excel) and into the report sentence, e.g. "… in L1–L4 (120 kVp, without contrast).". They decide whether the cutoffs are valid. With kVp ≠ 120 it still only measures.
+
 ## 0.100.133 — OT table for every AI
 Request (11/27/2026): "I want an OT for ALL the AIs, to be able to send it to the PACS". The global + per-AI choice already existed (0.100.124); most AIs just had no table.
 - Every AI that did not save its own table (emphysema, nodules, body composition and bone, calcium, aorta, prostate, PET, cord, FLAMeS, BraTS and others) now saves an **OT table** (image) with its findings and numbers, named "Ipê · table". It says whether the physician reviewed it and is redone when the AI runs again.

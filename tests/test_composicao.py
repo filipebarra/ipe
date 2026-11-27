@@ -120,7 +120,7 @@ def test_frases():
     txt = C.frase(a)
     assert txt.startswith("Composição corporal em L3: área muscular de") and "gordura visceral" in txt
     b = {**itens[1], "estado": "confirmado", "corrigidos": {}}
-    assert C.frase(b) == ("Atenuação hepática média de 61 HU, esplênica de 51 HU (fígado − baço 10 HU). "
+    assert C.frase(b) == ("Atenuação hepática média de 61 HU, esplênica de 51 HU (fígado − baço 10 HU) (sem contraste). "
                           + C.EST_SEM + ".")
     assert AC.texto_do_laudo([{**b, "estado": "sugerido"}], C.frase) == ""
 
@@ -482,8 +482,24 @@ def test_osso_vira_achado_e_frase():
     osso = next(i for i in itens if i["tipo"] == "Densidade óssea (TC)")
     txt = C.frase({**osso, "estado": "confirmado", "corrigidos": {}})
     assert txt.startswith("Densidade óssea na TC: atenuação do osso trabecular de L1 de 150 HU; média de 165 HU em "
-                          "L1–L4.") and "Zona cinzenta" in txt
+                          "L1–L4 (sem contraste).") and "Zona cinzenta" in txt
     # o médico corrige o resultado e a frase acompanha
     txt2 = C.frase({**osso, "estado": "confirmado", "corrigidos": {"resultado": "Osteopenia"}})
     assert txt2.endswith("Osteopenia.")
     assert C.n_itens(res) == 3
+
+
+def test_martin_so_o_corte_do_paciente_e_kvp_contraste(monkeypatch):
+    """0.100.134: o corte de Martin sai pelo sexo e pelo IMC, comparado com o medido; kVp e contraste vão nos números."""
+    nums, avisos = C.numeros_biometria(60.0, 35.0, 1.60, 55.0, "F")           # IMC 21,5; SMI 23,4
+    m = next(x for x in avisos if "Martin" in x)
+    assert "mulher" in m and "< 41 cm²/m²" in m and "< 41 HU" in m and "< 43" not in m and "< 53" not in m
+    assert "medido 23,4 cm²/m²: abaixo do corte" in m and "medido 35 HU: abaixo do corte" in m
+    _n, av = C.numeros_biometria(120.0, 50.0, 1.70, 90.0, "M")                 # IMC 31,1
+    m = next(x for x in av if "Martin" in x)
+    assert "homem" in m and "< 53 cm²/m²" in m and "< 33 HU" in m and "medido 50 HU: no corte ou acima" in m
+    t = _T()
+    monkeypatch.setattr(C.DO, "_kvp", lambda _t: 100.0)
+    res = C.calcular(t, _rotulos(t.vol.data))
+    if res.figado:
+        assert res.figado["kvp"]["v"] == 100 and res.figado["contraste"]["v"] == "sem contraste"

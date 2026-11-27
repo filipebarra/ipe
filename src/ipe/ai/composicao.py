@@ -169,17 +169,29 @@ def numeros_biometria(sma, musculo_hu, altura, peso, sexo) -> tuple[dict, list]:
         avisos.append(f"referência de sarcopenia ({'homens' if sexo == 'M' else 'mulheres'}): índice "
                       f"{ref} cm²/m² (Prado et al., Lancet Oncol 2008) — texto de referência, não diagnóstico")
     if imc is not None:
+        # 0.100.134: só o corte do paciente (sexo + IMC), já comparado com o que foi medido
+        smi = nums["smi"]["v"]
         if sexo == "M":
-            corte = "< 43" if imc < 25 else "< 53"
+            lim_smi = 43.0 if imc < 25 else 53.0
         elif sexo == "F":
-            corte = "< 41"
+            lim_smi = 41.0
         else:
-            corte = ""
-        dens = "< 41" if imc < 25 else "< 33"
-        avisos.append("referências de Martin et al., J Clin Oncol 2013, para IMC "
-                      + (f"{imc:.1f}".replace(".", ",")) + " kg/m²: "
-                      + (f"sarcopenia com índice {corte} cm²/m²; " if corte else "")
-                      + f"mioesteatose com densidade muscular {dens} HU — texto de referência, não diagnóstico")
+            lim_smi = None
+        lim_hu = 41.0 if imc < 25 else 33.0
+
+        def _cmp(v, lim, casas, un):
+            if v is None:
+                return ""
+            return (f" (medido {f'{v:.{casas}f}'.replace('.', ',')} {un}: "
+                    + ("abaixo do corte" if v < lim else "no corte ou acima") + ")")
+        quem = {"M": "homem", "F": "mulher"}.get(sexo, "")
+        partes = []
+        if lim_smi is not None:
+            partes.append(f"sarcopenia com índice < {lim_smi:.0f} cm²/m²" + _cmp(smi, lim_smi, 1, "cm²/m²"))
+        partes.append(f"mioesteatose com densidade muscular < {lim_hu:.0f} HU" + _cmp(musculo_hu, lim_hu, 0, "HU"))
+        avisos.append("referências de Martin et al., J Clin Oncol 2013, para "
+                      + (quem + ", " if quem else "") + "IMC " + f"{imc:.1f}".replace(".", ",") + " kg/m²: "
+                      + "; ".join(partes) + " — texto de referência, não diagnóstico")
     return nums, avisos
 
 
@@ -299,6 +311,15 @@ class Resultado:
     contraste: bool = False
     versao: str = ""
     series_uid: str = ""
+
+
+def _condicoes(t, contraste: bool) -> dict:
+    """0.100.134: kVp e contraste da série, perto dos resultados de fígado e osso (decidem se os cortes valem)."""
+    out = {"contraste": AC.numero("com contraste" if contraste else "sem contraste", "", "Contraste")}
+    kvp = DO._kvp(t)
+    if kvp is not None:
+        out["kvp"] = AC.numero(round(kvp), "kVp", "kVp")
+    return out
 
 
 def _contraste(t) -> bool:
@@ -431,6 +452,7 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
                                                 "Fígado / baço")
         else:
             res.avisos_figado.append("a IA não achou o baço: sem a comparação fígado − baço")
+        res.figado.update(_condicoes(t, res.contraste))
         txt = resultado_esteatose(res.figado["figado_hu"]["v"], (res.figado.get("f_menos_b") or {}).get("v"),
                                   (res.figado.get("f_sobre_b") or {}).get("v"), res.contraste)
         res.figado["resultado"] = AC.numero(txt, "", "Resultado")
@@ -569,7 +591,7 @@ def frase(a: dict) -> str:
     txt = f"Atenuação hepática média de {v('figado_hu', 0)} HU"
     if v("baco_hu", 0):
         txt += f", esplênica de {v('baco_hu', 0)} HU (fígado − baço {v('f_menos_b', 0)} HU)"
-    txt += "."
+    txt += DO._condicoes(n) + "."
     resultado = resultado_do_achado(a)
     if resultado:
         txt += f" {resultado}."
