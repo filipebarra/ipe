@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.133 — OT table for every AI
+Request (11/27/2026): "I want an OT for ALL the AIs, to be able to send it to the PACS". The global + per-AI choice already existed (0.100.124); most AIs just had no table.
+- Every AI that did not save its own table (emphysema, nodules, body composition and bone, calcium, aorta, prostate, PET, cord, FLAMeS, BraTS and others) now saves an **OT table** (image) with its findings and numbers, named "Ipê · table". It says whether the physician reviewed it and is redone when the AI runs again.
+- It follows the **Tables** option in Settings ▸ CAD/AI (all AIs) and the **Yes/No/As in all** choice in each AI, which overrides the global one. When off, the table is not even created.
+- The table goes to the DICOM destinations with the SEG/overlay according to the boxes. AIs that already had their own table (TotalSegmentator volumes, liver, spine, neuro, cephalometry, mammography) do not get a second one.
+- New test: table saved, redone without duplicating, and global/per-AI choice.
+
 ## 0.100.132 — Body composition and bone table, with DXA and the ROC cutoff
 Report (11/27/2026): body composition only had the findings window; the combined table (like the one for liver MRI) was missing, to compare CT bone with DXA.
 - **Reports ▸ Body composition and bone density: measurements and confirmations…** (and in the body composition tool menu, in the viewer): one row per study with muscle (SMA, SMI), VAT, SAT, liver, **L1** and **L1–L4** HU, the bone result, review status, who reviewed and when. Filters: reviewed, not reviewed, with bone, with DXA, with bone and no DXA.

@@ -65,6 +65,8 @@ def rodar_conta(t, mod, settings):
 
 def gravar(t, mod, res, versao, db, storage, repo, settings) -> dict:
     saida = mod.gravar(t, res, versao, db, storage, repo=repo, settings=settings)
+    from ipe.ai import tabela_ot as TO                     # 0.100.133: OT para todas as IAs
+    TO.completar(repo, db, storage, settings, t.study_uid, mod.FERRAMENTA, getattr(mod, "TITULO", ""), saida)
     saida[mod.CHAVE_SAIDA] = res
     saida["ferramenta"] = mod.FERRAMENTA
     saida["series_uid"] = t.series_uid

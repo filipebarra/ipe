@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.133 — Tabela OT para todas as IAs
+Pedido (27/11/2026): "quero OT de todas as IAs geradas, para poder enviar para o PACS". A escolha global + por IA já existia (0.100.124); faltava a tabela em quase todas as IAs.
+- Toda IA que não gravava tabela própria (enfisema, nódulos, composição e osso, cálcio, aorta, próstata, PET, medula, FLAMeS, BraTS e outras) passa a gravar uma **tabela OT** (imagem) com os achados e números, a "Ipê · tabela". Indica se foi conferida pelo médico e é refeita quando a IA roda de novo.
+- Vale a opção **Tabelas** de Configurações ▸ CAD/IA (para todas) e a escolha **Sim/Não/Como em todas** em cada IA, que sobrepõe a global. Desligada, a tabela nem é criada.
+- A tabela entra nos exames enviados aos destinos DICOM junto da SEG/overlay conforme as caixas. IAs que já tinham a tabela própria (volumes do TotalSegmentator, fígado, coluna, neuro, cefalometria, mamografia) não ganham uma segunda.
+- Teste novo: tabela gravada, refeita sem duplicar, e global/por IA.
+
 ## 0.100.132 — Tabela da composição corporal e do osso, com a DMO e o corte pela curva ROC
 Relato (27/11/2026): a composição corporal só dava a janela de achados; faltava a tabela combinada (como a do fígado na RM) para comparar o osso da TC com a DMO.
 - **Laudos ▸ Composição corporal e densidade óssea: medidas e confirmações…** (e no menu da ferramenta de composição, no visualizador): uma linha por exame com músculo (SMA, SMI), VAT, SAT, fígado, HU de **L1** e de **L1–L4**, resultado do osso, situação da revisão, quem revisou e quando. Filtros: revisadas, não revisadas, com osso, com DMO, com osso e sem DMO.

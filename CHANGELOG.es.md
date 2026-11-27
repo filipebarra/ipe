@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.133 — Tabla OT para todas las IA
+Pedido (27/11/2026): «quiero OT de TODAS las IA, para poder enviarlas al PACS». La elección global + por IA ya existía (0.100.124); casi ninguna IA tenía la tabla.
+- Toda IA que no grababa tabla propia (enfisema, nódulos, composición y hueso, calcio, aorta, próstata, PET, médula, FLAMeS, BraTS y otras) ahora graba una **tabla OT** (imagen) con sus hallazgos y números, llamada «Ipê · tabla». Indica si el médico la revisó y se rehace cuando la IA vuelve a correr.
+- Sigue la opción **Tablas** de Configuración ▸ CAD/IA (todas las IA) y la elección **Sí/No/Como en todas** en cada IA, que prevalece sobre la global. Apagada, la tabla ni se crea.
+- La tabla va a los destinos DICOM junto con la SEG/overlay según las casillas. Las IA que ya tenían tabla propia (volúmenes de TotalSegmentator, hígado, columna, neuro, cefalometría, mamografía) no reciben una segunda.
+- Prueba nueva: tabla grabada, rehecha sin duplicar, y elección global/por IA.
+
 ## 0.100.132 — Tabla de composición corporal y hueso, con la DMO y el corte por curva ROC
 Reporte (27/11/2026): la composición corporal solo tenía la ventana de hallazgos; faltaba la tabla combinada (como la del hígado en RM) para comparar el hueso de la TC con la DMO.
 - **Informes ▸ Composición corporal y densidad ósea: medidas y confirmaciones…** (y en el menú de la herramienta de composición, en el visor): una fila por estudio con músculo (SMA, SMI), VAT, SAT, hígado, HU de **L1** y de **L1–L4**, resultado del hueso, situación de la revisión, quién revisó y cuándo. Filtros: revisadas, no revisadas, con hueso, con DMO, con hueso y sin DMO.

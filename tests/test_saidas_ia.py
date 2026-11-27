@@ -216,3 +216,34 @@ def test_preferencias_por_ia(env):
     assert st.get(SI.chave_ferramenta("abdome", "overlay")) == "sim"
     assert st.get(SI.chave_ferramenta("coluna", "destinos")) == "so_esta"
     assert st.get(SI.chave_ferramenta("coluna", "seg")) == "global"
+
+
+def test_tabela_ot_para_toda_ia(exame):  # noqa: F811
+    """0.100.133: IA sem tabela própria ganha uma OT feita dos achados; a opção "Tabelas" (global e por IA) manda."""
+    from pathlib import Path
+
+    from ipe.ai import achados as AC
+    from ipe.ai import tabela_ot as TO
+    paths, db, repo, estudo, serie, _v = exame
+    repo.gravar_achados(estudo, "enfisema", [{"series_uid": serie, "rotulo": "E", "tipo": "Enfisema", "local": "pulmões",
+                                              "numeros": {"laa": AC.numero(12.5, "%", "%LAA−950 total")}}])
+    root = Path(paths.storage)
+    saida = {"series": []}
+    TO.completar(repo, db, root, _Cfg(), estudo, "enfisema", "Enfisema: % abaixo de −950 HU (IA)", saida)
+    assert len(saida["series"]) == 1
+    info = repo.series_info(saida["series"][0])
+    assert SI.classe(info) == "tabela" and info["description"].startswith("Enfisema ·")
+    px = pydicom.dcmread(repo.instances_for_series(saida["series"][0])[0]["path"]).pixel_array
+    assert px.shape[-1] == 3 and px.shape[1] == 1400
+    # refazer não duplica
+    TO.completar(repo, db, root, _Cfg(), estudo, "enfisema", "Enfisema: % abaixo de −950 HU (IA)", {"series": []})
+    assert sum(1 for s in repo.series_for_study(estudo) if (s.description or "").startswith("Enfisema ·")) == 1
+    # a ferramenta que já trouxe a sua tabela não ganha outra; "Não" por IA desliga
+    atual = [s.series_uid for s in repo.series_for_study(estudo) if (s.description or "").startswith("Enfisema ·")]
+    assert TO.completar(repo, db, root, _Cfg(), estudo, "enfisema", "x", {"series": list(atual)})["series"] == atual
+    off = _Cfg({SI.chave_ferramenta("enfisema", "tabelas"): SI.NAO})
+    assert TO.completar(repo, db, root, off, estudo, "enfisema", "x", {"series": []})["series"] == []
+    glob_off = _Cfg({SI.CHAVE_TABELAS: False})
+    assert TO.completar(repo, db, root, glob_off, estudo, "enfisema", "x", {"series": []})["series"] == []
+    sim = _Cfg({SI.CHAVE_TABELAS: False, SI.chave_ferramenta("enfisema", "tabelas"): SI.SIM})
+    assert len(TO.completar(repo, db, root, sim, estudo, "enfisema", "Enfisema: y", {"series": []})["series"]) == 1
