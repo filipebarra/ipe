@@ -54,9 +54,16 @@ def servicos(repo, db, net, settings, storage_root, engine=None, chamar=None, id
 
     def nos() -> dict:
         try:
-            return {str(n["id"]): n for n in repo.nodes(todos=True)}
+            lista = list(repo.nodes(todos=True))
         except Exception:  # noqa: BLE001
             return {}
+        central = getattr(net, "central_repo", None)       # 0.100.128: com o HD ativo, os nós do servidor também valem
+        if central is not None and central is not repo:
+            try:
+                lista += [n for n in central.nos_do_servidor() if n["id"] not in {x["id"] for x in lista}]
+            except Exception:  # noqa: BLE001
+                pass
+        return {str(n["id"]): n for n in lista}
 
     def nome_no(no_id) -> str:
         n = nos().get(str(no_id))

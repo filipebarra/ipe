@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.128 — Baixar do PACS direto para o cliente com o HD externo ativo
+Relato (26/11/2026): no cliente com o banco no HD externo, "baixar direto para o cliente" no PACS e "baixar para o meu PC" na busca em lote deixavam o exame só no servidor (no log: `'Repository' object has no attribute 'client'`).
+- **O exame vem para o banco ativo** (HD externo ou banco deste computador) quando o nó é do servidor central: o cliente lê do servidor, grava no banco ativo e só então avisa o servidor, que apaga a cópia dele (mesmas regras de segurança de antes).
+- O programa agora **guarda a conexão com o servidor central** mesmo quando outro local está ativo; sem conexão, o erro diz o motivo ("não há conexão com o servidor") em vez de falhar sem explicar.
+- Dica: não troque de local enquanto há downloads em andamento.
+- Testes novos: PACS pelo servidor com HD ativo (traz inteiro, servidor apaga) e sem conexão com o servidor.
+
 ## 0.100.127 — Apagar vários exames não trava mais a tela
 Relato (26/11/2026): com o banco num HD externo, apagar vários exames deixava o programa praticamente congelado.
 - **Apagar roda numa linha à parte**, com barra de andamento ("Apagando os exames… 12 de 40") e **Cancelar** (o que já foi apagado fica apagado). A tela continua respondendo; a lista atualiza no fim e os erros (exame com cadeado, sem permissão) aparecem juntos.

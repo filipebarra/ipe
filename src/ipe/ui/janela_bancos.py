@@ -95,6 +95,7 @@ class BancosMixin:
         self.storage.mkdir(parents=True, exist_ok=True)
         self.browser.set_source(self.repo, self.storage)
         self.net.set_source(self.db, self.repo, self.storage)
+        self.net.central_repo = self._central[1] if self._central is not None else None      # 0.100.127
         self.pacs.repo = self.repo
         self.pacs.refresh_nodes()
         self.auto.set_source(self.repo, self.db, Path(trash_root), self.storage)

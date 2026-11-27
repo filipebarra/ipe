@@ -101,6 +101,10 @@ class NetworkService(QObject):
     def __init__(self, db, repo, storage, settings, parent=None):
         super().__init__(parent)
         self.db, self.repo, self.settings = db, repo, settings
+        self.storage = storage
+        #: 0.100.127: o ClientRepository do servidor central, guardado à parte: com um banco deste computador (HD
+        #: externo, outra pasta) como local ativo, `self.repo` é um Repository comum e não tem a conexão com o servidor
+        self.central_repo = None
         self.sink = IncomingSink(db, repo, storage, on_indexed=lambda r, o: self.received.emit(r, o))
         self.server = DicomServer(repo, self.sink, self.config)
         from ipe.printing.jobs import FOLDER as PRINT_FOLDER
@@ -118,7 +122,7 @@ class NetworkService(QObject):
 
     def set_source(self, db, repo, storage) -> None:
         """Troca o banco de destino (troca de local): o que chegar pela rede entra no local ativo."""
-        self.db, self.repo = db, repo
+        self.db, self.repo, self.storage = db, repo, storage
         self.sink = IncomingSink(db, repo, storage, on_indexed=lambda r, o: self.received.emit(r, o))
         self.server.repo = repo
         self.server.sink = self.sink
@@ -270,6 +274,17 @@ class NetworkService(QObject):
         """0.100.37: nó que o servidor central compartilha — quem fala com o PACS é o servidor."""
         return str((node or {}).get("kind", "")) == "servidor"
 
+    def servidor_central(self):
+        """O ClientRepository do servidor central — o ativo (modo cliente, local "Servidor central") ou, com um banco
+        deste computador ativo (HD externo…), o que a janela guardou em `central_repo`. None = sem servidor."""
+        if getattr(self.repo, "client", None) is not None and hasattr(self.repo, "upload_study"):
+            return self.repo
+        return self.central_repo
+
+    def _local_e_o_servidor(self) -> bool:
+        """O local ativo é o próprio servidor central (a lista é a dele, o exame baixado já aparece)?"""
+        return self.servidor_central() is not None and self.servidor_central() is self.repo
+
     def cliente(self, node: dict):
         """O cliente que fala com este nó: DIMSE ou DICOMweb.
 
@@ -279,7 +294,10 @@ class NetworkService(QObject):
         """
         if self.pelo_servidor(node):
             from ipe.network.pelo_servidor import ClienteDoServidor
-            return ClienteDoServidor(self.repo.client)
+            central = self.servidor_central()
+            if central is None:
+                raise DicomError("Este nó é do servidor central, mas não há conexão com o servidor.")
+            return ClienteDoServidor(central.client)
         if not self.eh_web(node):
             return self.client
         web = self.__dict__.get("_web_client")
@@ -411,7 +429,10 @@ class NetworkService(QObject):
                 j.stream = j.stream or stream
                 return j
         job = Job("retrieve", label, node, identity, [study_uid], series_uids, open_after, stream)
-        job.para_cliente = bool(para_cliente) and self.pelo_servidor(node)
+        # 0.100.127: nó do servidor com um banco deste computador ativo (HD externo…): o exame só serve no local ativo,
+        # então vem sempre para ele (nada ficaria no servidor sem aparecer aqui)
+        job.para_cliente = self.pelo_servidor(node) and (
+            bool(para_cliente) or (self.servidor_central() is not None and not self._local_e_o_servidor()))
         job.sem_regras = bool(sem_regras)
         try:
             from ipe.db import banco as B
@@ -460,6 +481,11 @@ class NetworkService(QObject):
         computador e, só quando chegou **inteiro**, avisa o servidor — que apaga o dele se o exame não estava lá
         antes. Tenta de novo o que faltou, até 3 vezes; se não chegar inteiro, o exame fica no servidor."""
         uid = job.study_uids[0]
+        central = self.servidor_central()
+        if central is None:
+            raise DicomError("sem conexão com o servidor central: o exame ficou no servidor")
+        if not self._local_e_o_servidor():
+            return self._trazer_para_o_local(job, central, progress)
         repo = self.repo
         faltam: list = ["?"]
         for tentativa in range(3):
@@ -483,8 +509,38 @@ class NetworkService(QObject):
             n = int(repo.local.imagens_por_exame([uid]).get(uid, 0))
         except Exception:  # noqa: BLE001
             n = 0
+        return self._avisar_copia(job, central, n)
+
+    def _trazer_para_o_local(self, job: Job, central, progress) -> str:
+        """0.100.127: o local ativo é um banco deste computador (HD externo, outra pasta): o exame que o servidor
+        baixou do PACS é copiado para ele (como "Copiar para este computador") e, só com tudo lá, o servidor apaga o
+        dele. Antes dava `'Repository' object has no attribute 'client'` e o exame ficava só no servidor."""
+        from ipe.auth import session as S
+        from ipe.central import transferir as T
+        uid = job.study_uids[0]
+        for tentativa in range(3):
+            if job.cancel.is_set():
+                raise DicomError("cancelado: o exame ficou no servidor")
+            if progress:
+                progress(0, 0, "trazendo do servidor para este computador…")
+            res = T.trazer(central, [uid], self.db, self.storage, S.get().username,
+                           cancel=job.cancel.is_set)
+            if res.feitos:
+                break
+            log.warning("direto para o cliente: %s não chegou (%s), tentativa %d", uid,
+                        "; ".join(res.erros) or "sem detalhe", tentativa + 1)
+        else:
+            raise DicomError("o exame não chegou a este computador; ficou no servidor"
+                             + (f" ({'; '.join(res.erros)})" if res.erros else ""))
         try:
-            r = repo.client.rpc("pacs_copiado", job.servidor_id, n) or {}
+            n = int(self.repo.imagens_por_exame([uid]).get(uid, 0))
+        except Exception:  # noqa: BLE001
+            n = 0
+        return self._avisar_copia(job, central, n)
+
+    def _avisar_copia(self, job: Job, central, n: int) -> str:
+        try:
+            r = central.client.rpc("pacs_copiado", job.servidor_id, n) or {}
         except Exception as e:  # noqa: BLE001
             log.exception("avisar o servidor da cópia")
             return f"{n} imagens neste computador — não consegui avisar o servidor ({e}); ficou lá também"

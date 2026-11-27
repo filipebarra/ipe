@@ -384,3 +384,52 @@ def test_botao_direto_para_o_cliente_so_no_cliente(servidor, tmp_path):
         net.shutdown()
     p2 = PacsPanel(servidor.net, servidor.repo_)                                 # no servidor/autônomo: não tem
     assert p2.b_cliente.isHidden()
+
+
+def _local_ativo(servidor, tmp_path, com_central=True):
+    """0.100.127: o cliente com um banco deste computador (HD externo) como local ativo; o servidor central fica à parte."""
+    from ipe.auth import session as S
+    from ipe.auth.session import UserSession
+    from ipe.core.config import Settings
+    from ipe.db.repository import Repository
+    from ipe.db.session import Database
+    from ipe.network.service import NetworkService
+    repo, net_central = _cliente(servidor, tmp_path)
+    S.set_current(UserSession(username="admin", full_name="", role="admin", user_id=None, perms={"view"}))
+    hd_db = Database(tmp_path / "hd" / "hd.sqlite")
+    hd = Repository(hd_db)
+    net = NetworkService(hd_db, hd, tmp_path / "hd" / "Storage", Settings(tmp_path / "hd.json"))
+    net.central_repo = repo if com_central else None
+    return repo, hd, net, net_central
+
+
+def test_pacs_pelo_servidor_com_banco_local_ativo_traz_o_exame_para_o_hd(servidor, tmp_path):
+    """Com o HD externo ativo o PACS (nó do servidor) deu `'Repository' object has no attribute 'client'` e o exame
+    ficava só no servidor. Agora o exame vem para o banco ativo e o servidor apaga a cópia dele."""
+    repo, hd, net, net_central = _local_ativo(servidor, tmp_path)
+    try:
+        no = repo.node(-servidor.no)
+        assert net.servidor_central() is repo and not net._local_e_o_servidor()
+        job = net.retrieve(no, None, servidor.estudo, "TC para o HD")      # sem pedir "direto": o local ativo não é o servidor
+        assert job.para_cliente
+        assert _esperar(servidor, lambda: not job.active, 180)
+        assert job.status == "done", job.message
+        assert "apagado do servidor" in job.message, job.message
+        assert hd.imagens_por_exame([servidor.estudo])[servidor.estudo] == 60      # no HD, inteiro
+        assert servidor.repo_.study_info(servidor.estudo) is None                  # e fora do servidor
+    finally:
+        net.shutdown()
+        net_central.shutdown()
+
+
+def test_pacs_pelo_servidor_sem_conexao_com_o_servidor_diz_o_motivo(servidor, tmp_path):
+    repo, hd, net, net_central = _local_ativo(servidor, tmp_path, com_central=False)
+    try:
+        no = repo.node(-servidor.no)
+        job = net.retrieve(no, None, servidor.estudo, "TC sem servidor")
+        assert _esperar(servidor, lambda: not job.active, 60)
+        assert job.status == "error" and "conexão com o servidor" in job.message, (job.status, job.message)
+        assert hd.study_info(servidor.estudo) is None
+    finally:
+        net.shutdown()
+        net_central.shutdown()

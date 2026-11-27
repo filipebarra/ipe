@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.128 — PACS download straight to the client with the external drive active
+Report (26/11/2026): on a client using the external drive database, "download straight to the client" from PACS and "download to my PC" in batch search left the exam only on the server (log: `'Repository' object has no attribute 'client'`).
+- **The exam now goes to the active database** (external drive or this computer's) when the node belongs to the central server: the client reads from the server, saves to the active database and only then tells the server, which deletes its copy (same safety rules as before).
+- The program now **keeps the central server connection** even when another location is active; without a connection the error says why ("no connection to the server").
+- Tip: do not switch locations while downloads are running.
+- New tests: PACS via server with the drive active (arrives whole, server deletes) and no server connection.
+
 ## 0.100.127 — Deleting many studies no longer freezes the screen
 Report (26/11/2026): with the database on an external HD, deleting several studies left the program almost frozen.
 - **Deleting runs on a separate thread**, with a progress bar ("Deleting studies… 12 of 40") and **Cancel** (what was already deleted stays deleted). The screen keeps responding; the list refreshes at the end and the errors (locked study, no permission) appear together.

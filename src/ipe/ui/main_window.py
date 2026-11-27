@@ -136,6 +136,7 @@ class MainWindow(ImpressoesMixin, BancosMixin, FilmeUSMixin, DocumentosMixin, QM
         self.browser.documentos_requested.connect(self.abrir_documentos)
         # rede DICOM: nó local, consultas e transferências (o nó liga em start_services)
         self.net = NetworkService(self.db, self.repo, self.storage, settings, self)
+        self.net.central_repo = self._central[1] if self._central is not None else None
         self.net.received.connect(self._on_received)
         self.net.job_finished.connect(self._on_job_finished)
         self.net.job_changed.connect(self._on_job_changed)

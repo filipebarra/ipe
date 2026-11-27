@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.128 — Descarga del PACS directo al cliente con el disco externo activo
+Reporte (26/11/2026): en un cliente con la base en el disco externo, "descargar directo al cliente" desde el PACS y "descargar a mi PC" en la búsqueda por lote dejaban el estudio solo en el servidor (log: `'Repository' object has no attribute 'client'`).
+- **El estudio va a la base activa** (disco externo o de este equipo) cuando el nodo es del servidor central: el cliente lee del servidor, guarda en la base activa y solo entonces avisa al servidor, que borra su copia (mismas reglas de seguridad de antes).
+- El programa ahora **conserva la conexión con el servidor central** aunque haya otra ubicación activa; sin conexión, el error dice el motivo («no hay conexión con el servidor»).
+- Consejo: no cambie de ubicación mientras hay descargas en curso.
+- Pruebas nuevas: PACS por el servidor con el disco activo (llega completo, el servidor borra) y sin conexión con el servidor.
+
 ## 0.100.127 — Borrar varios estudios ya no congela la pantalla
 Informe (26/11/2026): con la base en un HD externo, borrar varios estudios dejaba el programa casi congelado.
 - **Borrar corre en un hilo aparte**, con barra de avance ("Borrando los estudios… 12 de 40") y **Cancelar** (lo ya borrado queda borrado). La pantalla sigue respondiendo; la lista se actualiza al final y los errores (estudio con candado, sin permiso) aparecen juntos.
