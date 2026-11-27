@@ -1966,7 +1966,19 @@ class Repository:
         if todos:
             return lista
         from ipe.auth import visibilidade as V
-        return V.filtrar(lista, gerenciar=gerenciar)
+        lista = V.filtrar(lista, gerenciar=gerenciar)
+        if not gerenciar:                  # 0.100.129: com o HD (ou outro banco local) ativo, os nós do servidor também valem
+            lista = lista + self._nos_do_servidor()
+        return lista
+
+    def _nos_do_servidor(self) -> list[dict]:
+        f = getattr(self, "nos_extras", None)
+        if f is None:
+            return []
+        try:
+            return list(f())
+        except Exception:  # noqa: BLE001
+            return []
 
     def _nodes(self, only_active: bool = False) -> list[dict]:
         with self.db.session() as s:
@@ -1992,6 +2004,8 @@ class Repository:
             return out
 
     def node(self, node_id: int) -> dict | None:
+        if node_id is not None and isinstance(node_id, int) and node_id < 0:
+            return next((n for n in self._nos_do_servidor() if n["id"] == node_id), None)
         return next((n for n in self.nodes(todos=True) if n["id"] == node_id), None)
 
     def node_by_ae(self, ae_title: str) -> dict | None:

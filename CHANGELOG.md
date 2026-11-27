@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.130 — Nós do servidor aparecem com o HD externo ativo
+Relato (27/11/2026): só dava para baixar do servidor com o "Servidor central" ativo; com o HD externo ativo os nós DICOM não apareciam.
+- **Os nós que o servidor compartilha agora aparecem na busca, no PACS e na busca em lote também com um banco local ativo** (HD externo ou banco deste computador). O exame baixado por eles entra no local ativo e o servidor apaga a cópia dele depois que tudo chegar.
+- A tela de configuração dos nós continua mostrando só os deste computador.
+- Teste novo: com o banco local ativo a lista traz os nós do servidor (e some se não há conexão).
+
 ## 0.100.129 — Densidade óssea oportunista na TC de abdome (L1 e L1–L4)
 Pedido (27/11/2026): estimar a densidade óssea em TC convencional, sem dupla energia, para comparar com a DMO de coluna e fêmur.
 - **Novo achado "Densidade óssea (TC)"**, junto da composição corporal (mesma série de TC de abdome sem contraste, mesmo TotalSegmentator): o HU do **osso trabecular de L1** e a média de **L1 a L4** (ponderada pelo volume), com mediana, desvio padrão e volume da ROI de cada nível.

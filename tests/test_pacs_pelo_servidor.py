@@ -433,3 +433,18 @@ def test_pacs_pelo_servidor_sem_conexao_com_o_servidor_diz_o_motivo(servidor, tm
     finally:
         net.shutdown()
         net_central.shutdown()
+
+
+def test_nos_do_servidor_aparecem_com_o_banco_local_ativo(servidor, tmp_path):
+    """0.100.129: com o HD externo ativo a lista de nós do PACS vazia; agora traz os do servidor (e resolve o id negativo)."""
+    repo, hd, net, net_central = _local_ativo(servidor, tmp_path)
+    try:
+        assert any(n["kind"] == "servidor" for n in hd.nodes(only_active=True))
+        no = hd.node(-servidor.no)
+        assert no is not None and no["kind"] == "servidor"
+        assert all(n["kind"] != "servidor" for n in hd.nodes(todos=True))       # a tela de configuração/máquina só vê os locais
+        net.central_repo = None
+        assert not any(n["kind"] == "servidor" for n in hd.nodes(only_active=True))
+    finally:
+        net.shutdown()
+        net_central.shutdown()

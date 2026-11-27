@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.130 — Server nodes show up with the external drive active
+Report (11/27/2026): downloading from the server only worked with "Central server" active; with the external drive active the DICOM nodes did not appear.
+- **The nodes the server shares now show up in search, PACS and batch search with a local database active too** (external drive or this computer's). The exam downloaded through them goes into the active location and the server deletes its copy once everything has arrived.
+- The node configuration screen still shows only this computer's nodes.
+- New test: with the local database active the list includes the server's nodes (and drops them without a connection).
+
 ## 0.100.129 — Opportunistic bone density on abdomen CT (L1 and L1–L4)
 Request (11/27/2026): estimate bone density on conventional CT, without dual energy, to compare with spine and femur DXA.
 - **New "Bone density (CT)" finding**, alongside body composition (same non-contrast abdomen CT series, same TotalSegmentator): the HU of the **trabecular bone of L1** and the mean of **L1 to L4** (volume-weighted), with median, standard deviation and ROI volume per level.

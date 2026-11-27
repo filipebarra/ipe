@@ -104,7 +104,7 @@ class NetworkService(QObject):
         self.storage = storage
         #: 0.100.127: o ClientRepository do servidor central, guardado à parte: com um banco deste computador (HD
         #: externo, outra pasta) como local ativo, `self.repo` é um Repository comum e não tem a conexão com o servidor
-        self.central_repo = None
+        self._central_repo = None
         self.sink = IncomingSink(db, repo, storage, on_indexed=lambda r, o: self.received.emit(r, o))
         self.server = DicomServer(repo, self.sink, self.config)
         from ipe.printing.jobs import FOLDER as PRINT_FOLDER
@@ -120,9 +120,26 @@ class NetworkService(QObject):
         self.query_pool.setMaxThreadCount(4)
         self._relays: set[_Relay] = set()
 
+    @property
+    def central_repo(self):
+        return self._central_repo
+
+    @central_repo.setter
+    def central_repo(self, v) -> None:
+        self._central_repo = v
+        self._ligar_nos_do_servidor()
+
+    def _ligar_nos_do_servidor(self) -> None:
+        """0.100.129: com um banco local ativo (HD externo…), os nós que o servidor compartilha continuam na lista."""
+        r = self.repo
+        if r is not None and getattr(r, "client", None) is None:
+            c = self._central_repo
+            r.nos_extras = (c.nos_do_servidor) if c is not None else None
+
     def set_source(self, db, repo, storage) -> None:
         """Troca o banco de destino (troca de local): o que chegar pela rede entra no local ativo."""
         self.db, self.repo, self.storage = db, repo, storage
+        self._ligar_nos_do_servidor()
         self.sink = IncomingSink(db, repo, storage, on_indexed=lambda r, o: self.received.emit(r, o))
         self.server.repo = repo
         self.server.sink = self.sink

@@ -3,6 +3,12 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.130 — Los nodos del servidor aparecen con el disco externo activo
+Reporte (27/11/2026): solo se podía descargar del servidor con el «Servidor central» activo; con el disco externo activo los nodos DICOM no aparecían.
+- **Los nodos que comparte el servidor ahora aparecen en la búsqueda, el PACS y la búsqueda por lote también con una base local activa** (disco externo o de este equipo). El estudio descargado por ellos entra en la ubicación activa y el servidor borra su copia cuando todo llegó.
+- La pantalla de configuración de nodos sigue mostrando solo los de este equipo.
+- Prueba nueva: con la base local activa la lista trae los nodos del servidor (y los quita sin conexión).
+
 ## 0.100.129 — Densidad ósea oportunista en TC de abdomen (L1 y L1–L4)
 Pedido (27/11/2026): estimar la densidad ósea en TC convencional, sin doble energía, para comparar con la DMO de columna y fémur.
 - **Nuevo hallazgo "Densidad ósea (TC)"**, junto a la composición corporal (misma serie de TC de abdomen sin contraste, mismo TotalSegmentator): el HU del **hueso trabecular de L1** y la media de **L1 a L4** (ponderada por el volumen), con mediana, desviación estándar y volumen de la ROI de cada nivel.
