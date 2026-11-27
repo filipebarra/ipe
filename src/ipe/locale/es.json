@@ -11169,5 +11169,8 @@
  "estimativa, não diagnóstico; referência: {}": "estimación, no diagnóstico; referencia: {}",
  "sem ferro estimado (LIC): {} — as calibrações valem a 1,5 T e a 3 T": "sin hierro estimado (LIC): {} — las calibraciones valen a 1,5 T y a 3 T",
  "Concentração de ferro estimada pelo R2*. Wood et al. (Blood 2005): LIC = 0,0254 · R2* + 0,202 mg Fe/g de peso seco, a 1,5 T (a 3 T, R2* ÷ 2,05 antes — Alam et al., JCMR 2016). Hankins et al. (Blood 2009): LIC = 0,02802 · R2* − 0,45485, no R2* do aparelho. As duas aparecem; a que vale na classificação vem do campo do exame (1,5 T Wood, 3 T Hankins) ou da escolha nas Configurações. Faixas: < 1,8 normal; 3,2–7 leve; 7–15 moderada; > 15 grave.": "Concentración de hierro estimada por el R2*. Wood et al. (Blood 2005): LIC = 0,0254 · R2* + 0,202 mg Fe/g de peso seco, a 1,5 T (a 3 T, antes R2* ÷ 2,05 — Alam et al., JCMR 2016). Hankins et al. (Blood 2009): LIC = 0,02802 · R2* − 0,45485, sobre el R2* del equipo. Aparecen las dos; la que vale en la clasificación viene del campo del estudio (1,5 T Wood, 3 T Hankins) o de la elección en Configuración. Rangos: < 1,8 normal; 3,2–7 leve; 7–15 moderada; > 15 grave.",
- "Ferro: R2* → LIC (Wood 2005 e Hankins 2009; 3 T → 1,5 T para Wood, Alam 2016). Rigidez: faixas de Venkatesh, Yin & Ehman (JMRI 2013).": "Hierro: R2* → LIC (Wood 2005 y Hankins 2009; 3 T → 1,5 T para Wood, Alam 2016). Rigidez: rangos de Venkatesh, Yin & Ehman (JMRI 2013)."
+ "Ferro: R2* → LIC (Wood 2005 e Hankins 2009; 3 T → 1,5 T para Wood, Alam 2016). Rigidez: faixas de Venkatesh, Yin & Ehman (JMRI 2013).": "Hierro: R2* → LIC (Wood 2005 y Hankins 2009; 3 T → 1,5 T para Wood, Alam 2016). Rigidez: rangos de Venkatesh, Yin & Ehman (JMRI 2013).",
+ "Apagando os exames…": "Borrando los estudios…",
+ "Apagando os exames… {} de {}": "Borrando los estudios… {} de {}",
+ "Já há exames sendo apagados; espere terminar.": "Ya se están borrando estudios; espere a que termine."
 }

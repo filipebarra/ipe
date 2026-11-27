@@ -2253,18 +2253,77 @@ class Browser(QWidget):
             "arquivos apenas referenciados continuam no lugar original.")
         if ans != QMessageBox.Yes:
             return
-        errors = []
-        for r in rows:
+        self._apagar_em_segundo_plano(rows)
+
+    def _apagar_em_segundo_plano(self, rows: list[StudyRow]) -> None:
+        """0.100.126: apagar vários exames não trava mais a tela. Roda numa linha à parte, com barra de andamento e
+        Cancelar (o que já foi apagado fica apagado); os pacientes sem exame saem uma vez só, no fim."""
+        import threading
+
+        from PySide6.QtCore import QTimer
+        from PySide6.QtWidgets import QProgressDialog
+
+        from ipe.auth import session as S
+        from ipe.core.i18n import tr
+        if getattr(self, "_apagando", False):
+            QMessageBox.information(self, tr("Apagar"), tr("Já há exames sendo apagados; espere terminar."))
+            return
+        self._apagando = True
+        total = len(rows)
+        estado = {"feitos": 0, "erros": [], "fim": False}
+        parar = threading.Event()
+        repo, storage = self.repo, self.storage_root
+
+        def trabalho() -> None:
             try:
-                self.repo.delete_study(r.study_uid, self.storage_root)
-                S.audit(self.repo, "apagar", f"{r.patient_name} — {r.study_date} {r.modalities} {r.description}",
-                        study_uid=r.study_uid)
-            except PermissionError as e:
-                errors.append(f"{r.patient_name} — {e}")
-        if errors:
-            QMessageBox.warning(self, "Alguns estudos não foram apagados", "\n".join(errors))
-        self.refresh_lists()
-        self.refresh()
+                for r in rows:
+                    if parar.is_set():
+                        break
+                    try:
+                        repo.delete_study(r.study_uid, storage, limpar_pacientes=False)
+                        S.audit(repo, "apagar", f"{r.patient_name} — {r.study_date} {r.modalities} {r.description}",
+                                study_uid=r.study_uid)
+                    except PermissionError as e:
+                        estado["erros"].append(f"{r.patient_name} — {e}")
+                    except Exception as e:  # noqa: BLE001
+                        log.exception("apagar o exame %s", r.study_uid)
+                        estado["erros"].append(f"{r.patient_name} — {e}")
+                    estado["feitos"] += 1
+                limpar = getattr(repo, "limpar_pacientes_sem_exame", None)
+                if limpar is not None:
+                    try:
+                        limpar()
+                    except Exception:  # noqa: BLE001
+                        log.exception("limpar os pacientes sem exame")
+            finally:
+                estado["fim"] = True
+
+        prog = QProgressDialog(tr("Apagando os exames…"), tr("Cancelar"), 0, total, self)
+        prog.setWindowModality(Qt.WindowModal)
+        prog.setMinimumDuration(400)
+        prog.setAutoClose(False)
+        prog.setAutoReset(False)
+        timer = QTimer(self)
+        timer.setInterval(200)
+
+        def olhar() -> None:
+            prog.setValue(min(estado["feitos"], total))
+            prog.setLabelText(tr("Apagando os exames… {} de {}").format(estado["feitos"], total))
+            if prog.wasCanceled():
+                parar.set()
+            if not estado["fim"]:
+                return
+            timer.stop()
+            prog.close()
+            self._apagando = False
+            if estado["erros"]:
+                QMessageBox.warning(self, tr("Alguns estudos não foram apagados"), "\n".join(estado["erros"]))
+            self.refresh_lists()
+            self.refresh()
+
+        timer.timeout.connect(olhar)
+        threading.Thread(target=trabalho, name="ipe-apagar", daemon=True).start()
+        timer.start()
 
 
 def _esc(t: str) -> str:

@@ -47,3 +47,35 @@ def test_apagar_exame_limpa_os_pacientes_orfaos(env, sample_dir):
     uid = repo.search_studies(limit=5)[0].study_uid
     repo.delete_study(uid, paths.storage)
     assert repo.counts() == {"patients": 0, "studies": 0, "series": 0, "instances": 0}
+
+
+def test_apagar_em_lote_limpa_os_pacientes_uma_vez_no_fim(env, sample_dir):
+    """0.100.126: `limpar_pacientes=False` deixa o paciente; o `limpar_pacientes_sem_exame` do fim tira."""
+    from ipe.importer.scanner import Importer
+    paths, db, repo = env
+    arq = sorted(p for p in sample_dir.rglob("*") if p.is_file())[0]
+    Importer(db, paths.storage).import_paths([arq])
+    uid = repo.search_studies(limit=5)[0].study_uid
+    repo.delete_study(uid, paths.storage, limpar_pacientes=False)
+    repo.limpar_pacientes_sem_exame()
+    assert repo.counts() == {"patients": 0, "studies": 0, "series": 0, "instances": 0}
+
+
+def test_apagar_so_apaga_arquivo_do_storage(env, sample_dir, tmp_path):
+    """0.100.126: a conferência é pelo caminho (sem resolve/exists por arquivo); o que está fora do Storage fica."""
+    from ipe.db.models import Instance
+    from ipe.importer.scanner import Importer
+    paths, db, repo = env
+    arq = sorted(p for p in sample_dir.rglob("*") if p.is_file())[0]
+    Importer(db, paths.storage).import_paths([arq])
+    fora = tmp_path / "fora.dcm"
+    fora.write_bytes(b"x")
+    uid = repo.search_studies(limit=5)[0].study_uid
+    with db.session() as s:
+        ins = s.query(Instance).first()
+        guardado = ins.file_path
+        ins.file_path, ins.in_storage = str(fora), True      # marcado como do Storage, mas fora dele
+    repo.delete_study(uid, paths.storage)
+    assert fora.exists()                                      # nunca apaga fora do Storage
+    assert repo.counts()["studies"] == 0
+    assert guardado

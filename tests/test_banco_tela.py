@@ -203,3 +203,21 @@ def test_uma_serie_so_nao_e_dinamica(janela, monkeypatch):
     monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: ditos.append(a[2] if len(a) > 2 else ""))
     b._marcar_dinamica(r.study_uid, [uid])
     assert ditos and not b.repo.series_groups(r.study_uid)
+
+
+def test_apagar_exames_roda_em_segundo_plano_e_atualiza_a_lista(janela, monkeypatch):
+    """0.100.126: apagar não trava a tela: a exclusão roda numa linha à parte e a lista atualiza no fim."""
+    import time
+    app, w, b = janela
+    rows = b.selected_rows() or (b.table.selectRow(0) or b.selected_rows())
+    assert rows
+    uid = rows[0].study_uid
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.Yes)
+    b._delete(rows)
+    assert getattr(b, "_apagando", False)                      # voltou na hora; a linha à parte está trabalhando
+    t0 = time.monotonic()
+    while getattr(b, "_apagando", False) and time.monotonic() - t0 < 30:
+        app.processEvents()
+        time.sleep(0.05)
+    assert not b._apagando
+    assert b.repo.study_info(uid) is None

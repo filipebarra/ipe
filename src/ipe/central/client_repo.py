@@ -193,7 +193,7 @@ class ClientRepository:
         paths = self.local.paths_for_sops([r["sop_uid"] for r in rows])
         return [{**r, "path": paths[r["sop_uid"]]} for r in rows if r["sop_uid"] in paths]
 
-    def delete_study(self, study_uid: str, storage_root=None) -> int:
+    def delete_study(self, study_uid: str, storage_root=None, limpar_pacientes: bool = True) -> int:
         """Apaga no servidor (precisa da permissão) e no cache."""
         n = self.client.rpc("delete_study", study_uid)
         self.remove_cached(study_uid)

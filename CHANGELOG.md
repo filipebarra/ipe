@@ -3,6 +3,13 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.127 — Apagar vários exames não trava mais a tela
+Relato (26/11/2026): com o banco num HD externo, apagar vários exames deixava o programa praticamente congelado.
+- **Apagar roda numa linha à parte**, com barra de andamento ("Apagando os exames… 12 de 40") e **Cancelar** (o que já foi apagado fica apagado). A tela continua respondendo; a lista atualiza no fim e os erros (exame com cadeado, sem permissão) aparecem juntos.
+- **Menos idas ao disco**: o arquivo é conferido pelo caminho (sem `resolve()` e `exists()` por arquivo) e apagado direto; num HD externo cada ida ao disco custa tempo.
+- **Pacientes sem exame saem uma vez só, no fim**, e não a cada exame (antes, cada exame varria a tabela de pacientes e gravava no HD).
+- Testes novos: apagar em segundo plano atualiza a lista; nunca apaga arquivo fora do Storage; limpeza dos pacientes no fim do lote.
+
 ## 0.100.126 — Ferro hepático: fórmulas de Wood e de Hankins, escolhidas pelo campo da RM
 - **Novo**: o ferro (LIC) da RM de fígado é calculado pelas **duas calibrações** e as duas aparecem no painel de achados, no resumo em imagem (OT), na tabela dos fígados medidos e no CSV/Excel: **Wood 2005** (`0,0254 · R2* + 0,202`, a 1,5 T; a 3 T o R2* é dividido por 2,05 antes, como já era) e **Hankins 2009** (`0,02802 · R2* − 0,45485`, no R2* do aparelho, nunca abaixo de zero).
 - **O campo é lido do DICOM** (`MagneticFieldStrength`) e mostrado ao lado do ferro. O LIC principal e a classificação sugerida usam, por padrão, **Wood a 1,5 T e Hankins a 3 T**; campo que não é 1,5 nem 3 T continua sem estimativa.

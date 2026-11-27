@@ -3,6 +3,13 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.127 — Borrar varios estudios ya no congela la pantalla
+Informe (26/11/2026): con la base en un HD externo, borrar varios estudios dejaba el programa casi congelado.
+- **Borrar corre en un hilo aparte**, con barra de avance ("Borrando los estudios… 12 de 40") y **Cancelar** (lo ya borrado queda borrado). La pantalla sigue respondiendo; la lista se actualiza al final y los errores (estudio con candado, sin permiso) aparecen juntos.
+- **Menos idas al disco**: cada archivo se comprueba por la ruta (sin `resolve()` ni `exists()` por archivo) y se borra directo; en un HD externo cada ida al disco cuesta tiempo.
+- **Los pacientes sin estudio se quitan una sola vez, al final**, y no tras cada estudio (antes, cada estudio recorría la tabla de pacientes y escribía en el HD).
+- Pruebas nuevas: borrar en segundo plano actualiza la lista; nunca borra un archivo fuera del Storage; la limpieza de pacientes al final del lote.
+
 ## 0.100.126 — Hierro hepático: fórmulas de Wood y de Hankins, elegidas por el campo de la RM
 - **Nuevo**: el hierro (LIC) de la RM de hígado se calcula con **las dos calibraciones**, y las dos aparecen en el panel de hallazgos, en el resumen en imagen (OT), en la tabla de hígados medidos y en el CSV/Excel: **Wood 2005** (`0,0254 · R2* + 0,202`, a 1,5 T; a 3 T el R2* se divide antes por 2,05, como ya era) y **Hankins 2009** (`0,02802 · R2* − 0,45485`, sobre el R2* del equipo, nunca por debajo de cero).
 - **El campo se lee del DICOM** (`MagneticFieldStrength`) y se muestra junto al hierro. El LIC principal y la clasificación sugerida usan, por defecto, **Wood a 1,5 T y Hankins a 3 T**; un campo que no es 1,5 ni 3 T sigue sin estimación.

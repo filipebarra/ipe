@@ -3,6 +3,13 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.127 — Deleting many studies no longer freezes the screen
+Report (26/11/2026): with the database on an external HD, deleting several studies left the program almost frozen.
+- **Deleting runs on a separate thread**, with a progress bar ("Deleting studies… 12 of 40") and **Cancel** (what was already deleted stays deleted). The screen keeps responding; the list refreshes at the end and the errors (locked study, no permission) appear together.
+- **Fewer disk round trips**: each file is checked by path (no `resolve()` and `exists()` per file) and deleted directly; on an external HD every round trip costs time.
+- **Patients without studies are removed once, at the end**, not after every study (before, each study scanned the patients table and wrote to the HD).
+- New tests: deleting in the background refreshes the list; never deletes a file outside the Storage; the patient cleanup at the end of the batch.
+
 ## 0.100.126 — Liver iron: Wood and Hankins formulas, chosen by the MR field strength
 - **New**: the iron (LIC) of liver MR is calculated with **both calibrations**, and both are shown in the findings panel, the image summary (OT), the measured-livers table and the CSV/Excel: **Wood 2005** (`0.0254 · R2* + 0.202`, at 1.5 T; at 3 T R2* is divided by 2.05 first, as before) and **Hankins 2009** (`0.02802 · R2* − 0.45485`, on the scanner's R2*, never below zero).
 - **The field strength is read from DICOM** (`MagneticFieldStrength`) and shown next to the iron. The main LIC and the suggested classification use, by default, **Wood at 1.5 T and Hankins at 3 T**; a field that is neither 1.5 nor 3 T still gets no estimate.

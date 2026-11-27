@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 from dataclasses import dataclass
 from datetime import datetime
@@ -611,9 +612,11 @@ class Repository:
                 st.unread = False
 
     # ------------------------------------------------------------- remoção
-    def delete_study(self, study_uid: str, storage_root: Path) -> int:
+    def delete_study(self, study_uid: str, storage_root: Path, limpar_pacientes: bool = True) -> int:
         """Remove o estudo do banco e apaga os arquivos que estão no Storage.
-        Arquivos apenas referenciados (fora do Storage) nunca são apagados."""
+        Arquivos apenas referenciados (fora do Storage) nunca são apagados.
+        `limpar_pacientes=False` (0.100.126): quem apaga vários exames de uma vez tira os pacientes sem exame uma vez
+        só no fim (`limpar_pacientes_sem_exame`), em vez de varrer a tabela a cada exame."""
         removed = 0
         with self.db.session() as s:
             st = s.scalar(select(Study).where(Study.study_uid == study_uid))
@@ -636,13 +639,19 @@ class Repository:
             if not remaining:
                 s.delete(patient)
             s.flush()
-            self._apagar_pacientes_sem_exame(s)                  # 0.100.116: e os que já tinham ficado órfãos
+            if limpar_pacientes:
+                self._apagar_pacientes_sem_exame(s)              # 0.100.116: e os que já tinham ficado órfãos
         root = storage_root.resolve()
+        # 0.100.126: sem resolve()/exists() por arquivo (cada um é uma ida ao disco; num HD externo, segundos): só o
+        # caminho absoluto confere se está dentro do Storage e o unlink diz se o arquivo já não existia
+        base = os.path.normcase(str(root)) + os.sep
         for f in files:
             try:
-                if root in f.resolve().parents and f.exists():
-                    f.unlink()
+                if os.path.normcase(os.path.abspath(f)).startswith(base):
+                    os.unlink(f)
                     removed += 1
+            except FileNotFoundError:
+                pass
             except OSError as e:
                 log.warning("Não foi possível apagar %s: %s", f, e)
         study_dir = root / _safe(study_uid)
