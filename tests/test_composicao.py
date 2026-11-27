@@ -503,3 +503,14 @@ def test_martin_so_o_corte_do_paciente_e_kvp_contraste(monkeypatch):
     res = C.calcular(t, _rotulos(t.vol.data))
     if res.figado:
         assert res.figado["kvp"]["v"] == 100 and res.figado["contraste"]["v"] == "sem contraste"
+
+
+def test_martin_sem_imc_mostra_os_dois_cortes_e_aviso_de_contraste(monkeypatch):
+    _n, av = C.numeros_biometria(60.0, 40.0, 1.60, None, "F")
+    m = next(x for x in av if "Martin" in x and "sem o IMC" in x)
+    assert "< 41 HU se IMC < 25" in m and "< 33 HU se IMC ≥ 25" in m
+    t = _T()
+    monkeypatch.setattr(C.DO, "_kvp", lambda _t: 100.0)
+    monkeypatch.setattr(C, "_contraste", lambda _t: True)
+    res = C.calcular(t, _rotulos(t.vol.data))
+    assert any("série com contraste e 100 kVp" in x and "mioesteatose" in x for x in res.avisos_l3)

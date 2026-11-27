@@ -3,6 +3,10 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.135 — Myosteatosis: both cutoffs without BMI; contrast and kVp warning on muscle
+- The myosteatosis cutoff was already chosen by BMI (< 41 HU if BMI < 25; < 33 HU if BMI ≥ 25, same for both sexes). **Without height or weight** the text now shows **both cutoffs**, without classifying.
+- Series **with contrast** or **kVp ≠ 120**: warning that muscle density (HU) may be altered. The line is **not turned off**, because Martin's cutoffs came from routine CTs, many with contrast.
+
 ## 0.100.134 — Martin cutoff for the patient; kVp and contrast next to bone and liver
 Suggestions (11/27/2026).
 - **Body composition**: the Martin reference now shows **only the patient's cutoff** (sex + BMI: women < 41 cm²/m²; men < 43 with BMI < 25 or < 53 with BMI ≥ 25; myosteatosis < 41 HU with BMI < 25 or < 33 HU with BMI ≥ 25), already compared with the measured value ("below the cutoff" / "at or above").

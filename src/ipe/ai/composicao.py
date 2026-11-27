@@ -192,6 +192,10 @@ def numeros_biometria(sma, musculo_hu, altura, peso, sexo) -> tuple[dict, list]:
         avisos.append("referências de Martin et al., J Clin Oncol 2013, para "
                       + (quem + ", " if quem else "") + "IMC " + f"{imc:.1f}".replace(".", ",") + " kg/m²: "
                       + "; ".join(partes) + " — texto de referência, não diagnóstico")
+    else:
+        avisos.append("referências de Martin et al., J Clin Oncol 2013, sem o IMC não há classificação: mioesteatose "
+                      "com densidade muscular < 41 HU se IMC < 25, ou < 33 HU se IMC ≥ 25 — texto de referência, "
+                      "não diagnóstico")
     return nums, avisos
 
 
@@ -427,6 +431,12 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
             "imc": nums_bio["imc"], "altura_m": nums_bio["altura_m"], "peso_kg": nums_bio["peso_kg"],
         }
         res.avisos_l3 += avisos_bio
+        kv = DO._kvp(t)
+        fatores = (["série com contraste"] if res.contraste else []) + \
+                  ([f"{kv:.0f} kVp"] if kv is not None and abs(kv - 120.0) > 1.0 else [])
+        if fatores:
+            res.avisos_l3.append(" e ".join(fatores) + ": a densidade muscular (HU) pode estar alterada; "
+                                 "interprete a mioesteatose com cautela")
         if passo > 5.0:
             res.avisos_l3.append(f"cortes de {passo:.1f} mm: o corte de L3 pode cair fora do meio da vértebra")
     # ---------------- fígado e baço

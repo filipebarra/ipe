@@ -3,6 +3,10 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.135 — Mioesteatose: dois cortes sem IMC; aviso de contraste e kVp no músculo
+- O corte de mioesteatose já era escolhido pelo IMC (< 41 HU se IMC < 25; < 33 HU se IMC ≥ 25, igual para os dois sexos). **Sem altura ou peso** o texto agora mostra **os dois cortes**, sem classificar.
+- Série **com contraste** ou **kVp ≠ 120**: aviso de que a densidade muscular (HU) pode estar alterada. A linha **não é desligada**, porque os cortes de Martin vieram de TCs de rotina, muitas com contraste.
+
 ## 0.100.134 — Corte de Martin pelo paciente; kVp e contraste junto do osso e do fígado
 Sugestões (27/11/2026).
 - **Composição corporal**: a referência de Martin passa a mostrar **só o corte do paciente** (sexo + IMC: mulher < 41 cm²/m²; homem < 43 com IMC < 25 ou < 53 com IMC ≥ 25; mioesteatose < 41 HU com IMC < 25 ou < 33 HU com IMC ≥ 25), já comparado com o valor medido ("abaixo do corte" / "no corte ou acima").
