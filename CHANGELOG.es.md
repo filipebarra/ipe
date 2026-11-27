@@ -3,6 +3,11 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.131 — La búsqueda por lote con el disco externo activo lista los nodos del servidor
+Reporte (27/11/2026): con una base local activa, la página «3. De dónde» de la búsqueda por lote quedaba vacía y no se podía elegir de qué PACS descargar.
+- **La lista de nodos del lote ahora incluye los que comparte el servidor** («… (por el servidor)») cuando la ubicación activa es el disco externo o la base de este equipo. Marque, ordene y ejecute como antes: la búsqueda y la descarga pasan por el servidor y el estudio entra en la ubicación activa.
+- Prueba nueva: la lista del lote trae los nodos del servidor con la base local activa.
+
 ## 0.100.130 — Los nodos del servidor aparecen con el disco externo activo
 Reporte (27/11/2026): solo se podía descargar del servidor con el «Servidor central» activo; con el disco externo activo los nodos DICOM no aparecían.
 - **Los nodos que comparte el servidor ahora aparecen en la búsqueda, el PACS y la búsqueda por lote también con una base local activa** (disco externo o de este equipo). El estudio descargado por ellos entra en la ubicación activa y el servidor borra su copia cuando todo llegó.

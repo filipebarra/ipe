@@ -3,6 +3,11 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.131 — Busca em lote com o HD externo ativo lista os nós do servidor
+Relato (27/11/2026): com um banco local ativo, a página "3. De onde" da busca em lote ficava vazia e não dava para escolher de qual PACS baixar.
+- **A lista de nós do lote agora inclui os que o servidor compartilha** ("… (pelo servidor)") quando o local ativo é o HD externo ou o banco deste computador. Marque, ordene e rode como antes: a busca e o download passam pelo servidor e o exame entra no local ativo.
+- Teste novo: a lista do lote traz os nós do servidor com o banco local ativo.
+
 ## 0.100.130 — Nós do servidor aparecem com o HD externo ativo
 Relato (27/11/2026): só dava para baixar do servidor com o "Servidor central" ativo; com o HD externo ativo os nós DICOM não apareciam.
 - **Os nós que o servidor compartilha agora aparecem na busca, no PACS e na busca em lote também com um banco local ativo** (HD externo ou banco deste computador). O exame baixado por eles entra no local ativo e o servidor apaga a cópia dele depois que tudo chegar.

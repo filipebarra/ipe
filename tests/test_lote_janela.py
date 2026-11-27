@@ -183,3 +183,18 @@ def test_cliente_so_avisa_a_copia_quando_chega_inteiro():
     faltas.extend([["s1"]] * 3)
     LoteDialog._copiar(eu, "1.2.3")
     assert avisos == []                                                    # nunca chegou inteiro: não avisa
+
+
+def test_lote_com_banco_local_ativo_lista_os_nos_do_servidor():
+    """0.100.130: com o HD (banco local) ativo a página "De onde" ficava vazia: os nós do servidor (tipo "servidor")
+    não entravam na lista."""
+    from types import SimpleNamespace
+
+    from ipe.ui import lote_dialogo as LD
+    nos = [{"id": 1, "name": "PACS local", "kind": "dimse"},
+           {"id": -3, "name": "GEPACS (pelo servidor)", "kind": "servidor"},
+           {"id": 4, "name": "Outro", "kind": "dicomweb"},
+           {"id": 5, "name": "Impressora", "kind": "print"}]
+    fake = SimpleNamespace(remoto=False, repo=SimpleNamespace(nodes=lambda only_active=True: nos))
+    lista = LD.LoteDialog._nos_dicom(fake)
+    assert [n["id"] for n in lista] == [1, -3, 4]

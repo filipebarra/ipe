@@ -230,7 +230,7 @@ class LoteDialog(QDialog):
         if self.remoto:
             return [{"id": n["id"], "name": n["name"]} for n in self.opcoes_servidor.get("nos") or []]
         try:
-            return [n for n in self.repo.nodes(only_active=True) if n.get("kind") in ("dimse", "dicomweb")]
+            return [n for n in self.repo.nodes(only_active=True) if n.get("kind") in ("dimse", "dicomweb", "servidor")]
         except Exception:  # noqa: BLE001
             return []
 

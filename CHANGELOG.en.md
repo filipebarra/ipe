@@ -3,6 +3,11 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.131 — Batch search with the external drive active lists the server's nodes
+Report (11/27/2026): with a local database active, page "3. From where" of the batch search was empty and there was no way to choose which PACS to download from.
+- **The batch node list now includes the nodes the server shares** ("… (via server)") when the active location is the external drive or this computer's database. Check, order and run as before: search and download go through the server and the exam enters the active location.
+- New test: the batch list includes the server's nodes with the local database active.
+
 ## 0.100.130 — Server nodes show up with the external drive active
 Report (11/27/2026): downloading from the server only worked with "Central server" active; with the external drive active the DICOM nodes did not appear.
 - **The nodes the server shares now show up in search, PACS and batch search with a local database active too** (external drive or this computer's). The exam downloaded through them goes into the active location and the server deletes its copy once everything has arrived.
