@@ -3,6 +3,15 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.129 — Opportunistic bone density on abdomen CT (L1 and L1–L4)
+Request (11/27/2026): estimate bone density on conventional CT, without dual energy, to compare with spine and femur DXA.
+- **New "Bone density (CT)" finding**, alongside body composition (same non-contrast abdomen CT series, same TotalSegmentator): the HU of the **trabecular bone of L1** and the mean of **L1 to L4** (volume-weighted), with median, standard deviation and ROI volume per level.
+- **ROI inside the vertebral body**: 5 mm margin (removes cortex, pedicles and the posterior venous plexus) and only the central third of the vertebra (away from endplates and discs). The ROI is saved in the "Body composition · TotalSegmentator" series.
+- **Provisional L1 result** with the cutoffs of Pickhardt et al. (Ann Intern Med 2013): ≤ 110 HU probable osteoporosis, ≤ 135 low density, 135–160 gray zone, > 160 no signs. The three cutoffs and the margin are editable in Settings ▸ CAD/AI ▸ Body composition.
+- **No literature cutoff for L1–L4**: Ipê shows the HU and only compares if you type a service cutoff (0 = number only). To find yours, run the batch on exams with DXA and compare in Excel (Batch search ▸ AI results: the new columns come out on their own).
+- With contrast or a kVp other than 120, it measures but **does not classify**; very dense bone (median > 300 HU) warns. Reference text, never a diagnosis.
+- New tests: ROI only in trabecular bone, classification, editable cutoffs, contrast, no L1, non-axial series and the report sentence.
+
 ## 0.100.128 — PACS download straight to the client with the external drive active
 Report (26/11/2026): on a client using the external drive database, "download straight to the client" from PACS and "download to my PC" in batch search left the exam only on the server (log: `'Repository' object has no attribute 'client'`).
 - **The exam now goes to the active database** (external drive or this computer's) when the node belongs to the central server: the client reads from the server, saves to the active database and only then tells the server, which deletes its copy (same safety rules as before).

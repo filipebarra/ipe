@@ -11172,5 +11172,15 @@
  "Ferro: R2* → LIC (Wood 2005 e Hankins 2009; 3 T → 1,5 T para Wood, Alam 2016). Rigidez: faixas de Venkatesh, Yin & Ehman (JMRI 2013).": "Hierro: R2* → LIC (Wood 2005 y Hankins 2009; 3 T → 1,5 T para Wood, Alam 2016). Rigidez: rangos de Venkatesh, Yin & Ehman (JMRI 2013).",
  "Apagando os exames…": "Borrando los estudios…",
  "Apagando os exames… {} de {}": "Borrando los estudios… {} de {}",
- "Já há exames sendo apagados; espere terminar.": "Ya se están borrando estudios; espere a que termine."
+ "Já há exames sendo apagados; espere terminar.": "Ya se están borrando estudios; espere a que termine.",
+ "Osso L1 — osteoporose até:": "Hueso L1 — osteoporosis hasta:",
+ "Osso L1 — baixa densidade até:": "Hueso L1 — baja densidad hasta:",
+ "Osso L1 — normal acima de:": "Hueso L1 — normal por encima de:",
+ "Osso L1–L4 — corte do serviço:": "Hueso L1–L4 — corte del servicio:",
+ "Osso — margem da cortical:": "Hueso — margen de la cortical:",
+ "Densidade óssea na TC (L1 trabecular): até este HU = compatível com osteoporose (Pickhardt: 110 HU, especificidade 91%).": "Densidad ósea en TC (L1 trabecular): hasta este HU = compatible con osteoporosis (Pickhardt: 110 HU, especificidad 91%).",
+ "Até este HU = baixa densidade óssea (Pickhardt: 135 HU, sensibilidade e especificidade de 75%).": "Hasta este HU = baja densidad ósea (Pickhardt: 135 HU, sensibilidad y especificidad del 75%).",
+ "Acima deste HU = sem sinais de baixa densidade (Pickhardt: 160 HU); entre este e o anterior, zona cinzenta.": "Por encima de este HU = sin signos de baja densidad (Pickhardt: 160 HU); entre este y el anterior, zona gris.",
+ "0 = só mostra o HU médio de L1–L4. Não há corte validado na literatura: ache o do seu serviço comparando com a DMO (coluna e fêmur) na tabela do lote.": "0 = solo muestra el HU medio de L1–L4. No hay un corte validado en la literatura: encuentre el de su servicio comparando con la DMO (columna y fémur) en la tabla del lote.",
+ "Quanto a ROI trabecular se afasta da borda da vértebra (tira a cortical, os pedículos e o plexo venoso).": "Cuánto se aleja la ROI trabecular del borde de la vértebra (quita la cortical, los pedículos y el plexo venoso posterior)."
 }

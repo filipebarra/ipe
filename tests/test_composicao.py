@@ -366,3 +366,124 @@ def test_janela_de_altura_e_peso_antes_e_no_painel(env, tmp_path, monkeypatch):
         assert B.ler(repo, uid)["peso_kg"] == 100.0
     finally:
         w.close()
+
+
+# ---------------------------------------------------------------- 0.100.129: densidade óssea em L1 e L1–L4
+def _coluna(trab=(150, 160, 170, 180), nz=60, dz=2.5):
+    """Volume com 4 vértebras empilhadas (L1 em cima? não: k cresce para cima, L4 embaixo): corpo cilíndrico de 18 mm de
+    raio com osso trabecular (HU de `trab`) e cortical de 2 mm (400 HU), mais os pedículos finos para trás."""
+    from ipe.ai import densidade_osso as DO
+    c = (np.arange(N) - N / 2 + 0.5) * PX
+    yy, xx = np.meshgrid(c, c, indexing="ij")
+    corpo = xx ** 2 + (yy - 20) ** 2 <= 18 ** 2
+    cortical = corpo & ~(xx ** 2 + (yy - 20) ** 2 <= 16 ** 2)
+    pedic = (np.abs(np.abs(xx) - 14) <= 3) & (yy >= 30) & (yy <= 60)
+    hu = np.full((nz, N, N), -50, np.int16)
+    lab = np.zeros((nz, N, N), np.uint8)
+    faixas = {"L4": (2, 12), "L3": (15, 25), "L2": (28, 38), "L1": (41, 51)}   # discos entre as vértebras
+    for i, nivel in enumerate(("L1", "L2", "L3", "L4"), start=1):
+        k0, k1 = faixas[nivel]
+        for k in range(k0, k1 + 1):
+            hu[k][corpo] = trab[i - 1]
+            hu[k][cortical] = 400
+            hu[k][pedic] = 380
+            lab[k][corpo | pedic] = i
+    o = -(N / 2 - 0.5) * PX
+    vol = Volume(hu, np.array([o, o, 0.0]), np.array([1.0, 0, 0]), np.array([0, 1.0, 0]),
+                 np.array([0, 0, dz]), PX, PX, None, "")
+    return vol, {"total": (lab, {i: f"vertebrae_{n}" for i, n in enumerate(DO.NIVEIS, start=1)})}
+
+
+class _TO(_T):
+    def __init__(self, vol, contraste=False):
+        self.vol = vol
+        self.frames = []
+        self.series_uid = "1.2.3"
+        self.study_uid = "1.2"
+        self.descricao_serie = "AX PORTAL" if contraste else "AX SEM CONTRASTE"
+        self.versao = "simulado"
+
+
+def _osso(trab=(150, 160, 170, 180), contraste=False, settings=None):
+    from ipe.ai import cefalometria as CF
+    from ipe.ai import densidade_osso as DO
+    vol, rot = _coluna(trab)
+    t = _TO(vol, contraste)
+    return DO.medir(t, CF.Mascaras(vol, rot), settings, contraste=contraste)
+
+
+def test_osso_l1_e_l1_l4_so_pegam_o_trabecular():
+    r = _osso()
+    n = r["numeros"]
+    # a cortical (400) e os pedículos (380) ficam de fora: só o trabecular entra
+    assert n["l1_hu"]["v"] == pytest.approx(150, abs=1)
+    assert n["l2_hu"]["v"] == pytest.approx(160, abs=1) and n["l4_hu"]["v"] == pytest.approx(180, abs=1)
+    assert n["l1l4_hu"]["v"] == pytest.approx(165, abs=1.5) and n["niveis_n"]["v"] == 4
+    assert set(r["mascaras"]) == {"L1", "L2", "L3", "L4"}
+    # a ROI fica no terço central e dentro do corpo: nenhum voxel dela é de cortical ou pedículo
+    vol, _rot = _coluna()
+    assert (np.asarray(vol.data)[r["mascaras"]["L1"]] == 150).all()
+
+
+def test_osso_classificacao_provisoria_de_l1():
+    assert "Sem sinais" in _osso((200, 200, 200, 200))["numeros"]["resultado"]["v"]
+    assert "Zona cinzenta" in _osso((150, 150, 150, 150))["numeros"]["resultado"]["v"]
+    assert "baixa densidade" in _osso((120, 120, 120, 120))["numeros"]["resultado"]["v"]
+    assert "osteoporose" in _osso((90, 90, 90, 90))["numeros"]["resultado"]["v"]
+
+
+def test_osso_cortes_do_servico_e_l1_l4():
+    cfg = {"composicao.osso_baixa_hu": 150.0, "composicao.osso_l1l4_hu": 170.0}
+
+    class S:
+        def get(self, k, d=None):
+            return cfg.get(k, d)
+    n = _osso((145, 145, 145, 145), settings=S())["numeros"]
+    assert "baixa densidade" in n["resultado"]["v"]
+    assert "abaixo do corte" in n["resultado_l1l4"]["v"]
+    assert "resultado_l1l4" not in _osso()["numeros"]          # corte de L1–L4 = 0: só mostra o número
+
+
+def test_osso_com_contraste_mede_mas_nao_classifica():
+    r = _osso(contraste=True)
+    assert r["numeros"]["l1_hu"]["v"] is not None
+    assert r["numeros"]["resultado"]["v"].startswith("Não classificado")
+    assert any("contraste" in x for x in r["avisos"])
+
+
+def test_osso_sem_l1_nao_classifica_mas_da_o_hu_de_l1_l4():
+    from ipe.ai import cefalometria as CF
+    from ipe.ai import densidade_osso as DO
+    vol, rot = _coluna()
+    lab, classes = rot["total"]
+    lab[lab == 1] = 0
+    classes.pop(1)
+    r = DO.medir(_TO(vol), CF.Mascaras(vol, {"total": (lab, classes)}), None)
+    assert "l1_hu" not in r["numeros"] and r["numeros"]["niveis_n"]["v"] == 3
+    assert "resultado" not in r["numeros"] and any("sem L1" in x for x in r["avisos"])
+
+
+def test_osso_serie_nao_axial_nao_mede():
+    from ipe.ai import cefalometria as CF
+    from ipe.ai import densidade_osso as DO
+    vol, rot = _coluna()
+    vol.slice_vec = np.array([2.5, 0, 0])
+    r = DO.medir(_TO(vol), CF.Mascaras(vol, rot), None)
+    assert not r["numeros"] and "axial" in r["avisos"][0]
+
+
+def test_osso_vira_achado_e_frase():
+    t = _T()
+    res = C.calcular(t, _rotulos(t.vol.data))          # o fantoma antigo só tem L3: sem L1, mas mede L1–L4 de 1 nível? não
+    assert C.TIPO_FIGADO in [i["tipo"] for i in C.itens_para_o_banco(res, t, "x")]
+    r = _osso()
+    res.osso, res.avisos_osso = r["numeros"], r["avisos"]
+    itens = C.itens_para_o_banco(res, t, "x")
+    osso = next(i for i in itens if i["tipo"] == "Densidade óssea (TC)")
+    txt = C.frase({**osso, "estado": "confirmado", "corrigidos": {}})
+    assert txt.startswith("Densidade óssea na TC: atenuação do osso trabecular de L1 de 150 HU; média de 165 HU em "
+                          "L1–L4.") and "Zona cinzenta" in txt
+    # o médico corrige o resultado e a frase acompanha
+    txt2 = C.frase({**osso, "estado": "confirmado", "corrigidos": {"resultado": "Osteopenia"}})
+    assert txt2.endswith("Osteopenia.")
+    assert C.n_itens(res) == 3

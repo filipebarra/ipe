@@ -3,6 +3,15 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.129 — Densidade óssea oportunista na TC de abdome (L1 e L1–L4)
+Pedido (27/11/2026): estimar a densidade óssea em TC convencional, sem dupla energia, para comparar com a DMO de coluna e fêmur.
+- **Novo achado "Densidade óssea (TC)"**, junto da composição corporal (mesma série de TC de abdome sem contraste, mesmo TotalSegmentator): o HU do **osso trabecular de L1** e a média de **L1 a L4** (ponderada pelo volume), com mediana, desvio padrão e volume da ROI de cada nível.
+- **ROI dentro do corpo vertebral**: margem de 5 mm (tira a cortical, os pedículos e o plexo venoso posterior) e só o terço central da vértebra (longe dos platôs e dos discos). A ROI sai na série "Composição corporal · TotalSegmentator".
+- **Resultado provisório de L1** pelos cortes de Pickhardt et al. (Ann Intern Med 2013): ≤ 110 HU osteoporose provável, ≤ 135 baixa densidade, 135–160 zona cinzenta, > 160 sem sinais. Os três cortes e a margem são editáveis em Configurações ▸ CAD/IA ▸ Composição corporal.
+- **L1–L4 sem corte da literatura**: o Ipê mostra o HU e só compara se você digitar um corte do serviço (0 = só o número). Para achar o seu, rode em lote nos exames com DMO e compare no Excel (Busca em lote ▸ resultados das IAs: as colunas novas saem sozinhas).
+- Com contraste ou kVp diferente de 120, mede mas **não classifica**; osso muito denso (mediana > 300 HU) avisa. Texto de referência, nunca diagnóstico.
+- Testes novos: ROI só no trabecular, classificação, cortes editáveis, contraste, sem L1, série não axial e a frase do laudo.
+
 ## 0.100.128 — Baixar do PACS direto para o cliente com o HD externo ativo
 Relato (26/11/2026): no cliente com o banco no HD externo, "baixar direto para o cliente" no PACS e "baixar para o meu PC" na busca em lote deixavam o exame só no servidor (no log: `'Repository' object has no attribute 'client'`).
 - **O exame vem para o banco ativo** (HD externo ou banco deste computador) quando o nó é do servidor central: o cliente lê do servidor, grava no banco ativo e só então avisa o servidor, que apaga a cópia dele (mesmas regras de segurança de antes).

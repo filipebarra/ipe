@@ -3,6 +3,15 @@
 *El programa se llamó **DicomViewer** hasta la versión 0.99.10. [Volver al README](README.es.md).
 El historial completo, con todas las versiones, está en portugués: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.129 — Densidad ósea oportunista en TC de abdomen (L1 y L1–L4)
+Pedido (27/11/2026): estimar la densidad ósea en TC convencional, sin doble energía, para comparar con la DMO de columna y fémur.
+- **Nuevo hallazgo "Densidad ósea (TC)"**, junto a la composición corporal (misma serie de TC de abdomen sin contraste, mismo TotalSegmentator): el HU del **hueso trabecular de L1** y la media de **L1 a L4** (ponderada por el volumen), con mediana, desviación estándar y volumen de la ROI de cada nivel.
+- **ROI dentro del cuerpo vertebral**: margen de 5 mm (quita la cortical, los pedículos y el plexo venoso posterior) y solo el tercio central de la vértebra (lejos de los platillos y los discos). La ROI queda en la serie "Composición corporal · TotalSegmentator".
+- **Resultado provisional de L1** con los cortes de Pickhardt et al. (Ann Intern Med 2013): ≤ 110 HU osteoporosis probable, ≤ 135 baja densidad, 135–160 zona gris, > 160 sin signos. Los tres cortes y el margen se editan en Configuración ▸ CAD/IA ▸ Composición corporal.
+- **L1–L4 sin corte de la literatura**: Ipê muestra el HU y solo compara si escribe un corte del servicio (0 = solo el número). Para hallar el suyo, ejecute el lote en estudios con DMO y compare en Excel (Búsqueda por lote ▸ resultados de las IA: las columnas nuevas salen solas).
+- Con contraste o kVp distinto de 120, mide pero **no clasifica**; hueso muy denso (mediana > 300 HU) avisa. Texto de referencia, nunca diagnóstico.
+- Pruebas nuevas: ROI solo en trabecular, clasificación, cortes editables, contraste, sin L1, serie no axial y la frase del informe.
+
 ## 0.100.128 — Descarga del PACS directo al cliente con el disco externo activo
 Reporte (26/11/2026): en un cliente con la base en el disco externo, "descargar directo al cliente" desde el PACS y "descargar a mi PC" en la búsqueda por lote dejaban el estudio solo en el servidor (log: `'Repository' object has no attribute 'client'`).
 - **El estudio va a la base activa** (disco externo o de este equipo) cuando el nodo es del servidor central: el cliente lee del servidor, guarda en la base activa y solo entonces avisa al servidor, que borra su copia (mismas reglas de seguridad de antes).

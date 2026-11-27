@@ -11172,5 +11172,15 @@
  "Ferro: R2* → LIC (Wood 2005 e Hankins 2009; 3 T → 1,5 T para Wood, Alam 2016). Rigidez: faixas de Venkatesh, Yin & Ehman (JMRI 2013).": "Iron: R2* → LIC (Wood 2005 and Hankins 2009; 3 T → 1.5 T for Wood, Alam 2016). Stiffness: ranges of Venkatesh, Yin & Ehman (JMRI 2013).",
  "Apagando os exames…": "Deleting studies…",
  "Apagando os exames… {} de {}": "Deleting studies… {} of {}",
- "Já há exames sendo apagados; espere terminar.": "Studies are already being deleted; wait for it to finish."
+ "Já há exames sendo apagados; espere terminar.": "Studies are already being deleted; wait for it to finish.",
+ "Osso L1 — osteoporose até:": "Bone L1 — osteoporosis up to:",
+ "Osso L1 — baixa densidade até:": "Bone L1 — low density up to:",
+ "Osso L1 — normal acima de:": "Bone L1 — normal above:",
+ "Osso L1–L4 — corte do serviço:": "Bone L1–L4 — service cutoff:",
+ "Osso — margem da cortical:": "Bone — cortical margin:",
+ "Densidade óssea na TC (L1 trabecular): até este HU = compatível com osteoporose (Pickhardt: 110 HU, especificidade 91%).": "Bone density on CT (trabecular L1): up to this HU = compatible with osteoporosis (Pickhardt: 110 HU, specificity 91%).",
+ "Até este HU = baixa densidade óssea (Pickhardt: 135 HU, sensibilidade e especificidade de 75%).": "Up to this HU = low bone density (Pickhardt: 135 HU, sensitivity and specificity of 75%).",
+ "Acima deste HU = sem sinais de baixa densidade (Pickhardt: 160 HU); entre este e o anterior, zona cinzenta.": "Above this HU = no signs of low density (Pickhardt: 160 HU); between this and the previous one, gray zone.",
+ "0 = só mostra o HU médio de L1–L4. Não há corte validado na literatura: ache o do seu serviço comparando com a DMO (coluna e fêmur) na tabela do lote.": "0 = only shows the mean L1–L4 HU. There is no validated cutoff in the literature: find your service's by comparing with DXA (spine and femur) in the batch table.",
+ "Quanto a ROI trabecular se afasta da borda da vértebra (tira a cortical, os pedículos e o plexo venoso).": "How far the trabecular ROI stays from the vertebral edge (removes cortex, pedicles and the posterior venous plexus)."
 }

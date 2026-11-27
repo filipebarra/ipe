@@ -47,6 +47,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ipe.ai import achados as AC
+from ipe.ai import densidade_osso as DO
 
 log = logging.getLogger(__name__)
 
@@ -96,14 +97,28 @@ PADROES = {
     CHAVE_MIN_CORTES: MIN_CORTES,
     CHAVE_DESTINOS: [],
     CHAVE_PERGUNTAR: True,
+    **DO.PADROES,
 }
 PERFIL = {"modalidades": CHAVE_MODALIDADES, "exame_contem": CHAVE_EXAME_CONTEM, "prior_ct": CHAVE_PRIOR_CT,
           "prior_mr": CHAVE_PRIOR_CT, "espessura": CHAVE_ESPESSURA, "min_cortes": CHAVE_MIN_CORTES}
+OPCOES = ((DO.CHAVE_LIMITE_OSTEOPOROSE, "Osso L1 — osteoporose até:", 0.0, 400.0, " HU",
+           "Densidade óssea na TC (L1 trabecular): até este HU = compatível com osteoporose (Pickhardt: 110 HU, "
+           "especificidade 91%)."),
+          (DO.CHAVE_LIMITE_BAIXA, "Osso L1 — baixa densidade até:", 0.0, 400.0, " HU",
+           "Até este HU = baixa densidade óssea (Pickhardt: 135 HU, sensibilidade e especificidade de 75%)."),
+          (DO.CHAVE_LIMITE_NORMAL, "Osso L1 — normal acima de:", 0.0, 400.0, " HU",
+           "Acima deste HU = sem sinais de baixa densidade (Pickhardt: 160 HU); entre este e o anterior, zona cinzenta."),
+          (DO.CHAVE_LIMITE_L1L4, "Osso L1–L4 — corte do serviço:", 0.0, 500.0, " HU",
+           "0 = só mostra o HU médio de L1–L4. Não há corte validado na literatura: ache o do seu serviço comparando "
+           "com a DMO (coluna e fêmur) na tabela do lote."),
+          (DO.CHAVE_EROSAO, "Osso — margem da cortical:", 2.0, 12.0, " mm",
+           "Quanto a ROI trabecular se afasta da borda da vértebra (tira a cortical, os pedículos e o plexo venoso)."),)
 NOME_CADIA = "Composição corporal (L3)"
 TITULO_CADIA = "Composição corporal em L3 e atenuação hepática na TC (TotalSegmentator + limiares de HU)"
 EXPLICACAO_CADIA = ("Na TC de abdome: no corte axial do meio de L3 mede a área de músculo esquelético, de gordura "
                     "visceral, subcutânea e intermuscular e a densidade muscular; com a altura no arquivo, o índice "
-                    "muscular. Mede também o HU do fígado e do baço (fígado − baço, fígado / baço). Os resultados "
+                    "muscular. Mede também o HU do fígado e do baço (fígado − baço, fígado / baço) e o HU do osso "
+                    "trabecular de L1 e de L1–L4 (densidade óssea oportunista, para comparar com a DMO). Os resultados "
                     "aparecem em Aplicações ▸ Achados de IA, para conferir antes do laudo.")
 CHAVES_L3 = ("sma_cm2", "smi", "musculo_hu", "vat_cm2", "sat_cm2", "imat_cm2", "vat_sat", "imc", "altura_m",
              "peso_kg")
@@ -213,7 +228,7 @@ def ja_feita(repo, study_uid: str) -> bool:
 
 def tarefas(modalidade: str = "CT", settings=None) -> list[dict]:
     return [
-        {"nome": "total", "roi": list(VERTEBRAS) + list(ORGAOS), "fast": True,
+        {"nome": "total", "roi": sorted(set(VERTEBRAS) | set(DO.CLASSES)) + list(ORGAOS), "fast": True,
          "rotulo": "vértebras lombares e órgãos", "composicao": True},
         {"nome": "trunk_cavities", "rotulo": "cavidade abdominal", "composicao": True},
     ]
@@ -274,6 +289,10 @@ class Resultado:
     figado: dict = field(default_factory=dict)
     figado_centro: list | None = None
     mascaras: dict = field(default_factory=dict)      # nome -> máscara 2D do corte de L3
+    osso: dict = field(default_factory=dict)          # densidade óssea (0.100.129): chave -> número
+    osso_centro: list | None = None
+    mascaras_osso: dict = field(default_factory=dict)  # nível -> ROI trabecular 3D
+    avisos_osso: list = field(default_factory=list)
     avisos_l3: list = field(default_factory=list)
     avisos_figado: list = field(default_factory=list)
     elegibilidade: str = ""
@@ -422,6 +441,14 @@ def calcular(t, rotulos: dict, settings=None) -> Resultado:
                                      "mais: fígado − baço < −9 HU ou fígado / baço < 0,8 (Park et al., Radiology "
                                      "2006) e fígado < 48 HU (Pickhardt et al., Eur Radiol 2012) — texto de "
                                      "referência, não diagnóstico")
+    # ---------------- densidade óssea em L1 e L1–L4 (0.100.129)
+    try:
+        osso = DO.medir(t, ms, settings, contraste=res.contraste)
+        res.osso, res.osso_centro = osso["numeros"], osso["centro"]
+        res.mascaras_osso, res.avisos_osso = osso["mascaras"], osso["avisos"]
+    except Exception:  # noqa: BLE001
+        log.exception("densidade óssea")
+        res.avisos_osso.append("a densidade óssea não pôde ser medida nesta série")
     return res
 
 
@@ -438,6 +465,11 @@ def itens_para_o_banco(res: Resultado, t, versao: str) -> list[dict]:
                     "posicao": res.figado_centro, "numeros": res.figado,
                     "elegibilidade": res.elegibilidade + (". Atenção: " + "; ".join(res.avisos_figado)
                                                           if res.avisos_figado else "")})
+    if res.osso:
+        out.append({**base, "rotulo": "O", "tipo": DO.TIPO_OSSO, "local": "osso trabecular de L1 e L1–L4",
+                    "posicao": res.osso_centro, "numeros": res.osso,
+                    "elegibilidade": res.elegibilidade + (". Atenção: " + "; ".join(res.avisos_osso)
+                                                          if res.avisos_osso else "")})
     return out
 
 
@@ -465,6 +497,11 @@ def gravar(t, res: Resultado, versao: str, db, storage_root, repo=None, settings
             if m2.any():
                 m3 = m2[None, :, :]
                 segs.append((SimpleNamespace(mask=m3, offset=(res.k_l3, 0, 0)), NOMES[nome], CORES[nome]))
+    for nivel, roi in res.mascaras_osso.items():
+        ks = np.nonzero(roi.any(axis=(1, 2)))[0]
+        if len(ks):
+            segs.append((SimpleNamespace(mask=roi[ks[0]:ks[-1] + 1], offset=(int(ks[0]), 0, 0)),
+                         f"Osso trabecular {nivel}", DO.CORES[nivel]))
     if segs:
         vol = t.vol
         ds = build_seg(vol, segs, vol.source_path, frames=t.frames, series_number=SERIE_SEG, description=DESC_SEG,
@@ -494,18 +531,20 @@ def resumo(res: Resultado) -> str:
     if res.figado:
         partes.append(f"fígado {AC._fmt(res.figado['figado_hu'])}"
                       + (f", fígado − baço {AC._fmt(res.figado['f_menos_b'])}" if "f_menos_b" in res.figado else ""))
+    if res.osso:
+        partes.append(f"osso L1 {AC._fmt(res.osso.get('l1_hu') or {})}, L1–L4 {AC._fmt(res.osso.get('l1l4_hu') or {})}")
     return "; ".join(partes) or "nada medido"
 
 
 def n_itens(res: Resultado) -> int:
-    return int(bool(res.l3)) + int(bool(res.figado))
+    return int(bool(res.l3)) + int(bool(res.figado)) + int(bool(res.osso))
 
 
 def mensagem(res: Resultado, minutos: float) -> str:
     msg = (f"Composição corporal pronta em {minutos:.1f} min — {resumo(res)}. Os números estão em Aplicações ▸ "
            "Achados de IA, para conferir antes do laudo; os compartimentos do corte de L3 estão na série "
            f"“{DESC_SEG}”.")
-    avisos = res.avisos_l3 + res.avisos_figado
+    avisos = res.avisos_l3 + res.avisos_figado + [x for x in res.avisos_osso if x != DO.REFERENCIA]
     if avisos:
         msg += "\n\nConfira: " + "; ".join(avisos) + "."
     return msg
@@ -517,6 +556,8 @@ def frase(a: dict) -> str:
     def v(k, casas=1):
         x = (n.get(k) or {}).get("v")
         return None if x is None else f"{float(x):.{casas}f}".replace(".", ",")
+    if a.get("tipo") == DO.TIPO_OSSO:
+        return DO.frase(a)
     if a.get("tipo") == TIPO_L3:
         txt = f"Composição corporal em L3: área muscular de {v('sma_cm2')} cm²"
         if v("smi"):
