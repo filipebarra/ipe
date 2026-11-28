@@ -514,3 +514,44 @@ def test_martin_sem_imc_mostra_os_dois_cortes_e_aviso_de_contraste(monkeypatch):
     monkeypatch.setattr(C, "_contraste", lambda _t: True)
     res = C.calcular(t, _rotulos(t.vol.data))
     assert any("série com contraste e 100 kVp" in x and "mioesteatose" in x for x in res.avisos_l3)
+
+
+def test_colunas_altura_e_peso_na_lista(env, tmp_path):
+    """0.100.136: Altura e Peso na lista do banco: do DICOM, ou digitados (só no banco, o arquivo não muda)."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication([])
+    from ipe.ai import biometria as B
+    from ipe.ui import browser as BR
+    paths, db, repo = env
+    uid, _s = _exame(env, tmp_path)
+    linha = next(r for r in repo.search_studies("") if r.study_uid == uid)
+    assert linha.altura_m == 1.6 and linha.peso_kg == 58.0
+    assert linha.altura_fonte == "arquivo" and linha.peso_fonte == "arquivo"
+    assert repo.get_app_setting("bio_arq." + uid)["peso_kg"] == 58.0              # lido uma vez e guardado
+    # digitar por cima: só no banco
+    B.guardar_campo(repo, uid, "peso_kg", 61.5)
+    linha = next(r for r in repo.search_studies("") if r.study_uid == uid)
+    assert linha.peso_kg == 61.5 and linha.peso_fonte == "digitado" and linha.altura_fonte == "arquivo"
+    import pydicom
+    arq = repo.instances_for_series(repo.series_for_study(uid)[0].series_uid)[0]["path"]
+    from pathlib import Path
+    arq = Path(arq) if Path(arq).is_absolute() else Path(paths.storage) / arq
+    assert str(pydicom.dcmread(arq, stop_before_pixels=True).PatientWeight) in ("58", "58.0")
+    # apagar o digitado volta ao arquivo; valor absurdo também apaga
+    B.guardar_campo(repo, uid, "peso_kg", "")
+    linha = next(r for r in repo.search_studies("") if r.study_uid == uid)
+    assert linha.peso_kg == 58.0 and linha.peso_fonte == "arquivo"
+    # a tabela: colunas, edição e tooltip
+    m = BR.StudyTableModel()
+    m.set_rows([linha])
+    m.guardar = lambda u, c, v: B.guardar_campo(repo, u, c, v)
+    m.rele = lambda u: {"altura_m": 1.7, "altura_fonte": "digitado", "peso_kg": 58.0, "peso_fonte": "arquivo"}
+    ca, cp = BR.KEY_INDEX["altura_m"], BR.KEY_INDEX["peso_kg"]
+    assert m.data(m.index(0, ca)) == "1,60" and m.data(m.index(0, cp)) == "58,0"
+    assert m.flags(m.index(0, ca)) & Qt.ItemIsEditable and not m.flags(m.index(0, BR.KEY_INDEX["patient_id"])) & Qt.ItemIsEditable
+    assert m.setData(m.index(0, ca), "1,70") and m.data(m.index(0, ca)) == "1,70"
+    assert B.guardado(repo, uid)["altura_m"] == 1.7 and "Digitado" in m.data(m.index(0, ca), Qt.ToolTipRole)
+    assert not m.setData(m.index(0, ca), "abc")
+    assert not m.setData(m.index(0, BR.KEY_INDEX["patient_id"]), "x")
+    assert app is not None

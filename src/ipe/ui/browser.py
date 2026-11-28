@@ -37,6 +37,7 @@ COLUMNS = [
     ("prioridade", "Prioridade", "prioridade"), ("subesp", "Subespecialidade", "text"),
     ("prazo", "Prazo do laudo", "datetime"), ("sla", "SLA", "text"), ("estado", "Estado", "estado"),
     ("protocolo", "Protocolo (RM)", "protocolo"),
+    ("altura_m", "Altura (m)", "float"), ("peso_kg", "Peso (kg)", "float"),
     ("no_computador", "Neste computador", "local"),
     ("case_n", "Nº", "int"), ("case_name", "Caso (lista)", "text"),
 ]
@@ -47,6 +48,8 @@ SENSITIVE = {"patient_name", "patient_id", "birth_date", "accession", "instituti
 ORIGINS = {"import": "importado", "received": "recebido", "retrieved": "baixado", "prefetch": "pré-busca",
            "anonymized": "anonimizado"}
 KEY_INDEX = {c[0]: i for i, c in enumerate(COLUMNS)}
+#: 0.100.136: colunas que se editam na própria lista (duplo clique): ficam só no banco, o DICOM não muda
+EDITAVEIS = ("altura_m", "peso_kg")
 log = logging.getLogger(__name__)
 
 
@@ -146,6 +149,8 @@ class StudyTableModel(QAbstractTableModel):
         self.anonymize = False
         self.case_names: dict[str, str] = {}      # modo reunião: nome amigável no lugar do paciente
         self.settings = None                      # para o perfil de ocultação (0.99.42)
+        self.guardar = None                       # 0.100.136: (study_uid, campo, valor) → grava altura/peso no banco
+        self.rele = None                          # (study_uid) → {"altura_m", "altura_fonte", ...} depois de gravar
         self.locais: dict[str, str] = {}          # 0.100.101: modo cliente, o exame também está aqui?
 
     def set_rows(self, rows: list[StudyRow]) -> None:
@@ -244,6 +249,8 @@ class StudyTableModel(QAbstractTableModel):
                 from ipe.core import estado_exame as EST
                 txt = EST.rotulo(v)
                 return txt + (" ✎" if getattr(r, "estado_manual", "") else "") if txt else ""
+            if key in EDITAVEIS:
+                return "" if not v else (f"{v:.2f}" if key == "altura_m" else f"{v:.1f}").replace(".", ",")
             if kind in ("int", "float") and not v:
                 return ""
             if key == "patient_name":
@@ -276,6 +283,20 @@ class StudyTableModel(QAbstractTableModel):
         if role == Qt.UserRole + 1 and key == "prioridade":
             from ipe.core import sla as SLA
             return SLA.ORDEM.get(getattr(r, "prioridade", ""), 9)
+        if role == Qt.EditRole and key in EDITAVEIS:
+            v = getattr(r, key, 0.0)
+            return "" if not v else (f"{v:.2f}" if key == "altura_m" else f"{v:.1f}").replace(".", ",")
+        if role == Qt.ToolTipRole and key in EDITAVEIS:
+            from ipe.core.i18n import tr
+            fonte = getattr(r, key.split("_")[0] + "_fonte", "")
+            base = {"arquivo": tr("Do cabeçalho DICOM"), "digitado": tr("Digitado — fica só no banco, o arquivo DICOM não muda")
+                    }.get(fonte, tr("Sem valor no DICOM — duplo clique para digitar (fica só no banco)"))
+            return base
+        if role == Qt.FontRole and key in EDITAVEIS and getattr(r, key.split("_")[0] + "_fonte", "") == "digitado":
+            f = QFont()
+            f.setItalic(True)
+            f.setBold(bool(r.unread))
+            return f
         if role == Qt.TextAlignmentRole and kind in ("int", "float"):
             return int(Qt.AlignRight | Qt.AlignVCenter)
         if role == Qt.FontRole and r.unread:
@@ -294,7 +315,36 @@ class StudyTableModel(QAbstractTableModel):
     # arrastar exames da tabela para uma lista (árvore à esquerda)
     def flags(self, index):
         f = super().flags(index)
+        if index.isValid() and COLUMNS[index.column()][0] in EDITAVEIS:
+            f |= Qt.ItemIsEditable
         return f | Qt.ItemIsDragEnabled if index.isValid() else f
+
+    def setData(self, index, value, role=Qt.EditRole):  # noqa: N802
+        """0.100.136: altura e peso digitados na lista; `guardar(study_uid, campo, valor)` grava no banco."""
+        if role != Qt.EditRole or not index.isValid() or COLUMNS[index.column()][0] not in EDITAVEIS:
+            return False
+        key = COLUMNS[index.column()][0]
+        r = self.rows[index.row()]
+        txt = str(value or "").strip().replace(",", ".")
+        if txt:
+            try:
+                num = float(txt)
+            except ValueError:
+                return False
+        else:
+            num = None
+        if self.guardar is None:
+            return False
+        try:
+            self.guardar(r.study_uid, key, num)
+        except Exception:  # noqa: BLE001
+            log.warning("guardar %s", key, exc_info=True)
+            return False
+        novo = (self.rele(r.study_uid) if self.rele else {}) or {}
+        setattr(r, key, float(novo.get(key) or 0.0))
+        setattr(r, key.split("_")[0] + "_fonte", novo.get(key.split("_")[0] + "_fonte", ""))
+        self.dataChanged.emit(index, index)
+        return True
 
     def mimeTypes(self):  # noqa: N802
         from ipe.ui.caselists import STUDIES_MIME
@@ -425,6 +475,8 @@ class Browser(QWidget):
         # --- tabela de estudos
         self.model = StudyTableModel()
         self.model.settings = self.settings
+        self.model.guardar = self._guardar_biometria
+        self.model.rele = self._biometria_da_linha
         self.proxy = FilterProxy([c[2] for c in COLUMNS])
         self.proxy.setSourceModel(self.model)
         self.proxy.setSortRole(Qt.UserRole)
@@ -435,14 +487,14 @@ class Browser(QWidget):
         self.table.setSortingEnabled(True)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setEditTriggers(QAbstractItemView.EditKeyPressed)      # F2; o duplo clique decide em _duplo_clique
         self.table.setDragEnabled(True)                  # arrastar exames para uma lista
         self.table.setDragDropMode(QAbstractItemView.DragOnly)
         self.table.verticalHeader().setVisible(False)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.table.horizontalHeader().setStretchLastSection(False)
         self.table.setAlternatingRowColors(True)
-        self.table.doubleClicked.connect(self._open_selected)
+        self.table.doubleClicked.connect(self._duplo_clique)
         self.table.selectionModel().selectionChanged.connect(self._selection_changed)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._study_menu)
@@ -1667,6 +1719,38 @@ class Browser(QWidget):
 
     def _uids_ocultos(self, study_uid: str) -> set[str]:
         return {se.series_uid for se in self.repo.series_for_study(study_uid, ocultas=True) if se.hidden}
+
+    def _duplo_clique(self, index) -> None:
+        """Em Altura e Peso o duplo clique edita; nas outras colunas abre o exame."""
+        src = self.proxy.mapToSource(index)
+        if src.isValid() and COLUMNS[src.column()][0] in EDITAVEIS:
+            self.table.edit(index)
+            return
+        self._open_selected()
+
+    def _guardar_biometria(self, study_uid: str, campo: str, valor) -> None:
+        from ipe.ai import biometria as B
+        B.guardar_campo(self.repo, study_uid, campo, valor)
+
+    def _biometria_da_linha(self, study_uid: str) -> dict:
+        """O que vale agora para o exame (digitado por cima do arquivo), no formato das colunas."""
+        from ipe.ai import biometria as B
+        v = B.ler(self.repo, study_uid, self._primeiro_arquivo(study_uid))
+        out = {}
+        for campo in ("altura_m", "peso_kg"):
+            out[campo] = v.get(campo) or 0.0
+            out[campo.split("_")[0] + "_fonte"] = (v.get("fonte") or {}).get(campo, "")
+        return out
+
+    def _primeiro_arquivo(self, study_uid: str):
+        try:
+            for se in self.repo.series_for_study(study_uid, ocultas=True):
+                ins = self.repo.instances_for_series(se.series_uid)
+                if ins:
+                    return ins[0]["path"]
+        except Exception:  # noqa: BLE001
+            log.debug("primeiro arquivo do exame", exc_info=True)
+        return None
 
     def _open_selected(self, *_):
         """Um exame abre normal; mais de um abre junto, para comparar."""

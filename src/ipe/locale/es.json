@@ -11210,5 +11210,10 @@
  "VAT (cm²)": "VAT (cm²)",
  "normal": "normal",
  "osteopenia": "osteopenia",
- "osteoporose": "osteoporosis"
+ "osteoporose": "osteoporosis",
+ "Altura (m)": "Altura (m)",
+ "Peso (kg)": "Peso (kg)",
+ "Do cabeçalho DICOM": "Del encabezado DICOM",
+ "Digitado — fica só no banco, o arquivo DICOM não muda": "Escrito a mano — queda solo en la base, el archivo DICOM no cambia",
+ "Sem valor no DICOM — duplo clique para digitar (fica só no banco)": "Sin valor en el DICOM — doble clic para escribirlo (queda solo en la base)"
 }

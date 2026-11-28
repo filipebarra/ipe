@@ -86,6 +86,10 @@ class StudyRow:
     subesp: str = ""              # subespecialidade
     prazo: str = ""               # prazo do laudo, AAAAMMDDHHMM
     sla: str = ""                 # "faltam 5 h", "atrasado 2 h", "no prazo"
+    altura_m: float = 0.0         # 0.100.136: do DICOM (PatientSize) ou digitada (só no banco); 0 = sem
+    peso_kg: float = 0.0
+    altura_fonte: str = ""        # "arquivo" ou "digitado"
+    peso_fonte: str = ""
     sla_estado: str = ""          # ok, atencao, atrasado, no_prazo, fora_do_prazo
     estado: str = ""              # 0.99.63: nao_lido, em_leitura, revisado, urgente (core/estado_exame)
     estado_manual: str = ""       # o trocado à mão ("" = automático)
@@ -268,6 +272,7 @@ class Repository:
                         for item in (val or "").split("; "):
                             if item and item not in d[key]:
                                 d[key].append(item)
+            bio = self._biometria_das_linhas(s, uids)
             rows = []
             fmt = "%Y%m%d%H%M"
             for st, pt, ns, ni, hc, sz, nk, nm, ng in result:
@@ -293,8 +298,64 @@ class Repository:
                     estado=_EST.estado(st.estado_leitura or "", reports.get(st.study_uid, ""), sla.get("prioridade", ""),
                                        bool(st.unread)),
                     estado_manual=st.estado_leitura or "",
+                    **bio.get(st.study_uid, {}),
                     **{k: "; ".join(v) for k, v in details.get(st.study_uid, {}).items()}))
             return rows
+
+    #: 0.100.136: quantos exames sem altura/peso lidos do arquivo são lidos a cada atualização da lista
+    BIOMETRIA_POR_VEZ = 150
+
+    def _biometria_das_linhas(self, s, uids: list[str]) -> dict[str, dict]:
+        """Altura e peso para as colunas da lista: o digitado (só no banco, `biometria.<exame>`) por cima do que veio
+        no cabeçalho DICOM (`bio_arq.<exame>`, lido uma vez do primeiro arquivo e guardado — mesmo sem valor, para
+        não reler). Nunca mexe no arquivo DICOM."""
+        import json as _json
+
+        from ipe.ai import biometria as B
+        if not uids:
+            return {}
+
+        def ler(prefixo):
+            out = {}
+            for k, v in s.execute(select(AppSetting.key, AppSetting.value).where(AppSetting.key.like(prefixo + "%"))):
+                try:
+                    d = _json.loads(v)
+                except ValueError:
+                    continue
+                if isinstance(d, dict):
+                    out[k[len(prefixo):]] = d
+            return out
+        digitado, arquivo = ler("biometria."), ler("bio_arq.")
+        faltam = [u for u in uids if u not in arquivo][:self.BIOMETRIA_POR_VEZ]
+        if faltam:
+            caminhos = {}
+            for uid, path in s.execute(select(Study.study_uid, func.min(Instance.file_path))
+                                       .join(Series, Series.study_fk == Study.id)
+                                       .join(Instance, Instance.series_fk == Series.id)
+                                       .where(Study.study_uid.in_(faltam)).group_by(Study.study_uid)):
+                caminhos[uid] = path
+            for uid in faltam:
+                a = B.do_arquivo(caminhos.get(uid)) if caminhos.get(uid) else {"altura_m": None, "peso_kg": None}
+                arquivo[uid] = {"altura_m": a.get("altura_m"), "peso_kg": a.get("peso_kg")}
+                chave = "bio_arq." + uid
+                reg = s.get(AppSetting, chave)
+                if reg is None:
+                    s.add(AppSetting(key=chave, value=_json.dumps(arquivo[uid])))
+                else:
+                    reg.value = _json.dumps(arquivo[uid])
+            s.commit()
+        out = {}
+        for uid in uids:
+            d, a = digitado.get(uid) or {}, arquivo.get(uid) or {}
+            linha = {}
+            for campo in ("altura_m", "peso_kg"):
+                if d.get(campo) not in (None, ""):
+                    linha[campo], linha[campo.split("_")[0] + "_fonte"] = float(d[campo]), "digitado"
+                elif a.get(campo):
+                    linha[campo], linha[campo.split("_")[0] + "_fonte"] = float(a[campo]), "arquivo"
+            if linha:
+                out[uid] = linha
+        return out
 
     def series_missing_details(self, limit: int = 500) -> list[tuple[str, str]]:
         """Séries de bancos antigos sem operador/estação/aparelho lidos: (série, um arquivo)."""

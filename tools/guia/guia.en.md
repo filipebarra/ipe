@@ -154,7 +154,7 @@ The figures in this guide are screens of the program itself, redone with each ve
 
 ## Study list
 
-The central table lists the studies of the selected location. Above it: the **Search** field, the **Columns ▾** button (chooses which columns appear) and **Clear filters**. The right-hand panel shows the series of the selected study.
+The central table lists the studies of the selected location. Above it: the **Search** field, the **Columns ▾** button (chooses which columns appear) and **Clear filters**. The right-hand panel shows the series of the selected study. The **Height (m)** and **Weight (kg)** columns show what comes from the DICOM header; with no value, **double-click** the cell (or F2) and type it — kept only in the database, the DICOM file is not changed; empty goes back to the file's.
 
 ![The database screen with the sample studies (anonymized). On the left, the locations and the case bank; on the right, the series and comments of the chosen study.](banco.png)
 

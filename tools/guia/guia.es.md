@@ -153,7 +153,7 @@ Las figuras de esta guía son pantallas del propio programa, rehechas con cada v
 
 ## Lista de estudios
 
-La tabla central lista los estudios de la ubicación seleccionada. Encima: el campo **Buscar**, el botón **Columnas ▾** (elige qué columnas aparecen) y **Limpiar filtros**. El panel de la derecha muestra las series del estudio seleccionado.
+La tabla central lista los estudios de la ubicación seleccionada. Encima: el campo **Buscar**, el botón **Columnas ▾** (elige qué columnas aparecen) y **Limpiar filtros**. El panel de la derecha muestra las series del estudio seleccionado. Las columnas **Altura (m)** y **Peso (kg)** muestran lo que viene del encabezado DICOM; sin valor, haga **doble clic** en la celda (o F2) y escríbalo — queda solo en la base, el archivo DICOM no cambia; vacío vuelve al del archivo.
 
 ![La pantalla de la base de datos con los estudios de ejemplo (anonimizados). A la izquierda, las ubicaciones y el banco de casos; a la derecha, las series y los comentarios del estudio elegido.](banco.png)
 

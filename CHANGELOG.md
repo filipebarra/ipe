@@ -3,6 +3,12 @@
 *O programa se chamou **DicomViewer** até a versão 0.99.10. [Voltar ao README](README.pt-BR.md) ·
 [English](CHANGELOG.en.md) · [Español](CHANGELOG.es.md)*
 
+## 0.100.136 — Altura e peso nas colunas da lista do banco
+Pedido (28/11/2026): ver peso e altura nas colunas do banco; sem valor no DICOM, poder digitar; o digitado fica só no banco.
+- Duas colunas novas, **Altura (m)** e **Peso (kg)** (botão direito no título ▸ Colunas). Mostram o que vem do cabeçalho DICOM (PatientSize e PatientWeight) e, quando o arquivo não tem, ficam vazias.
+- **Duplo clique** na célula (ou F2) para digitar; vazio apaga o digitado e volta ao valor do arquivo. O digitado aparece em itálico e fica **só no banco** — o arquivo DICOM não muda. É o mesmo valor que as contas de IA (índice muscular, IMC, SUV) já usavam.
+- O valor do arquivo é lido uma vez por exame (150 exames por atualização da lista nos bancos antigos) e guardado, então a lista não fica lenta.
+
 ## 0.100.135 — Mioesteatose: dois cortes sem IMC; aviso de contraste e kVp no músculo
 - O corte de mioesteatose já era escolhido pelo IMC (< 41 HU se IMC < 25; < 33 HU se IMC ≥ 25, igual para os dois sexos). **Sem altura ou peso** o texto agora mostra **os dois cortes**, sem classificar.
 - Série **com contraste** ou **kVp ≠ 120**: aviso de que a densidade muscular (HU) pode estar alterada. A linha **não é desligada**, porque os cortes de Martin vieram de TCs de rotina, muitas com contraste.

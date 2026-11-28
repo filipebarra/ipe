@@ -3,6 +3,12 @@
 *The program was called **DicomViewer** up to version 0.99.10. [Back to the README](README.md).
 The full history, with every version, is in Portuguese: [CHANGELOG.md](CHANGELOG.md).*
 
+## 0.100.136 — Height and weight columns in the database list
+Request (11/28/2026): see weight and height as database columns; if the DICOM has none, be able to type it; what is typed stays only in the database.
+- Two new columns, **Height (m)** and **Weight (kg)** (right-click the header ▸ Columns). They show what comes from the DICOM header (PatientSize and PatientWeight) and stay empty when the file has none.
+- **Double-click** the cell (or F2) to type; empty deletes the typed value and goes back to the file's. Typed values are shown in italics and kept **only in the database** — the DICOM file is not changed. It is the same value the AI calculations (muscle index, BMI, SUV) already used.
+- The file value is read once per study (150 studies per list refresh in older databases) and stored, so the list does not slow down.
+
 ## 0.100.135 — Myosteatosis: both cutoffs without BMI; contrast and kVp warning on muscle
 - The myosteatosis cutoff was already chosen by BMI (< 41 HU if BMI < 25; < 33 HU if BMI ≥ 25, same for both sexes). **Without height or weight** the text now shows **both cutoffs**, without classifying.
 - Series **with contrast** or **kVp ≠ 120**: warning that muscle density (HU) may be altered. The line is **not turned off**, because Martin's cutoffs came from routine CTs, many with contrast.

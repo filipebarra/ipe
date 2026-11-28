@@ -134,3 +134,19 @@ def imc(altura_m, peso_kg) -> float | None:
     if not a or not p:
         return None
     return round(p / a ** 2, 1)
+
+
+def guardar_campo(repo, study_uid: str, campo: str, valor) -> dict:
+    """0.100.136: troca só a altura ("altura_m") ou só o peso ("peso_kg") digitados na lista do banco, sem mexer no
+    sexo e na glicemia já guardados. Valor vazio ou inválido apaga o digitado (volta o do arquivo DICOM). O arquivo
+    DICOM nunca é alterado: fica só no banco."""
+    g = dict(guardado(repo, study_uid))
+    if campo == "altura_m":
+        g["altura_m"] = _altura(valor) if valor not in (None, "") else None
+    elif campo == "peso_kg":
+        g["peso_kg"] = _peso(valor) if valor not in (None, "") else None
+    else:
+        raise ValueError(campo)
+    if repo is not None and study_uid:
+        repo.guardar_biometria(study_uid, g)
+    return g

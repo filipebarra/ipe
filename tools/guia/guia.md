@@ -153,7 +153,7 @@ As figuras deste guia são telas do próprio programa, refeitas a cada versão, 
 
 ## Lista de exames
 
-A tabela central lista os exames do local selecionado. Em cima dela: o campo **Buscar**, o botão **Colunas ▾** (escolhe quais colunas aparecem) e **Limpar filtros**. O painel da direita mostra as séries do exame selecionado.
+A tabela central lista os exames do local selecionado. Em cima dela: o campo **Buscar**, o botão **Colunas ▾** (escolhe quais colunas aparecem) e **Limpar filtros**. O painel da direita mostra as séries do exame selecionado. As colunas **Altura (m)** e **Peso (kg)** mostram o que vem do cabeçalho DICOM; sem valor, dê **duplo clique** na célula (ou F2) e digite — fica só no banco, o arquivo DICOM não muda; vazio volta ao do arquivo.
 
 ![A tela do banco de dados com os exames de exemplo (anonimizados). À esquerda, os locais e o banco de casos; à direita, as séries e os comentários do exame escolhido.](banco.png)
 
