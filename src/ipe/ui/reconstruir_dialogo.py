@@ -56,6 +56,8 @@ class ReconstruirDialog(QDialog):
         self.tabela.setHorizontalHeaderLabels([tr("O que"), tr("Quantos")])
         self.tabela.verticalHeader().setVisible(False)
         self.tabela.setEditTriggers(QTableWidget.NoEditTriggers)
+        from ipe.ui.tabelas import colunas_ajustaveis
+        colunas_ajustaveis(self.tabela)
         self.tabela.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         lay.addWidget(self.tabela, 1)
         g = QGroupBox(tr("Reconstrução parcial (rápida)"))
